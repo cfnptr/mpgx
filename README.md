@@ -9,4 +9,4 @@
 * [X11](https://www.x.org/) (Linux only)
 
 ## Third-party
-* [glfw](https://github.com/glfw/glfw/)
+* [glfw](https://github.com/glfw/glfw/) (Zlib License)

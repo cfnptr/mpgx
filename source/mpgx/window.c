@@ -13,6 +13,8 @@ struct Window
 {
 	enum GraphicsAPI api;
 	struct GLFWwindow* handle;
+	double updateTime;
+	double deltaTime;
 };
 
 static bool graphicsInitialized = false;
@@ -59,10 +61,12 @@ struct Window* createWindow(
 		return NULL;
 
 	window->api = api;
+	window->updateTime = 0.0;
+	window->deltaTime = 0.0;
 
 	glfwDefaultWindowHints();
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (window->api == VULKAN_GRAPHICS_API)
 	{
 		// TODO:
 		return NULL;
@@ -159,6 +163,19 @@ void destroyWindow(
 	free(window);
 }
 
+double getWindowUpdateTime(
+	struct Window* window)
+{
+	assert(window != NULL);
+	return window->updateTime;
+}
+double getWindowDeltaTime(
+	struct Window* window)
+{
+	assert(window != NULL);
+	return window->deltaTime;
+}
+
 void startWindowUpdate(
 	struct Window* window)
 {
@@ -166,8 +183,6 @@ void startWindowUpdate(
 
 	struct GLFWwindow* handle =
 		window->handle;
-
-	double lastTime;
 
 	if (window->api == VULKAN_GRAPHICS_API)
 	{
@@ -180,16 +195,13 @@ void startWindowUpdate(
 		{
 			glfwPollEvents();
 
-			double currentTime = glfwGetTime();
-			double deltaTime = currentTime - lastTime;
-			lastTime = currentTime;
-
-			printf("%f\n", deltaTime);
+			double time = glfwGetTime();
+			window->deltaTime = time - window->updateTime;
+			window->updateTime = time;
 
 			// TODO: render
 
-			glfwSwapBuffers(
-				handle);
+			glfwSwapBuffers(handle);
 		}
 	}
 	else

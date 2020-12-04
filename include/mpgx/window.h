@@ -25,5 +25,10 @@ struct Window* createWindow(
 void destroyWindow(
 	struct Window* window);
 
+double getWindowUpdateTime(
+	struct Window* window);
+double getWindowDeltaTime(
+	struct Window* window);
+
 void startWindowUpdate(
 	struct Window* window);

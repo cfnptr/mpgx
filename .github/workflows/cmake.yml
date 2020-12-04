@@ -16,9 +16,9 @@ jobs:
       with:
         submodules: true
        
-    - if: matrix.os == 'ubuntu-latest'   
+    - if: matrix.os == 'ubuntu-latest' 
       name: Install xorg-dev
-      run: sudo apt install xorg-dev
+      run: sudo apt-get update && sudo apt-get install xorg-dev
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build

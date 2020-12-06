@@ -24,7 +24,8 @@ add_subdirectory(libraries/glfw)
 
 add_library(mpgx STATIC
 	source/glad/glad.c
-        source/mpgx/window.c)
+	source/mpgx/shader.c
+	source/mpgx/window.c)
 target_link_libraries(mpgx PUBLIC
 	glfw)
 target_include_directories(mpgx PUBLIC

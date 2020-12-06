@@ -3,11 +3,8 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
-#include <assert.h>
-#include <stdbool.h>
-
-// TMP
 #include <stdio.h>
+#include <stdbool.h>
 
 struct Window
 {
@@ -19,6 +16,16 @@ struct Window
 
 static bool graphicsInitialized = false;
 
+void glfwErrorCallback(
+	int error,
+	const char* description)
+{
+	fprintf(
+		stderr,
+		"ERROR: %s\n",
+		description);
+}
+
 bool initializeGraphics()
 {
 	if (graphicsInitialized == true)
@@ -28,6 +35,9 @@ bool initializeGraphics()
 
 	if(result == GLFW_FALSE)
 		return false;
+
+	glfwSetErrorCallback(
+		glfwErrorCallback);
 
 	graphicsInitialized = true;
 	return true;
@@ -47,12 +57,12 @@ struct Window* createWindow(
 	size_t height,
 	const char* title)
 {
-	assert(width > 0);
-	assert(height > 0);
-	assert(title != NULL);
-
-	if (graphicsInitialized == false)
+	if (width == 0 ||
+		height == 0 ||
+		graphicsInitialized == false)
+	{
 		return NULL;
+	}
 
 	struct Window* window =
 		malloc(sizeof(struct Window));
@@ -123,63 +133,76 @@ struct Window* createWindow(
 	}
 	else
 	{
-		abort();
+		free(window);
+		return NULL;
 	}
 
-	struct GLFWwindow* handle = glfwCreateWindow(
-		width,
-		height,
+	window->handle = glfwCreateWindow(
+		(int)width,
+		(int)height,
 		title,
 		NULL,
 		NULL);
 
-	if (handle == NULL)
+	if (window->handle == NULL)
 	{
 		free(window);
 		return NULL;
 	}
 
-	glfwMakeContextCurrent(handle);
+	glfwMakeContextCurrent(window->handle);
 
 	if (gladLoadGL() == 0)
 	{
-		glfwDestroyWindow(handle);
+		glfwDestroyWindow(window->handle);
 		free(window);
 		return NULL;
 	}
 
-	window->handle = handle;
 	return window;
 }
 void destroyWindow(
 	struct Window* window)
 {
-	if (window != NULL)
-	{
-		glfwDestroyWindow(
-			window->handle);
-	}
-
+	if (window == NULL)
+        return;
+    
+    glfwDestroyWindow(window->handle);
 	free(window);
 }
 
-double getWindowUpdateTime(
-	struct Window* window)
+bool getWindowUpdateTime(
+	struct Window* window,
+	double* time)
 {
-	assert(window != NULL);
-	return window->updateTime;
+	if (window == NULL ||
+		time == NULL)
+	{
+		return NULL;
+	}
+
+	*time = window->updateTime;
+	return true;
 }
-double getWindowDeltaTime(
-	struct Window* window)
+bool getWindowDeltaTime(
+	struct Window* window,
+	double* time)
 {
-	assert(window != NULL);
-	return window->deltaTime;
+	if (window == NULL ||
+		time == NULL)
+	{
+		return NULL;
+	}
+
+	*time = window->deltaTime;
+	return true;
 }
 
-void startWindowUpdate(
+bool startWindowUpdate(
 	struct Window* window)
 {
-	assert(window != NULL);
+	if (window == NULL)
+		return false;
 
 	struct GLFWwindow* handle =
 		window->handle;
@@ -187,6 +210,7 @@ void startWindowUpdate(
 	if (window->api == VULKAN_GRAPHICS_API)
 	{
 		//TODO:
+		return false;
 	}
 	else if (window->api == OPENGL_GRAPHICS_API ||
 		window->api == OPENGL_ES_GRAPHICS_API)
@@ -206,6 +230,37 @@ void startWindowUpdate(
 	}
 	else
 	{
-		abort();
+		return false;
 	}
+}
+
+struct Shader* createShader(
+	struct Window* window,
+	enum ShaderStage stage,
+	const char* code)
+{
+	if (window == NULL ||
+		code == NULL)
+	{
+		return NULL;
+	}
+
+	if (window->api == VULKAN_GRAPHICS_API)
+	{
+		// TODO:
+		return NULL;
+	}
+	else if (window->api == OPENGL_GRAPHICS_API)
+	{
+		return NULL;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+void destroyShader(
+	struct Shader* shader)
+{
+
 }

@@ -12,7 +12,14 @@ enum GraphicsAPI
 	OPENGL_ES_GRAPHICS_API
 };
 
+enum ShaderStage
+{
+	VERTEX_SHADER_STAGE,
+	FRAGMENT_SHADER_STAGE,
+};
+
 struct Window;
+struct Shader;
 
 bool initializeGraphics();
 void terminateGraphics();
@@ -25,10 +32,19 @@ struct Window* createWindow(
 void destroyWindow(
 	struct Window* window);
 
-double getWindowUpdateTime(
-	struct Window* window);
-double getWindowDeltaTime(
+bool getWindowUpdateTime(
+	struct Window* window,
+	double* time);
+bool getWindowDeltaTime(
+	struct Window* window,
+	double* time);
+
+bool startWindowUpdate(
 	struct Window* window);
 
-void startWindowUpdate(
-	struct Window* window);
+struct Shader* createShader(
+	struct Window* window,
+	enum ShaderStage stage,
+	const char* code);
+void destroyShader(
+	struct Shader* shader);

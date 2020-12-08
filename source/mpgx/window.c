@@ -4,7 +4,11 @@
 #include "GLFW/glfw3.h"
 
 #include <stdio.h>
+#include <assert.h>
 #include <stdbool.h>
+
+#define OPENGL_SHADER_HEADER "#version 330 core\n\n#define highp \n#define mediump \n#define lowp \n"
+#define OPENGL_ES_SHADER_HEADER "#version 300 es\n"
 
 struct Window
 {
@@ -12,6 +16,41 @@ struct Window
 	struct GLFWwindow* handle;
 	double updateTime;
 	double deltaTime;
+};
+
+struct Buffer
+{
+	enum GraphicsAPI api;
+	void* handle;
+};
+struct GlBuffer
+{
+	struct Window* window;
+	GLenum type;
+	GLuint handle;
+};
+
+struct Image
+{
+	enum GraphicsAPI api;
+	void* handle;
+};
+struct GlImage
+{
+	struct Window* window;
+	GLenum type;
+	GLuint handle;
+};
+
+struct Shader
+{
+	enum GraphicsAPI api;
+	void* handle;
+};
+struct GlShader
+{
+	struct Window* window;
+	GLuint handle;
 };
 
 static bool graphicsInitialized = false;
@@ -22,8 +61,9 @@ void glfwErrorCallback(
 {
 	fprintf(
 		stderr,
-		"ERROR: %s\n",
+		"GLFW ERROR: %s\n",
 		description);
+	abort();
 }
 
 bool initializeGraphics()
@@ -50,6 +90,10 @@ void terminateGraphics()
 	glfwTerminate();
 	graphicsInitialized = false;
 }
+bool getGraphicsInitialized()
+{
+	return graphicsInitialized;
+}
 
 struct Window* createWindow(
 	enum GraphicsAPI api,
@@ -57,12 +101,9 @@ struct Window* createWindow(
 	size_t height,
 	const char* title)
 {
-	if (width == 0 ||
-		height == 0 ||
-		graphicsInitialized == false)
-	{
-		return NULL;
-	}
+	assert(width != 0);
+	assert(height != 0);
+	assert(title != NULL);
 
 	struct Window* window =
 		malloc(sizeof(struct Window));
@@ -76,12 +117,7 @@ struct Window* createWindow(
 
 	glfwDefaultWindowHints();
 
-	if (window->api == VULKAN_GRAPHICS_API)
-	{
-		// TODO:
-		return NULL;
-	}
-	else if (api == OPENGL_GRAPHICS_API)
+	if (api == OPENGL_GRAPHICS_API)
 	{
 		glfwWindowHint(
 			GLFW_CLIENT_API,
@@ -133,8 +169,7 @@ struct Window* createWindow(
 	}
 	else
 	{
-		free(window);
-		return NULL;
+		abort();
 	}
 
 	window->handle = glfwCreateWindow(
@@ -150,7 +185,8 @@ struct Window* createWindow(
 		return NULL;
 	}
 
-	glfwMakeContextCurrent(window->handle);
+	glfwMakeContextCurrent(
+		window->handle);
 
 	if (gladLoadGL() == 0)
 	{
@@ -171,49 +207,32 @@ void destroyWindow(
 	free(window);
 }
 
-bool getWindowUpdateTime(
-	struct Window* window,
-	double* time)
-{
-	if (window == NULL ||
-		time == NULL)
-	{
-		return NULL;
-	}
-
-	*time = window->updateTime;
-	return true;
-}
-bool getWindowDeltaTime(
-	struct Window* window,
-	double* time)
-{
-	if (window == NULL ||
-		time == NULL)
-	{
-		return NULL;
-	}
-
-	*time = window->deltaTime;
-	return true;
-}
-
-bool startWindowUpdate(
+double getWindowUpdateTime(
 	struct Window* window)
 {
-	if (window == NULL)
-		return false;
+	assert(window != NULL);
+	return window->updateTime;
+}
+double getWindowDeltaTime(
+	struct Window* window)
+{
+	assert(window != NULL);
+	return window->deltaTime;
+}
+
+void startWindowUpdate(
+	struct Window* window)
+{
+	assert(window != NULL);
 
 	struct GLFWwindow* handle =
 		window->handle;
 
-	if (window->api == VULKAN_GRAPHICS_API)
-	{
-		//TODO:
-		return false;
-	}
-	else if (window->api == OPENGL_GRAPHICS_API ||
-		window->api == OPENGL_ES_GRAPHICS_API)
+	enum GraphicsAPI api =
+		window->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 		while (glfwWindowShouldClose(handle) == GLFW_FALSE)
 		{
@@ -230,37 +249,763 @@ bool startWindowUpdate(
 	}
 	else
 	{
-		return false;
+		abort();
 	}
 }
 
-struct Shader* createShader(
+static struct GlBuffer* createGlBuffer(
 	struct Window* window,
-	enum ShaderStage stage,
-	const char* code)
+	enum BufferType _type,
+	const void* data,
+	size_t size,
+	bool constant)
 {
-	if (window == NULL ||
-		code == NULL)
-	{
-		return NULL;
-	}
+	struct GlBuffer* buffer = malloc(
+		sizeof(struct GlBuffer));
 
-	if (window->api == VULKAN_GRAPHICS_API)
-	{
-		// TODO:
+	if (buffer == NULL)
 		return NULL;
+
+	glfwMakeContextCurrent(
+		window->handle);
+
+	GLenum type;
+
+	if (_type == VERTEX_BUFFER_TYPE)
+	{
+		type = GL_ARRAY_BUFFER;
 	}
-	else if (window->api == OPENGL_GRAPHICS_API)
+	else if (_type == INDEX_BUFFER_TYPE)
 	{
-		return NULL;
+		type = GL_ELEMENT_ARRAY_BUFFER;
+	}
+	else if (_type == UNIFORM_BUFFER_TYPE)
+	{
+		type = GL_UNIFORM_BUFFER;
 	}
 	else
 	{
+		free(buffer);
 		return NULL;
 	}
+
+	GLuint handle = GL_ZERO;
+
+	glGenBuffers(
+		GL_ONE,
+		&handle);
+
+	if (handle == GL_ZERO)
+	{
+		free(buffer);
+		return NULL;
+	}
+
+	GLenum usage = constant ?
+		GL_DYNAMIC_DRAW :
+		GL_STATIC_DRAW;
+
+	glBindBuffer(
+		type,
+		handle);
+	glBufferData(
+		type,
+		(GLsizeiptr)(size),
+		data,
+		usage);
+	glBindBuffer(
+		type,
+		GL_ZERO);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	buffer->type = type;
+	buffer->handle = handle;
+	return buffer;
+}
+struct Buffer* createBuffer(
+	struct Window* window,
+	enum BufferType type,
+	const void* data,
+	size_t size,
+	bool constant)
+{
+	assert(window != NULL);
+	assert(size != 0);
+
+	struct Buffer* buffer =
+		malloc(sizeof(struct Buffer));
+
+	if (buffer == NULL)
+		return NULL;
+
+	enum GraphicsAPI api =
+		window->api;
+
+	void* handle;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		handle = createGlBuffer(
+			window,
+			type,
+			data,
+			size,
+			constant);
+	}
+	else
+	{
+		abort();
+	}
+
+	if (handle == NULL)
+	{
+		free(buffer);
+		return NULL;
+	}
+
+	buffer->api = api;
+	buffer->handle = handle;
+	return buffer;
+}
+
+static void destroyGlBuffer(
+	struct GlBuffer* buffer)
+{
+	glfwMakeContextCurrent(
+		buffer->window->handle);
+
+	glDeleteBuffers(
+		GL_ONE,
+		&buffer->handle);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	free(buffer);
+}
+void destroyBuffer(
+	struct Buffer* buffer)
+{
+	if (buffer == NULL)
+		return;
+
+	enum GraphicsAPI api =
+		buffer->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		destroyGlBuffer(
+			(struct GlBuffer*)buffer->handle);
+	}
+	else
+	{
+		abort();
+	}
+}
+
+enum GraphicsAPI getBufferAPI(
+	const struct Buffer* buffer)
+{
+	assert(buffer != NULL);
+	return buffer->api;
+}
+
+static enum BufferType getGlBufferType(
+	const struct GlBuffer* buffer)
+{
+	GLenum type = buffer->type;
+
+	if (type == GL_ARRAY_BUFFER)
+		return VERTEX_BUFFER_TYPE;
+	else if (type == GL_ELEMENT_ARRAY_BUFFER)
+		return INDEX_BUFFER_TYPE;
+	else if (type == GL_UNIFORM_BUFFER)
+		return UNIFORM_BUFFER_TYPE;
+	else
+		abort();
+}
+enum BufferType getBufferType(
+	const struct Buffer* buffer)
+{
+	assert(buffer != NULL);
+
+	enum GraphicsAPI api =
+		buffer->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return getGlBufferType(
+			(struct GlBuffer*)buffer->handle);
+	}
+	else
+	{
+		abort();
+	}
+}
+
+static size_t getGlBufferSize(
+	const struct GlBuffer* buffer)
+{
+	glfwMakeContextCurrent(
+		buffer->window->handle);
+
+	GLint size;
+
+	glBindBuffer(
+		buffer->type,
+		buffer->handle);
+	glGetBufferParameteriv(
+		buffer->type,
+		GL_BUFFER_SIZE,
+		&size);
+	glBindBuffer(
+		buffer->type,
+		GL_ZERO);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	return (size_t)size;
+}
+size_t getBufferSize(
+	const struct Buffer* buffer)
+{
+	assert(buffer != NULL);
+
+	enum GraphicsAPI api =
+		buffer->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return getGlBufferSize(
+			(struct GlBuffer*)buffer->handle);
+	}
+	else
+	{
+		abort();
+	}
+}
+
+bool getGlBufferConstant(
+	const struct GlBuffer* buffer)
+{
+	glfwMakeContextCurrent(
+		buffer->window->handle);
+
+	GLint usage;
+
+	glBindBuffer(
+		buffer->type,
+		buffer->handle);
+	glGetBufferParameteriv(
+		buffer->type,
+		GL_BUFFER_USAGE,
+		&usage);
+	glBindBuffer(
+		buffer->type,
+		GL_ZERO);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	return usage == GL_DYNAMIC_DRAW ||
+		usage == GL_DYNAMIC_READ ||
+		usage == GL_STREAM_DRAW ||
+		usage == GL_STREAM_READ;
+}
+bool getBufferConstant(
+	const struct Buffer* buffer)
+{
+	assert(buffer != NULL);
+
+	enum GraphicsAPI api =
+		buffer->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return getGlBufferConstant(
+			(struct GlBuffer*)buffer->handle);
+	}
+	else
+	{
+		abort();
+	}
+}
+
+static struct GlImage* createGlImage(
+	struct Window* window,
+	enum ImageType _type,
+	enum ImageFormat _format,
+	size_t width,
+	size_t height,
+	size_t depth,
+	const void* pixels,
+	bool mipmap)
+{
+	struct GlImage* image = malloc(
+		sizeof(struct GlImage));
+
+	if (image == NULL)
+		return NULL;
+
+	glfwMakeContextCurrent(
+		window->handle);
+
+	GLenum type;
+
+	if (_type == IMAGE_1D_TYPE)
+	{
+		type = GL_TEXTURE_1D;
+	}
+	else if (_type == IMAGE_2D_TYPE)
+	{
+		type = GL_TEXTURE_2D;
+	}
+	else if (_type == IMAGE_3D_TYPE)
+	{
+		type = GL_TEXTURE_3D;
+	}
+	else
+	{
+		free(image);
+		return NULL;
+	}
+
+	GLenum format;
+	GLenum dataFormat;
+	GLenum dataType;
+
+	switch (_format)
+	{
+	default:
+		free(image);
+		return NULL;
+	case R8G8B8A8_UNORM_IMAGE_FORMAT:
+		format = GL_RGBA8;
+		dataFormat = GL_RGBA;
+		dataType = GL_UNSIGNED_BYTE;
+		break;
+	case R8G8B8A8_SRGB_IMAGE_FORMAT:
+		format = GL_SRGB8_ALPHA8;
+		dataFormat = GL_RGBA;
+		dataType = GL_UNSIGNED_BYTE;
+		break;
+	}
+
+	GLuint handle = GL_ZERO;
+
+	glGenTextures(
+		GL_ONE,
+		&handle);
+
+	if (handle == GL_ZERO)
+	{
+		free(image);
+		return NULL;
+	}
+
+	glBindTexture(
+		type,
+		handle);
+
+	if (_type == IMAGE_1D_TYPE)
+	{
+		glTexImage1D(
+			type,
+			0,
+			format,
+			(GLsizei)width,
+			0,
+			dataFormat,
+			dataType,
+			pixels);
+	}
+	else if (_type == IMAGE_2D_TYPE)
+	{
+		glTexImage2D(
+			type,
+			0,
+			format,
+			(GLsizei)width,
+			(GLsizei)height,
+			0,
+			dataFormat,
+			dataType,
+			pixels);
+	}
+	else
+	{
+		glTexImage3D(
+			type,
+			0,
+			format,
+			(GLsizei)width,
+			(GLsizei)height,
+			(GLsizei)depth,
+			0,
+			dataFormat,
+			dataType,
+			pixels);
+	}
+
+	if (mipmap)
+		glGenerateMipmap(type);
+
+	glBindTexture(
+		type,
+		GL_ZERO);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	image->window = window;
+	image->type = type;
+	image->handle = handle;
+	return image;
+}
+struct Image* createImage(
+	struct Window* window,
+	enum ImageType type,
+	enum ImageFormat format,
+	size_t width,
+	size_t height,
+	size_t depth,
+	const void* pixels,
+	bool mipmap)
+{
+	assert(window != NULL);
+	assert(width != 0);
+	assert(height != 0);
+	assert(depth != 0);
+
+	struct Image* image =
+		malloc(sizeof(struct Image));
+
+	if (image == NULL)
+		return NULL;
+
+	enum GraphicsAPI api =
+		window->api;
+
+	void* handle;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		handle = createGlImage(
+			window,
+			type,
+			format,
+			width,
+			height,
+			depth,
+			pixels,
+			mipmap);
+	}
+	else
+	{
+		abort();
+	}
+
+	if (handle == NULL)
+	{
+		free(image);
+		return NULL;
+	}
+
+	image->api = api;
+	image->handle = handle;
+	return image;
+}
+
+void destroyGlImage(
+	struct GlImage* image)
+{
+	glfwMakeContextCurrent(
+		image->window->handle);
+
+	glDeleteTextures(
+		GL_ONE,
+		&image->handle);
+
+	free(image);
+}
+void destroyImage(
+	struct Image* image)
+{
+	if (image == NULL)
+		return;
+
+	enum GraphicsAPI api = image->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		destroyGlImage(
+			(struct GlImage*)image->handle);
+	}
+	else
+	{
+		abort();
+	}
+}
+
+static struct GlShader* createGlShader(
+	struct Window* window,
+	enum ShaderStage _stage,
+	const void* program,
+	bool gles)
+{
+	struct GlShader* shader = malloc(
+		sizeof(struct GlShader));
+
+	GLenum stage;
+
+	glfwMakeContextCurrent(
+		window->handle);
+
+	if (_stage == VERTEX_SHADER_STAGE)
+	{
+		stage = GL_VERTEX_SHADER;
+	}
+	else if (_stage == FRAGMENT_SHADER_STAGE)
+	{
+		stage = GL_FRAGMENT_SHADER;
+	}
+	else if (_stage == COMPUTE_SHADER_STAGE)
+	{
+		stage = GL_COMPUTE_SHADER;
+	}
+	else
+	{
+		free(shader);
+		return NULL;
+	}
+
+	GLuint handle = glCreateShader(stage);
+
+	if (handle == GL_ZERO)
+	{
+		free(shader);
+		return NULL;
+	}
+
+	const char* sources[2];
+
+	if (gles == false)
+		sources[0] = OPENGL_SHADER_HEADER;
+	else
+		sources[0] = OPENGL_ES_SHADER_HEADER;
+
+	sources[1] = (const char*)program;
+
+	glShaderSource(
+		handle,
+		2,
+		sources,
+		NULL);
+
+	glCompileShader(handle);
+
+	GLint compileResult;
+
+	glGetShaderiv(
+		handle,
+		GL_COMPILE_STATUS,
+		&compileResult);
+
+	if (compileResult == GL_FALSE)
+	{
+#ifndef NDEBUG
+		GLint length = 0;
+
+		glGetShaderiv(
+			handle,
+			GL_INFO_LOG_LENGTH,
+			&length);
+
+		if (length > 0)
+		{
+			char infoLog[length];
+
+			glGetShaderInfoLog(
+				handle,
+				length,
+				&length,
+				infoLog);
+
+			printf("%s\n", infoLog);
+		}
+#endif
+
+		GLenum error = glGetError();
+
+		if (error != GL_NO_ERROR)
+			abort();
+
+		free(shader);
+		glDeleteShader(handle);
+		return NULL;
+	}
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	shader->window = window;
+	shader->handle = handle;
+	return shader;
+}
+struct Shader* createShader(
+	struct Window* window,
+	enum ShaderStage stage,
+	const void* program,
+	size_t size)
+{
+	assert(window != NULL);
+	assert(program != NULL);
+	assert(size != 0);
+
+	struct Shader* shader =
+		malloc(sizeof(struct Shader));
+
+	if (shader == NULL)
+		return NULL;
+
+	enum GraphicsAPI api =
+		window->api;
+
+	void* handle;
+
+	if (api == OPENGL_GRAPHICS_API)
+	{
+		handle = createGlShader(
+			window,
+			stage,
+			program,
+			false);
+	}
+	else if (api == OPENGL_ES_GRAPHICS_API)
+	{
+		handle = createGlShader(
+			window,
+			stage,
+			program,
+			true);
+	}
+	else
+	{
+		abort();
+	}
+
+	if (handle == NULL)
+	{
+		free(shader);
+		return NULL;
+	}
+
+	shader->api = api;
+	shader->handle = handle;
+	return shader;
+}
+
+static void destroyGlShader(
+	struct GlShader* shader)
+{
+	glfwMakeContextCurrent(
+		shader->window->handle);
+
+	glDeleteShader(shader->handle);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	free(shader);
 }
 void destroyShader(
 	struct Shader* shader)
 {
+	if (shader == NULL)
+		return;
 
+	enum GraphicsAPI api =
+		shader->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		destroyGlShader(
+			(struct GlShader*)shader->handle);
+	}
+	else
+	{
+		abort();
+	}
+}
+
+static enum ShaderStage getGlShaderStage(
+	struct GlShader* shader)
+{
+	glfwMakeContextCurrent(
+		shader->window->handle);
+
+	GLint stage;
+
+	glGetShaderiv(
+		shader->handle,
+		GL_SHADER_TYPE,
+		&stage);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	if (stage == GL_VERTEX_SHADER)
+		return VERTEX_SHADER_STAGE;
+	else if (stage == GL_FRAGMENT_SHADER)
+		return FRAGMENT_SHADER_STAGE;
+	else if (stage == GL_COMPUTE_SHADER)
+		return COMPUTE_SHADER_STAGE;
+	else
+		abort();
+}
+enum ShaderStage getShaderStage(
+	struct Shader* shader)
+{
+	assert(shader != NULL);
+
+	enum GraphicsAPI api =
+		shader->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return getGlShaderStage(
+			(struct GlShader*)shader->handle);
+	}
+	else
+	{
+		abort();
+	}
 }

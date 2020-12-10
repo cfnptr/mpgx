@@ -25,7 +25,6 @@ enum ImageType
 	IMAGE_1D_TYPE,
 	IMAGE_2D_TYPE,
 	IMAGE_3D_TYPE,
-	ss,
 	// TODO: cubemaps
 };
 
@@ -34,6 +33,12 @@ enum ImageFormat
 	R8G8B8A8_UNORM_IMAGE_FORMAT,
 	R8G8B8A8_SRGB_IMAGE_FORMAT,
 	// TODO: add other formats
+};
+
+enum DrawMode
+{
+	// TODO:
+	TODO
 };
 
 enum ShaderStage
@@ -48,6 +53,7 @@ struct Window;
 struct Buffer;
 struct Image;
 struct Shader;
+struct Mesh;
 //struct Pipeline;
 //struct Framebuffer;
 
@@ -121,3 +127,14 @@ enum ShaderStage getShaderStage(
 	struct Shader* shader);
 
 // TODO: get shader program
+
+struct Mesh* createMesh(
+	struct Window* window,
+	size_t indexCount,
+	const void* vertexData,
+	size_t vertexSize,
+	const void* indexData,
+	size_t indexSize,
+	bool constant);
+void destroyMesh(
+	struct Mesh* mesh);

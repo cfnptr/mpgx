@@ -18,39 +18,53 @@ struct Window
 	double deltaTime;
 };
 
-struct Buffer
-{
-	enum GraphicsAPI api;
-	void* handle;
-};
 struct GlBuffer
 {
 	struct Window* window;
 	GLenum type;
 	GLuint handle;
 };
-
-struct Image
+struct Buffer
 {
 	enum GraphicsAPI api;
 	void* handle;
 };
+
 struct GlImage
 {
 	struct Window* window;
 	GLenum type;
 	GLuint handle;
 };
+struct Image
+{
+	enum GraphicsAPI api;
+	void* handle;
+};
 
+struct GlShader
+{
+	struct Window* window;
+	GLuint handle;
+};
 struct Shader
 {
 	enum GraphicsAPI api;
 	void* handle;
 };
-struct GlShader
+
+struct GlMesh
 {
 	struct Window* window;
+	size_t indexCount;
+	struct GlBuffer* vertexBuffer;
+	struct GlBuffer* indexBuffer;
 	GLuint handle;
+};
+struct Mesh
+{
+	enum GraphicsAPI api;
+	void* handle;
 };
 
 static bool graphicsInitialized = false;
@@ -295,12 +309,6 @@ static struct GlBuffer* createGlBuffer(
 		GL_ONE,
 		&handle);
 
-	if (handle == GL_ZERO)
-	{
-		free(buffer);
-		return NULL;
-	}
-
 	GLenum usage = constant ?
 		GL_DYNAMIC_DRAW :
 		GL_STATIC_DRAW;
@@ -498,7 +506,7 @@ size_t getBufferSize(
 	}
 }
 
-bool getGlBufferConstant(
+static bool getGlBufferConstant(
 	const struct GlBuffer* buffer)
 {
 	glfwMakeContextCurrent(
@@ -612,12 +620,6 @@ static struct GlImage* createGlImage(
 	glGenTextures(
 		GL_ONE,
 		&handle);
-
-	if (handle == GL_ZERO)
-	{
-		free(image);
-		return NULL;
-	}
 
 	glBindTexture(
 		type,
@@ -735,7 +737,7 @@ struct Image* createImage(
 	return image;
 }
 
-void destroyGlImage(
+static void destroyGlImage(
 	struct GlImage* image)
 {
 	glfwMakeContextCurrent(
@@ -776,10 +778,13 @@ static struct GlShader* createGlShader(
 	struct GlShader* shader = malloc(
 		sizeof(struct GlShader));
 
-	GLenum stage;
+	if (shader == NULL)
+		return NULL;
 
 	glfwMakeContextCurrent(
 		window->handle);
+
+	GLenum stage;
 
 	if (_stage == VERTEX_SHADER_STAGE)
 	{
@@ -800,12 +805,6 @@ static struct GlShader* createGlShader(
 	}
 
 	GLuint handle = glCreateShader(stage);
-
-	if (handle == GL_ZERO)
-	{
-		free(shader);
-		return NULL;
-	}
 
 	const char* sources[2];
 
@@ -1003,6 +1002,180 @@ enum ShaderStage getShaderStage(
 	{
 		return getGlShaderStage(
 			(struct GlShader*)shader->handle);
+	}
+	else
+	{
+		abort();
+	}
+}
+
+static struct GlMesh* createGlMesh(
+	struct Window* window,
+	size_t indexCount,
+	const void* vertexData,
+	size_t vertexSize,
+	const void* indexData,
+	size_t indexSize,
+	bool constant)
+{
+	struct GlMesh* mesh = malloc(
+		sizeof(struct GlMesh));
+
+	if (mesh == NULL)
+		return NULL;
+
+	glfwMakeContextCurrent(
+		mesh->window->handle);
+
+	GLuint handle = GL_ZERO;
+
+	glGenVertexArrays(
+		GL_ONE,
+		&handle);
+
+	struct GlBuffer* vertexBuffer = createGlBuffer(
+		window,
+		VERTEX_BUFFER_TYPE,
+		vertexData,
+		vertexSize,
+		constant);
+
+	if (vertexBuffer == NULL)
+	{
+		free(mesh);
+		return NULL;
+	}
+
+	struct GlBuffer* indexBuffer = createGlBuffer(
+		window,
+		INDEX_BUFFER_TYPE,
+		indexData,
+		indexSize,
+		constant);
+
+	if (indexBuffer == NULL)
+	{
+		destroyGlBuffer(vertexBuffer);
+		free(mesh);
+		return NULL;
+	}
+
+	glBindVertexArray(
+		handle);
+	glBindBuffer(
+		vertexBuffer->type,
+		vertexBuffer->handle);
+	glBindBuffer(
+		indexBuffer->type,
+		indexBuffer->handle);
+	glBindVertexArray(
+		GL_ZERO);
+	glBindBuffer(
+		indexBuffer->type,
+		GL_ZERO);
+	glBindBuffer(
+		vertexBuffer->type,
+		GL_ZERO);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	mesh->window = window;
+	mesh->indexCount = indexCount;
+	mesh->vertexBuffer = vertexBuffer;
+	mesh->indexBuffer = indexBuffer;
+	mesh->handle = handle;
+	return mesh;
+}
+struct Mesh* createMesh(
+	struct Window* window,
+	size_t indexCount,
+	const void* vertexData,
+	size_t vertexSize,
+	const void* indexData,
+	size_t indexSize,
+	bool constant)
+{
+	assert(window != NULL);
+	assert(indexCount != 0);
+	assert(vertexSize != 0);
+	assert(indexSize != 0);
+
+	struct Mesh* mesh =
+		malloc(sizeof(struct Mesh));
+
+	if (mesh == NULL)
+		return NULL;
+
+	enum GraphicsAPI api =
+		window->api;
+
+	void* handle;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		handle = createGlMesh(
+			window,
+			indexCount,
+			vertexData,
+			vertexSize,
+			indexData,
+			indexSize,
+			constant);
+	}
+	else
+	{
+		abort();
+	}
+
+	if (handle == NULL)
+	{
+		free(mesh);
+		return NULL;
+	}
+
+	mesh->api = api;
+	mesh->handle = handle;
+	return mesh;
+}
+
+static void destroyGlMesh(
+	struct GlMesh* mesh)
+{
+	glfwMakeContextCurrent(
+		mesh->window->handle);
+
+	glDeleteVertexArrays(
+		GL_ONE,
+		&mesh->handle);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	destroyGlBuffer(mesh->indexBuffer);
+	destroyGlBuffer(mesh->vertexBuffer);
+
+	free(mesh);
+}
+void destroyMesh(
+	struct Mesh* mesh)
+{
+	if (mesh == NULL)
+		return;
+
+	enum GraphicsAPI api =
+		mesh->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		destroyGlMesh(
+			(struct GlMesh*)mesh->handle);
 	}
 	else
 	{

@@ -337,3 +337,126 @@ inline static getTranslated(const Vector3<T>& vector) const noexcept
 		getColumn3());
 	return result;
 }
+
+template<class T = float>
+static Matrix4<T> vkCreatePerspectiveMatrix(
+	float fieldOfView,
+	float aspectRatio,
+	float nearClipPlane,
+	float farClipPlane) noexcept
+{
+	auto tanHalfFov =
+		tan(fieldOfView / static_cast<T>(2));
+
+return Matrix4<T>(
+static_cast<T>(1) / (aspectRatio * tanHalfFov),
+static_cast<T>(0),
+static_cast<T>(0),
+static_cast<T>(0),
+
+static_cast<T>(0),
+static_cast<T>(-1) / tanHalfFov,
+static_cast<T>(0),
+static_cast<T>(0),
+
+static_cast<T>(0),
+static_cast<T>(0),
+farClipPlane / (farClipPlane - nearClipPlane),
+static_cast<T>(1),
+
+static_cast<T>(0),
+static_cast<T>(0),
+-(farClipPlane * nearClipPlane) / (farClipPlane - nearClipPlane),
+static_cast<T>(0));
+}
+template<class T = float>
+static Matrix4<T> glCreatePerspectiveMatrix(
+	float fieldOfView,
+	float aspectRatio,
+	float nearClipPlane,
+	float farClipPlane) noexcept
+{
+auto tanHalfFov =
+tan(fieldOfView / static_cast<T>(2));
+
+return Matrix4<T>(
+static_cast<T>(1) / (aspectRatio * tanHalfFov),
+static_cast<T>(0),
+static_cast<T>(0),
+static_cast<T>(0),
+
+static_cast<T>(0),
+static_cast<T>(1) / tanHalfFov,
+static_cast<T>(0),
+static_cast<T>(0),
+
+static_cast<T>(0),
+static_cast<T>(0),
+(farClipPlane + nearClipPlane) / (farClipPlane - nearClipPlane),
+static_cast<T>(1),
+
+static_cast<T>(0),
+static_cast<T>(0),
+-(static_cast<T>(2) * farClipPlane * nearClipPlane) / (farClipPlane - nearClipPlane),
+static_cast<T>(0));
+}
+template<class T = float>
+static Matrix4<T> vkCreateOrthographicMatrix(
+	float left,
+	float right,
+	float bottom,
+	float top,
+	float nearClipPlane,
+	float farClipPlane) noexcept
+{
+return Matrix4<T>(
+static_cast<T>(2) / (right - left),
+static_cast<T>(0),
+static_cast<T>(0),
+static_cast<T>(0),
+
+static_cast<T>(0),
+static_cast<T>(-2) / (top - bottom),
+static_cast<T>(0),
+static_cast<T>(0),
+
+static_cast<T>(0),
+static_cast<T>(0),
+static_cast<T>(1) / (farClipPlane - nearClipPlane),
+static_cast<T>(0),
+
+-(right + left) / (right - left),
+-(top + bottom) / (top - bottom),
+-nearClipPlane / (farClipPlane - nearClipPlane),
+static_cast<T>(1));
+}
+template<class T = float>
+static Matrix4<T> glCreateOrthographicMatrix(
+	float left,
+	float right,
+	float bottom,
+	float top,
+	float nearClipPlane,
+	float farClipPlane) noexcept
+{
+return Matrix4<T>(
+static_cast<T>(2) / (right - left),
+static_cast<T>(0),
+static_cast<T>(0),
+static_cast<T>(0),
+
+static_cast<T>(0),
+static_cast<T>(2) / (top - bottom),
+static_cast<T>(0),
+static_cast<T>(0),
+
+static_cast<T>(0),
+static_cast<T>(0),
+static_cast<T>(2) / (farClipPlane - nearClipPlane),
+static_cast<T>(0),
+
+-(right + left) / (right - left),
+-(top + bottom) / (top - bottom),
+-(farClipPlane + nearClipPlane) / (farClipPlane - nearClipPlane),
+static_cast<T>(1));
+}

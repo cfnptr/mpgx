@@ -49,13 +49,16 @@ enum ShaderStage
 	// TODO: other shader stages
 };
 
+typedef void(*WindowRender)(void*);
+
 struct Window;
 struct Buffer;
-struct Image;
-struct Shader;
 struct Mesh;
-//struct Pipeline;
+struct Image;
 //struct Framebuffer;
+struct Shader;
+//struct Pipeline;
+struct Camera;
 
 bool initializeGraphics();
 void terminateGraphics();
@@ -70,12 +73,14 @@ void destroyWindow(
 	struct Window* window);
 
 double getWindowUpdateTime(
-	struct Window* window);
+	const struct Window* window);
 double getWindowDeltaTime(
-	struct Window* window);
+	const struct Window* window);
 
 void startWindowUpdate(
-	struct Window* window);
+	struct Window* window,
+	WindowRender renderFunction,
+	void* functionArgument);
 
 struct Buffer* createBuffer(
 	struct Window* window,
@@ -86,7 +91,7 @@ struct Buffer* createBuffer(
 void destroyBuffer(
 	struct Buffer* buffer);
 
-enum GraphicsAPI getBufferAPI(
+struct Window* getBufferWindow(
 	const struct Buffer* buffer);
 enum BufferType getBufferType(
 	const struct Buffer* buffer);
@@ -95,11 +100,40 @@ size_t getBufferSize(
 bool getBufferConstant(
 	const struct Buffer* buffer);
 
-bool setBufferData(
+void setBufferData(
 	struct Buffer* buffer,
-	void* data,
+	const void* data,
 	size_t size,
 	size_t offset);
+
+struct Mesh* createMesh(
+	struct Window* window,
+	size_t indexCount,
+	struct Buffer* vertexBuffer,
+	struct Buffer* indexBuffer);
+void destroyMesh(
+	struct Mesh* mesh);
+
+struct Window* getMeshWindow(
+	const struct Mesh* mesh);
+
+size_t getMeshIndexCount(
+	const struct Mesh* mesh);
+void setMeshIndexCount(
+	struct Mesh* mesh,
+	size_t count);
+
+struct Buffer* getMeshVertexBuffer(
+	const struct Mesh* mesh);
+void setMeshVertexBuffer(
+	struct Mesh* mesh,
+	struct Buffer* buffer);
+
+struct Buffer* getMeshIndexBuffer(
+	const struct Mesh* mesh);
+void setMeshIndexBuffer(
+	struct Mesh* mesh,
+	struct Buffer* buffer);
 
 struct Image* createImage(
 	struct Window* window,
@@ -113,6 +147,9 @@ struct Image* createImage(
 void destroyImage(
 	struct Image* image);
 
+struct Window* getImageWindow(
+	const struct Image* image);
+
 // TODO: get image properties
 
 struct Shader* createShader(
@@ -123,18 +160,15 @@ struct Shader* createShader(
 void destroyShader(
 	struct Shader* shader);
 
+struct Window* getShaderWindow(
+	const struct Shader* shader);
 enum ShaderStage getShaderStage(
-	struct Shader* shader);
+	const struct Shader* shader);
 
-// TODO: get shader program
-
-struct Mesh* createMesh(
+struct Shader* createCamera(
 	struct Window* window,
-	size_t indexCount,
-	const void* vertexData,
-	size_t vertexSize,
-	const void* indexData,
-	size_t indexSize,
-	bool constant);
-void destroyMesh(
-	struct Mesh* mesh);
+	enum ShaderStage stage,
+	const void* program,
+	size_t size);
+void destroyCamera(
+	struct Shader* shader);

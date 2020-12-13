@@ -20,6 +20,12 @@ enum BufferType
 	// TODO: other buffer types
 };
 
+enum DrawIndex
+{
+	UINT16_DRAW_MODE,
+	UINT32_DRAW_MODE,
+};
+
 enum ImageType
 {
 	IMAGE_1D_TYPE,
@@ -35,12 +41,6 @@ enum ImageFormat
 	// TODO: add other formats
 };
 
-enum DrawMode
-{
-	// TODO:
-	TODO
-};
-
 enum ShaderStage
 {
 	VERTEX_SHADER_STAGE,
@@ -49,7 +49,29 @@ enum ShaderStage
 	// TODO: other shader stages
 };
 
-typedef void(*WindowRender)(void*);
+enum DrawMode
+{
+	POINTS_DRAW_MODE,
+	LINE_STRIP_DRAW_MODE,
+	LINE_LOOP_DRAW_MODE,
+	LINES_DRAW_MODE,
+	TRIANGLE_STRIP_DRAW_MODE,
+	TRIANGLE_FAN_DRAW_MODE,
+	TRIANGLES_DRAW_MODE,
+	// TODO: other draw modes
+};
+
+enum UniformType
+{
+	VECTOR_4F_UNIFORM_TYPE,
+	MATRIX_4F_UNIFORM_TYPE,
+};
+
+struct UniformData
+{
+	const char* name;
+	enum UniformType type;
+};
 
 struct Window;
 struct Buffer;
@@ -57,8 +79,10 @@ struct Mesh;
 struct Image;
 //struct Framebuffer;
 struct Shader;
-//struct Pipeline;
-struct Camera;
+struct Pipeline;
+//struct Camera;
+
+typedef void(*WindowRender)(void*);
 
 bool initializeGraphics();
 void terminateGraphics();
@@ -108,6 +132,7 @@ void setBufferData(
 
 struct Mesh* createMesh(
 	struct Window* window,
+	enum DrawIndex drawIndex,
 	size_t indexCount,
 	struct Buffer* vertexBuffer,
 	struct Buffer* indexBuffer);
@@ -134,6 +159,9 @@ struct Buffer* getMeshIndexBuffer(
 void setMeshIndexBuffer(
 	struct Mesh* mesh,
 	struct Buffer* buffer);
+
+void drawMeshCommand(
+	struct Mesh* mesh);
 
 struct Image* createImage(
 	struct Window* window,
@@ -165,10 +193,28 @@ struct Window* getShaderWindow(
 enum ShaderStage getShaderStage(
 	const struct Shader* shader);
 
-struct Shader* createCamera(
+struct Pipeline* createPipeline(
 	struct Window* window,
-	enum ShaderStage stage,
-	const void* program,
-	size_t size);
-void destroyCamera(
-	struct Shader* shader);
+	enum DrawMode drawMode,
+	const struct Shader** shaders,
+	size_t shaderCount,
+	const struct UniformData* uniforms,
+	size_t uniformCount);
+void destroyPipeline(
+	struct Pipeline* pipeline);
+
+void setUniformCommand(
+	struct Pipeline* pipeline,
+	size_t index,
+	const void* data);
+
+struct Shader* createColorVertexShader(
+	struct Window* window);
+struct Shader* createColorFragmentShader(
+	struct Window* window);
+struct Pipeline* createColorPipeline(
+	struct Window* window,
+	enum DrawMode drawMode,
+	const struct Shader* vertexShader,
+	const struct Shader* fragmentShader);
+

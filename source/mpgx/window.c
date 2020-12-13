@@ -1,4 +1,5 @@
 #include "mpgx/window.h"
+#include "mpgx/shader.h"
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -34,11 +35,13 @@ struct Buffer
 
 struct GlMesh
 {
+	GLenum drawIndex;
 	GLuint handle;
 };
 struct Mesh
 {
 	struct Window* window;
+	enum DrawIndex drawIndex;
 	size_t indexCount;
 	struct Buffer* vertexBuffer;
 	struct Buffer* indexBuffer;
@@ -64,6 +67,24 @@ struct Shader
 {
 	struct Window* window;
 	enum ShaderStage stage;
+	void* handle;
+};
+
+struct GlUniform
+{
+	enum UniformType type;
+	GLint location;
+};
+struct GlPipeline
+{
+	struct GlUniform* uniforms;
+	GLuint handle;
+};
+struct Pipeline
+{
+	struct Window* window;
+	enum DrawMode drawMode;
+	size_t uniformCount;
 	void* handle;
 };
 
@@ -126,6 +147,7 @@ struct Window* createWindow(
 		return NULL;
 
 	window->api = api;
+
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
 
@@ -509,6 +531,7 @@ void setBufferData(
 
 static struct GlMesh* createGlMesh(
 	struct Window* window,
+	enum DrawIndex _drawIndex,
 	struct GlBuffer* vertexBuffer,
 	struct GlBuffer* indexBuffer)
 {
@@ -517,6 +540,22 @@ static struct GlMesh* createGlMesh(
 
 	if (mesh == NULL)
 		return NULL;
+
+	GLenum drawIndex;
+
+	if (_drawIndex == UINT16_DRAW_MODE)
+	{
+		drawIndex = GL_UNSIGNED_SHORT;
+	}
+	else if (_drawIndex == UINT32_DRAW_MODE)
+	{
+		drawIndex = GL_UNSIGNED_INT;
+	}
+	else
+	{
+		free(mesh);
+		return NULL;
+	}
 
 	glfwMakeContextCurrent(
 		window->handle);
@@ -550,11 +589,13 @@ static struct GlMesh* createGlMesh(
 	if (error != GL_NO_ERROR)
 		abort();
 
+	mesh->drawIndex = drawIndex;
 	mesh->handle = handle;
 	return mesh;
 }
 struct Mesh* createMesh(
 	struct Window* window,
+	enum DrawIndex drawIndex,
 	size_t indexCount,
 	struct Buffer* vertexBuffer,
 	struct Buffer* indexBuffer)
@@ -567,6 +608,10 @@ struct Mesh* createMesh(
 	assert(window == indexBuffer->window);
 	assert(vertexBuffer->type == VERTEX_BUFFER_TYPE);
 	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
+
+	assert(drawIndex == UINT16_DRAW_MODE ?
+		indexCount * sizeof(uint16_t) <= indexBuffer->size :
+		indexCount * sizeof(uint32_t) <= indexBuffer->size);
 
 	struct Mesh* mesh =
 		malloc(sizeof(struct Mesh));
@@ -584,6 +629,7 @@ struct Mesh* createMesh(
 	{
 		handle = createGlMesh(
 			window,
+			drawIndex,
 			(struct GlBuffer*)vertexBuffer,
 			(struct GlBuffer*)indexBuffer);
 	}
@@ -599,6 +645,7 @@ struct Mesh* createMesh(
 	}
 
 	mesh->window = window;
+	mesh->drawIndex = drawIndex;
 	mesh->indexCount = indexCount;
 	mesh->vertexBuffer = vertexBuffer;
 	mesh->indexBuffer = indexBuffer;
@@ -667,6 +714,10 @@ void setMeshIndexCount(
 {
 	assert(mesh != NULL);
 	assert(count != 0);
+
+	assert(mesh->drawIndex == UINT16_DRAW_MODE ?
+		count * sizeof(uint16_t) <= mesh->indexBuffer->size :
+		count * sizeof(uint32_t) <= mesh->indexBuffer->size);
 
 	mesh->indexCount = count;
 }
@@ -780,6 +831,43 @@ void setMeshIndexBuffer(
 			window,
 			(struct GlMesh*)mesh->handle,
 			(struct GlBuffer*)mesh->indexBuffer);
+	}
+	else
+	{
+		abort();
+	}
+}
+
+static GLuint glDrawMode;
+
+void drawGlMeshCommand(
+	size_t indexCount,
+	struct GlMesh* mesh)
+{
+	glBindVertexArray(
+		mesh->handle);
+	glDrawElements(
+		glDrawMode,
+		(GLsizei)indexCount,
+		mesh->drawIndex,
+		NULL);
+	glBindVertexArray(
+		GL_ZERO);
+}
+void drawMeshCommand(
+	struct Mesh* mesh)
+{
+	assert(mesh != NULL);
+
+	struct Window* window = mesh->window;
+	enum GraphicsAPI api = window->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		drawGlMeshCommand(
+			mesh->indexCount,
+			(struct GlMesh*)mesh->handle);
 	}
 	else
 	{
@@ -1221,4 +1309,377 @@ enum ShaderStage getShaderStage(
 {
 	assert(shader != NULL);
 	return shader->stage;
+}
+
+struct GlPipeline* createGlPipeline(
+	struct Window* window,
+	const struct Shader** shaders,
+	size_t shaderCount,
+	const struct UniformData* _uniforms,
+	size_t uniformCount)
+{
+	struct GlPipeline* pipeline = malloc(
+		sizeof(struct GlPipeline));
+
+	if (pipeline == NULL)
+		return NULL;
+
+	glfwMakeContextCurrent(
+		window->handle);
+
+	GLuint handle = glCreateProgram();
+
+	for (size_t i = 0; i < shaderCount; i++)
+	{
+		const struct Shader* shader = shaders[i];
+
+		struct GlShader* glShader =
+			(struct GlShader*)shader->handle;
+
+		glAttachShader(
+			handle,
+			glShader->handle);
+	}
+
+	glLinkProgram(handle);
+
+	for (size_t i = 0; i < shaderCount; i++)
+	{
+		const struct Shader* shader = shaders[i];
+
+		struct GlShader* glShader =
+			(struct GlShader*)shader->handle;
+
+		glDetachShader(
+			handle,
+			glShader->handle);
+	}
+
+	GLint linkResult;
+
+	glGetProgramiv(
+		handle,
+		GL_LINK_STATUS,
+		&linkResult);
+
+	if (linkResult == GL_FALSE)
+	{
+#ifndef NDEBUG
+		GLint length = 0;
+
+		glGetProgramiv(
+			handle,
+			GL_INFO_LOG_LENGTH,
+			&length);
+
+		if (length > 0)
+		{
+			char infoLog[length];
+
+			glGetProgramInfoLog(
+				handle,
+				length,
+				&length,
+				infoLog);
+
+			printf("%s\n", infoLog);
+		}
+#endif
+
+		GLenum error = glGetError();
+
+		if (error != GL_NO_ERROR)
+			abort();
+
+		free(pipeline);
+		glDeleteProgram(handle);
+		return NULL;
+	}
+
+	struct GlUniform* uniforms = malloc(
+		uniformCount * sizeof(struct GlUniform));
+
+	if (uniforms == NULL)
+	{
+		free(pipeline);
+		glDeleteProgram(handle);
+		return NULL;
+	}
+
+	for (size_t i = 0; i < uniformCount; ++i)
+	{
+		struct UniformData data = _uniforms[i];
+
+		GLint location = glGetUniformLocation(
+			handle,
+			data.name);
+
+		if (location == -1)
+		{
+#ifndef NDEBUG
+			printf("Failed to get '%s' uniform location\n",
+				data.name);
+#endif
+
+			free(pipeline);
+			free(uniforms);
+			glDeleteProgram(handle);
+			return NULL;
+		}
+
+		struct GlUniform uniform;
+		uniform.type = data.type;
+		uniform.location = location;
+		uniforms[i] = uniform;
+	}
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	pipeline->uniforms = uniforms;
+	pipeline->handle = handle;
+	return pipeline;
+}
+struct Pipeline* createPipeline(
+	struct Window* window,
+	enum DrawMode drawMode,
+	const struct Shader** shaders,
+	size_t shaderCount,
+	const struct UniformData* uniforms,
+	size_t uniformCount)
+{
+	assert(window != NULL);
+	assert(shaders != NULL);
+	assert(shaderCount != 0);
+	assert(uniforms != NULL);
+	assert(uniformCount != 0);
+
+#ifndef NDEBUG
+	size_t uniformDataSize = 0;
+
+	for (size_t i = 0; i < uniformCount; i++)
+	{
+		if (uniforms[i].type == VECTOR_4F_UNIFORM_TYPE)
+			uniformDataSize += sizeof(float) * 4;
+		else if (uniforms[i].type == MATRIX_4F_UNIFORM_TYPE)
+			uniformDataSize += sizeof(float) * 16;
+		else
+			abort();
+	}
+
+	// Vulkan push-constant min size
+	assert(uniformDataSize <= 128);
+#endif
+
+	struct Pipeline* pipeline =
+		malloc(sizeof(struct Pipeline));
+
+	if (pipeline == NULL)
+		return NULL;
+
+	enum GraphicsAPI api =
+		window->api;
+
+	void* handle;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		handle = createGlPipeline(
+			window,
+			shaders,
+			shaderCount,
+			uniforms,
+			uniformCount);
+	}
+	else
+	{
+		abort();
+	}
+
+	if (handle == NULL)
+	{
+		free(pipeline);
+		return NULL;
+	}
+
+	pipeline->window = window;
+	pipeline->drawMode = drawMode;
+	pipeline->uniformCount = uniformCount;
+	pipeline->handle = handle;
+	return pipeline;
+}
+
+void destroyGlPipeline(
+	struct Window* window,
+	struct GlPipeline* pipeline)
+{
+	glfwMakeContextCurrent(
+		window->handle);
+
+	glDeleteProgram(pipeline->handle);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	free(pipeline->uniforms);
+	free(pipeline);
+}
+void destroyPipeline(
+	struct Pipeline* pipeline)
+{
+	if (pipeline == NULL)
+		return;
+
+	struct Window* window = pipeline->window;
+	enum GraphicsAPI api = window->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		destroyGlPipeline(
+			window,
+			(struct GlPipeline*)pipeline->handle);
+	}
+	else
+	{
+		abort();
+	}
+
+	free(pipeline);
+}
+
+void setGlUniformCommand(
+	struct Window* window,
+	struct GlPipeline* pipeline,
+	size_t index,
+	const void* data)
+{
+	struct GlUniform uniform =
+		pipeline->uniforms[index];
+
+	if (uniform.type == VECTOR_4F_UNIFORM_TYPE)
+	{
+		glUniform4fv(
+			uniform.location,
+			GL_ONE,
+			data);
+	}
+	else if (uniform.type == MATRIX_4F_UNIFORM_TYPE)
+	{
+		glUniformMatrix4fv(
+			uniform.location,
+			GL_ONE,
+			GL_FALSE,
+			data);
+	}
+	else
+	{
+		abort();
+	}
+}
+void addUniformCommand(
+	struct Pipeline* pipeline,
+	size_t index,
+	const void* data)
+{
+	assert(pipeline != NULL);
+	assert(data != NULL);
+	assert(index < pipeline->uniformCount);
+
+	struct Window* window = pipeline->window;
+	enum GraphicsAPI api = window->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		setGlUniformCommand(
+			window,
+			(struct GlPipeline*)pipeline->handle,
+			index,
+			data);
+	}
+	else
+	{
+		abort();
+	}
+}
+
+struct Shader* createColorVertexShader(
+	struct Window* window)
+{
+	assert(window != NULL);
+
+	enum GraphicsAPI api =
+		window->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return createShader(
+			window,
+			VERTEX_SHADER_STAGE,
+			OPENGL_COLOR_VERTEX_SHADER,
+			sizeof(OPENGL_COLOR_VERTEX_SHADER));
+	}
+	else
+	{
+		abort();
+	}
+}
+struct Shader* createColorFragmentShader(
+	struct Window* window)
+{
+	assert(window != NULL);
+
+	enum GraphicsAPI api =
+		window->api;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return createShader(
+			window,
+			FRAGMENT_SHADER_STAGE,
+			OPENGL_COLOR_FRAGMENT_SHADER,
+			sizeof(OPENGL_COLOR_FRAGMENT_SHADER));
+	}
+	else
+	{
+		abort();
+	}
+}
+struct Pipeline* createColorPipeline(
+	struct Window* window,
+	enum DrawMode drawMode,
+	const struct Shader* vertexShader,
+	const struct Shader* fragmentShader)
+{
+	assert(window != NULL);
+	assert(vertexShader != NULL);
+	assert(fragmentShader != NULL);
+
+	const struct Shader* shaders[2] =
+	{
+		vertexShader,
+		fragmentShader
+	};
+
+	struct UniformData uniforms[2];
+	uniforms[0].name = "u_MVP";
+	uniforms[0].type = MATRIX_4F_UNIFORM_TYPE;
+	uniforms[1].name = "u_Color";
+	uniforms[1].type = VECTOR_4F_UNIFORM_TYPE;
+
+	return createPipeline(
+		window,
+		drawMode,
+		shaders,
+		2,
+		uniforms,
+		2);
 }

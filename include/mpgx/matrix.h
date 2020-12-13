@@ -62,34 +62,6 @@ inline static struct Matrix4F createValueMatrixF4(
 	matrix.m33 = value;
 	return matrix;
 }
-inline static struct Matrix4F createVectorMatrixF4(
-	struct Vector4F column0,
-	struct Vector4F column1,
-	struct Vector4F column2,
-	struct Vector4F column3)
-{
-	struct Matrix4F matrix;
-	matrix.m00 = column0.x;
-	matrix.m01 = column0.y;
-	matrix.m02 = column0.z;
-	matrix.m03 = column0.w;
-
-	matrix.m10 = column1.x;
-	matrix.m11 = column1.y;
-	matrix.m12 = column1.z;
-	matrix.m13 = column1.w;
-
-	matrix.m20 = column2.x;
-	matrix.m21 = column2.y;
-	matrix.m22 = column2.z;
-	matrix.m23 = column2.w;
-
-	matrix.m30 = column3.x;
-	matrix.m31 = column3.y;
-	matrix.m32 = column3.z;
-	matrix.m33 = column3.w;
-	return matrix;
-}
 inline static struct Matrix4F createIdentityMatrix4F()
 {
 	struct Matrix4F matrix;
@@ -115,348 +87,347 @@ inline static struct Matrix4F createIdentityMatrix4F()
 	return matrix;
 }
 
-inline static struct Vector4F getColumn0Matrix4F(
-	struct Matrix4F matrix)
-{
-	return createVector4F(
-		matrix.m00,
-		matrix.m01,
-		matrix.m02,
-		matrix.m03);
-}
-inline static struct Vector4F getColumn1Matrix4F(
-	struct Matrix4F matrix)
-{
-	return createVector4F(
-		matrix.m10,
-		matrix.m11,
-		matrix.m12,
-		matrix.m13);
-}
-inline static struct Vector4F getColumn2Matrix4F(
-	struct Matrix4F matrix)
-{
-	return createVector4F(
-		matrix.m20,
-		matrix.m21,
-		matrix.m22,
-		matrix.m23);
-}
-inline static struct Vector4F getColumn3Matrix4F(
-	struct Matrix4F matrix)
-{
-	return createVector4F(
-		matrix.m30,
-		matrix.m31,
-		matrix.m32,
-		matrix.m33);
-}
-
-inline static struct Vector4F getRow0Matrix4F(
-	struct Matrix4F matrix)
-{
-	return createVector4F(
-		matrix.m00,
-		matrix.m10,
-		matrix.m20,
-		matrix.m30);
-}
-inline static struct Vector4F getRow1Matrix4F(
-	struct Matrix4F matrix)
-{
-	return createVector4F(
-		matrix.m01,
-		matrix.m11,
-		matrix.m21,
-		matrix.m31);
-}
-inline static struct Vector4F getRow2Matrix4F(
-	struct Matrix4F matrix)
-{
-	return createVector4F(
-		matrix.m02,
-		matrix.m12,
-		matrix.m22,
-		matrix.m32);
-}
-inline static struct Vector4F getRow3Matrix4F(
-	struct Matrix4F matrix)
-{
-	return createVector4F(
-		matrix.m03,
-		matrix.m13,
-		matrix.m23,
-		matrix.m33);
-}
-
 inline static struct Matrix4F addMatrix4F(
 	struct Matrix4F a,
 	struct Matrix4F b)
 {
-	return createVectorMatrixF4(
-		addVector4F(getColumn0Matrix4F(a), getColumn0Matrix4F(b)),
-		addVector4F(getColumn1Matrix4F(a), getColumn1Matrix4F(b)),
-		addVector4F(getColumn2Matrix4F(a), getColumn2Matrix4F(b)),
-		addVector4F(getColumn3Matrix4F(a), getColumn3Matrix4F(b)));
+	a.m00 += b.m00; a.m01 += b.m01; a.m02 += b.m02; a.m03 += b.m03;
+	a.m10 += b.m10; a.m11 += b.m11; a.m12 += b.m12; a.m13 += b.m13;
+	a.m20 += b.m20; a.m21 += b.m21; a.m22 += b.m22; a.m23 += b.m23;
+	a.m30 += b.m30; a.m31 += b.m31; a.m32 += b.m32; a.m33 += b.m33;
+	return a;
 }
 inline static struct Matrix4F subMatrix4F(
 	struct Matrix4F a,
 	struct Matrix4F b)
 {
-	return createVectorMatrixF4(
-		subVector4F(getColumn0Matrix4F(a), getColumn0Matrix4F(b)),
-		subVector4F(getColumn1Matrix4F(a), getColumn1Matrix4F(b)),
-		subVector4F(getColumn2Matrix4F(a), getColumn2Matrix4F(b)),
-		subVector4F(getColumn3Matrix4F(a), getColumn3Matrix4F(b)));
+	a.m00 -= b.m00; a.m01 -= b.m01; a.m02 -= b.m02; a.m03 -= b.m03;
+	a.m10 -= b.m10; a.m11 -= b.m11; a.m12 -= b.m12; a.m13 -= b.m13;
+	a.m20 -= b.m20; a.m21 -= b.m21; a.m22 -= b.m22; a.m23 -= b.m23;
+	a.m30 -= b.m30; a.m31 -= b.m31; a.m32 -= b.m32; a.m33 -= b.m33;
+	return a;
 }
 inline static struct Matrix4F mulMatrix4F(
 	struct Matrix4F a,
 	struct Matrix4F b)
 {
-	return createVectorMatrixF4(
-		mulVector4F(getColumn0Matrix4F(a), getColumn0Matrix4F(b)),
-		mulVector4F(getColumn1Matrix4F(a), getColumn1Matrix4F(b)),
-		mulVector4F(getColumn2Matrix4F(a), getColumn2Matrix4F(b)),
-		mulVector4F(getColumn3Matrix4F(a), getColumn3Matrix4F(b)));
+	a.m00 *= b.m00; a.m01 *= b.m01; a.m02 *= b.m02; a.m03 *= b.m03;
+	a.m10 *= b.m10; a.m11 *= b.m11; a.m12 *= b.m12; a.m13 *= b.m13;
+	a.m20 *= b.m20; a.m21 *= b.m21; a.m22 *= b.m22; a.m23 *= b.m23;
+	a.m30 *= b.m30; a.m31 *= b.m31; a.m32 *= b.m32; a.m33 *= b.m33;
+	return a;
 }
 inline static struct Matrix4F divMatrix4F(
 	struct Matrix4F a,
 	struct Matrix4F b)
 {
-	return createVectorMatrixF4(
-		divVector4F(getColumn0Matrix4F(a), getColumn0Matrix4F(b)),
-		divVector4F(getColumn1Matrix4F(a), getColumn1Matrix4F(b)),
-		divVector4F(getColumn2Matrix4F(a), getColumn2Matrix4F(b)),
-		divVector4F(getColumn3Matrix4F(a), getColumn3Matrix4F(b)));
+	a.m00 /= b.m00; a.m01 /= b.m01; a.m02 /= b.m02; a.m03 /= b.m03;
+	a.m10 /= b.m10; a.m11 /= b.m11; a.m12 /= b.m12; a.m13 /= b.m13;
+	a.m20 /= b.m20; a.m21 /= b.m21; a.m22 /= b.m22; a.m23 /= b.m23;
+	a.m30 /= b.m30; a.m31 /= b.m31; a.m32 /= b.m32; a.m33 /= b.m33;
+	return a;
 }
 
-inline static float determinantMatrix4F(
-	struct Matrix4F m)
+inline static struct Matrix4F addValueMatrix4F(
+	struct Matrix4F matrix,
+	float value)
 {
-	float f0 = m.m22 * m.m33 - m.m32 * m.m23;
-	float f1 = m.m21 * m.m33 - m.m31 * m.m23;
-	float f2 = m.m21 * m.m32 - m.m31 * m.m22;
-	float f3 = m.m20 * m.m33 - m.m30 * m.m23;
-	float f4 = m.m20 * m.m32 - m.m30 * m.m22;
-	float f5 = m.m20 * m.m31 - m.m30 * m.m21;
+	matrix.m00 += value;
+	matrix.m01 += value;
+	matrix.m02 += value;
+	matrix.m03 += value;
 
-	float c0 = m.m11 * f0 - m.m12 * f1 + m.m13 * f2;
-	float c1 = -(m.m10 * f0 - m.m12 * f3 + m.m13 * f4);
-	float c2 = m.m10 * f1 -m. m11 * f3 + m.m13 * f5;
-	float c3 = -(m.m10 * f2 - m.m11 * f4 + m.m12 * f5);
+	matrix.m10 += value;
+	matrix.m11 += value;
+	matrix.m12 += value;
+	matrix.m13 += value;
 
-	return m.m00 * c0 + m.m01 * c1 + m.m02 * c2 + m.m03 * c3;
+	matrix.m20 += value;
+	matrix.m21 += value;
+	matrix.m22 += value;
+	matrix.m23 += value;
+
+	matrix.m30 += value;
+	matrix.m31 += value;
+	matrix.m32 += value;
+	matrix.m33 += value;
+	return matrix;
+}
+inline static struct Matrix4F subValueMatrix4F(
+	struct Matrix4F matrix,
+	float value)
+{
+	matrix.m00 -= value;
+	matrix.m01 -= value;
+	matrix.m02 -= value;
+	matrix.m03 -= value;
+
+	matrix.m10 -= value;
+	matrix.m11 -= value;
+	matrix.m12 -= value;
+	matrix.m13 -= value;
+
+	matrix.m20 -= value;
+	matrix.m21 -= value;
+	matrix.m22 -= value;
+	matrix.m23 -= value;
+
+	matrix.m30 -= value;
+	matrix.m31 -= value;
+	matrix.m32 -= value;
+	matrix.m33 -= value;
+	return matrix;
+}
+inline static struct Matrix4F mulValueMatrix4F(
+	struct Matrix4F matrix,
+	float value)
+{
+	matrix.m00 *= value;
+	matrix.m01 *= value;
+	matrix.m02 *= value;
+	matrix.m03 *= value;
+
+	matrix.m10 *= value;
+	matrix.m11 *= value;
+	matrix.m12 *= value;
+	matrix.m13 *= value;
+
+	matrix.m20 *= value;
+	matrix.m21 *= value;
+	matrix.m22 *= value;
+	matrix.m23 *= value;
+
+	matrix.m30 *= value;
+	matrix.m31 *= value;
+	matrix.m32 *= value;
+	matrix.m33 *= value;
+	return matrix;
+}
+inline static struct Matrix4F divValueMatrix4F(
+	struct Matrix4F matrix,
+	float value)
+{
+	matrix.m00 /= value;
+	matrix.m01 /= value;
+	matrix.m02 /= value;
+	matrix.m03 /= value;
+
+	matrix.m10 /= value;
+	matrix.m11 /= value;
+	matrix.m12 /= value;
+	matrix.m13 /= value;
+
+	matrix.m20 /= value;
+	matrix.m21 /= value;
+	matrix.m22 /= value;
+	matrix.m23 /= value;
+
+	matrix.m30 /= value;
+	matrix.m31 /= value;
+	matrix.m32 /= value;
+	matrix.m33 /= value;
+	return matrix;
+}
+
+inline static struct Matrix4F negMatrix4F(
+	struct Matrix4F matrix)
+{
+	matrix.m00 = -matrix.m00;
+	matrix.m01 = -matrix.m01;
+	matrix.m02 = -matrix.m02;
+	matrix.m03 = -matrix.m03;
+
+	matrix.m10 = -matrix.m10;
+	matrix.m11 = -matrix.m11;
+	matrix.m12 = -matrix.m12;
+	matrix.m13 = -matrix.m13;
+
+	matrix.m20 = -matrix.m20;
+	matrix.m21 = -matrix.m21;
+	matrix.m22 = -matrix.m22;
+	matrix.m23 = -matrix.m23;
+
+	matrix.m30 = -matrix.m30;
+	matrix.m31 = -matrix.m31;
+	matrix.m32 = -matrix.m32;
+	matrix.m33 = -matrix.m33;
+	return matrix;
+}
+
+inline static struct Matrix4F dotMatrix4F(
+	struct Matrix4F a,
+	struct Matrix4F b)
+{
+	a.m00 = a.m00 * b.m00 + a.m01 * b.m10 + a.m02 * b.m20 + a.m03 * b.m30;
+	a.m01 = a.m00 * b.m01 + a.m01 * b.m11 + a.m02 * b.m21 + a.m03 * b.m31;
+	a.m02 = a.m00 * b.m02 + a.m01 * b.m12 + a.m02 * b.m22 + a.m03 * b.m32;
+	a.m03 = a.m00 * b.m03 + a.m01 * b.m13 + a.m02 * b.m23 + a.m03 * b.m33;
+	a.m10 = a.m10 * b.m00 + a.m11 * b.m10 + a.m12 * b.m20 + a.m13 * b.m30;
+	a.m11 = a.m10 * b.m01 + a.m11 * b.m11 + a.m12 * b.m21 + a.m13 * b.m31;
+	a.m12 = a.m10 * b.m02 + a.m11 * b.m12 + a.m12 * b.m22 + a.m13 * b.m32;
+	a.m13 = a.m10 * b.m03 + a.m11 * b.m13 + a.m12 * b.m23 + a.m13 * b.m33;
+	a.m20 = a.m20 * b.m00 + a.m21 * b.m10 + a.m22 * b.m20 + a.m23 * b.m30;
+	a.m21 = a.m20 * b.m01 + a.m21 * b.m11 + a.m22 * b.m21 + a.m23 * b.m31;
+	a.m22 = a.m20 * b.m02 + a.m21 * b.m12 + a.m22 * b.m22 + a.m23 * b.m32;
+	a.m23 = a.m20 * b.m03 + a.m21 * b.m13 + a.m22 * b.m23 + a.m23 * b.m33;
+	a.m30 = a.m30 * b.m00 + a.m31 * b.m10 + a.m32 * b.m20 + a.m33 * b.m30;
+	a.m31 = a.m30 * b.m01 + a.m31 * b.m11 + a.m32 * b.m21 + a.m33 * b.m31;
+	a.m32 = a.m30 * b.m02 + a.m31 * b.m12 + a.m32 * b.m22 + a.m33 * b.m32;
+	a.m33 = a.m30 * b.m03 + a.m31 * b.m13 + a.m32 * b.m23 + a.m33 * b.m33;
+	return a;
+}
+inline static struct Matrix4F dotVectorMatrix4F(
+	struct Matrix4F matrix,
+	struct Vector4F vector)
+{
+	vector.x =
+		matrix.m00 * vector.x +
+		matrix.m01 * vector.x +
+		matrix.m02 * vector.x +
+		matrix.m03 * vector.x;
+	vector.y =
+		matrix.m10 * vector.y +
+		matrix.m11 * vector.y +
+		matrix.m12 * vector.y +
+		matrix.m13 * vector.y;
+	vector.z =
+		matrix.m20 * vector.z +
+		matrix.m21 * vector.z +
+		matrix.m22 * vector.z +
+		matrix.m23 * vector.z;
+	vector.w =
+		matrix.m30 * vector.w +
+		matrix.m31 * vector.w +
+		matrix.m32 * vector.w +
+		matrix.m33 * vector.w;
+	return matrix;
+}
+inline static float determinantMatrix4F(
+	struct Matrix4F matrix)
+{
+	float f0 = matrix.m22 * matrix.m33 - matrix.m32 * matrix.m23;
+	float f1 = matrix.m21 * matrix.m33 - matrix.m31 * matrix.m23;
+	float f2 = matrix.m21 * matrix.m32 - matrix.m31 * matrix.m22;
+	float f3 = matrix.m20 * matrix.m33 - matrix.m30 * matrix.m23;
+	float f4 = matrix.m20 * matrix.m32 - matrix.m30 * matrix.m22;
+	float f5 = matrix.m20 * matrix.m31 - matrix.m30 * matrix.m21;
+
+	float c0 = matrix.m11 * f0 - matrix.m12 * f1 + matrix.m13 * f2;
+	float c1 = -(matrix.m10 * f0 - matrix.m12 * f3 + matrix.m13 * f4);
+	float c2 = matrix.m10 * f1 -matrix. m11 * f3 + matrix.m13 * f5;
+	float c3 = -(matrix.m10 * f2 - matrix.m11 * f4 + matrix.m12 * f5);
+
+	return matrix.m00 * c0 + matrix.m01 * c1 + matrix.m02 * c2 + matrix.m03 * c3;
 }
 inline static struct Matrix4F transposeMatrix4F(
-	struct Matrix4F m)
+	struct Matrix4F matrix)
 {
-	m.m00 = m.m00;
-	m.m01 = m.m10;
-	m.m02 = m.m20;
-	m.m03 = m.m30;
+	matrix.m00 = matrix.m00;
+	matrix.m01 = matrix.m10;
+	matrix.m02 = matrix.m20;
+	matrix.m03 = matrix.m30;
 
-	m.m10 = m.m01;
-	m.m11 = m.m11;
-	m.m12 = m.m21;
-	m.m13 = m.m31;
+	matrix.m10 = matrix.m01;
+	matrix.m11 = matrix.m11;
+	matrix.m12 = matrix.m21;
+	matrix.m13 = matrix.m31;
 
-	m.m20 = m.m02;
-	m.m21 = m.m12;
-	m.m22 = m.m22;
-	m.m23 = m.m32;
+	matrix.m20 = matrix.m02;
+	matrix.m21 = matrix.m12;
+	matrix.m22 = matrix.m22;
+	matrix.m23 = matrix.m32;
 
-	m.m30 = m.m03;
-	m.m31 = m.m13;
-	m.m32 = m.m23;
-	m.m33 = m.m33;
-	return m;
+	matrix.m30 = matrix.m03;
+	matrix.m31 = matrix.m13;
+	matrix.m32 = matrix.m23;
+	matrix.m33 = matrix.m33;
+	return matrix;
 }
 inline static struct Matrix4F inverseMatrix4F(
-	struct Matrix4F matrix)
+	struct Matrix4F m)
 {
 	float s[6];
 	float c[6];
 
-	s[0] = matrix.m00 * matrix.m11 - matrix.m10 * matrix.m01;
-	s[1] = matrix.m00 * matrix.m12 - matrix.m10 * matrix.m02;
-	s[2] = matrix.m00 * matrix.m13 - matrix.m10 * matrix.m03;
-	s[3] = matrix.m01 * matrix.m12 - matrix.m11 * matrix.m02;
-	s[4] = matrix.m01 * matrix.m13 - matrix.m11 * matrix.m03;
-	s[5] = matrix.m02 * matrix.m13 - matrix.m12 * matrix.m03;
+	s[0] = m.m00 * m.m11 - m.m10 * m.m01;
+	s[1] = m.m00 * m.m12 - m.m10 * m.m02;
+	s[2] = m.m00 * m.m13 - m.m10 * m.m03;
+	s[3] = m.m01 * m.m12 - m.m11 * m.m02;
+	s[4] = m.m01 * m.m13 - m.m11 * m.m03;
+	s[5] = m.m02 * m.m13 - m.m12 * m.m03;
 
-	c[0] = matrix.m20 * matrix.m31 - matrix.m30 * matrix.m21;
-	c[1] = matrix.m20 * matrix.m32 - matrix.m30 * matrix.m22;
-	c[2] = matrix.m20 * matrix.m33 - matrix.m30 * matrix.m23;
-	c[3] = matrix.m21 * matrix.m32 - matrix.m31 * matrix.m22;
-	c[4] = matrix.m21 * matrix.m33 - matrix.m31 * matrix.m23;
-	c[5] = matrix.m22 * matrix.m33 - matrix.m32 * matrix.m23;
+	c[0] = m.m20 * m.m31 - m.m30 * m.m21;
+	c[1] = m.m20 * m.m32 - m.m30 * m.m22;
+	c[2] = m.m20 * m.m33 - m.m30 * m.m23;
+	c[3] = m.m21 * m.m32 - m.m31 * m.m22;
+	c[4] = m.m21 * m.m33 - m.m31 * m.m23;
+	c[5] = m.m22 * m.m33 - m.m32 * m.m23;
 
 	float id = 1.0f /
 		(s[0] * c[5] - s[1] * c[4] +
 		s[2] * c[3] + s[3] * c[2] -
 		s[4] * c[1] + s[5] * c[0]);
 
-	matrix.m00 = (matrix.m11 * c[5] - matrix.m12 * c[4] + matrix.m13 * c[3]) * id;
-	matrix.m01 = (-matrix.m01 * c[5] + matrix.m02 * c[4] - matrix.m03 * c[3]) * id;
-	matrix.m02 = (matrix.m31 * s[5] - matrix.m32 * s[4] + matrix.m33 * s[3]) * id;
-	matrix.m03 = (-matrix.m21 * s[5] + matrix.m22 * s[4] - matrix.m23 * s[3]) * id;
+	m.m00 = (m.m11 * c[5] - m.m12 * c[4] + m.m13 * c[3]) * id;
+	m.m01 = (-m.m01 * c[5] + m.m02 * c[4] - m.m03 * c[3]) * id;
+	m.m02 = (m.m31 * s[5] - m.m32 * s[4] + m.m33 * s[3]) * id;
+	m.m03 = (-m.m21 * s[5] + m.m22 * s[4] - m.m23 * s[3]) * id;
 
-	matrix.m10 = (-matrix.m10 * c[5] + matrix.m12 * c[2] - matrix.m13 * c[1]) * id;
-	matrix.m11 = (matrix.m00 * c[5] - matrix.m02 * c[2] + matrix.m03 * c[1]) * id;
-	matrix.m12 = (-matrix.m30 * s[5] + matrix.m32 * s[2] - matrix.m33 * s[1]) * id;
-	matrix.m13 = (matrix.m20 * s[5] - matrix.m22 * s[2] + matrix.m23 * s[1]) * id;
+	m.m10 = (-m.m10 * c[5] + m.m12 * c[2] - m.m13 * c[1]) * id;
+	m.m11 = (m.m00 * c[5] - m.m02 * c[2] + m.m03 * c[1]) * id;
+	m.m12 = (-m.m30 * s[5] + m.m32 * s[2] - m.m33 * s[1]) * id;
+	m.m13 = (m.m20 * s[5] - m.m22 * s[2] + m.m23 * s[1]) * id;
 
-	matrix.m20 = (matrix.m10 * c[4] - matrix.m11 * c[2] + matrix.m13 * c[0]) * id;
-	matrix.m21 = (-matrix.m00 * c[4] + matrix.m01 * c[2] - matrix.m03 * c[0]) * id;
-	matrix.m22 = (matrix.m30 * s[4] - matrix.m31 * s[2] + matrix.m33 * s[0]) * id;
-	matrix.m23 = (-matrix.m20 * s[4] + matrix.m21 * s[2] - matrix.m23 * s[0]) * id;
+	m.m20 = (m.m10 * c[4] - m.m11 * c[2] + m.m13 * c[0]) * id;
+	m.m21 = (-m.m00 * c[4] + m.m01 * c[2] - m.m03 * c[0]) * id;
+	m.m22 = (m.m30 * s[4] - m.m31 * s[2] + m.m33 * s[0]) * id;
+	m.m23 = (-m.m20 * s[4] + m.m21 * s[2] - m.m23 * s[0]) * id;
 
-	matrix.m30 = (-matrix.m10 * c[3] + matrix.m11 * c[1] - matrix.m12 * c[0]) * id;
-	matrix.m31 = (matrix.m00 * c[3] - matrix.m01 * c[1] + matrix.m02 * c[0]) * id;
-	matrix.m32 = (-matrix.m30 * s[3] + matrix.m31 * s[1] - matrix.m32 * s[0]) * id;
-	matrix.m33 = (matrix.m20 * s[3] - matrix.m21 * s[1] + matrix.m22 * s[0]) * id;
-	return matrix;
+	m.m30 = (-m.m10 * c[3] + m.m11 * c[1] - m.m12 * c[0]) * id;
+	m.m31 = (m.m00 * c[3] - m.m01 * c[1] + m.m02 * c[0]) * id;
+	m.m32 = (-m.m30 * s[3] + m.m31 * s[1] - m.m32 * s[0]) * id;
+	m.m33 = (m.m20 * s[3] - m.m21 * s[1] + m.m22 * s[0]) * id;
+	return m;
 }
 inline static struct Matrix4F scaleMatrix4F(
-	struct Matrix4F matrix)
+	struct Matrix4F matrix,
+	struct Vector4F scale)
 {
+	matrix.m00 *= scale.x;
+	matrix.m01 *= scale.x;
+	matrix.m02 *= scale.x;
+	matrix.m03 *= scale.x;
 
-	matrix.setColumn0(getColumn0() * vector.x);
-	matrix.setColumn1(getColumn1() * vector.y);
-	matrix.setColumn2(getColumn2() * vector.z);
-	matrix.setColumn3(getColumn3());
+	matrix.m10 *= scale.y;
+	matrix.m11 *= scale.y;
+	matrix.m12 *= scale.y;
+	matrix.m13 *= scale.y;
+
+	matrix.m20 *= scale.z;
+	matrix.m21 *= scale.z;
+	matrix.m22 *= scale.z;
+	matrix.m23 *= scale.z;
 	return matrix;
 }
-inline static getTranslated(const Vector3<T>& vector) const noexcept
+inline static struct Matrix4F translateMatrix4F(
+	struct Matrix4F matrix,
+	struct Vector4F translate)
 {
-	auto result = Matrix4<T>(*this);
-	result.setColumn3(
-	getColumn0() * vector.x +
-	getColumn1() * vector.y +
-	getColumn2() * vector.z +
-		getColumn3());
-	return result;
-}
-
-template<class T = float>
-static Matrix4<T> vkCreatePerspectiveMatrix(
-	float fieldOfView,
-	float aspectRatio,
-	float nearClipPlane,
-	float farClipPlane) noexcept
-{
-	auto tanHalfFov =
-		tan(fieldOfView / static_cast<T>(2));
-
-return Matrix4<T>(
-static_cast<T>(1) / (aspectRatio * tanHalfFov),
-static_cast<T>(0),
-static_cast<T>(0),
-static_cast<T>(0),
-
-static_cast<T>(0),
-static_cast<T>(-1) / tanHalfFov,
-static_cast<T>(0),
-static_cast<T>(0),
-
-static_cast<T>(0),
-static_cast<T>(0),
-farClipPlane / (farClipPlane - nearClipPlane),
-static_cast<T>(1),
-
-static_cast<T>(0),
-static_cast<T>(0),
--(farClipPlane * nearClipPlane) / (farClipPlane - nearClipPlane),
-static_cast<T>(0));
-}
-template<class T = float>
-static Matrix4<T> glCreatePerspectiveMatrix(
-	float fieldOfView,
-	float aspectRatio,
-	float nearClipPlane,
-	float farClipPlane) noexcept
-{
-auto tanHalfFov =
-tan(fieldOfView / static_cast<T>(2));
-
-return Matrix4<T>(
-static_cast<T>(1) / (aspectRatio * tanHalfFov),
-static_cast<T>(0),
-static_cast<T>(0),
-static_cast<T>(0),
-
-static_cast<T>(0),
-static_cast<T>(1) / tanHalfFov,
-static_cast<T>(0),
-static_cast<T>(0),
-
-static_cast<T>(0),
-static_cast<T>(0),
-(farClipPlane + nearClipPlane) / (farClipPlane - nearClipPlane),
-static_cast<T>(1),
-
-static_cast<T>(0),
-static_cast<T>(0),
--(static_cast<T>(2) * farClipPlane * nearClipPlane) / (farClipPlane - nearClipPlane),
-static_cast<T>(0));
-}
-template<class T = float>
-static Matrix4<T> vkCreateOrthographicMatrix(
-	float left,
-	float right,
-	float bottom,
-	float top,
-	float nearClipPlane,
-	float farClipPlane) noexcept
-{
-return Matrix4<T>(
-static_cast<T>(2) / (right - left),
-static_cast<T>(0),
-static_cast<T>(0),
-static_cast<T>(0),
-
-static_cast<T>(0),
-static_cast<T>(-2) / (top - bottom),
-static_cast<T>(0),
-static_cast<T>(0),
-
-static_cast<T>(0),
-static_cast<T>(0),
-static_cast<T>(1) / (farClipPlane - nearClipPlane),
-static_cast<T>(0),
-
--(right + left) / (right - left),
--(top + bottom) / (top - bottom),
--nearClipPlane / (farClipPlane - nearClipPlane),
-static_cast<T>(1));
-}
-template<class T = float>
-static Matrix4<T> glCreateOrthographicMatrix(
-	float left,
-	float right,
-	float bottom,
-	float top,
-	float nearClipPlane,
-	float farClipPlane) noexcept
-{
-return Matrix4<T>(
-static_cast<T>(2) / (right - left),
-static_cast<T>(0),
-static_cast<T>(0),
-static_cast<T>(0),
-
-static_cast<T>(0),
-static_cast<T>(2) / (top - bottom),
-static_cast<T>(0),
-static_cast<T>(0),
-
-static_cast<T>(0),
-static_cast<T>(0),
-static_cast<T>(2) / (farClipPlane - nearClipPlane),
-static_cast<T>(0),
-
--(right + left) / (right - left),
--(top + bottom) / (top - bottom),
--(farClipPlane + nearClipPlane) / (farClipPlane - nearClipPlane),
-static_cast<T>(1));
+	matrix.m30 =
+		matrix.m00 * translate.x +
+		matrix.m10 * translate.y +
+		matrix.m20 * translate.z + matrix.m30;
+	matrix.m31 =
+		matrix.m01 * translate.x +
+		matrix.m11 * translate.y +
+		matrix.m21 * translate.z + matrix.m31;
+	matrix.m32 =
+		matrix.m02 * translate.x +
+		matrix.m12 * translate.y +
+		matrix.m22 * translate.z + matrix.m32;
+	matrix.m33 =
+		matrix.m03 * translate.x +
+		matrix.m13 * translate.y +
+		matrix.m23 * translate.z + matrix.m33;
+	return matrix;
 }

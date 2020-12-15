@@ -5,6 +5,8 @@
 #define DEFAULT_WINDOW_WIDTH 800
 #define DEFAULT_WINDOW_HEIGHT 600
 
+typedef void(*WindowRender)(void*);
+
 enum GraphicsAPI
 {
 	VULKAN_GRAPHICS_API,
@@ -41,14 +43,6 @@ enum ImageFormat
 	// TODO: add other formats
 };
 
-enum ShaderStage
-{
-	VERTEX_SHADER_STAGE,
-	FRAGMENT_SHADER_STAGE,
-	COMPUTE_SHADER_STAGE,
-	// TODO: other shader stages
-};
-
 enum DrawMode
 {
 	POINTS_DRAW_MODE,
@@ -61,28 +55,30 @@ enum DrawMode
 	// TODO: other draw modes
 };
 
-enum UniformType
-{
-	VECTOR_4F_UNIFORM_TYPE,
-	MATRIX_4F_UNIFORM_TYPE,
-};
-
-struct UniformData
-{
-	const char* name;
-	enum UniformType type;
-};
-
 struct Window;
 struct Buffer;
 struct Mesh;
 struct Image;
 //struct Framebuffer;
-struct Shader;
-struct Pipeline;
 //struct Camera;
 
-typedef void(*WindowRender)(void*);
+struct Pipeline;
+
+typedef void(*DestroyPipeline)(
+	struct Pipeline*);
+typedef void(*BindPipelineCommand)(
+	struct Pipeline*);
+typedef void(*FlushPipelineCommand)(
+	struct Pipeline*);
+
+struct Pipeline
+{
+	struct Window* window;
+	DestroyPipeline destroyFunction;
+	BindPipelineCommand bindFunction;
+	FlushPipelineCommand flushFunction;
+	void* handle;
+};
 
 bool initializeGraphics();
 void terminateGraphics();
@@ -105,6 +101,11 @@ void startWindowUpdate(
 	struct Window* window,
 	WindowRender renderFunction,
 	void* functionArgument);
+
+void beginCommandRecord(
+	struct Window* window);
+void endCommandRecord(
+	struct Window* window);
 
 struct Buffer* createBuffer(
 	struct Window* window,
@@ -180,41 +181,18 @@ struct Window* getImageWindow(
 
 // TODO: get image properties
 
-struct Shader* createShader(
-	struct Window* window,
-	enum ShaderStage stage,
-	const void* program,
-	size_t size);
-void destroyShader(
-	struct Shader* shader);
-
-struct Window* getShaderWindow(
-	const struct Shader* shader);
-enum ShaderStage getShaderStage(
-	const struct Shader* shader);
-
-struct Pipeline* createPipeline(
-	struct Window* window,
-	enum DrawMode drawMode,
-	const struct Shader** shaders,
-	size_t shaderCount,
-	const struct UniformData* uniforms,
-	size_t uniformCount);
 void destroyPipeline(
 	struct Pipeline* pipeline);
 
-void setUniformCommand(
-	struct Pipeline* pipeline,
-	size_t index,
-	const void* data);
+void bindPipelineCommand(
+	struct Pipeline* pipeline);
+void flushPipelineCommand(
+	struct Pipeline* pipeline);
 
-struct Shader* createColorVertexShader(
-	struct Window* window);
-struct Shader* createColorFragmentShader(
-	struct Window* window);
 struct Pipeline* createColorPipeline(
 	struct Window* window,
 	enum DrawMode drawMode,
-	const struct Shader* vertexShader,
-	const struct Shader* fragmentShader);
-
+	const void* vertexShader,
+	size_t vertexShaderSize,
+	const void* fragmentShader,
+	size_t fragmentShaderSize);

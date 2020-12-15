@@ -24,8 +24,8 @@ enum BufferType
 
 enum DrawIndex
 {
-	UINT16_DRAW_MODE,
-	UINT32_DRAW_MODE,
+	UINT16_DRAW_INDEX,
+	UINT32_DRAW_INDEX,
 };
 
 enum ImageType
@@ -66,17 +66,15 @@ struct Pipeline;
 
 typedef void(*DestroyPipeline)(
 	struct Pipeline*);
-typedef void(*BindPipelineCommand)(
-	struct Pipeline*);
-typedef void(*FlushPipelineCommand)(
-	struct Pipeline*);
+typedef void(*DrawMeshCommand)(
+	struct Pipeline*,
+	struct Mesh*);
 
 struct Pipeline
 {
 	struct Window* window;
 	DestroyPipeline destroyFunction;
-	BindPipelineCommand bindFunction;
-	FlushPipelineCommand flushFunction;
+	DrawMeshCommand drawMeshFunction;
 	void* handle;
 };
 
@@ -161,9 +159,6 @@ void setMeshIndexBuffer(
 	struct Mesh* mesh,
 	struct Buffer* buffer);
 
-void drawMeshCommand(
-	struct Mesh* mesh);
-
 struct Image* createImage(
 	struct Window* window,
 	enum ImageType type,
@@ -183,16 +178,10 @@ struct Window* getImageWindow(
 
 void destroyPipeline(
 	struct Pipeline* pipeline);
-
-void bindPipelineCommand(
-	struct Pipeline* pipeline);
-void flushPipelineCommand(
-	struct Pipeline* pipeline);
+void drawMeshCommand(
+	struct Pipeline* pipeline,
+	struct Mesh* mesh);
 
 struct Pipeline* createColorPipeline(
 	struct Window* window,
-	enum DrawMode drawMode,
-	const void* vertexShader,
-	size_t vertexShaderSize,
-	const void* fragmentShader,
-	size_t fragmentShaderSize);
+	enum DrawMode drawMode);

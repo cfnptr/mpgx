@@ -1,35 +1,11 @@
 #include "mpgx/window.h"
 #include "mpgx/vector.h"
 #include "mpgx/matrix.h"
-
-#include "glad/glad.h"
-#include "GLFW/glfw3.h"
+#include "mpgx/opengl.h"
 
 #include <stdio.h>
 #include <assert.h>
 #include <stdbool.h>
-
-#define OPENGL_SHADER_HEADER "#version 330 core\n\n#define highp \n#define mediump \n#define lowp \n"
-#define OPENGL_ES_SHADER_HEADER "#version 300 es\n"
-
-#define OPENGL_COLOR_VERTEX_SHADER                 \
-"layout(location = 0) in highp vec3 v_Position;\n  \
-uniform highp mat4 u_MVP;\n                        \
-                                                   \
-void main()\n                                      \
-{\n                                                \
-	gl_Position = u_MVP * vec4(v_Position, 1.0);\n \
-}\n"
-
-
-#define OPENGL_COLOR_FRAGMENT_SHADER \
-"out highp vec4 o_Color;\n           \
-uniform highp vec4 u_Color;\n        \
-                                     \
-void main()\n                        \
-{\n                                  \
-	o_Color = u_Color;\n             \
-}\n"
 
 typedef void(*BeginCommandRecord)(
 	struct Window*);
@@ -73,8 +49,6 @@ struct Buffer
 
 typedef void(*DestroyMesh)(
 	struct Mesh*);
-typedef void(*DrawMeshCommand)(
-	struct Mesh*);
 
 struct GlMesh
 {
@@ -89,7 +63,6 @@ struct Mesh
 	struct Buffer* vertexBuffer;
 	struct Buffer* indexBuffer;
 	DestroyMesh destroyFunction;
-	DrawMeshCommand drawFunction;
 	void* handle;
 };
 
@@ -156,6 +129,11 @@ void beginGlCommandRecord(
 {
 	glfwMakeContextCurrent(
 		window->handle);
+
+	glClear(
+		GL_COLOR_BUFFER_BIT |
+		GL_DEPTH_BUFFER_BIT |
+		GL_STENCIL_BUFFER_BIT);
 }
 void endGlCommandRecord(
 	struct Window* window)
@@ -361,9 +339,6 @@ inline static struct GlBuffer* createGlBuffer(
 	if (buffer == NULL)
 		return NULL;
 
-	glfwMakeContextCurrent(
-		window->handle);
-
 	GLenum type;
 
 	if (_type == VERTEX_BUFFER_TYPE)
@@ -384,6 +359,9 @@ inline static struct GlBuffer* createGlBuffer(
 		return NULL;
 	}
 
+	glfwMakeContextCurrent(
+		window->handle);
+
 	GLuint handle = GL_ZERO;
 
 	glGenBuffers(
@@ -391,8 +369,8 @@ inline static struct GlBuffer* createGlBuffer(
 		&handle);
 
 	GLenum usage = constant ?
-		GL_DYNAMIC_DRAW :
-		GL_STATIC_DRAW;
+		GL_STATIC_DRAW :
+		GL_DYNAMIC_DRAW;
 
 	glBindBuffer(
 		type,
@@ -503,6 +481,7 @@ struct Buffer* createBuffer(
 	{
 		abort();
 	}
+
 	if (handle == NULL)
 	{
 		free(buffer);
@@ -578,9 +557,7 @@ void setBufferData(
 
 inline static struct GlMesh* createGlMesh(
 	struct Window* window,
-	enum DrawIndex _drawIndex,
-	struct GlBuffer* vertexBuffer,
-	struct GlBuffer* indexBuffer)
+	enum DrawIndex _drawIndex)
 {
 	struct GlMesh* mesh = malloc(
 		sizeof(struct GlMesh));
@@ -590,11 +567,11 @@ inline static struct GlMesh* createGlMesh(
 
 	GLenum drawIndex;
 
-	if (_drawIndex == UINT16_DRAW_MODE)
+	if (_drawIndex == UINT16_DRAW_INDEX)
 	{
 		drawIndex = GL_UNSIGNED_SHORT;
 	}
-	else if (_drawIndex == UINT32_DRAW_MODE)
+	else if (_drawIndex == UINT32_DRAW_INDEX)
 	{
 		drawIndex = GL_UNSIGNED_INT;
 	}
@@ -612,24 +589,6 @@ inline static struct GlMesh* createGlMesh(
 	glGenVertexArrays(
 		GL_ONE,
 		&handle);
-
-	glBindVertexArray(
-		handle);
-	glBindBuffer(
-		GL_ARRAY_BUFFER,
-		vertexBuffer->handle);
-	glBindBuffer(
-		GL_ELEMENT_ARRAY_BUFFER,
-		indexBuffer->handle);
-
-	glBindVertexArray(
-		GL_ZERO);
-	glBindBuffer(
-		GL_ARRAY_BUFFER,
-		GL_ZERO);
-	glBindBuffer(
-		GL_ELEMENT_ARRAY_BUFFER,
-		GL_ZERO);
 
 	GLenum error = glGetError();
 
@@ -660,49 +619,6 @@ void destroyGlMesh(
 
 	free(glMesh);
 }
-static void drawGlMeshCommand(
-	struct Mesh* mesh)
-{
-	struct GlMesh* glMesh =
-		(struct GlMesh*)mesh->handle;
-	struct GlBuffer* glVertexBuffer =
-		(struct GlBuffer*)mesh->vertexBuffer;
-	struct GlBuffer* glIndexBuffer =
-		(struct GlBuffer*)mesh->indexBuffer;
-
-	glfwMakeContextCurrent(
-		mesh->window->handle);
-
-	glBindVertexArray(
-		glMesh->handle);
-	glBindBuffer(
-		GL_ARRAY_BUFFER,
-		glVertexBuffer->handle);
-	glBindBuffer(
-		GL_ELEMENT_ARRAY_BUFFER,
-		glVertexBuffer->handle);
-
-	// TODO: fix draw mode
-	glDrawElements(
-		window->drawMode,
-		(GLsizei)mesh->indexCount,
-		glMesh->drawIndex,
-		NULL);
-
-	glBindVertexArray(
-		GL_ZERO);
-	glBindBuffer(
-		GL_ARRAY_BUFFER,
-		GL_ZERO);
-	glBindBuffer(
-		GL_ELEMENT_ARRAY_BUFFER,
-		GL_ZERO);
-
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
-}
 
 struct Mesh* createMesh(
 	struct Window* window,
@@ -720,7 +636,7 @@ struct Mesh* createMesh(
 	assert(vertexBuffer->type == VERTEX_BUFFER_TYPE);
 	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
 
-	assert(drawIndex == UINT16_DRAW_MODE ?
+	assert(drawIndex == UINT16_DRAW_INDEX ?
 		indexCount * sizeof(uint16_t) <= indexBuffer->size :
 		indexCount * sizeof(uint32_t) <= indexBuffer->size);
 
@@ -740,12 +656,9 @@ struct Mesh* createMesh(
 	{
 		handle = createGlMesh(
 			window,
-			drawIndex,
-			(struct GlBuffer*)vertexBuffer,
-			(struct GlBuffer*)indexBuffer);
+			drawIndex);
 
 		mesh->destroyFunction = destroyGlMesh;
-		mesh->drawFunction = drawGlMeshCommand;
 	}
 	else
 	{
@@ -799,7 +712,7 @@ void setMeshIndexCount(
 	assert(mesh != NULL);
 	assert(count != 0);
 
-	assert(mesh->drawIndex == UINT16_DRAW_MODE ?
+	assert(mesh->drawIndex == UINT16_DRAW_INDEX ?
 		count * sizeof(uint16_t) <= mesh->indexBuffer->size :
 		count * sizeof(uint32_t) <= mesh->indexBuffer->size);
 
@@ -840,17 +753,6 @@ void setMeshIndexBuffer(
 	assert(mesh->window == buffer->window);
 	assert(buffer->type == INDEX_BUFFER_TYPE);
 	mesh->indexBuffer = buffer;
-}
-
-void drawMeshCommand(
-	struct Mesh* mesh)
-{
-	assert(mesh != NULL);
-	assert(mesh->window->recording == true);
-
-	DrawMeshCommand drawFunction =
-		mesh->drawFunction;
-	drawFunction(mesh);
 }
 
 inline static struct GlImage* createGlImage(
@@ -1077,166 +979,11 @@ struct Window* getImageWindow(
 	return image->window;
 }
 
-inline static GLuint createGlShader(
-	GLenum stage,
-	const char* source,
-	bool gles)
-{
-	GLuint shader = glCreateShader(stage);
-
-	const char* sources[2];
-
-	if (gles == false)
-		sources[0] = OPENGL_SHADER_HEADER;
-	else
-		sources[0] = OPENGL_ES_SHADER_HEADER;
-
-	sources[1] = source;
-
-	glShaderSource(
-		shader,
-		2,
-		sources,
-		NULL);
-
-	glCompileShader(shader);
-
-	GLint result;
-
-	glGetShaderiv(
-		shader,
-		GL_COMPILE_STATUS,
-		&result);
-
-	if (result == GL_FALSE)
-	{
-#ifndef NDEBUG
-		GLint length = 0;
-
-		glGetShaderiv(
-			shader,
-			GL_INFO_LOG_LENGTH,
-			&length);
-
-		if (length > 0)
-		{
-			char infoLog[length];
-
-			glGetShaderInfoLog(
-				shader,
-				length,
-				&length,
-				infoLog);
-
-			printf("%s\n", infoLog);
-		}
-#endif
-
-		GLenum error = glGetError();
-
-		if (error != GL_NO_ERROR)
-			abort();
-
-		glDeleteShader(shader);
-		return GL_ZERO;
-	}
-
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
-
-	return shader;
-}
-inline static GLuint createGlProgram(
-	const GLenum* shaderStages,
-	const char** shaderSources,
-	size_t shaderCount,
-	bool gles)
-{
-	GLuint program = glCreateProgram();
-
-	GLuint shaders[shaderCount];
-
-	for (size_t i = 0; i < shaderCount; i++)
-	{
-		shaders[i] = createGlShader(
-			shaderStages[i],
-			shaderSources[i],
-			gles);
-	}
-
-	for (size_t i = 0; i < shaderCount; i++)
-	{
-		glAttachShader(
-			program,
-			shaders[i]);
-	}
-
-	glLinkProgram(program);
-
-	for (size_t i = 0; i < shaderCount; i++)
-	{
-		glDetachShader(
-			program,
-			shaders[i]);
-	}
-
-	for (size_t i = 0; i < shaderCount; i++)
-		glDeleteShader(shaders[i]);
-
-	GLint result;
-
-	glGetProgramiv(
-		program,
-		GL_LINK_STATUS,
-		&result);
-
-	if (result == GL_FALSE)
-	{
-#ifndef NDEBUG
-		GLint length = 0;
-
-		glGetProgramiv(
-			program,
-			GL_INFO_LOG_LENGTH,
-			&length);
-
-		if (length > 0)
-		{
-			char infoLog[length];
-
-			glGetProgramInfoLog(
-				program,
-				length,
-				&length,
-				infoLog);
-
-			printf("%s\n", infoLog);
-		}
-#endif
-
-		GLenum error = glGetError();
-
-		if (error != GL_NO_ERROR)
-			abort();
-
-		glDeleteProgram(program);
-		return GL_ZERO;
-	}
-
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
-
-	return program;
-}
-
 struct GlColorPipeline
 {
 	struct Matrix4F mvp;
 	struct Vector4F color;
+	GLenum drawMode;
 	GLenum handle;
 	GLint mvpLocation;
 	GLint colorLocation;
@@ -1266,10 +1013,22 @@ inline static struct GlColorPipeline* createGlColorPipeline(
 		(const char*)fragmentShader,
 	};
 
+	GLenum glDrawMode;
+
+	bool result = getGlDrawMode(
+		drawMode,
+		&glDrawMode);
+
+	if (result == false)
+	{
+		free(pipeline);
+		return NULL;
+	}
+
 	glfwMakeContextCurrent(
 		window->handle);
 
-	GLuint handle = createGlProgram(
+	GLuint handle = createGlPipeline(
 		stages,
 		shaders,
 		2,
@@ -1316,10 +1075,111 @@ inline static struct GlColorPipeline* createGlColorPipeline(
 	if (error != GL_NO_ERROR)
 		abort();
 
+	pipeline->mvp = createIdentityMatrix4F();
+	pipeline->color = createValueVector4F(1.0f);
+	pipeline->drawMode = glDrawMode;
 	pipeline->handle = handle;
 	pipeline->mvpLocation = mvpLocation;
 	pipeline->colorLocation = colorLocation;
 	return pipeline;
+}
+void destroyGlColorPipeline(
+	struct Pipeline* pipeline)
+{
+	struct GlColorPipeline* glPipeline =
+		(struct GlColorPipeline*)pipeline->handle;
+
+	glfwMakeContextCurrent(
+		pipeline->window->handle);
+
+	glDeleteProgram(
+		glPipeline->handle);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+
+	free(glPipeline);
+}
+void drawGlColorMeshCommand(
+	struct Pipeline* pipeline,
+	struct Mesh* mesh)
+{
+	struct GlColorPipeline* glPipeline =
+		(struct GlColorPipeline*)pipeline->handle;
+	struct GlMesh* glMesh =
+		(struct GlMesh*)mesh->handle;
+	struct GlBuffer* glVertexBuffer =
+		(struct GlBuffer*)mesh->vertexBuffer->handle;
+	struct GlBuffer* glIndexBuffer =
+		(struct GlBuffer*)mesh->indexBuffer->handle;
+
+	glfwMakeContextCurrent(
+		mesh->window->handle);
+
+	glUseProgram(
+		glPipeline->handle);
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_SCISSOR_TEST);
+	glDisable(GL_STENCIL_TEST);
+	glDisable(GL_BLEND);
+	// TODO move to constructor
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CW);
+
+	glUniformMatrix4fv(
+		glPipeline->mvpLocation,
+		1,
+		GL_FALSE,
+		(const GLfloat*)&glPipeline->mvp);
+	glUniform4fv(
+		glPipeline->colorLocation,
+		1,
+		(const GLfloat*)&glPipeline->color);
+
+	glBindVertexArray(
+		glMesh->handle);
+	glBindBuffer(
+		GL_ARRAY_BUFFER,
+		glVertexBuffer->handle);
+	glBindBuffer(
+		GL_ELEMENT_ARRAY_BUFFER,
+		glIndexBuffer->handle);
+
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(
+		0,
+		3,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(struct Vector3F),
+		NULL);
+
+	glDrawElements(
+		glPipeline->drawMode,
+		(GLsizei)mesh->indexCount,
+		glMesh->drawIndex,
+		NULL);
+
+	glDisableVertexAttribArray(0);
+
+	glBindVertexArray(
+		GL_ZERO);
+	glBindBuffer(
+		GL_ARRAY_BUFFER,
+		GL_ZERO);
+	glBindBuffer(
+		GL_ELEMENT_ARRAY_BUFFER,
+		GL_ZERO);
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
 }
 
 void destroyPipeline(
@@ -1336,76 +1196,29 @@ void destroyPipeline(
 	destroyFunction(pipeline);
 	free(pipeline);
 }
-void destroyGlColorPipeline(
-	struct Pipeline* pipeline)
-{
-	struct GlColorPipeline* glPipeline =
-		(struct GlColorPipeline*)pipeline->handle;
-
-	glfwMakeContextCurrent(
-		pipeline->window->handle);
-
-	glDeleteProgram(glPipeline->handle);
-
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
-
-	free(glPipeline);
-}
-void bindGlColorPipelineCommand(
-	struct Pipeline* pipeline)
-{
-	struct GlColorPipeline* glPipeline =
-		(struct GlColorPipeline*)pipeline->handle;
-
-	glUseProgram(glPipeline->handle);
-}
-void flushGlColorPipelineCommand(
-	struct Pipeline* pipeline)
-{
-	// TODO: SET UNIFORMS
-}
-
-void bindPipelineCommand(
-	struct Pipeline* pipeline)
+void drawMeshCommand(
+	struct Pipeline* pipeline,
+	struct Mesh* mesh)
 {
 	assert(pipeline != NULL);
-	assert(pipeline->bindFunction != NULL);
+	assert(pipeline->drawMeshFunction != NULL);
 	assert(pipeline->window != NULL);
 	assert(pipeline->window->recording == true);
+	assert(pipeline->window == mesh->window);
 
-	BindPipelineCommand bindFunction =
-		pipeline->bindFunction;
-	bindFunction(pipeline);
-}
-void flushPipelineCommand(
-	struct Pipeline* pipeline)
-{
-	assert(pipeline != NULL);
-	assert(pipeline->flushFunction != NULL);
-	assert(pipeline->window != NULL);
-	assert(pipeline->window->recording == true);
+	DrawMeshCommand drawMeshFunction =
+		pipeline->drawMeshFunction;
 
-	FlushPipelineCommand flushFunction =
-		pipeline->flushFunction;
-	flushFunction(pipeline);
+	drawMeshFunction(
+		pipeline,
+		mesh);
 }
 
 struct Pipeline* createColorPipeline(
 	struct Window* window,
-	enum DrawMode drawMode,
-	const void* vertexShader,
-	size_t vertexShaderSize,
-	const void* fragmentShader,
-	size_t fragmentShaderSize)
+	enum DrawMode drawMode)
 {
 	assert(window != NULL);
-	assert(vertexShader != NULL);
-	assert(vertexShaderSize != 0);
-	assert(fragmentShader != NULL);
-	assert(fragmentShaderSize != 0);
 
 	struct Pipeline* pipeline =
 		malloc(sizeof(struct Pipeline));
@@ -1423,18 +1236,28 @@ struct Pipeline* createColorPipeline(
 		handle = createGlColorPipeline(
 			window,
 			drawMode,
-			vertexShader,
-			fragmentShader,
+			OPENGL_COLOR_VERTEX_SHADER,
+			OPENGL_COLOR_FRAGMENT_SHADER,
 			false);
+
+		pipeline->destroyFunction =
+			destroyGlColorPipeline;
+		pipeline->drawMeshFunction =
+			drawGlColorMeshCommand;
 	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
 	{
 		handle = createGlColorPipeline(
 			window,
 			drawMode,
-			vertexShader,
-			fragmentShader,
+			OPENGL_COLOR_VERTEX_SHADER,
+			OPENGL_COLOR_FRAGMENT_SHADER,
 			true);
+
+		pipeline->destroyFunction =
+			destroyGlColorPipeline;
+		pipeline->drawMeshFunction =
+			drawGlColorMeshCommand;
 	}
 	else
 	{
@@ -1448,12 +1271,6 @@ struct Pipeline* createColorPipeline(
 	}
 
 	pipeline->window = window;
-	pipeline->destroyFunction =
-		destroyGlColorPipeline;
-	pipeline->bindFunction =
-		bindGlColorPipelineCommand;
-	pipeline->flushFunction =
-		flushGlColorPipelineCommand;
 	pipeline->handle = handle;
 	return pipeline;
 }

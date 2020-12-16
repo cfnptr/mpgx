@@ -27,39 +27,6 @@ void main()\n                        \
 	o_Color = u_Color;\n             \
 }\n"
 
-inline static bool getGlDrawMode(
-	enum DrawMode drawMode,
-	GLenum* glDrawMode)
-{
-	assert(glDrawMode != NULL);
-
-	switch (drawMode)
-	{
-	default:
-		return false;
-	case POINTS_DRAW_MODE:
-		*glDrawMode = GL_POINTS;
-		return true;
-	case LINE_STRIP_DRAW_MODE:
-		*glDrawMode = GL_LINE_STRIP;
-		return true;
-	case LINE_LOOP_DRAW_MODE:
-		*glDrawMode = GL_LINE_LOOP;
-		return true;
-	case LINES_DRAW_MODE:
-		*glDrawMode = GL_LINES;
-		return true;
-	case TRIANGLE_STRIP_DRAW_MODE:
-		*glDrawMode = GL_TRIANGLE_STRIP;
-		return true;
-	case TRIANGLE_FAN_DRAW_MODE:
-		*glDrawMode = GL_TRIANGLE_FAN;
-		return true;
-	case TRIANGLES_DRAW_MODE:
-		*glDrawMode = GL_TRIANGLES;
-		return true;
-	}
-}
 inline static GLuint createGlShader(
 	GLenum stage,
 	const char* source,
@@ -141,9 +108,13 @@ inline static GLuint createGlPipeline(
 	assert(shaderSources != NULL);
 	assert(shaderCount != 0);
 
-	GLuint program = glCreateProgram();
+	GLuint* shaders = malloc(
+		shaderCount * sizeof(GLuint));
 
-	GLuint shaders[shaderCount];
+	if (shaders == NULL)
+		return GL_ZERO;
+
+	GLuint program = glCreateProgram();
 
 	for (size_t i = 0; i < shaderCount; i++)
 	{
@@ -209,6 +180,7 @@ inline static GLuint createGlPipeline(
 			abort();
 
 		glDeleteProgram(program);
+		free(shaders);
 		return GL_ZERO;
 	}
 
@@ -217,5 +189,6 @@ inline static GLuint createGlPipeline(
 	if (error != GL_NO_ERROR)
 		abort();
 
+	free(shaders);
 	return program;
 }

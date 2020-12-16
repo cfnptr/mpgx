@@ -66,21 +66,23 @@ struct Pipeline;
 
 typedef void(*DestroyPipeline)(
 	struct Pipeline*);
-typedef void(*DrawMeshCommand)(
-	struct Pipeline*,
-	struct Mesh*);
+typedef void(*BindPipelineCommand)(
+	struct Pipeline*);
+typedef void(*SetUniformsCommand)(
+	struct Pipeline*);
 
 struct Pipeline
 {
 	struct Window* window;
+	enum DrawMode drawMode;
 	DestroyPipeline destroyFunction;
-	DrawMeshCommand drawMeshFunction;
+	BindPipelineCommand bindFunction;
+	SetUniformsCommand setUniformsFunction;
 	void* handle;
 };
 
 bool initializeGraphics();
 void terminateGraphics();
-bool getGraphicsInitialized();
 
 struct Window* createWindow(
 	enum GraphicsAPI api,
@@ -140,6 +142,8 @@ void destroyMesh(
 
 struct Window* getMeshWindow(
 	const struct Mesh* mesh);
+enum DrawIndex getMeshDrawIndex(
+	const struct Mesh* mesh);
 
 size_t getMeshIndexCount(
 	const struct Mesh* mesh);
@@ -157,7 +161,24 @@ struct Buffer* getMeshIndexBuffer(
 	const struct Mesh* mesh);
 void setMeshIndexBuffer(
 	struct Mesh* mesh,
+	enum DrawIndex drawIndex,
+	size_t indexCount,
 	struct Buffer* buffer);
+
+void getMeshBuffers(
+	const struct Mesh* mesh,
+	struct Buffer** vertexBuffer,
+	struct Buffer** indexBuffer);
+void setMeshBuffers(
+	struct Mesh* mesh,
+	enum DrawIndex drawIndex,
+	size_t indexCount,
+	struct Buffer* vertexBuffer,
+	struct Buffer* indexBuffer);
+
+void drawMeshCommand(
+	struct Mesh* mesh,
+	struct Pipeline* pipeline);
 
 struct Image* createImage(
 	struct Window* window,
@@ -178,9 +199,8 @@ struct Window* getImageWindow(
 
 void destroyPipeline(
 	struct Pipeline* pipeline);
-void drawMeshCommand(
-	struct Pipeline* pipeline,
-	struct Mesh* mesh);
+void bindPipelineCommand(
+	struct Pipeline* pipeline);
 
 struct Pipeline* createColorPipeline(
 	struct Window* window,

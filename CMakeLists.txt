@@ -22,11 +22,16 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 add_subdirectory(libraries/glfw)
 
+add_subdirectory(libraries/freetype)
+
 add_library(mpgx STATIC
 	source/glad/glad.c
+	source/mpgx/interface.c
+		source/mpgx/text.c
 	source/mpgx/window.c)
 target_link_libraries(mpgx PUBLIC
-	glfw)
+	glfw
+	freetype)
 target_include_directories(mpgx PUBLIC
 	${PROJECT_BINARY_DIR}
 	${PROJECT_SOURCE_DIR}/include)

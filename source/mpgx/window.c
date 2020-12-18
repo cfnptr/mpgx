@@ -1,11 +1,8 @@
 #include "mpgx/window.h"
-#include "mpgx/vector.h"
-#include "mpgx/matrix.h"
 #include "mpgx/opengl.h"
 
-#include <stdio.h>
-#include <assert.h>
-#include <stdbool.h>
+#include "ft2build.h"
+#include FT_FREETYPE_H
 
 typedef void(*BeginCommandRecord)(
 	struct Window*);
@@ -85,6 +82,7 @@ struct Image
 };
 
 static bool graphicsInitialized = false;
+static FT_Library ftLibrary = NULL;
 
 void glfwErrorCallback(
 	int error,
@@ -103,13 +101,14 @@ bool initializeGraphics()
 	if (graphicsInitialized == true)
 		return false;
 
-	int result = glfwInit();
-
-	if(result == GLFW_FALSE)
+	if(glfwInit() == GLFW_FALSE)
 		return false;
 
 	glfwSetErrorCallback(
 		glfwErrorCallback);
+
+	if (FT_Init_FreeType(&ftLibrary) != 0)
+		return false;
 
 	graphicsInitialized = true;
 	return true;
@@ -119,8 +118,16 @@ void terminateGraphics()
 	if (graphicsInitialized == false)
 		return;
 
+	if (FT_Done_FreeType(ftLibrary) != 0)
+		abort();
+
 	glfwTerminate();
 	graphicsInitialized = false;
+}
+
+void* getFtLibrary()
+{
+	return ftLibrary;
 }
 
 void beginGlCommandRecord(
@@ -630,9 +637,20 @@ void drawGlMeshCommand(
 		pipeline->setUniformsFunction;
 	setUniformsFunction(pipeline);
 
+	if (pipeline->cullFace == FRONT_ONLY_CULL_FACE)
+		glCullFace(GL_FRONT);
+	else if (pipeline->cullFace == BACK_FRONT_CULL_FACE)
+		glCullFace(GL_FRONT_AND_BACK);
+	else
+		glCullFace(GL_BACK);
+
+	if (pipeline->frontFace == CLOCKWISE_FRONT_FACE)
+		glFrontFace(GL_CW);
+	else
+		glFrontFace(GL_CCW);
+
 	GLenum glDrawMode;
 
-	// TODO: Optimize this
 	switch (pipeline->drawMode)
 	{
 	default:
@@ -685,6 +703,7 @@ struct Mesh* createMesh(
 	struct Buffer* indexBuffer)
 {
 	assert(window != NULL);
+	assert(indexCount != 0);
 	assert(vertexBuffer != NULL);
 	assert(indexBuffer != NULL);
 	assert(window == vertexBuffer->window);
@@ -767,26 +786,12 @@ enum DrawIndex getMeshDrawIndex(
 	assert(mesh->window->recording == false);
 	return mesh->drawIndex;
 }
-
 size_t getMeshIndexCount(
 	const struct Mesh* mesh)
 {
 	assert(mesh != NULL);
 	assert(mesh->window->recording == false);
 	return mesh->indexCount;
-}
-void setMeshIndexCount(
-	struct Mesh* mesh,
-	size_t count)
-{
-	assert(mesh != NULL);
-	assert(mesh->window->recording == false);
-
-	assert(mesh->drawIndex == UINT32_DRAW_INDEX ?
-		count * sizeof(uint32_t) <= mesh->indexBuffer->size :
-		count * sizeof(uint16_t) <= mesh->indexBuffer->size);
-
-	mesh->indexCount = count;
 }
 
 struct Buffer* getMeshVertexBuffer(
@@ -822,6 +827,7 @@ void setMeshIndexBuffer(
 	struct Buffer* buffer)
 {
 	assert(mesh != NULL);
+	assert(indexCount != 0);
 	assert(buffer != NULL);
 	assert(mesh->window == buffer->window);
 	assert(buffer->type == INDEX_BUFFER_TYPE);
@@ -856,6 +862,7 @@ void setMeshBuffers(
 	struct Buffer* indexBuffer)
 {
 	assert(mesh != NULL);
+	assert(indexCount != 0);
 	assert(vertexBuffer != NULL);
 	assert(indexBuffer != NULL);
 	assert(mesh->window == vertexBuffer->window);
@@ -881,7 +888,6 @@ void drawMeshCommand(
 	assert(mesh != NULL);
 	assert(pipeline != NULL);
 	assert(mesh->window == pipeline->window);
-	assert(pipeline->setUniformsFunction != NULL);
 	assert(mesh->window->recording == true);
 
 	DrawMeshCommand drawFunction =
@@ -1035,7 +1041,8 @@ void destroyGlImage(
 	free(glImage);
 }
 
-struct Image* createImage(
+
+inline static struct Image* createImage(
 	struct Window* window,
 	enum ImageType type,
 	enum ImageFormat format,
@@ -1045,12 +1052,6 @@ struct Image* createImage(
 	const void* pixels,
 	bool mipmap)
 {
-	assert(window != NULL);
-	assert(width != 0);
-	assert(height != 0);
-	assert(depth != 0);
-	assert(window->recording == false);
-
 	struct Image* image =
 		malloc(sizeof(struct Image));
 
@@ -1094,6 +1095,76 @@ struct Image* createImage(
 	image->handle = handle;
 	return image;
 }
+struct Image* createImage1D(
+	struct Window* window,
+	enum ImageFormat format,
+	size_t width,
+	const void* pixels,
+	bool mipmap)
+{
+	assert(window != NULL);
+	assert(width != 0);
+	assert(window->recording == false);
+
+	return createImage(
+		window,
+		IMAGE_1D_TYPE,
+		format,
+		width,
+		1,
+		1,
+		pixels,
+		mipmap);
+}
+struct Image* createImage2D(
+	struct Window* window,
+	enum ImageFormat format,
+	size_t width,
+	size_t height,
+	const void* pixels,
+	bool mipmap)
+{
+	assert(window != NULL);
+	assert(width != 0);
+	assert(height != 0);
+	assert(window->recording == false);
+
+	return createImage(
+		window,
+		IMAGE_1D_TYPE,
+		format,
+		width,
+		height,
+		1,
+		pixels,
+		mipmap);
+}
+struct Image* createImage3D(
+	struct Window* window,
+	enum ImageFormat format,
+	size_t width,
+	size_t height,
+	size_t depth,
+	const void* pixels,
+	bool mipmap)
+{
+	assert(window != NULL);
+	assert(width != 0);
+	assert(height != 0);
+	assert(depth != 0);
+	assert(window->recording == false);
+
+	return createImage(
+		window,
+		IMAGE_1D_TYPE,
+		format,
+		width,
+		height,
+		depth,
+		pixels,
+		mipmap);
+}
+
 void destroyImage(
 	struct Image* image)
 {
@@ -1117,18 +1188,110 @@ struct Window* getImageWindow(
 	return image->window;
 }
 
+struct Pipeline* createPipeline(
+	struct Window* window,
+	enum DrawMode drawMode,
+	enum CullFace cullFace,
+	enum FrontFace frontFace,
+	DestroyPipeline destroyFunction,
+	BindPipelineCommand bindFunction,
+	SetUniformsCommand setUniformsFunction,
+	void* handle)
+{
+	assert(window != NULL);
+	assert(destroyFunction != NULL);
+	assert(bindFunction != NULL);
+	assert(setUniformsFunction != NULL);
+	assert(handle != NULL);
+	assert(window->recording == false);
+
+	struct Pipeline* pipeline =
+		malloc(sizeof(struct Pipeline));
+
+	if (pipeline == NULL)
+		return NULL;
+
+	pipeline->window = window;
+	pipeline->drawMode = drawMode;
+	pipeline->cullFace = cullFace;
+	pipeline->frontFace = frontFace;
+	pipeline->destroyFunction = destroyFunction;
+	pipeline->bindFunction = bindFunction;
+	pipeline->setUniformsFunction = setUniformsFunction;
+	pipeline->handle = handle;
+	return pipeline;
+}
+void destroyPipeline(
+	struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	assert(pipeline->window->recording == false);
+
+	if (pipeline == NULL)
+		return;
+
+	DestroyPipeline destroyFunction =
+		pipeline->destroyFunction;
+
+	destroyFunction(pipeline);
+	free(pipeline);
+}
+
+struct Window* getPipelineWindow(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	assert(pipeline->window->recording == false);
+	return pipeline->window;
+}
+enum DrawMode getPipelineDrawMode(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	assert(pipeline->window->recording == false);
+	return pipeline->drawMode;
+}
+enum CullFace getPipelineCullFace(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	assert(pipeline->window->recording == false);
+	return pipeline->cullFace;
+}
+enum FrontFace getPipelineFrontFace(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	assert(pipeline->window->recording == false);
+	return pipeline->frontFace;
+}
+
+void bindPipelineCommand(
+	struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	assert(pipeline->window->recording == true);
+
+	BindPipelineCommand bindFunction =
+		pipeline->bindFunction;
+	bindFunction(pipeline);
+}
+
 struct GlColorPipeline
 {
-	struct Matrix4F mvp;
-	struct Vector4F color;
 	GLenum handle;
 	GLint mvpLocation;
 	GLint colorLocation;
 };
+struct ColorPipeline
+{
+	struct Matrix4F mvp;
+	struct Vector4F color;
+	void* handle;
+};
 
 inline static struct GlColorPipeline* createGlColorPipeline(
 	struct Window* window,
-	enum DrawMode drawMode,
 	const void* vertexShader,
 	const void* fragmentShader,
 	bool gles)
@@ -1139,13 +1302,11 @@ inline static struct GlColorPipeline* createGlColorPipeline(
 	if (pipeline == NULL)
 		return NULL;
 
-	GLenum stages[2] =
-	{
+	GLenum stages[2] = {
 		GL_VERTEX_SHADER,
 		GL_FRAGMENT_SHADER,
 	};
-	const char* shaders[2] =
-	{
+	const char* shaders[2] = {
 		(const char*)vertexShader,
 		(const char*)fragmentShader,
 	};
@@ -1200,8 +1361,6 @@ inline static struct GlColorPipeline* createGlColorPipeline(
 	if (error != GL_NO_ERROR)
 		abort();
 
-	pipeline->mvp = createIdentityMatrix4F();
-	pipeline->color = createValueVector4F(1.0f);
 	pipeline->handle = handle;
 	pipeline->mvpLocation = mvpLocation;
 	pipeline->colorLocation = colorLocation;
@@ -1210,55 +1369,58 @@ inline static struct GlColorPipeline* createGlColorPipeline(
 void destroyGlColorPipeline(
 	struct Pipeline* pipeline)
 {
-	struct GlColorPipeline* glPipeline =
-		(struct GlColorPipeline*)pipeline->handle;
+	struct ColorPipeline* colorPipeline =
+		(struct ColorPipeline*)pipeline->handle;
+	struct GlColorPipeline* glColorPipeline =
+		(struct GlColorPipeline*)colorPipeline->handle;
 
 	glfwMakeContextCurrent(
 		pipeline->window->handle);
 
 	glDeleteProgram(
-		glPipeline->handle);
+		glColorPipeline->handle);
 
 	GLenum error = glGetError();
 
 	if (error != GL_NO_ERROR)
 		abort();
 
-	free(glPipeline);
+	free(glColorPipeline);
+	free(colorPipeline);
 }
 void bindGlColorPipeline(
 	struct Pipeline* pipeline)
 {
-	struct GlColorPipeline* glPipeline =
-		(struct GlColorPipeline*)pipeline->handle;
+	struct ColorPipeline* colorPipeline =
+		(struct ColorPipeline*)pipeline->handle;
+	struct GlColorPipeline* glColorPipeline =
+		(struct GlColorPipeline*)colorPipeline->handle;
 
-	glUseProgram(
-		glPipeline->handle);
+	glUseProgram(glColorPipeline->handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_BLEND);
-	// TODO move to constructor
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CW);
 }
 void setGlColorPipelineUniforms(
 	struct Pipeline* pipeline)
 {
-	struct GlColorPipeline* glPipeline =
-		(struct GlColorPipeline*)pipeline->handle;
+	struct ColorPipeline* colorPipeline =
+		(struct ColorPipeline*)pipeline->handle;
+	struct GlColorPipeline* glColorPipeline =
+		(struct GlColorPipeline*)colorPipeline->handle;
 
 	glUniformMatrix4fv(
-		glPipeline->mvpLocation,
+		glColorPipeline->mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&glPipeline->mvp);
+		(const GLfloat*)&colorPipeline->mvp);
 	glUniform4fv(
-		glPipeline->colorLocation,
+		glColorPipeline->colorLocation,
 		1,
-		(const GLfloat*)&glPipeline->color);
+		(const GLfloat*)&colorPipeline->color);
 
 	glEnableVertexAttribArray(0);
 
@@ -1270,46 +1432,19 @@ void setGlColorPipelineUniforms(
 		sizeof(struct Vector3F),
 		NULL);
 }
-
-void destroyPipeline(
-	struct Pipeline* pipeline)
-{
-	assert(pipeline->destroyFunction != NULL);
-	assert(pipeline->window->recording == false);
-
-	if (pipeline == NULL)
-		return;
-
-	DestroyPipeline destroyFunction =
-		pipeline->destroyFunction;
-
-	destroyFunction(pipeline);
-	free(pipeline);
-}
-void bindPipelineCommand(
-	struct Pipeline* pipeline)
-{
-	assert(pipeline != NULL);
-	assert(pipeline->bindFunction != NULL);
-	assert(pipeline->window != NULL);
-	assert(pipeline->window->recording == true);
-
-	BindPipelineCommand bindFunction =
-		pipeline->bindFunction;
-	bindFunction(pipeline);
-}
-
 struct Pipeline* createColorPipeline(
 	struct Window* window,
-	enum DrawMode drawMode)
+	enum DrawMode drawMode,
+	enum CullFace cullFace,
+	enum FrontFace frontFace)
 {
 	assert(window != NULL);
 	assert(window->recording == false);
 
-	struct Pipeline* pipeline =
-		malloc(sizeof(struct Pipeline));
+	struct ColorPipeline* colorPipeline =
+		malloc(sizeof(struct ColorPipeline));
 
-	if (pipeline == NULL)
+	if (colorPipeline == NULL)
 		return NULL;
 
 	enum GraphicsAPI api =
@@ -1317,52 +1452,87 @@ struct Pipeline* createColorPipeline(
 
 	void* handle;
 
+	DestroyPipeline destroyFunction;
+	BindPipelineCommand bindFunction;
+	SetUniformsCommand setUniformsFunction;
+
 	if (api == OPENGL_GRAPHICS_API)
 	{
 		handle = createGlColorPipeline(
 			window,
-			drawMode,
 			OPENGL_COLOR_VERTEX_SHADER,
 			OPENGL_COLOR_FRAGMENT_SHADER,
 			false);
 
-		pipeline->destroyFunction =
-			destroyGlColorPipeline;
-		pipeline->bindFunction =
-			bindGlColorPipeline;
-		pipeline->setUniformsFunction =
-			setGlColorPipelineUniforms;
+		destroyFunction = destroyGlColorPipeline;
+		bindFunction = bindGlColorPipeline;
+		setUniformsFunction = setGlColorPipelineUniforms;
 	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
 	{
 		handle = createGlColorPipeline(
 			window,
-			drawMode,
 			OPENGL_COLOR_VERTEX_SHADER,
 			OPENGL_COLOR_FRAGMENT_SHADER,
 			true);
 
-		pipeline->destroyFunction =
-			destroyGlColorPipeline;
-		pipeline->bindFunction =
-			bindGlColorPipeline;
-		pipeline->setUniformsFunction =
-			setGlColorPipelineUniforms;
+		destroyFunction = destroyGlColorPipeline;
+		bindFunction = bindGlColorPipeline;
+		setUniformsFunction = setGlColorPipelineUniforms;
 	}
 	else
 	{
-		free(pipeline);
+		free(colorPipeline);
 		return NULL;
 	}
 
 	if (handle == NULL)
 	{
-		free(pipeline);
+		free(colorPipeline);
 		return NULL;
 	}
 
-	pipeline->window = window;
-	pipeline->drawMode = drawMode;
-	pipeline->handle = handle;
+	colorPipeline->mvp = createIdentityMatrix4F();
+	colorPipeline->color = createValueVector4F(1.0f);
+	colorPipeline->handle = handle;
+
+	struct Pipeline* pipeline = createPipeline(
+		window,
+		drawMode,
+		cullFace,
+		frontFace,
+		destroyFunction,
+		bindFunction,
+		setUniformsFunction,
+		colorPipeline);
+
+	if (pipeline == NULL)
+	{
+		destroyGlColorPipeline(handle);
+		free(colorPipeline);
+		return NULL;
+	}
+
 	return pipeline;
+}
+
+void setColorPipelineMVP(
+	struct Pipeline* pipeline,
+	struct Matrix4F mvp)
+{
+	assert(pipeline != NULL);
+
+	struct ColorPipeline* colorPipeline =
+		(struct ColorPipeline*)pipeline;
+	colorPipeline->mvp = mvp;
+}
+void setColorPipelineColor(
+	struct Pipeline* pipeline,
+	struct Vector4F color)
+{
+	assert(pipeline != NULL);
+
+	struct ColorPipeline* colorPipeline =
+		(struct ColorPipeline*)pipeline;
+	colorPipeline->color = color;
 }

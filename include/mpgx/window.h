@@ -1,6 +1,8 @@
 #pragma once
+#include "mpgx/vector.h"
+#include "mpgx/matrix.h"
+
 #include <stdlib.h>
-#include <stdbool.h>
 
 #define DEFAULT_WINDOW_WIDTH 800
 #define DEFAULT_WINDOW_HEIGHT 600
@@ -55,6 +57,18 @@ enum DrawMode
 	// TODO: other draw modes
 };
 
+enum CullFace
+{
+	BACK_ONLY_CULL_FACE,
+	FRONT_ONLY_CULL_FACE,
+	BACK_FRONT_CULL_FACE,
+};
+enum FrontFace
+{
+	CLOCKWISE_FRONT_FACE,
+	COUNTERCLOCKWISE_FRONT_FACE,
+};
+
 struct Window;
 struct Buffer;
 struct Mesh;
@@ -75,6 +89,8 @@ struct Pipeline
 {
 	struct Window* window;
 	enum DrawMode drawMode;
+	enum CullFace cullFace;
+	enum FrontFace frontFace;
 	DestroyPipeline destroyFunction;
 	BindPipelineCommand bindFunction;
 	SetUniformsCommand setUniformsFunction;
@@ -83,6 +99,8 @@ struct Pipeline
 
 bool initializeGraphics();
 void terminateGraphics();
+
+void* getFtLibrary();
 
 struct Window* createWindow(
 	enum GraphicsAPI api,
@@ -144,12 +162,8 @@ struct Window* getMeshWindow(
 	const struct Mesh* mesh);
 enum DrawIndex getMeshDrawIndex(
 	const struct Mesh* mesh);
-
 size_t getMeshIndexCount(
 	const struct Mesh* mesh);
-void setMeshIndexCount(
-	struct Mesh* mesh,
-	size_t count);
 
 struct Buffer* getMeshVertexBuffer(
 	const struct Mesh* mesh);
@@ -180,9 +194,21 @@ void drawMeshCommand(
 	struct Mesh* mesh,
 	struct Pipeline* pipeline);
 
-struct Image* createImage(
+struct Image* createImage1D(
 	struct Window* window,
-	enum ImageType type,
+	enum ImageFormat format,
+	size_t width,
+	const void* pixels,
+	bool mipmap);
+struct Image* createImage2D(
+	struct Window* window,
+	enum ImageFormat format,
+	size_t width,
+	size_t height,
+	const void* pixels,
+	bool mipmap);
+struct Image* createImage3D(
+	struct Window* window,
 	enum ImageFormat format,
 	size_t width,
 	size_t height,
@@ -197,11 +223,54 @@ struct Window* getImageWindow(
 
 // TODO: get image properties
 
+struct Pipeline* createPipeline(
+	struct Window* window,
+	enum DrawMode drawMode,
+	enum CullFace cullFace,
+	enum FrontFace frontFace,
+	DestroyPipeline destroyFunction,
+	BindPipelineCommand bindFunction,
+	SetUniformsCommand setUniformsFunction,
+	void* handle);
 void destroyPipeline(
 	struct Pipeline* pipeline);
+
+struct Window* getPipelineWindow(
+	const struct Pipeline* pipeline);
+enum DrawMode getPipelineDrawMode(
+	const struct Pipeline* pipeline);
+enum CullFace getPipelineCullFace(
+	const struct Pipeline* pipeline);
+enum FrontFace getPipelineFrontFace(
+	const struct Pipeline* pipeline);
+
 void bindPipelineCommand(
 	struct Pipeline* pipeline);
 
 struct Pipeline* createColorPipeline(
 	struct Window* window,
-	enum DrawMode drawMode);
+	enum DrawMode drawMode,
+	enum CullFace cullFace,
+	enum FrontFace frontFace);
+
+void setColorPipelineMVP(
+	struct Pipeline* pipeline,
+	struct Matrix4F mvp);
+void setColorPipelineColor(
+	struct Pipeline* pipeline,
+	struct Vector4F color);
+
+struct Pipeline* createImageColorPipeline(
+	struct Window* window,
+	enum DrawMode drawMode,
+	struct Image* image);
+
+void setImageColorPipelineMVP(
+	struct Pipeline* pipeline,
+	struct Matrix4F mvp);
+void setImageColorPipelineColor(
+	struct Pipeline* pipeline,
+	struct Vector4F color);
+void setImageColorPipelineImage(
+	struct Pipeline* pipeline,
+	struct Image* image);

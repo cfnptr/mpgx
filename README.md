@@ -10,3 +10,4 @@
 
 ## Third-party
 * [glfw](https://github.com/glfw/glfw/) (Zlib License)
+* [freetype](https://www.freetype.org/) (FreeType License)

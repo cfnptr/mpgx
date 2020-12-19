@@ -9,6 +9,25 @@ typedef void(*BeginCommandRecord)(
 typedef void(*EndCommandRecord)(
 	struct Window*);
 
+typedef void(*DestroyBuffer)(
+	struct Buffer*);
+typedef void(*SetBufferData)(
+	struct Buffer*,
+	const void*,
+	size_t,
+	size_t);
+
+typedef void(*DestroyMesh)(
+	struct Mesh*);
+typedef void(*DrawMeshCommand)(
+	struct Mesh*,
+	struct Pipeline*);
+
+typedef void(*DestroyImage)(
+	struct Image*);
+typedef const void*(*GetImageHandle)(
+	const struct Image*);
+
 struct Window
 {
 	enum GraphicsAPI api;
@@ -17,21 +36,14 @@ struct Window
 	bool recording;
 	BeginCommandRecord beginRecordFunction;
 	BeginCommandRecord endRecordFunction;
+	DestroyBuffer destroyBufferFunction;
+	SetBufferData setBufferDataFunction;
+	DestroyMesh destroyMeshFunction;
+	DrawMeshCommand drawMeshFunction;
+	DestroyImage destroyImageFunction;
+	GetImageHandle getImageHandleFunction;
 	struct GLFWwindow* handle;
 };
-
-// TODO:
-// Move all function pointer
-// to the window class
-// for memory economy
-
-typedef void(*DestroyBuffer)(
-	struct Buffer*);
-typedef void(*SetBufferData)(
-	struct Buffer*,
-	const void*,
-	size_t,
-	size_t);
 
 struct GlBuffer
 {
@@ -44,16 +56,8 @@ struct Buffer
 	enum BufferType type;
 	size_t size;
 	bool constant;
-	DestroyBuffer destroyFunction;
-	SetBufferData setDataFunction;
 	void* handle;
 };
-
-typedef void(*DestroyMesh)(
-	struct Mesh*);
-typedef void(*DrawMeshCommand)(
-	struct Mesh*,
-	struct Pipeline*);
 
 struct GlMesh
 {
@@ -66,13 +70,8 @@ struct Mesh
 	size_t indexCount;
 	struct Buffer* vertexBuffer;
 	struct Buffer* indexBuffer;
-	DestroyMesh destroyFunction;
-	DrawMeshCommand drawFunction;
 	void* handle;
 };
-
-typedef void(*DestroyImage)(
-	struct Image*);
 
 struct GlImage
 {
@@ -88,58 +87,11 @@ struct Image
 	size_t height;
 	size_t depth;
 	bool mipmap;
-	DestroyImage destroyFunction;
 	void* handle;
 };
 
 static bool graphicsInitialized = false;
 static FT_Library ftLibrary = NULL;
-
-void glfwErrorCallback(
-	int error,
-	const char* description)
-{
-	fprintf(
-		stderr,
-		"GLFW ERROR: %s\n",
-		description);
-
-	abort();
-}
-
-bool initializeGraphics()
-{
-	if (graphicsInitialized == true)
-		return false;
-
-	if(glfwInit() == GLFW_FALSE)
-		return false;
-
-	glfwSetErrorCallback(
-		glfwErrorCallback);
-
-	if (FT_Init_FreeType(&ftLibrary) != 0)
-		return false;
-
-	graphicsInitialized = true;
-	return true;
-}
-void terminateGraphics()
-{
-	if (graphicsInitialized == false)
-		return;
-
-	if (FT_Done_FreeType(ftLibrary) != 0)
-		abort();
-
-	glfwTerminate();
-	graphicsInitialized = false;
-}
-
-void* getFtLibrary()
-{
-	return ftLibrary;
-}
 
 void beginGlCommandRecord(
 	struct Window* window)
@@ -155,212 +107,6 @@ void endGlCommandRecord(
 {
 	glfwSwapBuffers(
 		window->handle);
-}
-
-struct Window* createWindow(
-	enum GraphicsAPI api,
-	size_t width,
-	size_t height,
-	const char* title)
-{
-	assert(width != 0);
-	assert(height != 0);
-	assert(title != NULL);
-
-	struct Window* window =
-		malloc(sizeof(struct Window));
-
-	if (window == NULL)
-		return NULL;
-
-	glfwDefaultWindowHints();
-
-	if (api == OPENGL_GRAPHICS_API)
-	{
-		glfwWindowHint(
-			GLFW_CLIENT_API,
-			GLFW_OPENGL_API);
-		glfwWindowHint(
-			GLFW_CONTEXT_VERSION_MAJOR,
-			3);
-		glfwWindowHint(
-			GLFW_CONTEXT_VERSION_MINOR,
-			3);
-		glfwWindowHint(
-			GLFW_OPENGL_FORWARD_COMPAT,
-			GLFW_TRUE);
-		glfwWindowHint(
-			GLFW_OPENGL_PROFILE,
-			GLFW_OPENGL_CORE_PROFILE);
-
-#ifndef NDEBUG
-		glfwWindowHint(
-			GLFW_OPENGL_DEBUG_CONTEXT,
-			GLFW_TRUE);
-#else
-		glfwWindowHint(
-			GLFW_OPENGL_DEBUG_CONTEXT,
-			GLFW_FALSE);
-#endif
-
-		window->beginRecordFunction =
-			beginGlCommandRecord;
-		window->endRecordFunction =
-			endGlCommandRecord;
-	}
-	else if (api == OPENGL_ES_GRAPHICS_API)
-	{
-		glfwWindowHint(
-			GLFW_CLIENT_API,
-			GLFW_OPENGL_ES_API);
-		glfwWindowHint(
-			GLFW_CONTEXT_VERSION_MAJOR,
-			3);
-		glfwWindowHint(
-			GLFW_CONTEXT_VERSION_MINOR,
-			0);
-
-#ifndef NDEBUG
-		glfwWindowHint(
-			GLFW_OPENGL_DEBUG_CONTEXT,
-			GLFW_TRUE);
-#else
-		glfwWindowHint(
-			GLFW_OPENGL_DEBUG_CONTEXT,
-			GLFW_FALSE);
-#endif
-
-		window->beginRecordFunction =
-			beginGlCommandRecord;
-		window->endRecordFunction =
-			endGlCommandRecord;
-	}
-	else
-	{
-		free(window);
-		return NULL;
-	}
-
-	GLFWwindow* handle = glfwCreateWindow(
-		(int)width,
-		(int)height,
-		title,
-		NULL,
-		NULL);
-
-	if (handle == NULL)
-	{
-		free(window);
-		return NULL;
-	}
-
-	glfwMakeContextCurrent(
-		handle);
-
-	if (gladLoadGL() == 0)
-	{
-		glfwDestroyWindow(handle);
-		free(window);
-		return NULL;
-	}
-
-	window->api = api;
-	window->updateTime = 0.0;
-	window->deltaTime = 0.0;
-	window->recording = false;
-	window->handle = handle;
-	return window;
-}
-void destroyWindow(
-	struct Window* window)
-{
-	if (window == NULL)
-        return;
-    
-    glfwDestroyWindow(window->handle);
-	free(window);
-}
-
-enum GraphicsAPI getWindowGraphicsAPI(
-	const struct Window* window)
-{
-	assert(window != NULL);
-	assert(window->recording == false);
-	return window->api;
-}
-double getWindowUpdateTime(
-	const struct Window* window)
-{
-	assert(window != NULL);
-	assert(window->recording == false);
-	return window->updateTime;
-}
-double getWindowDeltaTime(
-	const struct Window* window)
-{
-	assert(window != NULL);
-	assert(window->recording == false);
-	return window->deltaTime;
-}
-
-void makeWindowContextCurrent(
-	struct Window* window)
-{
-	assert(window != NULL);
-
-	assert(window->api == OPENGL_GRAPHICS_API ||
-		window->api == OPENGL_ES_GRAPHICS_API);
-
-	glfwMakeContextCurrent(
-		window->handle);
-}
-void startWindowUpdate(
-	struct Window* window,
-	WindowRender renderFunction,
-	void* functionArgument)
-{
-	assert(window != NULL);
-	assert(renderFunction != NULL);
-	assert(window->recording == false);
-
-	struct GLFWwindow* handle =
-		window->handle;
-
-	while (glfwWindowShouldClose(handle) == GLFW_FALSE)
-	{
-		glfwPollEvents();
-
-		double time = glfwGetTime();
-		window->deltaTime = time - window->updateTime;
-		window->updateTime = time;
-
-		renderFunction(functionArgument);
-	}
-}
-
-void beginCommandRecord(
-	struct Window* window)
-{
-	assert(window != NULL);
-	assert(window->recording == false);
-
-	window->recording = true;
-
-	BeginCommandRecord beginFunction =
-		window->beginRecordFunction;
-	beginFunction(window);
-}
-void endCommandRecord(
-	struct Window* window)
-{
-	assert(window != NULL);
-	assert(window->recording == true);
-
-	window->recording = false;
-
-	BeginCommandRecord endFunction =
-		window->endRecordFunction;
-	endFunction(window);
 }
 
 inline static struct GlBuffer* createGlBuffer(
@@ -418,10 +164,7 @@ inline static struct GlBuffer* createGlBuffer(
 		data,
 		usage);
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
+	assertOpenGL();
 
 	buffer->type = type;
 	buffer->handle = handle;
@@ -440,10 +183,7 @@ void destroyGlBuffer(
 		GL_ONE,
 		&glBuffer->handle);
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
+	assertOpenGL();
 
 	free(glBuffer);
 }
@@ -468,131 +208,7 @@ void setGlBufferData(
 		(GLsizeiptr)size,
 		data);
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
-}
-
-struct Buffer* createBuffer(
-	struct Window* window,
-	enum BufferType type,
-	const void* data,
-	size_t size,
-	bool constant)
-{
-	assert(window != NULL);
-	assert(size != 0);
-	assert(window->recording == false);
-
-	struct Buffer* buffer =
-		malloc(sizeof(struct Buffer));
-
-	if (buffer == NULL)
-		return NULL;
-
-	enum GraphicsAPI api =
-		window->api;
-
-	void* handle;
-
-	if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		handle = createGlBuffer(
-			window,
-			type,
-			data,
-			size,
-			constant);
-
-		buffer->destroyFunction = destroyGlBuffer;
-		buffer->setDataFunction = setGlBufferData;
-	}
-	else
-	{
-		free(buffer);
-		return NULL;
-	}
-
-	if (handle == NULL)
-	{
-		free(buffer);
-		return NULL;
-	}
-
-	buffer->window = window;
-	buffer->type = type;
-	buffer->size = size;
-	buffer->constant = constant;
-	buffer->handle = handle;
-	return buffer;
-}
-void destroyBuffer(
-	struct Buffer* buffer)
-{
-	assert(buffer->window->recording == false);
-
-	if (buffer == NULL)
-		return;
-
-	DestroyBuffer destroyFunction =
-		buffer->destroyFunction;
-
-	destroyFunction(buffer);
-	free(buffer);
-}
-
-struct Window* getBufferWindow(
-	const struct Buffer* buffer)
-{
-	assert(buffer != NULL);
-	assert(buffer->window->recording == false);
-	return buffer->window;
-}
-enum BufferType getBufferType(
-	const struct Buffer* buffer)
-{
-	assert(buffer != NULL);
-	assert(buffer->window->recording == false);
-	return buffer->type;
-}
-size_t getBufferSize(
-	const struct Buffer* buffer)
-{
-	assert(buffer != NULL);
-	assert(buffer->window->recording == false);
-	return buffer->size;
-}
-bool getBufferConstant(
-	const struct Buffer* buffer)
-{
-	assert(buffer != NULL);
-	assert(buffer->window->recording == false);
-	return buffer->constant;
-}
-
-void setBufferData(
-	struct Buffer* buffer,
-	const void* data,
-	size_t size,
-	size_t offset)
-{
-	assert(buffer != NULL);
-	assert(data != NULL);
-	assert(size != 0);
-	assert(buffer->constant == false);
-	assert(size + offset <= buffer->size);
-	assert(buffer->window->recording == false);
-
-	SetBufferData setDataFunction =
-		buffer->setDataFunction;
-
-	setDataFunction(
-		buffer,
-		data,
-		size,
-		offset);
+	assertOpenGL();
 }
 
 inline static struct GlMesh* createGlMesh(
@@ -614,10 +230,7 @@ inline static struct GlMesh* createGlMesh(
 		GL_ONE,
 		&handle);
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
+	assertOpenGL();
 
 	mesh->handle = handle;
 	return mesh;
@@ -635,10 +248,7 @@ void destroyGlMesh(
 		GL_ONE,
 		&glMesh->handle);
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
+	assertOpenGL();
 
 	free(glMesh);
 }
@@ -709,8 +319,8 @@ void drawGlMeshCommand(
 
 	GLenum glDrawIndex =
 		mesh->drawIndex == UINT32_DRAW_INDEX ?
-		GL_UNSIGNED_INT :
-		GL_UNSIGNED_SHORT;
+			GL_UNSIGNED_INT :
+			GL_UNSIGNED_SHORT;
 
 	glDrawElements(
 		glDrawMode,
@@ -718,213 +328,7 @@ void drawGlMeshCommand(
 		glDrawIndex,
 		NULL);
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
-}
-
-struct Mesh* createMesh(
-	struct Window* window,
-	enum DrawIndex drawIndex,
-	size_t indexCount,
-	struct Buffer* vertexBuffer,
-	struct Buffer* indexBuffer)
-{
-	assert(window != NULL);
-	assert(indexCount != 0);
-	assert(vertexBuffer != NULL);
-	assert(indexBuffer != NULL);
-	assert(window == vertexBuffer->window);
-	assert(window == indexBuffer->window);
-	assert(vertexBuffer->type == VERTEX_BUFFER_TYPE);
-	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
-	assert(window->recording == false);
-
-	assert(drawIndex == UINT32_DRAW_INDEX ?
-		indexCount * sizeof(uint32_t) <= indexBuffer->size :
-		indexCount * sizeof(uint16_t) <= indexBuffer->size);
-
-	struct Mesh* mesh =
-		malloc(sizeof(struct Mesh));
-
-	if (mesh == NULL)
-		return NULL;
-
-	enum GraphicsAPI api =
-		window->api;
-
-	void* handle;
-
-	if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		handle = createGlMesh(
-			window,
-			drawIndex);
-
-		mesh->destroyFunction = destroyGlMesh;
-		mesh->drawFunction = drawGlMeshCommand;
-	}
-	else
-	{
-		free(mesh);
-		return NULL;
-	}
-
-	if (handle == NULL)
-	{
-		free(mesh);
-		return NULL;
-	}
-
-	mesh->window = window;
-	mesh->drawIndex = drawIndex;
-	mesh->indexCount = indexCount;
-	mesh->vertexBuffer = vertexBuffer;
-	mesh->indexBuffer = indexBuffer;
-	mesh->handle = handle;
-	return mesh;
-}
-void destroyMesh(
-	struct Mesh* mesh)
-{
-	assert(mesh->window->recording == false);
-
-	if (mesh == NULL)
-		return;
-
-	DestroyMesh destroyFunction =
-		mesh->destroyFunction;
-	destroyFunction(mesh);
-
-	free(mesh);
-}
-
-struct Window* getMeshWindow(
-	const struct Mesh* mesh)
-{
-	assert(mesh != NULL);
-	assert(mesh->window->recording == false);
-	return mesh->window;
-}
-enum DrawIndex getMeshDrawIndex(
-	const struct Mesh* mesh)
-{
-	assert(mesh != NULL);
-	assert(mesh->window->recording == false);
-	return mesh->drawIndex;
-}
-size_t getMeshIndexCount(
-	const struct Mesh* mesh)
-{
-	assert(mesh != NULL);
-	assert(mesh->window->recording == false);
-	return mesh->indexCount;
-}
-
-struct Buffer* getMeshVertexBuffer(
-	const struct Mesh* mesh)
-{
-	assert(mesh != NULL);
-	assert(mesh->window->recording == false);
-	return mesh->vertexBuffer;
-}
-void setMeshVertexBuffer(
-	struct Mesh* mesh,
-	struct Buffer* buffer)
-{
-	assert(mesh != NULL);
-	assert(buffer != NULL);
-	assert(mesh->window == buffer->window);
-	assert(buffer->type == VERTEX_BUFFER_TYPE);
-	assert(mesh->window->recording == false);
-	mesh->vertexBuffer = buffer;
-}
-
-struct Buffer* getMeshIndexBuffer(
-	const struct Mesh* mesh)
-{
-	assert(mesh != NULL);
-	assert(mesh->window->recording == false);
-	return mesh->indexBuffer;
-}
-void setMeshIndexBuffer(
-	struct Mesh* mesh,
-	enum DrawIndex drawIndex,
-	size_t indexCount,
-	struct Buffer* buffer)
-{
-	assert(mesh != NULL);
-	assert(indexCount != 0);
-	assert(buffer != NULL);
-	assert(mesh->window == buffer->window);
-	assert(buffer->type == INDEX_BUFFER_TYPE);
-	assert(mesh->window->recording == false);
-
-	assert(mesh->drawIndex == UINT32_DRAW_INDEX ?
-		indexCount * sizeof(uint32_t) <= mesh->indexBuffer->size :
-		indexCount * sizeof(uint16_t) <= mesh->indexBuffer->size);
-
-	mesh->drawIndex = drawIndex;
-	mesh->indexCount = indexCount;
-	mesh->indexBuffer = buffer;
-}
-
-void getMeshBuffers(
-	const struct Mesh* mesh,
-	struct Buffer** vertexBuffer,
-	struct Buffer** indexBuffer)
-{
-	assert(mesh != NULL);
-	assert(vertexBuffer != NULL);
-	assert(indexBuffer != NULL);
-
-	*vertexBuffer = mesh->vertexBuffer;
-	*indexBuffer = mesh->indexBuffer;
-}
-void setMeshBuffers(
-	struct Mesh* mesh,
-	enum DrawIndex drawIndex,
-	size_t indexCount,
-	struct Buffer* vertexBuffer,
-	struct Buffer* indexBuffer)
-{
-	assert(mesh != NULL);
-	assert(indexCount != 0);
-	assert(vertexBuffer != NULL);
-	assert(indexBuffer != NULL);
-	assert(mesh->window == vertexBuffer->window);
-	assert(mesh->window == indexBuffer->window);
-	assert(vertexBuffer->type == VERTEX_BUFFER_TYPE);
-	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
-	assert(mesh->window->recording == false);
-
-	assert(mesh->drawIndex == UINT32_DRAW_INDEX ?
-		indexCount * sizeof(uint32_t) <= mesh->indexBuffer->size :
-		indexCount * sizeof(uint16_t) <= mesh->indexBuffer->size);
-
-	mesh->drawIndex = drawIndex;
-	mesh->indexCount = indexCount;
-	mesh->vertexBuffer = vertexBuffer;
-	mesh->indexBuffer = indexBuffer;
-}
-
-void drawMeshCommand(
-	struct Mesh* mesh,
-	struct Pipeline* pipeline)
-{
-	assert(mesh != NULL);
-	assert(pipeline != NULL);
-	assert(mesh->window == pipeline->window);
-	assert(mesh->window->recording == true);
-
-	DrawMeshCommand drawFunction =
-		mesh->drawFunction;
-
-	drawFunction(
-		mesh,
-		pipeline);
+	assertOpenGL();
 }
 
 inline static struct GlImage* createGlImage(
@@ -1024,10 +428,7 @@ inline static struct GlImage* createGlImage(
 	if (mipmap == true)
 		glGenerateMipmap(type);
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
+	assertOpenGL();
 
 	image->type = type;
 	image->handle = handle;
@@ -1046,14 +447,599 @@ void destroyGlImage(
 		GL_ONE,
 		&glImage->handle);
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
+	assertOpenGL();
 
 	free(glImage);
 }
+const void* getGlImageHandle(
+	const struct Image* image)
+{
+	struct GlImage* glImage =
+		(struct GlImage*)image->handle;
+	return &glImage->handle;
+}
 
+void glfwErrorCallback(
+	int error,
+	const char* description)
+{
+	fprintf(
+		stderr,
+		"GLFW ERROR: %s\n",
+		description);
+
+	abort();
+}
+
+bool initializeGraphics()
+{
+	if (graphicsInitialized == true)
+		return false;
+
+	if(glfwInit() == GLFW_FALSE)
+		return false;
+
+	glfwSetErrorCallback(
+		glfwErrorCallback);
+
+	if (FT_Init_FreeType(&ftLibrary) != 0)
+		return false;
+
+	graphicsInitialized = true;
+	return true;
+}
+void terminateGraphics()
+{
+	if (graphicsInitialized == false)
+		return;
+
+	if (FT_Done_FreeType(ftLibrary) != 0)
+		abort();
+
+	glfwTerminate();
+	graphicsInitialized = false;
+}
+
+void* getFtLibrary()
+{
+	return ftLibrary;
+}
+
+struct Window* createWindow(
+	enum GraphicsAPI api,
+	size_t width,
+	size_t height,
+	const char* title)
+{
+	assert(width != 0);
+	assert(height != 0);
+	assert(title != NULL);
+
+	struct Window* window =
+		malloc(sizeof(struct Window));
+
+	if (window == NULL)
+		return NULL;
+
+	glfwDefaultWindowHints();
+
+	if (api == OPENGL_GRAPHICS_API)
+	{
+		glfwWindowHint(
+			GLFW_CLIENT_API,
+			GLFW_OPENGL_API);
+		glfwWindowHint(
+			GLFW_CONTEXT_VERSION_MAJOR,
+			3);
+		glfwWindowHint(
+			GLFW_CONTEXT_VERSION_MINOR,
+			3);
+		glfwWindowHint(
+			GLFW_OPENGL_FORWARD_COMPAT,
+			GLFW_TRUE);
+		glfwWindowHint(
+			GLFW_OPENGL_PROFILE,
+			GLFW_OPENGL_CORE_PROFILE);
+
+#ifndef NDEBUG
+		glfwWindowHint(
+			GLFW_OPENGL_DEBUG_CONTEXT,
+			GLFW_TRUE);
+#else
+		glfwWindowHint(
+			GLFW_OPENGL_DEBUG_CONTEXT,
+			GLFW_FALSE);
+#endif
+
+		window->beginRecordFunction =
+			beginGlCommandRecord;
+		window->endRecordFunction =
+			endGlCommandRecord;
+		window->destroyBufferFunction =
+			destroyGlBuffer;
+		window->setBufferDataFunction =
+			setGlBufferData;
+		window->destroyMeshFunction =
+			destroyGlMesh;
+		window->drawMeshFunction =
+			drawGlMeshCommand;
+		window->destroyImageFunction =
+			destroyGlImage;
+		window->getImageHandleFunction =
+			getGlImageHandle;
+	}
+	else if (api == OPENGL_ES_GRAPHICS_API)
+	{
+		glfwWindowHint(
+			GLFW_CLIENT_API,
+			GLFW_OPENGL_ES_API);
+		glfwWindowHint(
+			GLFW_CONTEXT_VERSION_MAJOR,
+			3);
+		glfwWindowHint(
+			GLFW_CONTEXT_VERSION_MINOR,
+			0);
+
+#ifndef NDEBUG
+		glfwWindowHint(
+			GLFW_OPENGL_DEBUG_CONTEXT,
+			GLFW_TRUE);
+#else
+		glfwWindowHint(
+			GLFW_OPENGL_DEBUG_CONTEXT,
+			GLFW_FALSE);
+#endif
+
+		window->beginRecordFunction =
+			beginGlCommandRecord;
+		window->endRecordFunction =
+			endGlCommandRecord;
+		window->destroyBufferFunction =
+			destroyGlBuffer;
+		window->setBufferDataFunction =
+			setGlBufferData;
+		window->destroyMeshFunction =
+			destroyGlMesh;
+		window->drawMeshFunction =
+			drawGlMeshCommand;
+		window->destroyImageFunction =
+			destroyGlImage;
+		window->getImageHandleFunction =
+			getGlImageHandle;
+	}
+	else
+	{
+		free(window);
+		return NULL;
+	}
+
+	GLFWwindow* handle = glfwCreateWindow(
+		(int)width,
+		(int)height,
+		title,
+		NULL,
+		NULL);
+
+	if (handle == NULL)
+	{
+		free(window);
+		return NULL;
+	}
+
+	glfwMakeContextCurrent(
+		handle);
+
+	if (gladLoadGL() == 0)
+	{
+		glfwDestroyWindow(handle);
+		free(window);
+		return NULL;
+	}
+
+	window->api = api;
+	window->updateTime = 0.0;
+	window->deltaTime = 0.0;
+	window->recording = false;
+	window->handle = handle;
+	return window;
+}
+void destroyWindow(
+	struct Window* window)
+{
+	if (window == NULL)
+        return;
+    
+    glfwDestroyWindow(window->handle);
+	free(window);
+}
+
+enum GraphicsAPI getWindowGraphicsAPI(
+	const struct Window* window)
+{
+	assert(window != NULL);
+	return window->api;
+}
+double getWindowUpdateTime(
+	const struct Window* window)
+{
+	assert(window != NULL);
+	return window->updateTime;
+}
+double getWindowDeltaTime(
+	const struct Window* window)
+{
+	assert(window != NULL);
+	return window->deltaTime;
+}
+
+void makeWindowContextCurrent(
+	struct Window* window)
+{
+	assert(window != NULL);
+
+	assert(window->api == OPENGL_GRAPHICS_API ||
+		window->api == OPENGL_ES_GRAPHICS_API);
+
+	glfwMakeContextCurrent(
+		window->handle);
+}
+void startWindowUpdate(
+	struct Window* window,
+	WindowRender renderFunction,
+	void* functionArgument)
+{
+	assert(window != NULL);
+	assert(renderFunction != NULL);
+	assert(window->recording == false);
+
+	struct GLFWwindow* handle =
+		window->handle;
+
+	while (glfwWindowShouldClose(handle) == GLFW_FALSE)
+	{
+		glfwPollEvents();
+
+		double time = glfwGetTime();
+		window->deltaTime = time - window->updateTime;
+		window->updateTime = time;
+
+		renderFunction(functionArgument);
+	}
+}
+
+void beginCommandRecord(
+	struct Window* window)
+{
+	assert(window != NULL);
+	assert(window->recording == false);
+
+	window->recording = true;
+
+	BeginCommandRecord beginFunction =
+		window->beginRecordFunction;
+	beginFunction(window);
+}
+void endCommandRecord(
+	struct Window* window)
+{
+	assert(window != NULL);
+	assert(window->recording == true);
+
+	window->recording = false;
+
+	BeginCommandRecord endFunction =
+		window->endRecordFunction;
+	endFunction(window);
+}
+
+struct Buffer* createBuffer(
+	struct Window* window,
+	enum BufferType type,
+	const void* data,
+	size_t size,
+	bool constant)
+{
+	assert(window != NULL);
+	assert(size != 0);
+	assert(window->recording == false);
+
+	struct Buffer* buffer =
+		malloc(sizeof(struct Buffer));
+
+	if (buffer == NULL)
+		return NULL;
+
+	enum GraphicsAPI api =
+		window->api;
+
+	void* handle;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		handle = createGlBuffer(
+			window,
+			type,
+			data,
+			size,
+			constant);
+	}
+	else
+	{
+		free(buffer);
+		return NULL;
+	}
+
+	if (handle == NULL)
+	{
+		free(buffer);
+		return NULL;
+	}
+
+	buffer->window = window;
+	buffer->type = type;
+	buffer->size = size;
+	buffer->constant = constant;
+	buffer->handle = handle;
+	return buffer;
+}
+void destroyBuffer(
+	struct Buffer* buffer)
+{
+	assert(buffer->window->recording == false);
+
+	if (buffer == NULL)
+		return;
+
+	DestroyBuffer destroyFunction =
+		buffer->window->destroyBufferFunction;
+
+	destroyFunction(buffer);
+	free(buffer);
+}
+
+struct Window* getBufferWindow(
+	const struct Buffer* buffer)
+{
+	assert(buffer != NULL);
+	return buffer->window;
+}
+enum BufferType getBufferType(
+	const struct Buffer* buffer)
+{
+	assert(buffer != NULL);
+	return buffer->type;
+}
+size_t getBufferSize(
+	const struct Buffer* buffer)
+{
+	assert(buffer != NULL);
+	return buffer->size;
+}
+bool getBufferConstant(
+	const struct Buffer* buffer)
+{
+	assert(buffer != NULL);
+	return buffer->constant;
+}
+
+void setBufferData(
+	struct Buffer* buffer,
+	const void* data,
+	size_t size,
+	size_t offset)
+{
+	assert(buffer != NULL);
+	assert(data != NULL);
+	assert(size != 0);
+	assert(buffer->constant == false);
+	assert(size + offset <= buffer->size);
+	assert(buffer->window->recording == false);
+
+	SetBufferData setDataFunction =
+		buffer->window->setBufferDataFunction;
+
+	setDataFunction(
+		buffer,
+		data,
+		size,
+		offset);
+}
+
+struct Mesh* createMesh(
+	struct Window* window,
+	enum DrawIndex drawIndex,
+	size_t indexCount,
+	struct Buffer* vertexBuffer,
+	struct Buffer* indexBuffer)
+{
+	assert(window != NULL);
+	assert(indexCount != 0);
+	assert(vertexBuffer != NULL);
+	assert(indexBuffer != NULL);
+	assert(window == vertexBuffer->window);
+	assert(window == indexBuffer->window);
+	assert(vertexBuffer->type == VERTEX_BUFFER_TYPE);
+	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
+	assert(window->recording == false);
+
+	assert(drawIndex == UINT32_DRAW_INDEX ?
+		indexCount * sizeof(uint32_t) <= indexBuffer->size :
+		indexCount * sizeof(uint16_t) <= indexBuffer->size);
+
+	struct Mesh* mesh =
+		malloc(sizeof(struct Mesh));
+
+	if (mesh == NULL)
+		return NULL;
+
+	enum GraphicsAPI api =
+		window->api;
+
+	void* handle;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		handle = createGlMesh(
+			window,
+			drawIndex);
+	}
+	else
+	{
+		free(mesh);
+		return NULL;
+	}
+
+	if (handle == NULL)
+	{
+		free(mesh);
+		return NULL;
+	}
+
+	mesh->window = window;
+	mesh->drawIndex = drawIndex;
+	mesh->indexCount = indexCount;
+	mesh->vertexBuffer = vertexBuffer;
+	mesh->indexBuffer = indexBuffer;
+	mesh->handle = handle;
+	return mesh;
+}
+void destroyMesh(
+	struct Mesh* mesh)
+{
+	assert(mesh->window->recording == false);
+
+	if (mesh == NULL)
+		return;
+
+	DestroyMesh destroyFunction =
+		mesh->window->destroyMeshFunction;
+
+	destroyFunction(mesh);
+	free(mesh);
+}
+
+struct Window* getMeshWindow(
+	const struct Mesh* mesh)
+{
+	assert(mesh != NULL);
+	return mesh->window;
+}
+enum DrawIndex getMeshDrawIndex(
+	const struct Mesh* mesh)
+{
+	assert(mesh != NULL);
+	return mesh->drawIndex;
+}
+size_t getMeshIndexCount(
+	const struct Mesh* mesh)
+{
+	assert(mesh != NULL);
+	return mesh->indexCount;
+}
+
+struct Buffer* getMeshVertexBuffer(
+	const struct Mesh* mesh)
+{
+	assert(mesh != NULL);
+	return mesh->vertexBuffer;
+}
+void setMeshVertexBuffer(
+	struct Mesh* mesh,
+	struct Buffer* buffer)
+{
+	assert(mesh != NULL);
+	assert(buffer != NULL);
+	assert(mesh->window == buffer->window);
+	assert(buffer->type == VERTEX_BUFFER_TYPE);
+	assert(mesh->window->recording == false);
+	mesh->vertexBuffer = buffer;
+}
+
+struct Buffer* getMeshIndexBuffer(
+	const struct Mesh* mesh)
+{
+	assert(mesh != NULL);
+	return mesh->indexBuffer;
+}
+void setMeshIndexBuffer(
+	struct Mesh* mesh,
+	enum DrawIndex drawIndex,
+	size_t indexCount,
+	struct Buffer* buffer)
+{
+	assert(mesh != NULL);
+	assert(indexCount != 0);
+	assert(buffer != NULL);
+	assert(mesh->window == buffer->window);
+	assert(buffer->type == INDEX_BUFFER_TYPE);
+	assert(mesh->window->recording == false);
+
+	assert(mesh->drawIndex == UINT32_DRAW_INDEX ?
+		indexCount * sizeof(uint32_t) <= mesh->indexBuffer->size :
+		indexCount * sizeof(uint16_t) <= mesh->indexBuffer->size);
+
+	mesh->drawIndex = drawIndex;
+	mesh->indexCount = indexCount;
+	mesh->indexBuffer = buffer;
+}
+
+void getMeshBuffers(
+	const struct Mesh* mesh,
+	struct Buffer** vertexBuffer,
+	struct Buffer** indexBuffer)
+{
+	assert(mesh != NULL);
+	assert(vertexBuffer != NULL);
+	assert(indexBuffer != NULL);
+
+	*vertexBuffer = mesh->vertexBuffer;
+	*indexBuffer = mesh->indexBuffer;
+}
+void setMeshBuffers(
+	struct Mesh* mesh,
+	enum DrawIndex drawIndex,
+	size_t indexCount,
+	struct Buffer* vertexBuffer,
+	struct Buffer* indexBuffer)
+{
+	assert(mesh != NULL);
+	assert(indexCount != 0);
+	assert(vertexBuffer != NULL);
+	assert(indexBuffer != NULL);
+	assert(mesh->window == vertexBuffer->window);
+	assert(mesh->window == indexBuffer->window);
+	assert(vertexBuffer->type == VERTEX_BUFFER_TYPE);
+	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
+	assert(mesh->window->recording == false);
+
+	assert(mesh->drawIndex == UINT32_DRAW_INDEX ?
+		indexCount * sizeof(uint32_t) <= mesh->indexBuffer->size :
+		indexCount * sizeof(uint16_t) <= mesh->indexBuffer->size);
+
+	mesh->drawIndex = drawIndex;
+	mesh->indexCount = indexCount;
+	mesh->vertexBuffer = vertexBuffer;
+	mesh->indexBuffer = indexBuffer;
+}
+
+void drawMeshCommand(
+	struct Mesh* mesh,
+	struct Pipeline* pipeline)
+{
+	assert(mesh != NULL);
+	assert(pipeline != NULL);
+	assert(mesh->window == pipeline->window);
+	assert(mesh->window->recording == true);
+
+	DrawMeshCommand drawFunction =
+		mesh->window->drawMeshFunction;
+
+	drawFunction(
+		mesh,
+		pipeline);
+}
 
 inline static struct Image* createImage(
 	struct Window* window,
@@ -1088,8 +1074,6 @@ inline static struct Image* createImage(
 			depth,
 			pixels,
 			mipmap);
-
-		image->destroyFunction = destroyGlImage;
 	}
 	else
 	{
@@ -1171,7 +1155,7 @@ void destroyImage(
 		return;
 
 	DestroyImage destroyFunction =
-		image->destroyFunction;
+		image->window->destroyImageFunction;
 	destroyFunction(image);
 
 	free(image);
@@ -1223,7 +1207,10 @@ const void* getImageHandle(
 	const struct Image* image)
 {
 	assert(image != NULL);
-	return image->handle;
+
+	GetImageHandle getHandleFunction =
+		image->window->getImageHandleFunction;
+	return getHandleFunction(image);
 }
 
 struct Pipeline* createPipeline(

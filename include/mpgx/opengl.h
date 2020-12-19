@@ -10,6 +10,8 @@
 #define OPENGL_SHADER_HEADER "#version 330 core\n\n#define highp \n#define mediump \n#define lowp \n"
 #define OPENGL_ES_SHADER_HEADER "#version 300 es\n"
 
+// TODO: read shaders from files
+
 #define OPENGL_COLOR_VERTEX_SHADER                 \
 "layout(location = 0) in highp vec3 v_Position;\n  \
 uniform highp mat4 u_MVP;\n                        \
@@ -27,32 +29,41 @@ void main()\n                        \
 	o_Color = u_Color;\n             \
 }\n"
 
-#define OPENGL_TEXT_VERTEX_SHADER                  \
-"layout(location = 0) in highp vec3 v_Position;\n  \
-layout(location = 1) in highp vec2 v_TexCoords;\n  \
-out highp vec2 f_TexCoords;\n                      \
-                                                   \
-uniform highp mat4 u_MVP;\n                        \
-                                                   \
-void main()\n                                      \
-{\n                                                \
-	gl_Position = u_MVP * vec4(v_Position, 1.0);\n \
-	f_TexCoords = v_TexCoords;\n                   \
+#define OPENGL_TEXT_VERTEX_SHADER                       \
+"layout(location = 0) in highp vec2 v_Position;\n       \
+layout(location = 1) in highp vec2 v_TexCoord;\n       \
+out highp vec2 f_TexCoord;\n                           \
+                                                        \
+uniform highp mat4 u_MVP;\n                             \
+                                                        \
+void main()\n                                           \
+{\n                                                     \
+	gl_Position = u_MVP * vec4(v_Position, 0.0, 1.0);\n \
+	f_TexCoord = v_TexCoord;\n                        \
 }\n"
-#define OPENGL_TEXT_FRAGMENT_SHADER           \
-"in highp vec2 f_TexCoords\n                  \
-out highp vec4 o_Color;\n                     \
-                                              \
-uniform highp vec4 u_Color;\n                 \
-uniform sampler2D u_Texture;\n                \
-                                              \
-void main()\n                                 \
-{\n                                           \
-	vec4 sample = texture(text, TexCoords);\n \
-	sample = vec4(1.0, 1.0, 1.0, sample.r);\n \
-	u_Color = sample * u_Color;\n             \
+#define OPENGL_TEXT_FRAGMENT_SHADER                  \
+"in highp vec2 f_TexCoord;\n                        \
+out highp vec4 o_Color;\n                            \
+                                                     \
+uniform highp vec4 u_Color;\n                        \
+uniform sampler2D u_Image;\n                       \
+                                                     \
+void main()\n                                        \
+{\n                                                  \
+	vec4 sample = texture(u_Image, f_TexCoord);\n \
+	sample = vec4(1.0, 1.0, 1.0, sample.r);\n        \
+	o_Color = sample * u_Color;\n                    \
 }\n"
 
+inline static void assertOpenGL()
+{
+#ifndef NDEBUG
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		abort();
+#endif
+}
 inline static GLuint createGlShader(
 	GLenum stage,
 	const char* source,

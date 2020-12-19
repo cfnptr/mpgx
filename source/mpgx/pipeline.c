@@ -100,10 +100,7 @@ inline static struct GlColorPipeline* createGlColorPipeline(
 		return NULL;
 	}
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
+	assertOpenGL();
 
 	pipeline->handle = handle;
 	pipeline->mvpLocation = mvpLocation;
@@ -124,10 +121,7 @@ void destroyGlColorPipeline(
 	glDeleteProgram(
 		glColorPipeline->handle);
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
+	assertOpenGL();
 
 	free(glColorPipeline);
 	free(colorPipeline);
@@ -147,6 +141,8 @@ void bindGlColorPipeline(
 	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_BLEND);
+
+	assertOpenGL();
 }
 void setGlColorPipelineUniforms(
 	struct Pipeline* pipeline)
@@ -175,6 +171,8 @@ void setGlColorPipelineUniforms(
 		GL_FALSE,
 		sizeof(struct Vector3F),
 		0);
+
+	assertOpenGL();
 }
 struct Pipeline* createColorPipeline(
 	struct Window* window,
@@ -366,10 +364,7 @@ inline static struct GlImageColorPipeline* createGlImageColorPipeline(
 		return NULL;
 	}
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
+	assertOpenGL();
 
 	pipeline->handle = handle;
 	pipeline->mvpLocation = mvpLocation;
@@ -391,10 +386,7 @@ void destroyGlImageColorPipeline(
 	glDeleteProgram(
 		glImageColorPipeline->handle);
 
-	GLenum error = glGetError();
-
-	if (error != GL_NO_ERROR)
-		abort();
+	assertOpenGL();
 
 	free(glImageColorPipeline);
 	free(imageColorPipeline);
@@ -416,6 +408,8 @@ void bindGlImageColorPipeline(
 	glDisable(GL_BLEND);
 
 	// TODO: bind image and set wrap/filter
+
+	assertOpenGL();
 }
 void setGlImageColorPipelineUniforms(
 	struct Pipeline* pipeline)
@@ -452,6 +446,8 @@ void setGlImageColorPipelineUniforms(
 		GL_FALSE,
 		sizeof(struct Vector2F),
 		(const void*)sizeof(struct Vector3F));
+
+	assertOpenGL();
 }
 struct Pipeline* createImageColorPipeline(
 	struct Window* window,

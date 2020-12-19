@@ -5,8 +5,7 @@ struct Font;
 struct Text;
 
 struct Font* createFont(
-	const void* fileData,
-	size_t fileSize);
+	const void* filePath);
 void destroyFont(
 	struct Font* font);
 
@@ -15,9 +14,9 @@ void destroyFont(
 
 struct Text* createText(
 	struct Window* window,
-	struct Pipeline* pipeline,
 	struct Font* font,
 	size_t fontSize,
+	struct Pipeline* pipeline,
 	const char* _text,
 	bool mipmap,
 	bool constant);

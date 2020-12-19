@@ -27,6 +27,32 @@ void main()\n                        \
 	o_Color = u_Color;\n             \
 }\n"
 
+#define OPENGL_TEXT_VERTEX_SHADER                  \
+"layout(location = 0) in highp vec3 v_Position;\n  \
+layout(location = 1) in highp vec2 v_TexCoords;\n  \
+out highp vec2 f_TexCoords;\n                      \
+                                                   \
+uniform highp mat4 u_MVP;\n                        \
+                                                   \
+void main()\n                                      \
+{\n                                                \
+	gl_Position = u_MVP * vec4(v_Position, 1.0);\n \
+	f_TexCoords = v_TexCoords;\n                   \
+}\n"
+#define OPENGL_TEXT_FRAGMENT_SHADER           \
+"in highp vec2 f_TexCoords\n                  \
+out highp vec4 o_Color;\n                     \
+                                              \
+uniform highp vec4 u_Color;\n                 \
+uniform sampler2D u_Texture;\n                \
+                                              \
+void main()\n                                 \
+{\n                                           \
+	vec4 sample = texture(text, TexCoords);\n \
+	sample = vec4(1.0, 1.0, 1.0, sample.r);\n \
+	u_Color = sample * u_Color;\n             \
+}\n"
+
 inline static GLuint createGlShader(
 	GLenum stage,
 	const char* source,
@@ -191,4 +217,57 @@ inline static GLuint createGlPipeline(
 
 	free(shaders);
 	return program;
+}
+
+inline static GLenum getGlImageFilter(
+	enum ImageFilter imageFilter,
+	enum ImageFilter mipmapFilter,
+	bool mipmap)
+{
+	if (imageFilter == NEAREST_IMAGE_FILTER)
+	{
+		if (mipmap == true)
+		{
+			if(mipmapFilter == NEAREST_IMAGE_FILTER)
+				return GL_NEAREST_MIPMAP_NEAREST;
+			else
+				return GL_NEAREST_MIPMAP_LINEAR;
+		}
+		else
+		{
+			return GL_NEAREST;
+		}
+	}
+	else
+	{
+		if (mipmap == true)
+		{
+			if (mipmapFilter == NEAREST_IMAGE_FILTER)
+				return GL_LINEAR_MIPMAP_NEAREST;
+			else
+				return GL_LINEAR_MIPMAP_LINEAR;
+		}
+		else
+		{
+			return GL_LINEAR;
+		}
+	}
+}
+inline static GLenum getGlImageWrap(
+	enum ImageWrap wrap)
+{
+	if (wrap == CLAMP_TO_EDGE_IMAGE_WRAP)
+		return GL_CLAMP_TO_EDGE;
+	else if (wrap == MIRRORED_REPEAT_IMAGE_WRAP)
+		return GL_MIRRORED_REPEAT;
+	else
+		return GL_REPEAT;
+}
+inline static GLenum getGlImageType(
+	enum ImageType type)
+{
+	if (type == IMAGE_3D_TYPE)
+		return GL_TEXTURE_3D;
+	else
+		return GL_TEXTURE_2D;
 }

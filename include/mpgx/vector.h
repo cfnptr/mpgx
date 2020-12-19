@@ -2,6 +2,10 @@
 #include <math.h>
 #include <stdbool.h>
 
+struct Vector2F
+{
+	float x, y;
+};
 struct Vector3F
 {
 	float x, y, z;
@@ -10,6 +14,157 @@ struct Vector4F
 {
 	float x, y, z, w;
 };
+
+inline static struct Vector2F createVector2F(
+	float x,
+	float y)
+{
+	struct Vector2F vector;
+	vector.x = x;
+	vector.y = y;
+	return vector;
+}
+inline static struct Vector2F createValueVector2F(
+	float value)
+{
+	struct Vector2F vector;
+	vector.x = value;
+	vector.y = value;
+	return vector;
+}
+
+inline static struct Vector2F addVector2F(
+	struct Vector2F a,
+	struct Vector2F b)
+{
+	a.x += b.x;
+	a.y += b.y;
+	return a;
+}
+inline static struct Vector2F subVector2F(
+	struct Vector2F a,
+	struct Vector2F b)
+{
+	a.x -= b.x;
+	a.y -= b.y;
+	return a;
+}
+inline static struct Vector2F mulVector2F(
+	struct Vector2F a,
+	struct Vector2F b)
+{
+	a.x *= b.x;
+	a.y *= b.y;
+	return a;
+}
+inline static struct Vector2F divVector2F(
+	struct Vector2F a,
+	struct Vector2F b)
+{
+	a.x /= b.x;
+	a.y /= b.y;
+	return a;
+}
+
+inline static struct Vector2F addValueVector2F(
+	struct Vector2F vector,
+	float value)
+{
+	vector.x += value;
+	vector.y += value;
+	return vector;
+}
+inline static struct Vector2F subValueVector2F(
+	struct Vector2F vector,
+	float value)
+{
+	vector.x -= value;
+	vector.y -= value;
+	return vector;
+}
+inline static struct Vector2F mulValueVector2F(
+	struct Vector2F vector,
+	float value)
+{
+	vector.x *= value;
+	vector.y *= value;
+	return vector;
+}
+inline static struct Vector2F divValueVector2F(
+	struct Vector2F vector,
+	float value)
+{
+	vector.x /= value;
+	vector.y /= value;
+	return vector;
+}
+
+inline static struct Vector2F negVector2F(
+	struct Vector2F vector)
+{
+	vector.x = -vector.x;
+	vector.y = -vector.y;
+	return vector;
+}
+
+inline static float dotVector2F(
+	struct Vector2F a,
+	struct Vector2F b)
+{
+	return
+		(a.x * b.x) +
+		(a.y * b.y);
+}
+inline static float lengthVector2F(
+	struct Vector2F vector)
+{
+	return sqrtf(
+		(vector.x * vector.x) +
+		(vector.y * vector.y));
+}
+inline static float distanceVector2F(
+	struct Vector2F a,
+	struct Vector2F b)
+{
+	return sqrtf(
+		((a.x - b.x) * (a.x - b.x)) +
+		((a.y - b.y) * (a.y - b.y)));
+}
+inline static struct Vector2F normalizeVector2F(
+	struct Vector2F vector)
+{
+	float length = sqrtf(
+		(vector.x * vector.x) +
+		(vector.y * vector.y));
+
+	vector.x /= length;
+	vector.y /= length;
+	return vector;
+}
+inline static struct Vector2F reflectVector2F(
+	struct Vector2F vector,
+	struct Vector2F normal)
+{
+	float dot =
+		(normal.x * vector.x) +
+		(normal.y * vector.y) * 2.0f;
+
+	normal.x *= dot;
+	normal.y *= dot;
+
+	vector.x -= normal.x;
+	vector.y -= normal.y;
+	return vector;
+}
+
+inline static bool compareVector2F(
+	struct Vector2F a,
+	struct Vector2F b)
+{
+	return
+		a.x == b.x &&
+		a.y == b.y;
+}
 
 inline static struct Vector3F createVector3F(
 	float x,
@@ -120,9 +275,18 @@ inline static float dotVector3F(
 	struct Vector3F b)
 {
 	return
-		(a.x * b.z) +
+		(a.x * b.x) +
 		(a.y * b.y) +
 		(a.z * b.z);
+}
+inline static struct Vector3F crossVector3F(
+	struct Vector3F a,
+	struct Vector3F b)
+{
+	a.x = a.y * b.z - a.z * b.y;
+	a.y = a.z * b.x - a.x * b.z;
+	a.z = a.x * b.y - a.y * b.x;
+	return a;
 }
 inline static float lengthVector3F(
 	struct Vector3F vector)
@@ -159,7 +323,7 @@ inline static struct Vector3F reflectVector3F(
 	struct Vector3F normal)
 {
 	float dot =
-		(normal.x * vector.z) +
+		(normal.x * vector.x) +
 		(normal.y * vector.y) +
 		(normal.z * vector.z) * 2.0f;
 
@@ -304,7 +468,7 @@ inline static float dotVector4F(
 	struct Vector4F b)
 {
 	return
-		(a.x * b.z) +
+		(a.x * b.x) +
 		(a.y * b.y) +
 		(a.z * b.z) +
 		(a.w * b.w);
@@ -348,7 +512,7 @@ inline static struct Vector4F reflectVector4F(
 	struct Vector4F normal)
 {
 	float dot =
-		(normal.x * vector.z) +
+		(normal.x * vector.x) +
 		(normal.y * vector.y) +
 		(normal.z * vector.z) +
 		(normal.w * vector.w) * 2.0f;

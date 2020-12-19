@@ -32,7 +32,6 @@ enum DrawIndex
 
 enum ImageType
 {
-	IMAGE_1D_TYPE,
 	IMAGE_2D_TYPE,
 	IMAGE_3D_TYPE,
 	// TODO: cubemaps
@@ -43,6 +42,19 @@ enum ImageFormat
 	R8G8B8A8_UNORM_IMAGE_FORMAT,
 	R8G8B8A8_SRGB_IMAGE_FORMAT,
 	// TODO: add other formats
+};
+
+enum ImageFilter
+{
+	LINEAR_IMAGE_FILTER,
+	NEAREST_IMAGE_FILTER,
+};
+
+enum ImageWrap
+{
+	REPEAT_IMAGE_WRAP,
+	MIRRORED_REPEAT_IMAGE_WRAP,
+	CLAMP_TO_EDGE_IMAGE_WRAP,
 };
 
 enum DrawMode
@@ -110,11 +122,15 @@ struct Window* createWindow(
 void destroyWindow(
 	struct Window* window);
 
+enum GraphicsAPI getWindowGraphicsAPI(
+	const struct Window* window);
 double getWindowUpdateTime(
 	const struct Window* window);
 double getWindowDeltaTime(
 	const struct Window* window);
 
+void makeWindowContextCurrent(
+	struct Window* window);
 void startWindowUpdate(
 	struct Window* window,
 	WindowRender renderFunction,
@@ -194,12 +210,6 @@ void drawMeshCommand(
 	struct Mesh* mesh,
 	struct Pipeline* pipeline);
 
-struct Image* createImage1D(
-	struct Window* window,
-	enum ImageFormat format,
-	size_t width,
-	const void* pixels,
-	bool mipmap);
 struct Image* createImage2D(
 	struct Window* window,
 	enum ImageFormat format,
@@ -220,8 +230,20 @@ void destroyImage(
 
 struct Window* getImageWindow(
 	const struct Image* image);
-
-// TODO: get image properties
+enum ImageType getImageType(
+	const struct Image* image);
+enum ImageFormat getImageFormat(
+	const struct Image* image);
+size_t getImageWidth(
+	const struct Image* image);
+size_t getImageHeight(
+	const struct Image* image);
+size_t getImageDepth(
+	const struct Image* image);
+bool getImageMipmap(
+	const struct Image* image);
+const void* getImageHandle(
+	const struct Image* image);
 
 struct Pipeline* createPipeline(
 	struct Window* window,
@@ -247,30 +269,6 @@ enum FrontFace getPipelineFrontFace(
 void bindPipelineCommand(
 	struct Pipeline* pipeline);
 
-struct Pipeline* createColorPipeline(
-	struct Window* window,
-	enum DrawMode drawMode,
-	enum CullFace cullFace,
-	enum FrontFace frontFace);
-
-void setColorPipelineMVP(
-	struct Pipeline* pipeline,
-	struct Matrix4F mvp);
-void setColorPipelineColor(
-	struct Pipeline* pipeline,
-	struct Vector4F color);
-
-struct Pipeline* createImageColorPipeline(
-	struct Window* window,
-	enum DrawMode drawMode,
-	struct Image* image);
-
-void setImageColorPipelineMVP(
-	struct Pipeline* pipeline,
-	struct Matrix4F mvp);
-void setImageColorPipelineColor(
-	struct Pipeline* pipeline,
-	struct Vector4F color);
-void setImageColorPipelineImage(
-	struct Pipeline* pipeline,
-	struct Image* image);
+// TODO: create shader objects for optimization
+// Shaders could be potentially shared between same pipelines
+// Do not allow shader destruction before pipeline destruction

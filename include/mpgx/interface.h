@@ -11,3 +11,8 @@ void destroyInterface(
 void updateInterface(
 	struct Interface* interface,
 	struct Window* window);
+
+// TODO: render system
+// createRenderer(struct RenderSYstem*)
+// destroyRenderer(struct RenderSYstem*)
+

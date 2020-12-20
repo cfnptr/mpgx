@@ -20,13 +20,13 @@ struct Text
 	// TODO: \/
 	/*size_t textCapacity;
 	size_t imageCapacity;*/
-	wchar_t* data;
+	char* data;
 	struct Image* image;
 	struct Mesh* mesh;
 };
 struct Glyph
 {
-	wchar_t wideChar;
+	uint32_t uniChar;
 	uint32_t sizeX;
 	uint32_t sizeY;
 	int32_t bearingX;
@@ -62,13 +62,26 @@ struct Font* createFont(
 	if (font == NULL)
 		return NULL;
 
+	FT_Library ftLibrary =
+		(FT_Library)getFtLibrary();
+
 	FT_Face face;
 
 	FT_Error result = FT_New_Face(
-		getFtLibrary(),
+		ftLibrary,
 		filePath,
 		0,
 		&face);
+
+	if (result != 0)
+	{
+		free(font);
+		return NULL;
+	}
+
+	result = FT_Select_Charmap(
+		face,
+		FT_ENCODING_UNICODE);
 
 	if (result != 0)
 	{
@@ -89,60 +102,22 @@ void destroyFont(
 	free(font);
 }
 
-wchar_t* createTextString(
-	const char* text)
-{
-	assert(text);
-
-	size_t length = mbstowcs(
-		NULL,
-		text,
-		0);
-
-	if (length == (size_t)-1)
-		return NULL;
-
-	wchar_t* string = malloc(
-		(length + 1) * sizeof(wchar_t));
-
-	if (string == NULL)
-		return NULL;
-
-	size_t count = mbstowcs(
-		string,
-		text,
-		length + 1);
-
-	if (count == (size_t)-1)
-	{
-		free(string);
-		return NULL;
-	}
-
-	return string;
-}
-void destroyTextString(
-	wchar_t* text)
-{
-	free(text);
-}
-
 int compareGlyph(
 	const void* a,
 	const void* b)
 {
-	if (((struct Glyph*)a)->wideChar <
-		((struct Glyph*)b)->wideChar)
+	if (((struct Glyph*)a)->uniChar <
+		((struct Glyph*)b)->uniChar)
 	{
 		return -1;
 	}
-	if (((struct Glyph*)a)->wideChar ==
-		((struct Glyph*)b)->wideChar)
+	if (((struct Glyph*)a)->uniChar ==
+		((struct Glyph*)b)->uniChar)
 	{
 		return 0;
 	}
-	if (((struct Glyph*)a)->wideChar >
-		((struct Glyph*)b)->wideChar)
+	if (((struct Glyph*)a)->uniChar >
+		((struct Glyph*)b)->uniChar)
 	{
 		return 1;
 	}
@@ -153,46 +128,137 @@ inline static bool createTextData(
 	struct Window* window,
 	FT_Face face,
 	size_t fontSize,
-	const wchar_t* text,
+	const char* text,
 	bool constant,
 	bool mipmap,
-	wchar_t** _data,
+	char** _data,
 	struct Image** _image,
 	struct Mesh** _mesh)
 {
 	size_t textLength =
-		wcslen(text);
+		strlen(text);
 
 	// TODO: handle zero size string
 	if (textLength == 0)
 		return NULL;
 
-	wchar_t* data = malloc(
-		textLength * sizeof(wchar_t));
+	char* data = malloc(
+		textLength * sizeof(char) + 1);
 
 	if (data == NULL)
 		return NULL;
 
+	memcpy(
+		data,
+		text,
+		textLength * sizeof(char) + 1);
+
+	size_t uniCharCount = 0;
+
+	for (size_t i = 0; i < textLength;)
+	{
+		char textChar = text[i];
+
+		if ((textChar & 0b10000000) == 0)
+		{
+			i += 1;
+		}
+		else if ((textChar & 0b11100000) == 0b11000000 &&
+			(text[i + 1] & 0b11000000) == 0b10000000)
+		{
+			i += 2;
+		}
+		else if ((textChar & 0b11110000) == 0b11100000 &&
+			(text[i + 1] & 0b11000000) == 0b10000000 &&
+			(text[i + 2] & 0b11000000) == 0b10000000)
+		{
+			i += 3;
+		}
+		else if ((textChar & 0b11111000) == 0b11110000 &&
+			(text[i + 1] & 0b11000000) == 0b10000000 &&
+			(text[i + 2] & 0b11000000) == 0b10000000 &&
+			(text[i + 3] & 0b11000000) == 0b10000000)
+		{
+			i += 4;
+		}
+		else
+		{
+			free(data);
+			return false;
+		}
+
+		uniCharCount++;
+	}
+
+	uint32_t* uniChars = malloc(
+		uniCharCount * sizeof(uint32_t));
+
+	if (uniChars == NULL)
+	{
+		free(data);
+		return NULL;
+	}
+
+	for (size_t i = 0, j = 0; i < textLength; j++)
+	{
+		char textChar = text[i];
+
+		if ((textChar & 0b10000000) == 0)
+		{
+			uniChars[j] = (uint32_t)textChar;
+			i += 1;
+		}
+		else if ((textChar & 0b11100000) == 0b11000000)
+		{
+			uniChars[j] =
+				(text[i] & 0b00011111) << 6 |
+				(text[i + 1] & 0b00111111);
+			i += 2;
+		}
+		else if ((textChar & 0b11110000) == 0b11100000)
+		{
+			uniChars[j] =
+				(text[i] & 0b00001111) << 12 |
+				(text[i + 1] & 0b00111111) << 6 |
+				(text[i + 2] & 0b00111111);
+			i += 3;
+		}
+		else if ((textChar & 0b11111000) == 0b11110000)
+		{
+			uniChars[j] =
+				(text[i] & 0b00000111) << 18 |
+				(text[i + 1] & 0b00111111) << 12 |
+				(text[i + 2] & 0b00111111) << 6 |
+				(text[i + 3] & 0b00111111);
+			i += 4;
+		}
+		else
+		{
+			abort();
+		}
+	}
+
 	size_t glyphCount = 0;
 
 	struct Glyph* glyphs = malloc(
-		textLength * sizeof(struct Glyph));
+		uniCharCount * sizeof(struct Glyph));
 
 	if (glyphs == NULL)
 	{
+		free(uniChars);
 		free(data);
 		return false;
 	}
 
-	for (size_t i = 0; i < textLength; i++)
+	for (size_t i = 0; i < uniCharCount; i++)
 	{
-		wchar_t wideChar = text[i];
+		uint32_t uniChar = uniChars[i];
 		bool glyphExists = false;
 
 		// TODO: optimize with binary search
 		for (size_t j = 0; j < glyphCount; j++)
 		{
-			if (wideChar == glyphs[j].wideChar)
+			if (uniChar == glyphs[j].uniChar)
 			{
 				glyphExists = true;
 				break;
@@ -201,7 +267,7 @@ inline static bool createTextData(
 
 		if (glyphExists == false)
 		{
-			glyphs[glyphCount].wideChar = wideChar;
+			glyphs[glyphCount].uniChar = uniChar;
 			glyphCount++;
 		}
 	}
@@ -224,6 +290,7 @@ inline static bool createTextData(
 	if (pixels == NULL)
 	{
 		free(glyphs);
+		free(uniChars);
 		free(data);
 		return false;
 	}
@@ -231,11 +298,11 @@ inline static bool createTextData(
 	for (size_t i = 0; i < glyphCount; i++)
 	{
 		struct Glyph glyph;
-		glyph.wideChar = glyphs[i].wideChar;
+		glyph.uniChar = glyphs[i].uniChar;
 
 		FT_UInt charIndex = FT_Get_Char_Index(
 			face,
-			glyph.wideChar);
+			glyph.uniChar);
 		FT_Error result = FT_Load_Glyph(
 			face,
 			charIndex,
@@ -245,6 +312,7 @@ inline static bool createTextData(
 		{
 			free(pixels);
 			free(glyphs);
+			free(uniChars);
 			free(data);
 			return false;
 		}
@@ -297,18 +365,20 @@ inline static bool createTextData(
 	if (image == NULL)
 	{
 		free(glyphs);
+		free(uniChars);
 		free(data);
 		return false;
 	}
 
 	size_t vertexCount =
-		textLength * 16;
+		uniCharCount * 16;
 	float* vertices = malloc(
 		vertexCount * sizeof(float));
 
 	if (vertices == NULL)
 	{
 		free(glyphs);
+		free(uniChars);
 		free(data);
 		return false;
 	}
@@ -317,10 +387,10 @@ inline static bool createTextData(
 	float vertexGlyphPosX = 0.0f;
 	float vertexGlyphPosY = 0.0f;
 
-	for (size_t i = 0; i < textLength; i++)
+	for (size_t i = 0; i < uniCharCount; i++)
 	{
 		struct Glyph searchGlyph;
-		searchGlyph.wideChar = text[i];
+		searchGlyph.uniChar = uniChars[i];
 
 		struct Glyph* glyph = bsearch(
 			&searchGlyph,
@@ -338,23 +408,25 @@ inline static bool createTextData(
 		float glyphHeight = (float)glyph->sizeY;
 		float texCoordU = glyph->texCoordU;
 		float texCoordV = glyph->texCoordV;
+		float texCoordS = texCoordU + (float)glyphWidth / pixelLength;
+		float texCoordT = texCoordV + (float)glyphHeight / pixelLength;
 
 		vertices[vertexIndex + 0] = glyphPosX;
 		vertices[vertexIndex + 1] = glyphPosY;
 		vertices[vertexIndex + 2] = texCoordU;
-		vertices[vertexIndex + 3] = texCoordV + (float)glyphHeight / pixelLength;
+		vertices[vertexIndex + 3] = texCoordT;
 		vertices[vertexIndex + 4] = glyphPosX;
 		vertices[vertexIndex + 5] = glyphPosY + glyphHeight;
 		vertices[vertexIndex + 6] = texCoordU;
 		vertices[vertexIndex + 7] = texCoordV;
 		vertices[vertexIndex + 8] = glyphPosX + glyphWidth;
 		vertices[vertexIndex + 9] = glyphPosY + glyphHeight;
-		vertices[vertexIndex + 10] = texCoordU + (float)glyphWidth / pixelLength;
+		vertices[vertexIndex + 10] = texCoordS;
 		vertices[vertexIndex + 11] = texCoordV;
 		vertices[vertexIndex + 12] = glyphPosX + glyphWidth;
 		vertices[vertexIndex + 13] = glyphPosY;
-		vertices[vertexIndex + 14] = texCoordU + (float)glyphWidth / pixelLength;
-		vertices[vertexIndex + 15] = texCoordV + (float)glyphHeight / pixelLength;
+		vertices[vertexIndex + 14] = texCoordS;
+		vertices[vertexIndex + 15] = texCoordT;
 
 		vertexIndex += 16;
 		vertexGlyphPosX += glyph->advance;
@@ -372,17 +444,20 @@ inline static bool createTextData(
 
 	if (vertexBuffer == NULL)
 	{
+		free(uniChars);
 		free(data);
 		return false;
 	}
 
 	size_t indexCount =
-		textLength * 6;
+		uniCharCount * 6;
 	uint32_t* indices = malloc(
 		indexCount * sizeof(uint32_t));
 
 	if (indices == NULL)
 	{
+		destroyBuffer(vertexBuffer);
+		free(uniChars);
 		free(data);
 		return false;
 	}
@@ -409,6 +484,7 @@ inline static bool createTextData(
 	if (indexBuffer == NULL)
 	{
 		destroyBuffer(vertexBuffer);
+		free(uniChars);
 		free(data);
 		return false;
 	}
@@ -424,6 +500,7 @@ inline static bool createTextData(
 	{
 		destroyBuffer(indexBuffer);
 		destroyBuffer(vertexBuffer);
+		free(uniChars);
 		free(data);
 		return false;
 	}
@@ -436,7 +513,7 @@ inline static bool createTextData(
 inline static void destroyTextData(
 	struct Mesh* mesh,
 	struct Image* image,
-	wchar_t* data)
+	char* data)
 {
 	struct Buffer* vertexBuffer;
 	struct Buffer* indexBuffer;
@@ -458,7 +535,7 @@ struct Text* createText(
 	struct Font* font,
 	size_t fontSize,
 	struct Pipeline* pipeline,
-	const wchar_t* _text,
+	const char* _text,
 	bool mipmap,
 	bool constant)
 {
@@ -713,33 +790,58 @@ void setGlTextPipelineUniforms(
 	struct GlTextPipeline* glTextPipeline =
 		(struct GlTextPipeline*)textPipeline->handle;
 
-	glActiveTexture(GL_TEXTURE0);
-
+	struct Image* image =
+		textPipeline->image;
 	GLuint glImage = *(const GLuint*)
-		getImageHandle(textPipeline->image);
+		getImageHandle(image);
+
+	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
 		glImage);
 
-	// TODO pass values in contructor
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_WRAP_S,
+		GL_REPEAT);
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_WRAP_T,
+		GL_REPEAT);
+
+	if (getImageMipmap(image) == true)
+	{
+		glTexParameteri(
+			GL_TEXTURE_2D,
+			GL_TEXTURE_MIN_FILTER,
+			GL_NEAREST_MIPMAP_LINEAR);
+		glTexParameteri(
+			GL_TEXTURE_2D,
+			GL_TEXTURE_MAG_FILTER,
+			GL_NEAREST_MIPMAP_LINEAR);
+	}
+	else
+	{
+		glTexParameteri(
+			GL_TEXTURE_2D,
+			GL_TEXTURE_MIN_FILTER,
+			GL_NEAREST);
+		glTexParameteri(
+			GL_TEXTURE_2D,
+			GL_TEXTURE_MAG_FILTER,
+			GL_NEAREST);
+	}
 
 	glUniform1i(
 		glTextPipeline->imageLocation,
 		0);
 
-	// TODO: set image filter
-	// Get them from gl pipeline instance
-
 	// TODO: TMP
 	struct Matrix4F mvp = translateMatrix4F(
 		scaleMatrix4F(
 			textPipeline->mvp,
-			createValueVector3F(0.01f)),
+			createValueVector3F(0.001f)),
 		createVector3F(-2, 0, 0));
 
 	glUniformMatrix4fv(

@@ -39,7 +39,7 @@ uniform highp mat4 u_MVP;\n                             \
 void main()\n                                           \
 {\n                                                     \
 	gl_Position = u_MVP * vec4(v_Position, 0.0, 1.0);\n \
-	f_TexCoord = vec2(v_TexCoord.x, -v_TexCoord.y);\n   \
+	f_TexCoord = v_TexCoord;\n                          \
 }\n"
 #define OPENGL_TEXT_FRAGMENT_SHADER                    \
 "in highp vec2 f_TexCoord;\n                           \

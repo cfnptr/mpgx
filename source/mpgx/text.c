@@ -4,6 +4,7 @@
 #include "ft2build.h"
 #include FT_FREETYPE_H
 
+#include <wchar.h>
 #include <assert.h>
 
 struct Font
@@ -19,9 +20,20 @@ struct Text
 	// TODO: \/
 	/*size_t textCapacity;
 	size_t imageCapacity;*/
-	char* data;
+	wchar_t* data;
 	struct Image* image;
 	struct Mesh* mesh;
+};
+struct Glyph
+{
+	wchar_t wideChar;
+	uint32_t sizeX;
+	uint32_t sizeY;
+	int32_t bearingX;
+	int32_t bearingY;
+	float advance;
+	float texCoordU;
+	float texCoordV;
 };
 
 struct GlTextPipeline
@@ -77,218 +89,275 @@ void destroyFont(
 	free(font);
 }
 
+wchar_t* createTextString(
+	const char* text)
+{
+	assert(text);
+
+	size_t length = mbstowcs(
+		NULL,
+		text,
+		0);
+
+	if (length == (size_t)-1)
+		return NULL;
+
+	wchar_t* string = malloc(
+		(length + 1) * sizeof(wchar_t));
+
+	if (string == NULL)
+		return NULL;
+
+	size_t count = mbstowcs(
+		string,
+		text,
+		length + 1);
+
+	if (count == (size_t)-1)
+	{
+		free(string);
+		return NULL;
+	}
+
+	return string;
+}
+void destroyTextString(
+	wchar_t* text)
+{
+	free(text);
+}
+
+int compareGlyph(
+	const void* a,
+	const void* b)
+{
+	if (((struct Glyph*)a)->wideChar <
+		((struct Glyph*)b)->wideChar)
+	{
+		return -1;
+	}
+	if (((struct Glyph*)a)->wideChar ==
+		((struct Glyph*)b)->wideChar)
+	{
+		return 0;
+	}
+	if (((struct Glyph*)a)->wideChar >
+		((struct Glyph*)b)->wideChar)
+	{
+		return 1;
+	}
+
+	abort();
+}
 inline static bool createTextData(
 	struct Window* window,
 	FT_Face face,
 	size_t fontSize,
-	const char* text,
+	const wchar_t* text,
 	bool constant,
 	bool mipmap,
-	char** _data,
-	struct Mesh** _mesh,
-	struct Image** _image)
+	wchar_t** _data,
+	struct Image** _image,
+	struct Mesh** _mesh)
 {
 	size_t textLength =
-		strlen(text);
-	char* data = malloc(
-		textLength * sizeof(char));
+		wcslen(text);
+
+	// TODO: handle zero size string
+	if (textLength == 0)
+		return NULL;
+
+	wchar_t* data = malloc(
+		textLength * sizeof(wchar_t));
 
 	if (data == NULL)
 		return NULL;
 
-	if (textLength == 0)
-	{
-		// TODO: handle zero size string
-		/*struct Buffer* vertexBuffer = createBuffer(
-			window,
-			VERTEX_BUFFER_TYPE,
-			NULL,
-			charQuadSize * sizeof(float),
-			constant);
-		struct Buffer* indexBuffer
-		struct Mesh* mesh = createMesh()*/
-	}
+	size_t glyphCount = 0;
 
-	size_t charCount = 0;
-	size_t charCapacity = 1;
+	struct Glyph* glyphs = malloc(
+		textLength * sizeof(struct Glyph));
 
-	uint32_t* chars = malloc(
-		charCapacity * sizeof(uint32_t));
-
-	if (chars == NULL)
+	if (glyphs == NULL)
 	{
 		free(data);
 		return false;
 	}
 
-	// TODO:
-	// create wide charr array and char array
-	// create already known vertex array.
-
-	size_t vertexCount = 0;
-	size_t vertexCapacity = textLength * 16;
-
-	float* vertices = malloc(
-		vertexCapacity * sizeof(float));
-
-	if (vertices == NULL)
+	for (size_t i = 0; i < textLength; i++)
 	{
-		free(chars);
-		free(data);
-		return false;
-	}
+		wchar_t wideChar = text[i];
+		bool glyphExists = false;
 
-	size_t charIndex = 0;
-
-	float posX = 0.0f;
-	float posY = 0.0f;
-
-	while (true)
-	{
-		char charValue = text[charIndex];
-
-		if (charValue == '\0')
-			break;
-
-		uint32_t newChar = 0b00000000;
-		char* newCharPtr = (char*)&newChar;
-
-		newCharPtr[0] = charValue;
-
-		if ((charValue >> 7) == 0b00000000)
+		// TODO: optimize with binary search
+		for (size_t j = 0; j < glyphCount; j++)
 		{
-			charIndex += 1;
-		}
-		else if ((charValue >> 5) == 0b00000110 &&
-			(text[charIndex + 1] >> 6) == 0b00000010)
-		{
-			newCharPtr[1] = text[charIndex + 1];
-			charIndex += 2;
-		}
-		else if ((charValue >> 4) == 0b00001110 &&
-			(text[charIndex + 1] >> 6) == 0b00000010 &&
-			(text[charIndex + 2] >> 6) == 0b00000010)
-		{
-			newCharPtr[1] = text[charIndex + 1];
-			newCharPtr[2] = text[charIndex + 2];
-			charIndex += 3;
-		}
-		else if ((charValue >> 3) == 0b00011110 &&
-			(text[charIndex + 1] >> 6) == 0b00000010 &&
-			(text[charIndex + 2] >> 6) == 0b00000010 &&
-			(text[charIndex + 3] >> 6) == 0b00000010)
-		{
-			newCharPtr[1] = text[charIndex + 1];
-			newCharPtr[2] = text[charIndex + 2];
-			newCharPtr[3] = text[charIndex + 3];
-			charIndex += 4;
-		}
-		else
-		{
-			free(vertices);
-			free(chars);
-			free(data);
-			return false;
-		}
-
-		FT_UInt charIndex = FT_Get_Char_Index(
-			face,
-			newChar);
-
-		FT_Error result = FT_Load_Glyph(
-			face,
-			charIndex,
-			FT_LOAD_BITMAP_METRICS_ONLY);
-
-		if (result != 0)
-		{
-			free(vertices);
-			free(chars);
-			free(data);
-			return false;
-		}
-
-		bool charExists = false;
-
-		for (size_t i = 0; i < charCount; ++i)
-		{
-			if (newChar == chars[i])
+			if (wideChar == glyphs[j].wideChar)
 			{
-				charExists = true;
+				glyphExists = true;
 				break;
 			}
 		}
 
-		if (charExists == false)
+		if (glyphExists == false)
 		{
-			if (charCount == charCapacity)
-			{
-				charCapacity = charCapacity * 2;
+			glyphs[glyphCount].wideChar = wideChar;
+			glyphCount++;
+		}
+	}
 
-				uint32_t* newChars = realloc(
-					chars,
-					charCapacity * sizeof(uint32_t));
+	qsort(
+		glyphs,
+		glyphCount,
+		sizeof(struct Glyph),
+		compareGlyph);
 
-				if (newChars == NULL)
-				{
-					free(vertices);
-					free(chars);
-					free(data);
-					return false;
-				}
+	size_t glyphLength =
+		((glyphCount / 2) + 1);
+	size_t pixelLength =
+		glyphLength * fontSize;
+	size_t pixelCount =
+		pixelLength * pixelLength;
+	uint8_t* pixels = malloc(
+		pixelCount * sizeof(uint8_t) * 4);
 
-				chars = newChars;
-			}
+	if (pixels == NULL)
+	{
+		free(glyphs);
+		free(data);
+		return false;
+	}
 
-			chars[charCount] = newChar;
-			charCount++;
+	for (size_t i = 0; i < glyphCount; i++)
+	{
+		struct Glyph glyph;
+		glyph.wideChar = glyphs[i].wideChar;
+
+		FT_UInt charIndex = FT_Get_Char_Index(
+			face,
+			glyph.wideChar);
+		FT_Error result = FT_Load_Glyph(
+			face,
+			charIndex,
+			FT_LOAD_RENDER);
+
+		if (result != 0)
+		{
+			free(pixels);
+			free(glyphs);
+			free(data);
+			return false;
 		}
 
-		if (vertexCount == vertexCapacity)
+		FT_GlyphSlot glyphSlot = face->glyph;
+		uint8_t* bitmap = glyphSlot->bitmap.buffer;
+
+		size_t pixelPosY = (i / glyphLength);
+		size_t pixelPosX = (i - pixelPosY * glyphLength);
+
+		pixelPosX *= fontSize;
+		pixelPosY *= fontSize;
+
+		glyph.sizeX = glyphSlot->bitmap.width;
+		glyph.sizeY = glyphSlot->bitmap.rows;
+		glyph.bearingX = glyphSlot->bitmap_left;
+		glyph.bearingY = glyphSlot->bitmap_top;
+		glyph.advance = glyphSlot->advance.x / 64.0f;
+		glyph.texCoordU = (float)pixelPosX / pixelLength;
+		glyph.texCoordV = (float)pixelPosY / pixelLength;
+		glyphs[i] = glyph;
+
+		for (size_t y = 0; y < glyph.sizeY; y++)
 		{
-			vertexCapacity = vertexCapacity * 2;
-
-			float* newVertices = realloc(
-				vertices,
-				vertexCapacity * sizeof(float));
-
-			if (newVertices == NULL)
+			for (size_t x = 0; x < glyph.sizeX; x++)
 			{
-				free(vertices);
-				free(chars);
-				free(data);
-				return false;
+				size_t pixelPos =
+					(y + pixelPosY) * 4 * pixelLength +
+					(x + pixelPosX) * 4;
+				uint8_t value = bitmap[y * glyph.sizeX + x];
+
+				pixels[pixelPos + 0] = 255;
+				pixels[pixelPos + 1] = 0;
+				pixels[pixelPos + 2] = 255;
+				pixels[pixelPos + 3] = value;
 			}
-
-			vertices = newVertices;
 		}
+	}
 
-		FT_GlyphSlot glyph = face->glyph;
+	struct Image* image = createImage2D(
+		window,
+		R8G8B8A8_UNORM_IMAGE_FORMAT,
+		pixelLength,
+		pixelLength,
+		pixels,
+		mipmap);
 
-		float charPosX = posX + glyph->bitmap_left;
-		float charPosY = posY - (float)(glyph->bitmap.rows - glyph->bitmap_top);
-		float charWidth = (float)glyph->bitmap.width;
-		float charHeight = (float)glyph->bitmap.rows;
+	free(pixels);
 
-		vertices[vertexCount + 0] = charPosX;
-		vertices[vertexCount + 1] = charPosY;
-		vertices[vertexCount + 2] = 0.0f; // TODO: calc UV
-		vertices[vertexCount + 3] = 0.0f;
-		vertices[vertexCount + 4] = charPosX;
-		vertices[vertexCount + 5] = charPosY + charHeight;
-		vertices[vertexCount + 6] = 0.0f;
-		vertices[vertexCount + 7] = 1.0f;
-		vertices[vertexCount + 8] = charPosX + charWidth;
-		vertices[vertexCount + 9] = charPosY + charHeight;
-		vertices[vertexCount + 10] = 1.0f;
-		vertices[vertexCount + 11] = 1.0f;
-		vertices[vertexCount + 12] = charPosX + charWidth;
-		vertices[vertexCount + 13] = charPosY;
-		vertices[vertexCount + 14] = 1.0f;
-		vertices[vertexCount + 15] = 0.0f;
+	if (image == NULL)
+	{
+		free(glyphs);
+		free(data);
+		return false;
+	}
 
-		vertexCount += 16;
-		posX += glyph->advance.x / 64.0f;
+	size_t vertexCount =
+		textLength * 16;
+	float* vertices = malloc(
+		vertexCount * sizeof(float));
+
+	if (vertices == NULL)
+	{
+		free(glyphs);
+		free(data);
+		return false;
+	}
+
+	size_t vertexIndex = 0;
+	float vertexGlyphPosX = 0.0f;
+	float vertexGlyphPosY = 0.0f;
+
+	for (size_t i = 0; i < textLength; i++)
+	{
+		struct Glyph searchGlyph;
+		searchGlyph.wideChar = text[i];
+
+		struct Glyph* glyph = bsearch(
+			&searchGlyph,
+			glyphs,
+			glyphCount,
+			sizeof(struct Glyph),
+			compareGlyph);
+
+		if (glyph == NULL)
+			abort();
+
+		float glyphPosX = vertexGlyphPosX + glyph->bearingX;
+		float glyphPosY = vertexGlyphPosY - (float)(glyph->sizeY - glyph->bearingY);
+		float glyphWidth = (float)glyph->sizeX;
+		float glyphHeight = (float)glyph->sizeY;
+		float texCoordU = glyph->texCoordU;
+		float texCoordV = glyph->texCoordV;
+
+		vertices[vertexIndex + 0] = glyphPosX;
+		vertices[vertexIndex + 1] = glyphPosY;
+		vertices[vertexIndex + 2] = texCoordU;
+		vertices[vertexIndex + 3] = texCoordV + (float)glyphHeight / pixelLength;
+		vertices[vertexIndex + 4] = glyphPosX;
+		vertices[vertexIndex + 5] = glyphPosY + glyphHeight;
+		vertices[vertexIndex + 6] = texCoordU;
+		vertices[vertexIndex + 7] = texCoordV;
+		vertices[vertexIndex + 8] = glyphPosX + glyphWidth;
+		vertices[vertexIndex + 9] = glyphPosY + glyphHeight;
+		vertices[vertexIndex + 10] = texCoordU + (float)glyphWidth / pixelLength;
+		vertices[vertexIndex + 11] = texCoordV;
+		vertices[vertexIndex + 12] = glyphPosX + glyphWidth;
+		vertices[vertexIndex + 13] = glyphPosY;
+		vertices[vertexIndex + 14] = texCoordU + (float)glyphWidth / pixelLength;
+		vertices[vertexIndex + 15] = texCoordV + (float)glyphHeight / pixelLength;
+
+		vertexIndex += 16;
+		vertexGlyphPosX += glyph->advance;
 	}
 
 	struct Buffer* vertexBuffer = createBuffer(
@@ -299,23 +368,21 @@ inline static bool createTextData(
 		constant);
 
 	free(vertices);
+	free(glyphs);
 
 	if (vertexBuffer == NULL)
 	{
-		free(chars);
 		free(data);
 		return false;
 	}
 
 	size_t indexCount =
-		(vertexCount / 16) * 6;
+		textLength * 6;
 	uint32_t* indices = malloc(
 		indexCount * sizeof(uint32_t));
 
 	if (indices == NULL)
 	{
-		destroyBuffer(vertexBuffer);
-		free(chars);
 		free(data);
 		return false;
 	}
@@ -342,7 +409,6 @@ inline static bool createTextData(
 	if (indexBuffer == NULL)
 	{
 		destroyBuffer(vertexBuffer);
-		free(chars);
 		free(data);
 		return false;
 	}
@@ -358,112 +424,20 @@ inline static bool createTextData(
 	{
 		destroyBuffer(indexBuffer);
 		destroyBuffer(vertexBuffer);
-		free(chars);
-		free(data);
-		return false;
-	}
-
-	size_t charLength =
-		((charCount / 2) + 1);
-	size_t imageLength =
-		charLength * fontSize;
-	size_t imageSize =
-		imageLength * imageLength;
-	uint8_t* pixels = malloc(
-		imageSize * sizeof(uint8_t) * 4);
-
-	if (pixels == NULL)
-	{
-		destroyMesh(mesh);
-		destroyBuffer(indexBuffer);
-		destroyBuffer(vertexBuffer);
-		free(chars);
-		free(data);
-		return false;
-	}
-
-	for (size_t i = 0; i < charCount; i++)
-	{
-		FT_UInt charIndex = FT_Get_Char_Index(
-			face,
-			chars[i]);
-
-		FT_Error result = FT_Load_Glyph(
-			face,
-			charIndex,
-			FT_LOAD_RENDER);
-
-		if (result != 0)
-		{
-			free(pixels);
-			destroyMesh(mesh);
-			destroyBuffer(indexBuffer);
-			destroyBuffer(vertexBuffer);
-			free(chars);
-			free(data);
-			return false;
-		}
-
-		FT_GlyphSlot glyph = face->glyph;
-		size_t glyphWidth = glyph->bitmap.width;
-		size_t glyphHeight = glyph->bitmap.rows;
-		uint8_t* bitmap = glyph->bitmap.buffer;
-
-		size_t pixelPosY = (i / charLength);
-		size_t pixelPosX = (i - pixelPosY * charLength);
-
-		pixelPosX *= fontSize;
-		pixelPosY *= fontSize;
-
-		for (size_t y = 0; y < glyphHeight; y++)
-		{
-			for (size_t x = 0; x < glyphWidth; x++)
-			{
-				size_t pixelPos = 
-					(y + pixelPosY) * 4 * imageLength + 
-					(x + pixelPosX) * 4;
-				uint8_t value = bitmap[y * glyphWidth + x];
-
-				pixels[pixelPos + 0] = 255;
-				pixels[pixelPos + 1] = 0;
-				pixels[pixelPos + 2] = 255;
-				pixels[pixelPos + 3] = value;
-			}
-		}
-	}
-
-	struct Image* image = createImage2D(
-		window,
-		R8G8B8A8_UNORM_IMAGE_FORMAT,
-		imageLength,
-		imageLength,
-		pixels,
-		mipmap);
-
-	free(pixels);
-	free(chars);
-
-	if (image == NULL)
-	{
-		destroyMesh(mesh);
-		destroyBuffer(indexBuffer);
-		destroyBuffer(vertexBuffer);
 		free(data);
 		return false;
 	}
 
 	*_data = data;
-	*_mesh = mesh;
 	*_image = image;
+	*_mesh = mesh;
 	return true;
 }
 inline static void destroyTextData(
-	struct Image* image,
 	struct Mesh* mesh,
-	char* data)
+	struct Image* image,
+	wchar_t* data)
 {
-	destroyImage(image);
-
 	struct Buffer* vertexBuffer;
 	struct Buffer* indexBuffer;
 
@@ -476,6 +450,7 @@ inline static void destroyTextData(
 	destroyBuffer(indexBuffer);
 	destroyBuffer(vertexBuffer);
 
+	destroyImage(image);
 	free(data);
 }
 struct Text* createText(
@@ -483,7 +458,7 @@ struct Text* createText(
 	struct Font* font,
 	size_t fontSize,
 	struct Pipeline* pipeline,
-	const char* _text,
+	const wchar_t* _text,
 	bool mipmap,
 	bool constant)
 {
@@ -516,10 +491,6 @@ struct Text* createText(
 		return NULL;
 	}
 
-	char* data;
-	struct Mesh* mesh;
-	struct Image* image;
-
 	bool dataResult = createTextData(
 		window,
 		face,
@@ -527,9 +498,9 @@ struct Text* createText(
 		_text,
 		constant,
 		mipmap,
-		&data,
-		&mesh,
-		&image);
+		&text->data,
+		&text->image,
+		&text->mesh);
 
 	if (dataResult == false)
 	{
@@ -540,9 +511,6 @@ struct Text* createText(
 	text->font = font;
 	text->fontSize = fontSize;
 	text->pipeline = pipeline;
-	text->data = data;
-	text->image = image;
-	text->mesh = mesh;
 	return text;
 }
 void destroyText(
@@ -552,8 +520,8 @@ void destroyText(
 		return;
 
 	destroyTextData(
-		text->image,
 		text->mesh,
+		text->image,
 		text->data);
 
 	free(text);
@@ -757,8 +725,8 @@ void setGlTextPipelineUniforms(
 	// TODO pass values in contructor
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	glUniform1i(
 		glTextPipeline->imageLocation,
@@ -771,7 +739,7 @@ void setGlTextPipelineUniforms(
 	struct Matrix4F mvp = translateMatrix4F(
 		scaleMatrix4F(
 			textPipeline->mvp,
-			createValueVector3F(0.01)),
+			createValueVector3F(0.01f)),
 		createVector3F(-2, 0, 0));
 
 	glUniformMatrix4fv(

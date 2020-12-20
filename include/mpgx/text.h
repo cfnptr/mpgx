@@ -12,12 +12,17 @@ void destroyFont(
 // TODO: make also text buffer, text get/set
 // Allow set text only if text is not constant
 
+wchar_t* createTextString(
+	const char* text);
+void destroyTextString(
+	wchar_t* text);
+
 struct Text* createText(
 	struct Window* window,
 	struct Font* font,
 	size_t fontSize,
 	struct Pipeline* pipeline,
-	const char* _text,
+	const wchar_t* _text,
 	bool mipmap,
 	bool constant);
 void destroyText(

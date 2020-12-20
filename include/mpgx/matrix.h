@@ -391,7 +391,7 @@ inline static struct Matrix4F inverseMatrix4F(
 }
 inline static struct Matrix4F scaleMatrix4F(
 	struct Matrix4F matrix,
-	struct Vector4F scale)
+	struct Vector3F scale)
 {
 	matrix.m00 *= scale.x;
 	matrix.m01 *= scale.x;
@@ -411,7 +411,7 @@ inline static struct Matrix4F scaleMatrix4F(
 }
 inline static struct Matrix4F translateMatrix4F(
 	struct Matrix4F matrix,
-	struct Vector4F translate)
+	struct Vector3F translate)
 {
 	matrix.m30 =
 		matrix.m00 * translate.x +

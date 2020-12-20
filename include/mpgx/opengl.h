@@ -31,28 +31,27 @@ void main()\n                        \
 
 #define OPENGL_TEXT_VERTEX_SHADER                       \
 "layout(location = 0) in highp vec2 v_Position;\n       \
-layout(location = 1) in highp vec2 v_TexCoord;\n       \
-out highp vec2 f_TexCoord;\n                           \
+layout(location = 1) in highp vec2 v_TexCoord;\n        \
+out highp vec2 f_TexCoord;\n                            \
                                                         \
 uniform highp mat4 u_MVP;\n                             \
                                                         \
 void main()\n                                           \
 {\n                                                     \
 	gl_Position = u_MVP * vec4(v_Position, 0.0, 1.0);\n \
-	f_TexCoord = v_TexCoord;\n                        \
+	f_TexCoord = vec2(v_TexCoord.x, -v_TexCoord.y);\n   \
 }\n"
-#define OPENGL_TEXT_FRAGMENT_SHADER                  \
-"in highp vec2 f_TexCoord;\n                        \
-out highp vec4 o_Color;\n                            \
-                                                     \
-uniform highp vec4 u_Color;\n                        \
-uniform sampler2D u_Image;\n                       \
-                                                     \
-void main()\n                                        \
-{\n                                                  \
-	vec4 sample = texture(u_Image, f_TexCoord);\n \
-	sample = vec4(1.0, 1.0, 1.0, sample.r);\n        \
-	o_Color = sample * u_Color;\n                    \
+#define OPENGL_TEXT_FRAGMENT_SHADER                    \
+"in highp vec2 f_TexCoord;\n                           \
+out highp vec4 o_Color;\n                              \
+                                                       \
+uniform highp vec4 u_Color;\n                          \
+uniform sampler2D u_Image;\n                           \
+                                                       \
+void main()\n                                          \
+{\n                                                    \
+	vec4 sample = texture(u_Image, f_TexCoord);\n      \
+	o_Color = sample * u_Color;\n                      \
 }\n"
 
 inline static void assertOpenGL()
@@ -107,7 +106,11 @@ inline static GLuint createGlShader(
 
 		if (length > 0)
 		{
-			char infoLog[length];
+			char* infoLog =
+				malloc(length * sizeof(char));
+
+			if (infoLog == NULL)
+				abort();
 
 			glGetShaderInfoLog(
 				shader,
@@ -199,7 +202,11 @@ inline static GLuint createGlPipeline(
 
 		if (length > 0)
 		{
-			char infoLog[length];
+			char* infoLog = malloc(
+				length * sizeof(char));
+
+			if (infoLog == NULL)
+				abort();
 
 			glGetProgramInfoLog(
 				program,

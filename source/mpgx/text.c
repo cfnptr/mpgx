@@ -121,6 +121,10 @@ inline static bool createTextData(
 		return false;
 	}
 
+	// TODO:
+	// create wide charr array and char array
+	// create already known vertex array.
+
 	size_t vertexCount = 0;
 	size_t vertexCapacity = textLength * 16;
 
@@ -134,14 +138,14 @@ inline static bool createTextData(
 		return false;
 	}
 
-	size_t index = 0;
+	size_t charIndex = 0;
 
 	float posX = 0.0f;
 	float posY = 0.0f;
 
 	while (true)
 	{
-		char charValue = text[index];
+		char charValue = text[charIndex];
 
 		if (charValue == '\0')
 			break;
@@ -153,31 +157,31 @@ inline static bool createTextData(
 
 		if ((charValue >> 7) == 0b00000000)
 		{
-			index += 1;
+			charIndex += 1;
 		}
 		else if ((charValue >> 5) == 0b00000110 &&
-			(text[index + 1] >> 6) == 0b00000010)
+			(text[charIndex + 1] >> 6) == 0b00000010)
 		{
-			newCharPtr[1] = text[index + 1];
-			index += 2;
+			newCharPtr[1] = text[charIndex + 1];
+			charIndex += 2;
 		}
 		else if ((charValue >> 4) == 0b00001110 &&
-			(text[index + 1] >> 6) == 0b00000010 &&
-			(text[index + 2] >> 6) == 0b00000010)
+			(text[charIndex + 1] >> 6) == 0b00000010 &&
+			(text[charIndex + 2] >> 6) == 0b00000010)
 		{
-			newCharPtr[1] = text[index + 1];
-			newCharPtr[2] = text[index + 2];
-			index += 3;
+			newCharPtr[1] = text[charIndex + 1];
+			newCharPtr[2] = text[charIndex + 2];
+			charIndex += 3;
 		}
 		else if ((charValue >> 3) == 0b00011110 &&
-			(text[index + 1] >> 6) == 0b00000010 &&
-			(text[index + 2] >> 6) == 0b00000010 &&
-			(text[index + 3] >> 6) == 0b00000010)
+			(text[charIndex + 1] >> 6) == 0b00000010 &&
+			(text[charIndex + 2] >> 6) == 0b00000010 &&
+			(text[charIndex + 3] >> 6) == 0b00000010)
 		{
-			newCharPtr[1] = text[index + 1];
-			newCharPtr[2] = text[index + 2];
-			newCharPtr[3] = text[index + 3];
-			index += 4;
+			newCharPtr[1] = text[charIndex + 1];
+			newCharPtr[2] = text[charIndex + 2];
+			newCharPtr[3] = text[charIndex + 3];
+			charIndex += 4;
 		}
 		else
 		{
@@ -266,23 +270,25 @@ inline static bool createTextData(
 		float charWidth = (float)glyph->bitmap.width;
 		float charHeight = (float)glyph->bitmap.rows;
 
-		vertices[0] = charPosX;
-		vertices[1] = charPosY;
-		vertices[2] = 0.0f; // TODO: calc UV
-		vertices[3] = 0.0f;
-		vertices[4] = charPosX;
-		vertices[5] = charPosY + charHeight;
-		vertices[6] = 0.0f;
-		vertices[7] = 1.0f;
-		vertices[8] = charPosX + charWidth;
-		vertices[9] = charPosY + charHeight;
-		vertices[10] = 1.0f;
-		vertices[11] = 1.0f;
-		vertices[12] = charPosX + charWidth;
-		vertices[13] = charPosY;
-		vertices[14] = 1.0f;
-		vertices[15] = 0.0f;
+		vertices[vertexCount + 0] = charPosX;
+		vertices[vertexCount + 1] = charPosY;
+		vertices[vertexCount + 2] = 0.0f; // TODO: calc UV
+		vertices[vertexCount + 3] = 0.0f;
+		vertices[vertexCount + 4] = charPosX;
+		vertices[vertexCount + 5] = charPosY + charHeight;
+		vertices[vertexCount + 6] = 0.0f;
+		vertices[vertexCount + 7] = 1.0f;
+		vertices[vertexCount + 8] = charPosX + charWidth;
+		vertices[vertexCount + 9] = charPosY + charHeight;
+		vertices[vertexCount + 10] = 1.0f;
+		vertices[vertexCount + 11] = 1.0f;
+		vertices[vertexCount + 12] = charPosX + charWidth;
+		vertices[vertexCount + 13] = charPosY;
+		vertices[vertexCount + 14] = 1.0f;
+		vertices[vertexCount + 15] = 0.0f;
+
 		vertexCount += 16;
+		posX += glyph->advance.x / 64.0f;
 	}
 
 	struct Buffer* vertexBuffer = createBuffer(
@@ -316,12 +322,12 @@ inline static bool createTextData(
 
 	for (size_t i = 0, j = 0; i < indexCount; i += 6, j += 4)
 	{
-		indices[0] = j + 0;
-		indices[1] = j + 1;
-		indices[2] = j + 2;
-		indices[3] = j + 0;
-		indices[4] = j + 2;
-		indices[5] = j + 3;
+		indices[i + 0] = j + 0;
+		indices[i + 1] = j + 1;
+		indices[i + 2] = j + 2;
+		indices[i + 3] = j + 0;
+		indices[i + 4] = j + 2;
+		indices[i + 5] = j + 3;
 	}
 
 	struct Buffer* indexBuffer = createBuffer(
@@ -357,10 +363,10 @@ inline static bool createTextData(
 		return false;
 	}
 
-	size_t rowLength =
+	size_t charLength =
 		((charCount / 2) + 1);
 	size_t imageLength =
-		rowLength * fontSize;
+		charLength * fontSize;
 	size_t imageSize =
 		imageLength * imageLength;
 	uint8_t* pixels = malloc(
@@ -403,19 +409,24 @@ inline static bool createTextData(
 		size_t glyphHeight = glyph->bitmap.rows;
 		uint8_t* bitmap = glyph->bitmap.buffer;
 
-		size_t pixelPosY = (charCount / rowLength) * fontSize * 4;
-		size_t pixelPosX = (charCount - pixelPosY * rowLength) * fontSize * 4;
+		size_t pixelPosY = (i / charLength);
+		size_t pixelPosX = (i - pixelPosY * charLength);
+
+		pixelPosX *= fontSize;
+		pixelPosY *= fontSize;
 
 		for (size_t y = 0; y < glyphHeight; y++)
 		{
 			for (size_t x = 0; x < glyphWidth; x++)
 			{
-				size_t pixelPos = (y + pixelPosY) * imageLength + (x + pixelPosX);
-				uint8_t value = bitmap[y * glyphHeight + x];
+				size_t pixelPos = 
+					(y + pixelPosY) * 4 * imageLength + 
+					(x + pixelPosX) * 4;
+				uint8_t value = bitmap[y * glyphWidth + x];
 
-				pixels[pixelPos] = value;
-				pixels[pixelPos + 1] = value;
-				pixels[pixelPos + 2] = value;
+				pixels[pixelPos + 0] = 255;
+				pixels[pixelPos + 1] = 0;
+				pixels[pixelPos + 2] = 255;
 				pixels[pixelPos + 3] = value;
 			}
 		}
@@ -743,36 +754,53 @@ void setGlTextPipelineUniforms(
 		GL_TEXTURE_2D,
 		glImage);
 
+	// TODO pass values in contructor
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glUniform1i(
+		glTextPipeline->imageLocation,
+		0);
+
 	// TODO: set image filter
 	// Get them from gl pipeline instance
+
+	// TODO: TMP
+	struct Matrix4F mvp = translateMatrix4F(
+		scaleMatrix4F(
+			textPipeline->mvp,
+			createValueVector3F(0.01)),
+		createVector3F(-2, 0, 0));
 
 	glUniformMatrix4fv(
 		glTextPipeline->mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&textPipeline->mvp);
+		(const float*)&mvp);
 	glUniform4fv(
 		glTextPipeline->colorLocation,
 		1,
-		(const GLfloat*)&textPipeline->color);
+		(const float*)&textPipeline->color);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 
 	glVertexAttribPointer(
 		0,
-		3,
+		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vector3F),
+		sizeof(struct Vector2F) * 2,
 		0);
 	glVertexAttribPointer(
 		1,
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vector2F),
-		(const void*)sizeof(struct Vector3F));
+		sizeof(struct Vector2F) * 2,
+		(const void*)sizeof(struct Vector2F));
 
 	assertOpenGL();
 }

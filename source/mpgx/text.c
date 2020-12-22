@@ -14,11 +14,14 @@ struct Font
 
 struct Text
 {
+	struct Window* window;
 	struct Font* font;
 	size_t fontSize;
 	struct Pipeline* pipeline;
 	char* data;
 	size_t dataSize;
+	bool mipmap;
+	bool constant;
 	struct Image* image;
 	struct Mesh* mesh;
 };
@@ -125,38 +128,38 @@ int compareGlyph(
 	abort();
 }
 inline static size_t getTextUniCharCount(
-	const char* text,
-	size_t textLength)
+	const char* data,
+	size_t dataLength)
 {
 	size_t uniCharCount = 0;
 
-	for (size_t i = 0; i < textLength;)
+	for (size_t i = 0; i < dataLength;)
 	{
-		if ((text[i] & 0b10000000) == 0)
+		if ((data[i] & 0b10000000) == 0)
 		{
 			i += 1;
 		}
-		else if ((text[i] & 0b11100000) == 0b11000000 &&
-			(text[i + 1] & 0b11000000) == 0b10000000)
+		else if ((data[i] & 0b11100000) == 0b11000000 &&
+			(data[i + 1] & 0b11000000) == 0b10000000)
 		{
 			i += 2;
 		}
-		else if ((text[i] & 0b11110000) == 0b11100000 &&
-			(text[i + 1] & 0b11000000) == 0b10000000 &&
-			(text[i + 2] & 0b11000000) == 0b10000000)
+		else if ((data[i] & 0b11110000) == 0b11100000 &&
+			(data[i + 1] & 0b11000000) == 0b10000000 &&
+			(data[i + 2] & 0b11000000) == 0b10000000)
 		{
 			i += 3;
 		}
-		else if ((text[i] & 0b11111000) == 0b11110000 &&
-			(text[i + 1] & 0b11000000) == 0b10000000 &&
-			(text[i + 2] & 0b11000000) == 0b10000000 &&
-			(text[i + 3] & 0b11000000) == 0b10000000)
+		else if ((data[i] & 0b11111000) == 0b11110000 &&
+			(data[i + 1] & 0b11000000) == 0b10000000 &&
+			(data[i + 2] & 0b11000000) == 0b10000000 &&
+			(data[i + 3] & 0b11000000) == 0b10000000)
 		{
 			i += 4;
 		}
 		else
 		{
-			return false;
+			return 0;
 		}
 
 		uniCharCount++;
@@ -165,8 +168,8 @@ inline static size_t getTextUniCharCount(
 	return uniCharCount;
 }
 inline static uint32_t* createTextUniChars(
-	const char* text,
-	size_t textLength,
+	const char* data,
+	size_t dataLength,
 	size_t uniCharCount)
 {
 	uint32_t* uniChars = malloc(
@@ -175,35 +178,35 @@ inline static uint32_t* createTextUniChars(
 	if (uniChars == NULL)
 		return false;
 
-	for (size_t i = 0, j = 0; i < textLength; j++)
+	for (size_t i = 0, j = 0; i < dataLength; j++)
 	{
-		if ((text[i] & 0b10000000) == 0)
+		if ((data[i] & 0b10000000) == 0)
 		{
-			uniChars[j] = (uint32_t)text[i];
+			uniChars[j] = (uint32_t)data[i];
 			i += 1;
 		}
-		else if ((text[i] & 0b11100000) == 0b11000000)
+		else if ((data[i] & 0b11100000) == 0b11000000)
 		{
 			uniChars[j] =
-				(uint32_t)(text[i] & 0b00011111) << 6 |
-				(uint32_t)(text[i + 1] & 0b00111111);
+				(uint32_t)(data[i] & 0b00011111) << 6 |
+				(uint32_t)(data[i + 1] & 0b00111111);
 			i += 2;
 		}
-		else if ((text[i] & 0b11110000) == 0b11100000)
+		else if ((data[i] & 0b11110000) == 0b11100000)
 		{
 			uniChars[j] =
-				(uint32_t)(text[i] & 0b00001111) << 12 |
-				(uint32_t)(text[i + 1] & 0b00111111) << 6 |
-				(uint32_t)(text[i + 2] & 0b00111111);
+				(uint32_t)(data[i] & 0b00001111) << 12 |
+				(uint32_t)(data[i + 1] & 0b00111111) << 6 |
+				(uint32_t)(data[i + 2] & 0b00111111);
 			i += 3;
 		}
-		else if ((text[i] & 0b11111000) == 0b11110000)
+		else if ((data[i] & 0b11111000) == 0b11110000)
 		{
 			uniChars[j] =
-				(uint32_t)(text[i] & 0b00000111) << 18 |
-				(uint32_t)(text[i + 1] & 0b00111111) << 12 |
-				(uint32_t)(text[i + 2] & 0b00111111) << 6 |
-				(uint32_t)(text[i + 3] & 0b00111111);
+				(uint32_t)(data[i] & 0b00000111) << 18 |
+				(uint32_t)(data[i + 1] & 0b00111111) << 12 |
+				(uint32_t)(data[i + 2] & 0b00111111) << 6 |
+				(uint32_t)(data[i + 3] & 0b00111111);
 			i += 4;
 		}
 		else
@@ -261,29 +264,6 @@ inline static bool createTextGlyphs(
 	*_glyphCount = glyphCount;
 	return true;
 }
-inline static bool createTextData(
-	const char* text,
-	size_t textLength,
-	char** _data,
-	size_t* _dataSize)
-{
-	size_t dataSize =
-		textLength + 1;
-	char* data = malloc(
-		dataSize * sizeof(char));
-
-	if (data == NULL)
-		return false;
-
-	memcpy(
-		data,
-		text,
-		dataSize * sizeof(char));
-
-	*_data = data;
-	*_dataSize = dataSize;
-	return true;
-}
 inline static bool createTextPixels(
 	FT_Face face,
 	size_t fontSize,
@@ -295,7 +275,7 @@ inline static bool createTextPixels(
 	size_t* _pixelLength)
 {
 	size_t glyphLength =
-		((glyphCount / 2) + 1);
+		(sqrtf(glyphCount) + 1);
 	size_t pixelLength =
 		glyphLength * fontSize;
 	size_t pixelCount =
@@ -489,29 +469,699 @@ inline static bool createTextIndices(
 	*_indexCount = indexCount;
 	return true;
 }
-inline static bool updateTextObjects(
+struct Text* createText(
 	struct Window* window,
-	FT_Face face,
+	struct Font* font,
 	size_t fontSize,
-	const char* text,
-	bool constant,
+	struct Pipeline* pipeline,
+	const char* _data,
 	bool mipmap,
-	bool recreate,
-	char** _data,
-	size_t* _dataSize,
-	struct Image** _image,
-	struct Mesh** _mesh)
+	bool constant)
 {
-	size_t textLength =
-		strlen(text);
+	// TODO:
+	// Bind different descriptor sets
+	// in Vulkan graphics API
+
+	assert(window != NULL);
+	assert(pipeline != NULL);
+	assert(font != NULL);
+	assert(_data != NULL);
+	assert(window == getPipelineWindow(pipeline));
+
+	struct Text* text =
+		malloc(sizeof(struct Text));
+
+	if (text == NULL)
+		return NULL;
+
+	size_t dataLength =
+		strlen(_data);
 
 	size_t uniCharCount = getTextUniCharCount(
-		text,
-		textLength);
+		_data,
+		dataLength);
 
 	if (uniCharCount == 0)
 	{
-		if (recreate == true)
+		size_t dataSize = 1;
+
+		char* data = malloc(
+			dataSize * sizeof(char));
+
+		if (data == NULL)
+		{
+			free(text);
+			return NULL;
+		}
+
+		data[0] = '\0';
+
+		struct Image* image = createImage(
+			window,
+			IMAGE_2D_TYPE,
+			R8G8B8A8_UNORM_IMAGE_FORMAT,
+			fontSize,
+			fontSize,
+			1,
+			NULL,
+			mipmap);
+
+		if (image == NULL)
+		{
+			free(data);
+			free(text);
+			return NULL;
+		}
+
+		struct Buffer* vertexBuffer = createBuffer(
+			window,
+			VERTEX_BUFFER_TYPE,
+			NULL,
+			16,
+			constant);
+
+		if (vertexBuffer == NULL)
+		{
+			destroyImage(image);
+			free(data);
+			free(text);
+			return NULL;
+		}
+
+		struct Buffer* indexBuffer = createBuffer(
+			window,
+			INDEX_BUFFER_TYPE,
+			NULL,
+			6,
+			constant);
+
+		if (indexBuffer == NULL)
+		{
+			destroyBuffer(vertexBuffer);
+			destroyImage(image);
+			free(data);
+			free(text);
+			return NULL;
+		}
+
+		struct Mesh* mesh = createMesh(
+			window,
+			UINT32_DRAW_INDEX,
+			0,
+			vertexBuffer,
+			indexBuffer);
+
+		if (mesh == NULL)
+		{
+			destroyBuffer(indexBuffer);
+			destroyBuffer(vertexBuffer);
+			destroyImage(image);
+			free(data);
+			free(text);
+			return NULL;
+		}
+
+		text->data = data;
+		text->dataSize = dataSize;
+		text->image = image;
+		text->mesh = mesh;
+	}
+	else
+	{
+		uint32_t* uniChars = createTextUniChars(
+			_data,
+			dataLength,
+			uniCharCount);
+
+		if (uniChars == NULL)
+		{
+			free(text);
+			return NULL;
+		}
+
+		struct Glyph* glyphs;
+		size_t glyphCount;
+
+		bool result = createTextGlyphs(
+			uniChars,
+			uniCharCount,
+			&glyphs,
+			&glyphCount);
+
+		if (result == false)
+		{
+			free(uniChars);
+			free(text);
+			return NULL;
+		}
+
+		size_t dataSize =
+			dataLength + 1;
+		char* data = malloc(
+			dataSize * sizeof(char));
+
+		if (data == NULL)
+		{
+			free(glyphs);
+			free(uniChars);
+			free(text);
+			return NULL;
+		}
+
+		memcpy(
+			data,
+			_data,
+			dataSize * sizeof(char));
+
+		uint8_t* pixels;
+		size_t pixelCount;
+		size_t pixelLength;
+
+		result = createTextPixels(
+			font->face,
+			fontSize,
+			glyphs,
+			glyphCount,
+			0,
+			&pixels,
+			&pixelCount,
+			&pixelLength);
+
+		if (result == false)
+		{
+			free(data);
+			free(glyphs);
+			free(uniChars);
+			free(text);
+			return NULL;
+		}
+
+		struct Image* image = createImage(
+			window,
+			IMAGE_2D_TYPE,
+			R8G8B8A8_UNORM_IMAGE_FORMAT,
+			pixelLength,
+			pixelLength,
+			1,
+			pixels,
+			mipmap);
+
+		free(pixels);
+
+		if (image == NULL)
+		{
+			free(data);
+			free(glyphs);
+			free(uniChars);
+			free(text);
+			return NULL;
+		}
+
+		float* vertices;
+		size_t vertexCount;
+
+		result = createTextVertices(
+			uniChars,
+			uniCharCount,
+			glyphs,
+			glyphCount,
+			&vertices,
+			&vertexCount);
+
+		free(glyphs);
+		free(uniChars);
+
+		if (result == false)
+		{
+			destroyImage(image);
+			free(data);
+			free(text);
+			return NULL;
+		}
+
+		struct Buffer* vertexBuffer = createBuffer(
+			window,
+			VERTEX_BUFFER_TYPE,
+			vertices,
+			vertexCount * sizeof(float),
+			constant);
+
+		free(vertices);
+
+		if (vertexBuffer == NULL)
+		{
+			destroyImage(image);
+			free(data);
+			free(text);
+			return NULL;
+		}
+
+		uint32_t* indices;
+		size_t indexCount;
+
+		result = createTextIndices(
+			uniCharCount,
+			&indices,
+			&indexCount);
+
+		if (result == false)
+		{
+			destroyBuffer(vertexBuffer);
+			destroyImage(image);
+			free(data);
+			free(text);
+			return NULL;
+		}
+
+		struct Buffer* indexBuffer = createBuffer(
+			window,
+			INDEX_BUFFER_TYPE,
+			indices,
+			indexCount * sizeof(uint32_t),
+			constant);
+
+		free(indices);
+
+		if (indexBuffer == NULL)
+		{
+			destroyBuffer(vertexBuffer);
+			destroyImage(image);
+			free(data);
+			free(text);
+			return NULL;
+		}
+
+		struct Mesh* mesh = createMesh(
+			window,
+			UINT32_DRAW_INDEX,
+			indexCount,
+			vertexBuffer,
+			indexBuffer);
+
+		if (mesh == NULL)
+		{
+			destroyBuffer(indexBuffer);
+			destroyBuffer(vertexBuffer);
+			destroyImage(image);
+			free(data);
+			free(text);
+			return NULL;
+		}
+
+		text->data = data;
+		text->dataSize = dataSize;
+		text->image = image;
+		text->mesh = mesh;
+	}
+
+	text->window = window;
+	text->font = font;
+	text->fontSize = fontSize;
+	text->pipeline = pipeline;
+	text->mipmap = mipmap;
+	text->constant = constant;
+	return text;
+}
+void destroyText(
+	struct Text* text)
+{
+	if (text == NULL)
+		return;
+
+	struct Buffer* vertexBuffer;
+	struct Buffer* indexBuffer;
+
+	getMeshBuffers(
+		text->mesh,
+		&vertexBuffer,
+		&indexBuffer);
+
+	destroyMesh(text->mesh);
+	destroyBuffer(indexBuffer);
+	destroyBuffer(vertexBuffer);
+
+	destroyImage(text->image);
+	free(text->data);
+
+	free(text);
+}
+
+struct Window* getTextWindow(
+	const struct Text* text)
+{
+	assert(text != NULL);
+	return text->window;
+}
+bool getTextMipmap(
+	const struct Text* text)
+{
+	assert(text != NULL);
+	return text->mipmap;
+}
+bool getTextConstant(
+	const struct Text* text)
+{
+	assert(text != NULL);
+	return text->constant;
+}
+
+struct Font* getTextFont(
+	const struct Text* text)
+{
+	assert(text != NULL);
+	return text->font;
+}
+void setTextFont(
+	struct Text* text,
+	struct Font* font)
+{
+	assert(text != NULL);
+	assert(font != NULL);
+	assert(text->constant == false);
+	text->font = font;
+}
+
+size_t getTextFontSize(
+	const struct Text* text)
+{
+	assert(text != NULL);
+	return text->fontSize;
+}
+void setTextFontSize(
+	struct Text* text,
+	size_t fontSize)
+{
+	assert(text != NULL);
+	assert(text->constant == false);
+	text->fontSize = fontSize;
+}
+
+struct Pipeline* getTextPipeline(
+	const struct Text* text)
+{
+	assert(text != NULL);
+	return text->pipeline;
+}
+void setTextPipeline(
+	struct Text* text,
+	struct Pipeline* pipeline)
+{
+	assert(text != NULL);
+	assert(pipeline != NULL);
+	assert(text->constant == false);
+
+	assert(text->window ==
+		getPipelineWindow(pipeline));
+
+	text->pipeline = pipeline;
+}
+
+const char* getTextData(
+	const struct Text* text)
+{
+	assert(text != NULL);
+	return text->data;
+}
+bool setTextData(
+	struct Text* text,
+	const char* _data)
+{
+	assert(text != NULL);
+	assert(_data != NULL);
+	assert(text->constant == false);
+
+	size_t dataSize =
+		strlen(_data) + 1;
+
+	if (dataSize > text->dataSize)
+	{
+		char* data = realloc(
+			text->data,
+			dataSize * sizeof(char));
+
+		if (data == NULL)
+			return false;
+
+		memcpy(
+			data,
+			_data,
+			dataSize * sizeof(char));
+
+		text->dataSize = dataSize;
+		return true;
+	}
+	else
+	{
+		memcpy(
+			text->data,
+			_data,
+			dataSize * sizeof(char));
+		return true;
+	}
+}
+
+bool updateText(
+	struct Text* text,
+	bool reuse)
+{
+	assert(text != NULL);
+	assert(text->constant == false);
+
+
+	struct Window* window =
+		text->window;
+	const char* _data =
+		text->data;
+
+	size_t dataLength =
+		strlen(_data);
+	size_t uniCharCount = getTextUniCharCount(
+		_data,
+		dataLength);
+
+	if (reuse == true)
+	{
+		if (uniCharCount == 0)
+		{
+			setMeshIndexCount(
+				text->mesh,
+				0);
+		}
+		else
+		{
+			uint32_t* uniChars = createTextUniChars(
+				_data,
+				dataLength,
+				uniCharCount);
+
+			if (uniChars == NULL)
+				return false;
+
+			struct Glyph* glyphs;
+			size_t glyphCount;
+
+			bool result = createTextGlyphs(
+				uniChars,
+				uniCharCount,
+				&glyphs,
+				&glyphCount);
+
+			if (result == false)
+			{
+				free(uniChars);
+				return false;
+			}
+
+			size_t textPixelLength =
+				getImageWidth(text->image);
+
+			uint8_t* pixels;
+			size_t pixelCount;
+			size_t pixelLength;
+
+			result = createTextPixels(
+				text->font->face,
+				text->fontSize,
+				glyphs,
+				glyphCount,
+				textPixelLength,
+				&pixels,
+				&pixelCount,
+				&pixelLength);
+
+			if (result == false)
+			{
+				free(glyphs);
+				free(uniChars);
+				return false;
+			}
+
+			struct Image* image = NULL;
+
+			if (pixelLength > textPixelLength)
+			{
+				image = createImage(
+					window,
+					IMAGE_2D_TYPE,
+					R8G8B8A8_UNORM_IMAGE_FORMAT,
+					pixelLength,
+					pixelLength,
+					1,
+					pixels,
+					text->mipmap);
+
+				free(pixels);
+				pixels = NULL;
+
+				if (image == NULL)
+				{
+					free(glyphs);
+					free(uniChars);
+					return false;
+				}
+			}
+
+			float* vertices;
+			size_t vertexCount;
+
+			result = createTextVertices(
+				uniChars,
+				uniCharCount,
+				glyphs,
+				glyphCount,
+				&vertices,
+				&vertexCount);
+
+			free(glyphs);
+			free(uniChars);
+
+			if (result == false)
+			{
+				destroyImage(image);
+				free(pixels);
+				return false;
+			}
+
+			struct Buffer* vertexBuffer = NULL;
+			struct Buffer* indexBuffer = NULL;
+
+			size_t textVertexBufferSize = getBufferSize(
+				getMeshVertexBuffer(text->mesh));
+
+			if (vertexCount * sizeof(float) > textVertexBufferSize)
+			{
+				vertexBuffer = createBuffer(
+					window,
+					VERTEX_BUFFER_TYPE,
+					vertices,
+					vertexCount * sizeof(float),
+					text->constant);
+
+				free(vertices);
+
+				if (vertexBuffer == NULL)
+				{
+					destroyImage(image);
+					free(pixels);
+					return false;
+				}
+
+				uint32_t* indices;
+				size_t indexCount;
+
+				result = createTextIndices(
+					uniCharCount,
+					&indices,
+					&indexCount);
+
+				if (result == false)
+				{
+					destroyBuffer(vertexBuffer);
+					destroyImage(image);
+					free(pixels);
+					return false;
+				}
+
+				indexBuffer = createBuffer(
+					window,
+					INDEX_BUFFER_TYPE,
+					indices,
+					indexCount * sizeof(uint32_t),
+					text->constant);
+
+				free(indices);
+
+				if (indexBuffer == NULL)
+				{
+					destroyBuffer(vertexBuffer);
+					destroyImage(image);
+					free(pixels);
+					return false;
+				}
+			}
+
+			if (image == NULL)
+			{
+				setImageData(
+					text->image,
+					pixels,
+					pixelLength,
+					pixelLength,
+					1,
+					0,
+					0,
+					0,
+					0);
+
+				free(pixels);
+
+				if (text->mipmap)
+					generateMipmap(image);
+			}
+			else
+			{
+				destroyImage(text->image);
+				text->image = image;
+			}
+
+			struct Buffer* _vertexBuffer;
+			struct Buffer* _indexBuffer;
+
+			getMeshBuffers(
+				text->mesh,
+				&_vertexBuffer,
+				&_indexBuffer);
+
+			if (vertexBuffer == NULL)
+			{
+				setBufferData(
+					_vertexBuffer,
+					vertices,
+					vertexCount,
+					0);
+				setMeshIndexCount(
+					text->mesh,
+					uniCharCount * 6);
+
+				free(vertices);
+			}
+			else
+			{
+				destroyBuffer(_vertexBuffer);
+				destroyBuffer(_indexBuffer);
+
+				setMeshBuffers(
+					text->mesh,
+					UINT32_DRAW_INDEX,
+					uniCharCount * 6,
+					vertexBuffer,
+					indexBuffer);
+			}
+		}
+	}
+	else
+	{
+		if (uniCharCount == 0)
 		{
 			size_t dataSize = 1;
 
@@ -521,15 +1171,17 @@ inline static bool updateTextObjects(
 			if (data == NULL)
 				return false;
 
+			data[0] = '\0';
+
 			struct Image* image = createImage(
 				window,
 				IMAGE_2D_TYPE,
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
-				fontSize,
-				fontSize,
+				text->fontSize,
+				text->fontSize,
 				1,
 				NULL,
-				mipmap);
+				text->mipmap);
 
 			if (image == NULL)
 			{
@@ -542,7 +1194,7 @@ inline static bool updateTextObjects(
 				VERTEX_BUFFER_TYPE,
 				NULL,
 				16,
-				constant);
+				text->constant);
 
 			if (vertexBuffer == NULL)
 			{
@@ -556,7 +1208,7 @@ inline static bool updateTextObjects(
 				INDEX_BUFFER_TYPE,
 				NULL,
 				6,
-				constant);
+				text->constant);
 
 			if (indexBuffer == NULL)
 			{
@@ -582,247 +1234,88 @@ inline static bool updateTextObjects(
 				return false;
 			}
 
-			*_data = data;
-			*_dataSize = dataSize;
-			*_image = image;
-			*_mesh = mesh;
-			return true;
+			getMeshBuffers(
+				text->mesh,
+				&vertexBuffer,
+				&indexBuffer);
+
+			destroyMesh(text->mesh);
+			destroyBuffer(vertexBuffer);
+			destroyBuffer(indexBuffer);
+
+			destroyImage(text->image);
+			free(text->data);
+
+			text->data = data;
+			text->dataSize = dataSize;
+			text->image = image;
+			text->mesh = mesh;
 		}
 		else
 		{
-			(*_data)[0] = '\0';
+			uint32_t* uniChars = createTextUniChars(
+				_data,
+				dataLength,
+				uniCharCount);
 
-			setMeshIndexCount(
-				*_mesh,
-				0);
+			if (uniChars == NULL)
+				return false;
 
-			return true;
-		}
-	}
+			struct Glyph* glyphs;
+			size_t glyphCount;
 
-	uint32_t* uniChars = createTextUniChars(
-		text,
-		textLength,
-		uniCharCount);
+			bool result = createTextGlyphs(
+				uniChars,
+				uniCharCount,
+				&glyphs,
+				&glyphCount);
 
-	if (uniChars == NULL)
-		return false;
+			if (result == false)
+			{
+				free(uniChars);
+				return false;
+			}
 
-	struct Glyph* glyphs;
-	size_t glyphCount;
+			size_t dataSize =
+				dataLength + 1;
+			char* data = malloc(
+				dataSize * sizeof(char));
 
-	bool result = createTextGlyphs(
-		uniChars,
-		uniCharCount,
-		&glyphs,
-		&glyphCount);
+			if (data == NULL)
+			{
+				free(glyphs);
+				free(uniChars);
+				return false;
+			}
 
-	if (result == false)
-	{
-		free(uniChars);
-		return false;
-	}
+			memcpy(
+				data,
+				_data,
+				dataSize * sizeof(char));
 
-	if (recreate == true)
-	{
-		char* data;
-		size_t dataSize;
+			uint8_t* pixels;
+			size_t pixelCount;
+			size_t pixelLength;
 
-		result = createTextData(
-			text,
-			textLength,
-			&data,
-			&dataSize);
+			result = createTextPixels(
+				text->font->face,
+				text->fontSize,
+				glyphs,
+				glyphCount,
+				0,
+				&pixels,
+				&pixelCount,
+				&pixelLength);
 
-		if (result == false)
-		{
-			free(glyphs);
-			free(uniChars);
-			return false;
-		}
+			if (result == false)
+			{
+				free(data);
+				free(glyphs);
+				free(uniChars);
+				return false;
+			}
 
-		uint8_t* pixels;
-		size_t pixelCount;
-		size_t pixelLength;
-
-		result = createTextPixels(
-			face,
-			fontSize,
-			glyphs,
-			glyphCount,
-			0,
-			&pixels,
-			&pixelCount,
-			&pixelLength);
-
-		if (result == false)
-		{
-			free(data);
-			free(glyphs);
-			free(uniChars);
-			return false;
-		}
-
-		struct Image* image = createImage(
-			window,
-			IMAGE_2D_TYPE,
-			R8G8B8A8_UNORM_IMAGE_FORMAT,
-			pixelLength,
-			pixelLength,
-			1,
-			pixels,
-			mipmap);
-
-		free(pixels);
-
-		if (image == NULL)
-		{
-			free(data);
-			free(glyphs);
-			free(uniChars);
-			return false;
-		}
-
-		float* vertices;
-		size_t vertexCount;
-
-		result = createTextVertices(
-			uniChars,
-			uniCharCount,
-			glyphs,
-			glyphCount,
-			&vertices,
-			&vertexCount);
-
-		free(glyphs);
-		free(uniChars);
-
-		if (result == false)
-		{
-			destroyImage(image);
-			free(data);
-			return false;
-		}
-
-		struct Buffer* vertexBuffer = createBuffer(
-			window,
-			VERTEX_BUFFER_TYPE,
-			vertices,
-			vertexCount * sizeof(float),
-			constant);
-
-		free(vertices);
-
-		if (vertexBuffer == NULL)
-		{
-			destroyImage(image);
-			free(data);
-			return false;
-		}
-
-		uint32_t* indices;
-		size_t indexCount;
-
-		result = createTextIndices(
-			uniCharCount,
-			&indices,
-			&indexCount);
-
-		if (result == false)
-		{
-			destroyBuffer(vertexBuffer);
-			destroyImage(image);
-			free(data);
-			return false;
-		}
-
-		struct Buffer* indexBuffer = createBuffer(
-			window,
-			INDEX_BUFFER_TYPE,
-			indices,
-			indexCount * sizeof(uint32_t),
-			constant);
-
-		free(indices);
-
-		if (indexBuffer == NULL)
-		{
-			destroyBuffer(vertexBuffer);
-			destroyImage(image);
-			free(data);
-			return false;
-		}
-
-		struct Mesh* mesh = createMesh(
-			window,
-			UINT32_DRAW_INDEX,
-			indexCount,
-			vertexBuffer,
-			indexBuffer);
-
-		if (mesh == NULL)
-		{
-			destroyBuffer(indexBuffer);
-			destroyBuffer(vertexBuffer);
-			destroyImage(image);
-			free(data);
-			return false;
-		}
-
-		*_data = data;
-		*_dataSize = dataSize;
-		*_image = image;
-		*_mesh = mesh;
-		return true;
-	}
-	else
-	{
-		char* data;
-		size_t dataSize;
-
-		result = createTextData(
-			text,
-			textLength,
-			&data,
-			&dataSize);
-
-		if (result == false)
-		{
-			free(glyphs);
-			free(uniChars);
-			return false;
-		}
-
-		size_t textPixelLength =
-			getImageWidth(*_image);
-
-		uint8_t* pixels;
-		size_t pixelCount;
-		size_t pixelLength;
-
-		result = createTextPixels(
-			face,
-			fontSize,
-			glyphs,
-			glyphCount,
-			textPixelLength,
-			&pixels,
-			&pixelCount,
-			&pixelLength);
-
-		if (result == false)
-		{
-			free(data);
-			free(glyphs);
-			free(uniChars);
-			return false;
-		}
-
-		struct Image* image = NULL;
-
-		if (pixelLength > textPixelLength)
-		{
-			image = createImage(
+			struct Image* image = createImage(
 				window,
 				IMAGE_2D_TYPE,
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
@@ -830,10 +1323,9 @@ inline static bool updateTextObjects(
 				pixelLength,
 				1,
 				pixels,
-				mipmap);
+				text->mipmap);
 
 			free(pixels);
-			pixels = NULL;
 
 			if (image == NULL)
 			{
@@ -842,52 +1334,40 @@ inline static bool updateTextObjects(
 				free(uniChars);
 				return false;
 			}
-		}
 
-		float* vertices;
-		size_t vertexCount;
+			float* vertices;
+			size_t vertexCount;
 
-		result = createTextVertices(
-			uniChars,
-			uniCharCount,
-			glyphs,
-			glyphCount,
-			&vertices,
-			&vertexCount);
+			result = createTextVertices(
+				uniChars,
+				uniCharCount,
+				glyphs,
+				glyphCount,
+				&vertices,
+				&vertexCount);
 
-		free(glyphs);
-		free(uniChars);
+			free(glyphs);
+			free(uniChars);
 
+			if (result == false)
+			{
+				destroyImage(image);
+				free(data);
+				return false;
+			}
 
-		if (result == false)
-		{
-			destroyImage(image);
-			free(pixels);
-			free(data);
-			return false;
-		}
-
-		struct Buffer* vertexBuffer = NULL;
-		struct Buffer* indexBuffer = NULL;
-
-		size_t textVertexBufferSize =
-			getBufferSize(getMeshVertexBuffer(*_mesh));
-
-		if (vertexCount * sizeof(float) > textVertexBufferSize)
-		{
-			vertexBuffer = createBuffer(
+			struct Buffer* vertexBuffer = createBuffer(
 				window,
 				VERTEX_BUFFER_TYPE,
 				vertices,
 				vertexCount * sizeof(float),
-				constant);
+				text->constant);
 
 			free(vertices);
 
 			if (vertexBuffer == NULL)
 			{
 				destroyImage(image);
-				free(pixels);
 				free(data);
 				return false;
 			}
@@ -904,17 +1384,16 @@ inline static bool updateTextObjects(
 			{
 				destroyBuffer(vertexBuffer);
 				destroyImage(image);
-				free(pixels);
 				free(data);
 				return false;
 			}
 
-			indexBuffer = createBuffer(
+			struct Buffer* indexBuffer = createBuffer(
 				window,
 				INDEX_BUFFER_TYPE,
 				indices,
 				indexCount * sizeof(uint32_t),
-				constant);
+				text->constant);
 
 			free(indices);
 
@@ -922,330 +1401,45 @@ inline static bool updateTextObjects(
 			{
 				destroyBuffer(vertexBuffer);
 				destroyImage(image);
-				free(pixels);
 				free(data);
 				return false;
 			}
-		}
 
-		if (image == NULL)
-		{
-			setImageData(
-				image,
-				pixels,
-				pixelLength,
-				pixelLength,
-				1,
-				0,
-				0,
-				0,
-				0);
-
-			free(pixels);
-
-			if (mipmap)
-				generateMipmap(image);
-		}
-		else
-		{
-			destroyImage(*_image);
-			*_image = image;
-		}
-
-		struct Buffer* _vertexBuffer;
-		struct Buffer* _indexBuffer;
-
-		getMeshBuffers(
-			*_mesh,
-			&_vertexBuffer,
-			&_indexBuffer);
-
-		if (vertexBuffer == NULL)
-		{
-			setBufferData(
-				_vertexBuffer,
-				vertices,
-				vertexCount,
-				0);
-			setMeshIndexCount(
-				*_mesh,
-				uniCharCount * 6);
-
-			free(vertices);
-		}
-		else
-		{
-			destroyBuffer(_vertexBuffer);
-			destroyBuffer(_indexBuffer);
-
-			setMeshBuffers(
-				*_mesh,
+			struct Mesh* mesh = createMesh(
+				window,
 				UINT32_DRAW_INDEX,
-				uniCharCount * 6,
+				indexCount,
 				vertexBuffer,
 				indexBuffer);
+
+			if (mesh == NULL)
+			{
+				destroyBuffer(indexBuffer);
+				destroyBuffer(vertexBuffer);
+				destroyImage(image);
+				free(data);
+				return false;
+			}
+
+			getMeshBuffers(
+				text->mesh,
+				&vertexBuffer,
+				&indexBuffer);
+
+			destroyMesh(text->mesh);
+			destroyBuffer(vertexBuffer);
+			destroyBuffer(indexBuffer);
+
+			destroyImage(text->image);
+			free(text->data);
+
+			text->data = data;
+			text->dataSize = dataSize;
+			text->image = image;
+			text->mesh = mesh;
 		}
-
-		return true;
-	}
-}
-inline static void destroyTextData(
-	struct Mesh* mesh,
-	struct Image* image,
-	char* data)
-{
-	struct Buffer* vertexBuffer;
-	struct Buffer* indexBuffer;
-
-	getMeshBuffers(
-		mesh,
-		&vertexBuffer,
-		&indexBuffer);
-
-	destroyMesh(mesh);
-	destroyBuffer(indexBuffer);
-	destroyBuffer(vertexBuffer);
-
-	destroyImage(image);
-	free(data);
-}
-struct Text* createText(
-	struct Window* window,
-	struct Font* font,
-	size_t fontSize,
-	struct Pipeline* pipeline,
-	const char* _text,
-	bool mipmap,
-	bool constant)
-{
-	// TODO:
-	// Bind different descriptor sets
-	// in Vulkan graphics API
-
-	assert(window != NULL);
-	assert(pipeline != NULL);
-	assert(font != NULL);
-	assert(_text != NULL);
-	assert(window == getPipelineWindow(pipeline));
-
-	struct Text* text =
-		malloc(sizeof(struct Text));
-
-	if (text == NULL)
-		return NULL;
-
-	bool dataResult = updateTextObjects(
-		window,
-		font->face,
-		fontSize,
-		_text,
-		constant,
-		mipmap,
-		true,
-		&text->data,
-		&text->dataSize,
-		&text->image,
-		&text->mesh);
-
-	if (dataResult == false)
-	{
-		free(text);
-		return NULL;
 	}
 
-	text->font = font;
-	text->fontSize = fontSize;
-	text->pipeline = pipeline;
-	return text;
-}
-void destroyText(
-	struct Text* text)
-{
-	if (text == NULL)
-		return;
-
-	destroyTextData(
-		text->mesh,
-		text->image,
-		text->data);
-
-	free(text);
-}
-
-struct Window* getTextWindow(
-	const struct Text* text)
-{
-	assert(text != NULL);
-	return getImageWindow(text->image);
-}
-bool getTextMipmap(
-	const struct Text* text)
-{
-	assert(text != NULL);
-	return getImageMipmap(text->image);
-}
-bool getTextConstant(
-	const struct Text* text)
-{
-	assert(text != NULL);
-
-	struct Buffer* buffer =
-		getMeshVertexBuffer(text->mesh);
-	return getBufferConstant(buffer);
-}
-
-struct Font* getTextFont(
-	const struct Text* text)
-{
-	assert(text != NULL);
-	return text->font;
-}
-bool setTextFont(
-	struct Text* text,
-	struct Font* font)
-{
-	assert(text != NULL);
-	assert(font != NULL);
-	assert(getTextConstant(text) == false);
-
-	if (text->font == font)
-		return true;
-
-	bool result = updateTextObjects(
-		getImageWindow(text->image),
-		font->face,
-		text->fontSize,
-		text->data,
-		getTextConstant(text),
-		getImageMipmap(text->image),
-		false,
-		&text->data,
-		&text->dataSize,
-		&text->image,
-		&text->mesh);
-
-	if (result == false)
-		return false;
-
-	text->font = font;
-	return true;
-}
-
-size_t getTextFontSize(
-	const struct Text* text)
-{
-	assert(text != NULL);
-	return text->fontSize;
-}
-bool setTextFontSize(
-	struct Text* text,
-	size_t fontSize)
-{
-	assert(text != NULL);
-	assert(getTextConstant(text) == false);
-
-	if (text->fontSize == fontSize)
-		return true;
-
-	bool result = updateTextObjects(
-		getImageWindow(text->image),
-		text->font->face,
-		fontSize,
-		text->data,
-		getTextConstant(text),
-		getImageMipmap(text->image),
-		false,
-		&text->data,
-		&text->dataSize,
-		&text->image,
-		&text->mesh);
-
-	if (result == false)
-		return false;
-
-	text->fontSize = fontSize;
-	return true;
-}
-
-struct Pipeline* getTextPipeline(
-	const struct Text* text)
-{
-	assert(text != NULL);
-	return text->pipeline;
-}
-void setTextPipeline(
-	struct Text* text,
-	struct Pipeline* pipeline)
-{
-	assert(text != NULL);
-	assert(pipeline != NULL);
-	assert(getTextConstant(text) == false);
-
-	assert(
-		getImageWindow(text->image) ==
-		getPipelineWindow(pipeline));
-
-	text->pipeline = pipeline;
-}
-
-const char* getTextData(
-	const struct Text* text)
-{
-	assert(text != NULL);
-	return text->data;
-}
-bool setTextData(
-	struct Text* text,
-	const char* data)
-{
-	assert(text != NULL);
-	assert(data != NULL);
-	assert(getTextConstant(text) == false);
-
-	return updateTextObjects(
-		getImageWindow(text->image),
-		text->font->face,
-		text->fontSize,
-		data,
-		getTextConstant(text),
-		getImageMipmap(text->image),
-		false,
-		&text->data,
-		&text->dataSize,
-		&text->image,
-		&text->mesh);
-}
-
-bool recreateText(
-	struct Text* text)
-{
-	assert(text != NULL);
-	assert(getTextConstant(text) == false);
-
-	char* data = text->data;
-	struct Image* image = text->image;
-	struct Mesh* mesh = text->mesh;
-
-	bool result = updateTextObjects(
-		getImageWindow(text->image),
-		text->font->face,
-		text->fontSize,
-		text->data,
-		getTextConstant(text),
-		getImageMipmap(text->image),
-		false,
-		&text->data,
-		&text->dataSize,
-		&text->image,
-		&text->mesh);
-
-	if (result == false)
-		return false;
-
-	destroyTextData(
-		mesh,
-		image,
-		data);
 	return true;
 }
 void drawTextCommand(

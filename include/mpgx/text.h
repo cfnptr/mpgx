@@ -14,7 +14,7 @@ struct Text* createText(
 	struct Font* font,
 	size_t fontSize,
 	struct Pipeline* pipeline,
-	const char* _text,
+	const char* data,
 	bool mipmap,
 	bool constant);
 void destroyText(
@@ -29,13 +29,13 @@ bool getTextConstant(
 
 struct Font* getTextFont(
 	const struct Text* text);
-bool setTextFont(
+void setTextFont(
 	struct Text* text,
 	struct Font* font);
 
 size_t getTextFontSize(
 	const struct Text* text);
-bool setTextFontSize(
+void setTextFontSize(
 	struct Text* text,
 	size_t fontSize);
 
@@ -55,8 +55,9 @@ bool setTextData(
 // antialising on/off selector
 // outline on/off selector
 
-bool recreateText(
-	struct Text* text);
+bool updateText(
+	struct Text* text,
+	bool reuse);
 void drawTextCommand(
 	struct Text* text);
 

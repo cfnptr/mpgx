@@ -264,6 +264,7 @@ inline static bool createTextGlyphs(
 	*_glyphCount = glyphCount;
 	return true;
 }
+#include <stdio.h>
 inline static bool createTextPixels(
 	FT_Face face,
 	size_t fontSize,
@@ -275,7 +276,7 @@ inline static bool createTextPixels(
 	size_t* _pixelLength)
 {
 	size_t glyphLength =
-		(sqrtf(glyphCount) + 1);
+		((size_t)sqrtf(glyphCount) + 1);
 	size_t pixelLength =
 		glyphLength * fontSize;
 	size_t pixelCount =
@@ -302,8 +303,10 @@ inline static bool createTextPixels(
 		return NULL;
 	}
 
-	if (textPixelLength == 0)
+	if (textPixelLength < pixelLength)
 		textPixelLength = pixelLength;
+
+	printf("\n");
 
 	for (size_t i = 0; i < glyphCount; i++)
 	{
@@ -344,6 +347,12 @@ inline static bool createTextPixels(
 		glyph.texCoordV = (float)pixelPosY / textPixelLength;
 		glyph.texCoordS = glyph.texCoordU + (float)glyphWidth / textPixelLength;
 		glyph.texCoordT = glyph.texCoordV + (float)glyphHeight / textPixelLength;
+
+		printf("%f, %f, %f, %f\n",
+			glyph.texCoordU,
+			glyph.texCoordV,
+			glyph.texCoordS,
+			glyph.texCoordT);
 
 		glyphs[i] = glyph;
 
@@ -907,6 +916,7 @@ bool setTextData(
 			_data,
 			dataSize * sizeof(char));
 
+		text->data = data;
 		text->dataSize = dataSize;
 		return true;
 	}
@@ -926,7 +936,6 @@ bool updateText(
 {
 	assert(text != NULL);
 	assert(text->constant == false);
-
 
 	struct Window* window =
 		text->window;
@@ -1124,20 +1133,15 @@ bool updateText(
 				text->image = image;
 			}
 
-			struct Buffer* _vertexBuffer;
-			struct Buffer* _indexBuffer;
-
-			getMeshBuffers(
-				text->mesh,
-				&_vertexBuffer,
-				&_indexBuffer);
-
 			if (vertexBuffer == NULL)
 			{
+				struct Buffer* _vertexBuffer =
+					getMeshVertexBuffer(text->mesh);
+
 				setBufferData(
 					_vertexBuffer,
 					vertices,
-					vertexCount,
+					vertexCount * sizeof(float),
 					0);
 				setMeshIndexCount(
 					text->mesh,
@@ -1147,6 +1151,14 @@ bool updateText(
 			}
 			else
 			{
+				struct Buffer* _vertexBuffer;
+				struct Buffer* _indexBuffer;
+
+				getMeshBuffers(
+					text->mesh,
+					&_vertexBuffer,
+					&_indexBuffer);
+
 				destroyBuffer(_vertexBuffer);
 				destroyBuffer(_indexBuffer);
 
@@ -1621,14 +1633,14 @@ void setGlTextPipelineUniforms(
 
 	if (getImageMipmap(image) == true)
 	{
-		glTexParameteri(
+		/*glTexParameteri(
 			GL_TEXTURE_2D,
 			GL_TEXTURE_MIN_FILTER,
 			GL_NEAREST_MIPMAP_LINEAR);
 		glTexParameteri(
 			GL_TEXTURE_2D,
 			GL_TEXTURE_MAG_FILTER,
-			GL_NEAREST_MIPMAP_LINEAR);
+			GL_NEAREST_MIPMAP_LINEAR);*/
 	}
 	else
 	{
@@ -1641,6 +1653,15 @@ void setGlTextPipelineUniforms(
 			GL_TEXTURE_MAG_FILTER,
 			GL_NEAREST);
 	}
+
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_MIN_FILTER,
+		GL_NEAREST_MIPMAP_NEAREST);
+	/*glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_MAG_FILTER,
+		GL_NEAREST_MIPMAP_NEAREST);*/
 
 	glUniform1i(
 		glTextPipeline->imageLocation,

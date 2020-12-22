@@ -9,9 +9,6 @@ struct Font* createFont(
 void destroyFont(
 	struct Font* font);
 
-// TODO: make also text buffer, text get/set
-// Allow set text only if text is not constant
-
 struct Text* createText(
 	struct Window* window,
 	struct Font* font,
@@ -23,26 +20,43 @@ struct Text* createText(
 void destroyText(
 	struct Text* text);
 
-// TODO:
-// get window,
-// get/set pipeline,
-// get/set font
-// get/set text
+struct Window* getTextWindow(
+	const struct Text* text);
+bool getTextMipmap(
+	const struct Text* text);
+bool getTextConstant(
+	const struct Text* text);
 
-// TODO:
-// antialising on/off selector
-// outline on/off selector
+struct Font* getTextFont(
+	const struct Text* text);
+bool setTextFont(
+	struct Text* text,
+	struct Font* font);
 
 size_t getTextFontSize(
 	const struct Text* text);
 bool setTextFontSize(
 	struct Text* text,
-	size_t size);
+	size_t fontSize);
+
+struct Pipeline* getTextPipeline(
+	const struct Text* text);
+void setTextPipeline(
+	struct Text* text,
+	struct Pipeline* pipeline);
+
+const char* getTextData(
+	const struct Text* text);
+bool setTextData(
+	struct Text* text,
+	const char* data);
 
 // TODO:
-// get/set text capacity
-// get/set text texture capacity
+// antialising on/off selector
+// outline on/off selector
 
+bool recreateText(
+	struct Text* text);
 void drawTextCommand(
 	struct Text* text);
 

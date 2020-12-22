@@ -25,6 +25,18 @@ typedef void(*DrawMeshCommand)(
 
 typedef void(*DestroyImage)(
 	struct Image*);
+typedef void(*SetImageData)(
+	struct Image*,
+	const void*,
+	size_t,
+	size_t,
+	size_t,
+	size_t,
+	size_t,
+	size_t,
+	size_t);
+typedef void(*GenerateMipmap)(
+	struct Image*);
 typedef const void*(*GetImageHandle)(
 	const struct Image*);
 
@@ -41,6 +53,8 @@ struct Window
 	DestroyMesh destroyMeshFunction;
 	DrawMeshCommand drawMeshFunction;
 	DestroyImage destroyImageFunction;
+	SetImageData setImageDataFunction;
+	GenerateMipmap generateMipmapFunction;
 	GetImageHandle getImageHandleFunction;
 	struct GLFWwindow* handle;
 };
@@ -76,6 +90,8 @@ struct Mesh
 struct GlImage
 {
 	GLenum type;
+	GLenum dataType;
+	GLenum dataFormat;
 	GLuint handle;
 };
 struct Image
@@ -96,6 +112,15 @@ static FT_Library ftLibrary = NULL;
 void beginGlCommandRecord(
 	struct Window* window)
 {
+	int width, height;
+
+	glfwGetFramebufferSize(
+		window->handle,
+		&width,
+		&height);
+
+	glViewport(0, 0, width, height);
+
 	// TODO: move to the framebuffer
 	glClear(
 		GL_COLOR_BUFFER_BIT |
@@ -348,6 +373,8 @@ inline static struct GlImage* createGlImage(
 		return NULL;
 
 	GLenum type;
+	GLenum dataFormat;
+	GLenum dataType;
 
 	if (_type == IMAGE_2D_TYPE)
 	{
@@ -364,8 +391,6 @@ inline static struct GlImage* createGlImage(
 	}
 
 	GLenum format;
-	GLenum dataFormat;
-	GLenum dataType;
 
 	switch (_format)
 	{
@@ -431,6 +456,8 @@ inline static struct GlImage* createGlImage(
 	assertOpenGL();
 
 	image->type = type;
+	image->dataType = dataType;
+	image->dataFormat = dataFormat;
 	image->handle = handle;
 	return image;
 }
@@ -450,6 +477,79 @@ void destroyGlImage(
 	assertOpenGL();
 
 	free(glImage);
+}
+void setGlImageData(
+	struct Image* image,
+	const void* data,
+	size_t width,
+	size_t height,
+	size_t depth,
+	size_t widthOffset,
+	size_t heightOffset,
+	size_t depthOffset,
+	size_t mipmapLevel)
+{
+	struct GlImage* glImage =
+		(struct GlImage*)image->handle;
+
+	glfwMakeContextCurrent(
+		image->window->handle);
+
+	glBindTexture(
+		glImage->type,
+		glImage->handle);
+
+	if (image->type == IMAGE_2D_TYPE)
+	{
+		glTexSubImage2D(
+			glImage->type,
+			(GLint)mipmapLevel,
+			(GLint)widthOffset,
+			(GLint)heightOffset,
+			(GLsizei)width,
+			(GLsizei)height,
+			glImage->dataFormat,
+			glImage->dataType,
+			data);
+	}
+	else if (image->type == IMAGE_3D_TYPE)
+	{
+		glTexSubImage3D(
+			glImage->type,
+			(GLint)mipmapLevel,
+			(GLint)widthOffset,
+			(GLint)heightOffset,
+			(GLint)depthOffset,
+			(GLsizei)width,
+			(GLsizei)height,
+			(GLsizei)depth,
+			glImage->dataFormat,
+			glImage->dataType,
+			data);
+	}
+	else
+	{
+		abort();
+	}
+
+	assertOpenGL();
+}
+void generateGlMipmap(
+	struct Image* image)
+{
+	struct GlImage* glImage =
+		(struct GlImage*)image->handle;
+
+	glfwMakeContextCurrent(
+		image->window->handle);
+
+	glBindTexture(
+		glImage->type,
+		glImage->handle);
+	glGenerateMipmap(
+		glImage->type);
+
+	assertOpenGL();
 }
 const void* getGlImageHandle(
 	const struct Image* image)
@@ -565,6 +665,10 @@ struct Window* createWindow(
 			drawGlMeshCommand;
 		window->destroyImageFunction =
 			destroyGlImage;
+		window->setImageDataFunction =
+			setGlImageData;
+		window->generateMipmapFunction =
+			generateGlMipmap;
 		window->getImageHandleFunction =
 			getGlImageHandle;
 	}
@@ -604,6 +708,10 @@ struct Window* createWindow(
 			drawGlMeshCommand;
 		window->destroyImageFunction =
 			destroyGlImage;
+		window->setImageDataFunction =
+			setGlImageData;
+		window->generateMipmapFunction =
+			generateGlMipmap;
 		window->getImageHandleFunction =
 			getGlImageHandle;
 	}
@@ -854,7 +962,6 @@ struct Mesh* createMesh(
 	struct Buffer* indexBuffer)
 {
 	assert(window != NULL);
-	assert(indexCount != 0);
 	assert(vertexBuffer != NULL);
 	assert(indexBuffer != NULL);
 	assert(window == vertexBuffer->window);
@@ -938,6 +1045,19 @@ size_t getMeshIndexCount(
 	assert(mesh != NULL);
 	return mesh->indexCount;
 }
+void setMeshIndexCount(
+	struct Mesh* mesh,
+	size_t indexCount)
+{
+	assert(mesh != NULL);
+	assert(mesh->window->recording == false);
+
+	assert(mesh->drawIndex == UINT32_DRAW_INDEX ?
+		indexCount * sizeof(uint32_t) <= mesh->indexBuffer->size :
+		indexCount * sizeof(uint16_t) <= mesh->indexBuffer->size);
+
+	mesh->indexCount = indexCount;
+}
 
 struct Buffer* getMeshVertexBuffer(
 	const struct Mesh* mesh)
@@ -947,14 +1067,14 @@ struct Buffer* getMeshVertexBuffer(
 }
 void setMeshVertexBuffer(
 	struct Mesh* mesh,
-	struct Buffer* buffer)
+	struct Buffer* vertexBuffer)
 {
 	assert(mesh != NULL);
-	assert(buffer != NULL);
-	assert(mesh->window == buffer->window);
-	assert(buffer->type == VERTEX_BUFFER_TYPE);
+	assert(vertexBuffer != NULL);
+	assert(mesh->window == vertexBuffer->window);
+	assert(vertexBuffer->type == VERTEX_BUFFER_TYPE);
 	assert(mesh->window->recording == false);
-	mesh->vertexBuffer = buffer;
+	mesh->vertexBuffer = vertexBuffer;
 }
 
 struct Buffer* getMeshIndexBuffer(
@@ -967,22 +1087,22 @@ void setMeshIndexBuffer(
 	struct Mesh* mesh,
 	enum DrawIndex drawIndex,
 	size_t indexCount,
-	struct Buffer* buffer)
+	struct Buffer* indexBuffer)
 {
 	assert(mesh != NULL);
 	assert(indexCount != 0);
-	assert(buffer != NULL);
-	assert(mesh->window == buffer->window);
-	assert(buffer->type == INDEX_BUFFER_TYPE);
+	assert(indexBuffer != NULL);
+	assert(mesh->window == indexBuffer->window);
+	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
 	assert(mesh->window->recording == false);
 
-	assert(mesh->drawIndex == UINT32_DRAW_INDEX ?
-		indexCount * sizeof(uint32_t) <= mesh->indexBuffer->size :
-		indexCount * sizeof(uint16_t) <= mesh->indexBuffer->size);
+	assert(drawIndex == UINT32_DRAW_INDEX ?
+		indexCount * sizeof(uint32_t) <= indexBuffer->size :
+		indexCount * sizeof(uint16_t) <= indexBuffer->size);
 
 	mesh->drawIndex = drawIndex;
 	mesh->indexCount = indexCount;
-	mesh->indexBuffer = buffer;
+	mesh->indexBuffer = indexBuffer;
 }
 
 void getMeshBuffers(
@@ -1014,9 +1134,9 @@ void setMeshBuffers(
 	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
 	assert(mesh->window->recording == false);
 
-	assert(mesh->drawIndex == UINT32_DRAW_INDEX ?
-		indexCount * sizeof(uint32_t) <= mesh->indexBuffer->size :
-		indexCount * sizeof(uint16_t) <= mesh->indexBuffer->size);
+	assert(drawIndex == UINT32_DRAW_INDEX ?
+		indexCount * sizeof(uint32_t) <= indexBuffer->size :
+		indexCount * sizeof(uint16_t) <= indexBuffer->size);
 
 	mesh->drawIndex = drawIndex;
 	mesh->indexCount = indexCount;
@@ -1041,7 +1161,7 @@ void drawMeshCommand(
 		pipeline);
 }
 
-inline static struct Image* createImage(
+struct Image* createImage(
 	struct Window* window,
 	enum ImageType type,
 	enum ImageFormat format,
@@ -1051,6 +1171,12 @@ inline static struct Image* createImage(
 	const void* pixels,
 	bool mipmap)
 {
+	assert(window != NULL);
+	assert(width != 0);
+	assert(height != 0);
+	assert(depth != 0);
+	assert(window->recording == false);
+
 	struct Image* image =
 		malloc(sizeof(struct Image));
 
@@ -1097,55 +1223,6 @@ inline static struct Image* createImage(
 	image->handle = handle;
 	return image;
 }
-struct Image* createImage2D(
-	struct Window* window,
-	enum ImageFormat format,
-	size_t width,
-	size_t height,
-	const void* pixels,
-	bool mipmap)
-{
-	assert(window != NULL);
-	assert(width != 0);
-	assert(height != 0);
-	assert(window->recording == false);
-
-	return createImage(
-		window,
-		IMAGE_2D_TYPE,
-		format,
-		width,
-		height,
-		1,
-		pixels,
-		mipmap);
-}
-struct Image* createImage3D(
-	struct Window* window,
-	enum ImageFormat format,
-	size_t width,
-	size_t height,
-	size_t depth,
-	const void* pixels,
-	bool mipmap)
-{
-	assert(window != NULL);
-	assert(width != 0);
-	assert(height != 0);
-	assert(depth != 0);
-	assert(window->recording == false);
-
-	return createImage(
-		window,
-		IMAGE_3D_TYPE,
-		format,
-		width,
-		height,
-		depth,
-		pixels,
-		mipmap);
-}
-
 void destroyImage(
 	struct Image* image)
 {
@@ -1159,6 +1236,54 @@ void destroyImage(
 	destroyFunction(image);
 
 	free(image);
+}
+
+void setImageData(
+	struct Image* image,
+	const void* data,
+	size_t width,
+	size_t height,
+	size_t depth,
+	size_t widthOffset,
+	size_t heightOffset,
+	size_t depthOffset,
+	size_t mipmapLevel)
+{
+	assert(image != NULL);
+	assert(width != 0);
+	assert(height != 0);
+	assert(depth != 0);
+	assert(width + widthOffset <= image->width);
+	assert(height + heightOffset <= image->width);
+	assert(depth + depthOffset <= image->width);
+	assert(image->window->recording == false);
+
+	// TODO: check for static image in Vulkan API
+
+	SetImageData setDataFunction =
+		image->window->setImageDataFunction;
+
+	setDataFunction(
+		image,
+		data,
+		width,
+		height,
+		depth,
+		widthOffset,
+		heightOffset,
+		depthOffset,
+		mipmapLevel);
+}
+void generateMipmap(
+	struct Image* image)
+{
+	assert(image != NULL);
+	assert(image->mipmap == true);
+	assert(image->window->recording == false);
+
+	GenerateMipmap generateMipmapFunction =
+		image->window->generateMipmapFunction;
+	generateMipmapFunction(image);
 }
 
 struct Window* getImageWindow(

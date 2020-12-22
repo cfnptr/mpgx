@@ -178,14 +178,18 @@ struct Window* getMeshWindow(
 	const struct Mesh* mesh);
 enum DrawIndex getMeshDrawIndex(
 	const struct Mesh* mesh);
+
 size_t getMeshIndexCount(
 	const struct Mesh* mesh);
+void setMeshIndexCount(
+	struct Mesh* mesh,
+	size_t indexCount);
 
 struct Buffer* getMeshVertexBuffer(
 	const struct Mesh* mesh);
 void setMeshVertexBuffer(
 	struct Mesh* mesh,
-	struct Buffer* buffer);
+	struct Buffer* vertexBuffer);
 
 struct Buffer* getMeshIndexBuffer(
 	const struct Mesh* mesh);
@@ -193,7 +197,7 @@ void setMeshIndexBuffer(
 	struct Mesh* mesh,
 	enum DrawIndex drawIndex,
 	size_t indexCount,
-	struct Buffer* buffer);
+	struct Buffer* indexBuffer);
 
 void getMeshBuffers(
 	const struct Mesh* mesh,
@@ -210,15 +214,9 @@ void drawMeshCommand(
 	struct Mesh* mesh,
 	struct Pipeline* pipeline);
 
-struct Image* createImage2D(
+struct Image* createImage(
 	struct Window* window,
-	enum ImageFormat format,
-	size_t width,
-	size_t height,
-	const void* pixels,
-	bool mipmap);
-struct Image* createImage3D(
-	struct Window* window,
+	enum ImageType type,
 	enum ImageFormat format,
 	size_t width,
 	size_t height,
@@ -226,6 +224,19 @@ struct Image* createImage3D(
 	const void* pixels,
 	bool mipmap);
 void destroyImage(
+	struct Image* image);
+
+void setImageData(
+	struct Image* image,
+	const void* data,
+	size_t width,
+	size_t height,
+	size_t depth,
+	size_t widthOffset,
+	size_t heightOffset,
+	size_t depthOffset,
+	size_t mipmapLevel);
+void generateMipmap(
 	struct Image* image);
 
 struct Window* getImageWindow(

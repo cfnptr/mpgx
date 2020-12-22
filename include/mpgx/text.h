@@ -15,14 +15,11 @@ struct Text* createText(
 	size_t fontSize,
 	struct Pipeline* pipeline,
 	const char* data,
-	bool mipmap,
 	bool constant);
 void destroyText(
 	struct Text* text);
 
 struct Window* getTextWindow(
-	const struct Text* text);
-bool getTextMipmap(
 	const struct Text* text);
 bool getTextConstant(
 	const struct Text* text);
@@ -50,10 +47,6 @@ const char* getTextData(
 bool setTextData(
 	struct Text* text,
 	const char* data);
-
-// TODO:
-// antialising on/off selector
-// outline on/off selector
 
 bool updateText(
 	struct Text* text,

@@ -20,7 +20,6 @@ struct Text
 	struct Pipeline* pipeline;
 	char* data;
 	size_t dataSize;
-	bool mipmap;
 	bool constant;
 	struct Image* image;
 	struct Mesh* mesh;
@@ -264,7 +263,6 @@ inline static bool createTextGlyphs(
 	*_glyphCount = glyphCount;
 	return true;
 }
-#include <stdio.h>
 inline static bool createTextPixels(
 	FT_Face face,
 	size_t fontSize,
@@ -306,8 +304,6 @@ inline static bool createTextPixels(
 	if (textPixelLength < pixelLength)
 		textPixelLength = pixelLength;
 
-	printf("\n");
-
 	for (size_t i = 0; i < glyphCount; i++)
 	{
 		struct Glyph glyph;
@@ -338,21 +334,15 @@ inline static bool createTextPixels(
 
 		size_t glyphWidth = glyphSlot->bitmap.width;
 		size_t glyphHeight = glyphSlot->bitmap.rows;
-		glyph.posX = glyphSlot->bitmap_left;
-		glyph.posY = -(glyphHeight - (float)glyphSlot->bitmap_top);
-		glyph.posZ = glyph.posX + glyphWidth;
-		glyph.posW = glyph.posY + glyphHeight;
-		glyph.advance = glyphSlot->advance.x / 64.0f;
+		glyph.posX = (float)glyphSlot->bitmap_left / fontSize;
+		glyph.posY = ((float)glyphSlot->bitmap_top - glyphHeight) / fontSize;
+		glyph.posZ = glyph.posX + (float)glyphWidth / fontSize;
+		glyph.posW = glyph.posY + (float)glyphHeight / fontSize;
+		glyph.advance = (glyphSlot->advance.x / 64.0f) / fontSize;
 		glyph.texCoordU = (float)pixelPosX / textPixelLength;
 		glyph.texCoordV = (float)pixelPosY / textPixelLength;
 		glyph.texCoordS = glyph.texCoordU + (float)glyphWidth / textPixelLength;
 		glyph.texCoordT = glyph.texCoordV + (float)glyphHeight / textPixelLength;
-
-		printf("%f, %f, %f, %f\n",
-			glyph.texCoordU,
-			glyph.texCoordV,
-			glyph.texCoordS,
-			glyph.texCoordT);
 
 		glyphs[i] = glyph;
 
@@ -484,7 +474,6 @@ struct Text* createText(
 	size_t fontSize,
 	struct Pipeline* pipeline,
 	const char* _data,
-	bool mipmap,
 	bool constant)
 {
 	// TODO:
@@ -533,7 +522,7 @@ struct Text* createText(
 			fontSize,
 			1,
 			NULL,
-			mipmap);
+			false);
 
 		if (image == NULL)
 		{
@@ -673,7 +662,7 @@ struct Text* createText(
 			pixelLength,
 			1,
 			pixels,
-			mipmap);
+			false);
 
 		free(pixels);
 
@@ -787,7 +776,6 @@ struct Text* createText(
 	text->font = font;
 	text->fontSize = fontSize;
 	text->pipeline = pipeline;
-	text->mipmap = mipmap;
 	text->constant = constant;
 	return text;
 }
@@ -820,12 +808,6 @@ struct Window* getTextWindow(
 {
 	assert(text != NULL);
 	return text->window;
-}
-bool getTextMipmap(
-	const struct Text* text)
-{
-	assert(text != NULL);
-	return text->mipmap;
 }
 bool getTextConstant(
 	const struct Text* text)
@@ -1017,7 +999,7 @@ bool updateText(
 					pixelLength,
 					1,
 					pixels,
-					text->mipmap);
+					false);
 
 				free(pixels);
 				pixels = NULL;
@@ -1123,9 +1105,6 @@ bool updateText(
 					0);
 
 				free(pixels);
-
-				if (text->mipmap)
-					generateMipmap(image);
 			}
 			else
 			{
@@ -1193,7 +1172,7 @@ bool updateText(
 				text->fontSize,
 				1,
 				NULL,
-				text->mipmap);
+				false);
 
 			if (image == NULL)
 			{
@@ -1335,7 +1314,7 @@ bool updateText(
 				pixelLength,
 				1,
 				pixels,
-				text->mipmap);
+				false);
 
 			free(pixels);
 
@@ -1631,37 +1610,14 @@ void setGlTextPipelineUniforms(
 		GL_TEXTURE_WRAP_T,
 		GL_REPEAT);
 
-	if (getImageMipmap(image) == true)
-	{
-		/*glTexParameteri(
-			GL_TEXTURE_2D,
-			GL_TEXTURE_MIN_FILTER,
-			GL_NEAREST_MIPMAP_LINEAR);
-		glTexParameteri(
-			GL_TEXTURE_2D,
-			GL_TEXTURE_MAG_FILTER,
-			GL_NEAREST_MIPMAP_LINEAR);*/
-	}
-	else
-	{
-		glTexParameteri(
-			GL_TEXTURE_2D,
-			GL_TEXTURE_MIN_FILTER,
-			GL_NEAREST);
-		glTexParameteri(
-			GL_TEXTURE_2D,
-			GL_TEXTURE_MAG_FILTER,
-			GL_NEAREST);
-	}
-
 	glTexParameteri(
 		GL_TEXTURE_2D,
 		GL_TEXTURE_MIN_FILTER,
-		GL_NEAREST_MIPMAP_NEAREST);
-	/*glTexParameteri(
+		GL_NEAREST);
+	glTexParameteri(
 		GL_TEXTURE_2D,
 		GL_TEXTURE_MAG_FILTER,
-		GL_NEAREST_MIPMAP_NEAREST);*/
+		GL_NEAREST);
 
 	glUniform1i(
 		glTextPipeline->imageLocation,
@@ -1671,7 +1627,7 @@ void setGlTextPipelineUniforms(
 	struct Matrix4F mvp = translateMatrix4F(
 		scaleMatrix4F(
 			textPipeline->mvp,
-			createValueVector3F(0.001f)),
+			createValueVector3F(0.1f)),
 		createVector3F(-2, 0, 0));
 
 	glUniformMatrix4fv(

@@ -184,6 +184,8 @@ struct Pipeline* createColorPipeline(
 	const void* fragmentShader,
 	size_t fragmentShaderSize)
 {
+	// TODO:
+
 	assert(window != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
@@ -249,8 +251,8 @@ struct Pipeline* createColorPipeline(
 		cullFace,
 		frontFace,
 		destroyFunction,
+		NULL,
 		bindFunction,
-		setUniformsFunction,
 		colorPipeline);
 
 	if (pipeline == NULL)
@@ -539,8 +541,8 @@ struct Pipeline* createImageColorPipeline(
 		cullFace,
 		frontFace,
 		destroyFunction,
+		NULL,
 		bindFunction,
-		setUniformsFunction,
 		imageColorPipeline);
 
 	if (pipeline == NULL)

@@ -50,7 +50,7 @@ bool setTextData(
 
 // TODO: add monochrome text support
 
-bool updateText(
+bool bakeText(
 	struct Text* text,
 	bool reuse);
 void drawTextCommand(

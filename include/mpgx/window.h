@@ -81,12 +81,15 @@ enum FrontFace
 	COUNTERCLOCKWISE_FRONT_FACE,
 };
 
+// TODO:
+// 1. save all created objects
+// 2. destroy them on window destroy
+
 struct Window;
 struct Buffer;
 struct Mesh;
 struct Image;
 //struct Framebuffer;
-//struct Camera;
 
 struct Pipeline;
 
@@ -279,15 +282,6 @@ struct Pipeline* createPipeline(
 	void* handle);
 void destroyPipeline(
 	struct Pipeline* pipeline);
-
-struct Window* getPipelineWindow(
-	const struct Pipeline* pipeline);
-enum DrawMode getPipelineDrawMode(
-	const struct Pipeline* pipeline);
-enum CullFace getPipelineCullFace(
-	const struct Pipeline* pipeline);
-enum FrontFace getPipelineFrontFace(
-	const struct Pipeline* pipeline);
 
 void bindPipelineCommand(
 	struct Pipeline* pipeline);

@@ -2,6 +2,12 @@
 #include "matrix.h"
 #include <math.h>
 
+enum CameraType
+{
+	PERSPECTIVE_CAMERA_TYPE,
+	ORTHOGRAPHIC_CAMERA_TYPE,
+};
+
 struct PerspectiveCamera
 {
 	float fieldOfView;
@@ -17,6 +23,12 @@ struct OrthographicCamera
 	float topFrustum;
 	float nearClipPlane;
 	float farClipPlane;
+};
+
+union Camera
+{
+	struct PerspectiveCamera perspective;
+	struct OrthographicCamera orthographic;
 };
 
 struct PerspectiveCamera createPerspectiveCamera(
@@ -80,7 +92,7 @@ inline static struct Matrix4F createVkPerspectiveMatrix4F(
 	m.m33 = 0.0f;
 	return m;
 }
-inline static struct Matrix4F createGlPerspectiveMatrix(
+inline static struct Matrix4F createGlPerspectiveMatrix4F(
 	float fieldOfView,
 	float aspectRatio,
 	float nearClipPlane,
@@ -111,7 +123,7 @@ inline static struct Matrix4F createGlPerspectiveMatrix(
 	return m;
 }
 
-inline static struct Matrix4F createVkOrthographicMatrix(
+inline static struct Matrix4F createVkOrthographicMatrix4F(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,
@@ -141,7 +153,7 @@ inline static struct Matrix4F createVkOrthographicMatrix(
 	m.m33 = 1.0f;
 	return m;
 }
-inline static struct Matrix4F createGlOrthographicMatrix(
+inline static struct Matrix4F createGlOrthographicMatrix4F(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,

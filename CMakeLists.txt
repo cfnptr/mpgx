@@ -27,6 +27,7 @@ add_subdirectory(libraries/freetype)
 add_library(mpgx STATIC
 	source/glad/glad.c
 	source/mpgx/pipeline.c
+	source/mpgx/renderer.c
 	source/mpgx/text.c
 	source/mpgx/ui.c
 	source/mpgx/window.c)

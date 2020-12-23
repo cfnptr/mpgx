@@ -297,6 +297,8 @@ void drawGlMeshCommand(
 		GL_ELEMENT_ARRAY_BUFFER,
 		glIndexBuffer->handle);
 
+	assert(pipeline->setUniformsFunction != NULL);
+
 	SetUniformsCommand setUniformsFunction =
 		pipeline->setUniformsFunction;
 	setUniformsFunction(pipeline);
@@ -1432,6 +1434,7 @@ void destroyPipeline(
 	struct Pipeline* pipeline)
 {
 	assert(pipeline->window->recording == false);
+	assert(pipeline->destroyFunction != NULL);
 
 	if (pipeline == NULL)
 		return;
@@ -1443,36 +1446,12 @@ void destroyPipeline(
 	free(pipeline);
 }
 
-struct Window* getPipelineWindow(
-	const struct Pipeline* pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->window;
-}
-enum DrawMode getPipelineDrawMode(
-	const struct Pipeline* pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->drawMode;
-}
-enum CullFace getPipelineCullFace(
-	const struct Pipeline* pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->cullFace;
-}
-enum FrontFace getPipelineFrontFace(
-	const struct Pipeline* pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->frontFace;
-}
-
 void bindPipelineCommand(
 	struct Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
 	assert(pipeline->window->recording == true);
+	assert(pipeline->bindFunction != NULL);
 
 	BindPipelineCommand bindFunction =
 		pipeline->bindFunction;

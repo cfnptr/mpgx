@@ -81,7 +81,7 @@ struct UiElement* createUiElement(
 	assert(ui != NULL);
 	assert(pipeline != NULL);
 	assert(mesh != NULL);
-	assert(ui->window == getPipelineWindow(pipeline));
+	assert(ui->window == pipeline->window);
 	assert(ui->window == getMeshWindow(mesh));
 
 	struct UiElement* uiElement =

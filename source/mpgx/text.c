@@ -483,7 +483,7 @@ struct Text* createText(
 	assert(pipeline != NULL);
 	assert(font != NULL);
 	assert(_data != NULL);
-	assert(window == getPipelineWindow(pipeline));
+	assert(window == pipeline->window);
 
 	struct Text* text =
 		malloc(sizeof(struct Text));
@@ -859,10 +859,7 @@ void setTextPipeline(
 	assert(text != NULL);
 	assert(pipeline != NULL);
 	assert(text->constant == false);
-
-	assert(text->window ==
-		getPipelineWindow(pipeline));
-
+	assert(text->window == pipeline->window);
 	text->pipeline = pipeline;
 }
 
@@ -911,7 +908,7 @@ bool setTextData(
 	}
 }
 
-bool updateText(
+bool bakeText(
 	struct Text* text,
 	bool reuse)
 {

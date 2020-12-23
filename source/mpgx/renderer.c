@@ -24,6 +24,11 @@ struct Renderer
 	size_t renderCount;
 };
 
+struct TextRender
+{
+	struct Text* text;
+};
+
 int ascendCompareRender(
 	const void* a,
 	const void* b)
@@ -243,11 +248,12 @@ struct Render* createRender(
 	struct Matrix4F model,
 	struct Render* parent,
 	DestroyRender destroyFunction,
-	DrawRenderCommand drawFunction)
+	RenderCommand renderFunction,
+	void* handle)
 {
 	assert(renderer != NULL);
 	assert(destroyFunction != NULL);
-	assert(drawFunction != NULL);
+	assert(renderFunction != NULL);
 
 	struct Render* render =
 		malloc(sizeof(struct Render));
@@ -281,7 +287,7 @@ struct Render* createRender(
 	render->model = model;
 	render->parent = parent;
 	render->destroyFunction = destroyFunction;
-	render->drawFunction = drawFunction;
+	render->renderFunction = renderFunction;
 
 	renderer->renders[
 		renderer->renderCount] = render;
@@ -310,6 +316,8 @@ void destroyRender(
 
 			renderer->renderCount--;
 
+			assert(render->destroyFunction != NULL);
+
 			DestroyRender destroyFunction =
 				render->destroyFunction;
 			destroyFunction(render);
@@ -321,7 +329,7 @@ void destroyRender(
 	abort();
 }
 
-void drawRenderer(
+void executeRenderer(
 	struct Renderer* renderer)
 {
 	assert(renderer != NULL);
@@ -385,12 +393,12 @@ void drawRenderer(
 				mvp,
 				render->model);
 
-			assert(render->drawFunction != NULL);
+			assert(render->renderFunction != NULL);
 
-			DrawRenderCommand drawFunction =
-				render->drawFunction;
+			RenderCommand renderFunction =
+				render->renderFunction;
 
-			drawFunction(
+			renderFunction(
 				render,
 				&render->model,
 				&view,
@@ -398,4 +406,78 @@ void drawRenderer(
 				&mvp);
 		}
 	}
+}
+
+void destroyTextRender(
+	struct Render* render)
+{
+	if (render == NULL)
+		return;
+
+	struct TextRender* textRender =
+		(struct TextRender*)render->handle;
+	free(textRender);
+}
+void renderTextCommand(
+	struct Render* render,
+	const struct Matrix4F* model,
+	const struct Matrix4F* view,
+	const struct Matrix4F* proj,
+	const struct Matrix4F* mvp)
+{
+	struct TextRender* textRender =
+		(struct TextRender*)render->handle;
+	struct Text* text =
+		textRender->text;
+	struct Pipeline* textPipeline =
+		getTextPipeline(text);
+
+	setTextPipelineMVP(
+		textPipeline,
+		*mvp);
+
+	bindPipelineCommand(textPipeline);
+	drawTextCommand(text);
+}
+struct Render* createTextRender(
+	struct Renderer* renderer,
+	bool _render,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Matrix4F model,
+	struct Render* parent,
+	struct Text* text)
+{
+	assert(renderer != NULL);
+	assert(text != NULL);
+	assert(renderer->window == getTextWindow(text));
+
+	struct TextRender* textRender = malloc(
+		sizeof(struct TextRender));
+
+	if (textRender == NULL)
+		return NULL;
+
+	textRender->text = text;
+
+	struct Render* render = createRender(
+		renderer,
+		_render,
+		position,
+		scale,
+		rotation,
+		model,
+		parent,
+		destroyTextRender,
+		renderTextCommand,
+		textRender);
+
+	if (render == NULL)
+	{
+		free(textRender);
+		return NULL;
+	}
+
+	return render;
 }

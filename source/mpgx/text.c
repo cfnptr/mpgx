@@ -17,7 +17,6 @@ struct Text
 	struct Window* window;
 	struct Font* font;
 	size_t fontSize;
-	struct Pipeline* pipeline;
 	char* data;
 	size_t dataSize;
 	bool constant;
@@ -471,7 +470,6 @@ struct Text* createText(
 	struct Window* window,
 	struct Font* font,
 	size_t fontSize,
-	struct Pipeline* pipeline,
 	const char* _data,
 	bool constant)
 {
@@ -480,10 +478,8 @@ struct Text* createText(
 	// in Vulkan graphics API
 
 	assert(window != NULL);
-	assert(pipeline != NULL);
 	assert(font != NULL);
 	assert(_data != NULL);
-	assert(window == pipeline->window);
 
 	struct Text* text =
 		malloc(sizeof(struct Text));
@@ -774,7 +770,6 @@ struct Text* createText(
 	text->window = window;
 	text->font = font;
 	text->fontSize = fontSize;
-	text->pipeline = pipeline;
 	text->constant = constant;
 	return text;
 }
@@ -844,23 +839,6 @@ void setTextFontSize(
 	assert(text != NULL);
 	assert(text->constant == false);
 	text->fontSize = fontSize;
-}
-
-struct Pipeline* getTextPipeline(
-	const struct Text* text)
-{
-	assert(text != NULL);
-	return text->pipeline;
-}
-void setTextPipeline(
-	struct Text* text,
-	struct Pipeline* pipeline)
-{
-	assert(text != NULL);
-	assert(pipeline != NULL);
-	assert(text->constant == false);
-	assert(text->window == pipeline->window);
-	text->pipeline = pipeline;
 }
 
 const char* getTextData(
@@ -1430,12 +1408,13 @@ bool bakeText(
 	return true;
 }
 void drawTextCommand(
-	struct Text* text)
+	struct Text* text,
+	struct Pipeline* pipeline)
 {
 	assert(text != NULL);
+	assert(pipeline != NULL);
+	assert(text->window == pipeline->window);
 
-	struct Pipeline* pipeline =
-		text->pipeline;
 	struct TextPipeline* textPipeline =
 		(struct TextPipeline*)pipeline->handle;
 
@@ -1554,7 +1533,7 @@ void destroyGlTextPipeline(
 	free(glTextPipeline);
 	free(textPipeline);
 }
-void bindGlTextPipeline(
+void bindGlTextPipelineCommand(
 	struct Pipeline* pipeline)
 {
 	struct TextPipeline* textPipeline =
@@ -1578,7 +1557,7 @@ void bindGlTextPipeline(
 
 	assertOpenGL();
 }
-void setGlTextPipelineUniforms(
+void setGlTextUniformsCommand(
 	struct Pipeline* pipeline)
 {
 	struct TextPipeline* textPipeline =
@@ -1694,8 +1673,8 @@ struct Pipeline* createTextPipeline(
 			false);
 
 		destroyFunction = destroyGlTextPipeline;
-		bindFunction = bindGlTextPipeline;
-		setUniformsFunction = setGlTextPipelineUniforms;
+		bindFunction = bindGlTextPipelineCommand;
+		setUniformsFunction = setGlTextUniformsCommand;
 	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
 	{
@@ -1706,8 +1685,8 @@ struct Pipeline* createTextPipeline(
 			true);
 
 		destroyFunction = destroyGlTextPipeline;
-		bindFunction = bindGlTextPipeline;
-		setUniformsFunction = setGlTextPipelineUniforms;
+		bindFunction = bindGlTextPipelineCommand;
+		setUniformsFunction = setGlTextUniformsCommand;
 	}
 	else
 	{
@@ -1744,4 +1723,44 @@ struct Pipeline* createTextPipeline(
 	}
 
 	return pipeline;
+}
+
+struct Vector4F getTextPipelineColor(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct TextPipeline* textPipeline =
+		(struct TextPipeline*)pipeline->handle;
+	return textPipeline->color;
+}
+void setTextPipelineColor(
+	struct Pipeline* pipeline,
+	struct Vector4F color)
+{
+	assert(pipeline != NULL);
+
+	struct TextPipeline* textPipeline =
+		(struct TextPipeline*)pipeline->handle;
+	textPipeline->color = color;
+}
+
+struct Matrix4F getTextPipelineMVP(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct TextPipeline* textPipeline =
+		(struct TextPipeline*)pipeline->handle;
+	return textPipeline->mvp;
+}
+void setTextPipelineMVP(
+	struct Pipeline* pipeline,
+	struct Matrix4F mvp)
+{
+	assert(pipeline != NULL);
+
+	struct TextPipeline* textPipeline =
+		(struct TextPipeline*)pipeline->handle;
+	textPipeline->mvp = mvp;
 }

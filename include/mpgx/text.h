@@ -13,7 +13,6 @@ struct Text* createText(
 	struct Window* window,
 	struct Font* font,
 	size_t fontSize,
-	struct Pipeline* pipeline,
 	const char* data,
 	bool constant);
 void destroyText(
@@ -36,12 +35,6 @@ void setTextFontSize(
 	struct Text* text,
 	size_t fontSize);
 
-struct Pipeline* getTextPipeline(
-	const struct Text* text);
-void setTextPipeline(
-	struct Text* text,
-	struct Pipeline* pipeline);
-
 const char* getTextData(
 	const struct Text* text);
 bool setTextData(
@@ -54,7 +47,8 @@ bool bakeText(
 	struct Text* text,
 	bool reuse);
 void drawTextCommand(
-	struct Text* text);
+	struct Text* text,
+	struct Pipeline* pipeline);
 
 // TODO:
 // get uniChar offset for text cursor
@@ -69,3 +63,14 @@ struct Pipeline* createTextPipeline(
 	const void* fragmentShader,
 	size_t fragmentShaderSize);
 
+struct Vector4F getTextPipelineColor(
+	const struct Pipeline* pipeline);
+void setTextPipelineColor(
+	struct Pipeline* pipeline,
+	struct Vector4F color);
+
+struct Matrix4F getTextPipelineMVP(
+	const struct Pipeline* pipeline);
+void setTextPipelineMVP(
+	struct Pipeline* pipeline,
+	struct Matrix4F mvp);

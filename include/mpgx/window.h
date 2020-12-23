@@ -128,6 +128,18 @@ double getWindowUpdateTime(
 	const struct Window* window);
 double getWindowDeltaTime(
 	const struct Window* window);
+void getWindowSize(
+	const struct Window* window,
+	size_t* width,
+	size_t* height);
+void getWindowPosition(
+	const struct Window* window,
+	size_t* x,
+	size_t* y);
+void getWindowFramebufferSize(
+	const struct Window* window,
+	size_t* width,
+	size_t* height);
 
 void makeWindowContextCurrent(
 	struct Window* window);

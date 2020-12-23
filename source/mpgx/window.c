@@ -779,6 +779,63 @@ double getWindowDeltaTime(
 	assert(window != NULL);
 	return window->deltaTime;
 }
+void getWindowSize(
+	const struct Window* window,
+	size_t* _width,
+	size_t* _height)
+{
+	assert(window != NULL);
+	assert(_width != NULL);
+	assert(_height != NULL);
+
+	int width, height;
+
+	glfwGetWindowSize(
+		window->handle,
+		&width,
+		&height);
+
+	*_width = (size_t)width;
+	*_height = (size_t)height;
+}
+void getWindowPosition(
+	const struct Window* window,
+	size_t* _x,
+	size_t* _y)
+{
+	assert(window != NULL);
+	assert(_x != NULL);
+	assert(_y != NULL);
+
+	int x, y;
+
+	glfwGetWindowPos(
+		window->handle,
+		&x,
+		&y);
+
+	*_x = (size_t)x;
+	*_y = (size_t)y;
+}
+void getWindowFramebufferSize(
+	const struct Window* window,
+	size_t* _width,
+	size_t* _height)
+{
+	assert(window != NULL);
+	assert(_width != NULL);
+	assert(_height != NULL);
+
+	int width, height;
+
+	glfwGetFramebufferSize(
+		window->handle,
+		&width,
+		&height);
+
+	*_width = (size_t)width;
+	*_height = (size_t)height;
+}
 
 void makeWindowContextCurrent(
 	struct Window* window)

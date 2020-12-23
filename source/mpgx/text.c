@@ -234,30 +234,29 @@ inline static bool createTextGlyphs(
 	for (size_t i = 0; i < uniCharCount; i++)
 	{
 		uint32_t uniChar = uniChars[i];
-		bool glyphExists = false;
 
-		// TODO: optimize with binary search
-		for (size_t j = 0; j < glyphCount; j++)
-		{
-			if (uniChar == glyphs[j].uniChar)
-			{
-				glyphExists = true;
-				break;
-			}
-		}
+		struct Glyph searchGlyph;
+		searchGlyph.uniChar = uniChar;
 
-		if (glyphExists == false)
+		struct Glyph* glyph = bsearch(
+			&searchGlyph,
+			glyphs,
+			glyphCount,
+			sizeof(struct Glyph),
+			compareGlyph);
+
+		if (glyph == NULL)
 		{
 			glyphs[glyphCount].uniChar = uniChar;
 			glyphCount++;
+
+			qsort(
+				glyphs,
+				glyphCount,
+				sizeof(struct Glyph),
+				compareGlyph);
 		}
 	}
-
-	qsort(
-		glyphs,
-		glyphCount,
-		sizeof(struct Glyph),
-		compareGlyph);
 
 	*_glyphs = glyphs;
 	*_glyphCount = glyphCount;

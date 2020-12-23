@@ -48,11 +48,16 @@ bool setTextData(
 	struct Text* text,
 	const char* data);
 
+// TODO: add monochrome text support
+
 bool updateText(
 	struct Text* text,
 	bool reuse);
 void drawTextCommand(
 	struct Text* text);
+
+// TODO:
+// get uniChar offset for text cursor
 
 struct Pipeline* createTextPipeline(
 	struct Window* window,

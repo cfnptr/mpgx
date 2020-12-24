@@ -60,6 +60,29 @@ void destroyTransformer(
 	free(transformer);
 }
 
+int compareTransform(
+	const void* a,
+	const void* b)
+{
+	if (*(struct Transform**)a <
+		*(struct Transform**)b)
+	{
+		return -1;
+	}
+	if (*(struct Transform**)a ==
+		*(struct Transform**)b)
+	{
+		return 0;
+	}
+	if (*(struct Transform**)a >
+		*(struct Transform**)b)
+	{
+		return 1;
+	}
+
+	abort();
+}
+
 struct Transform* createTransform(
 	struct Transformer* transformer,
 	struct Vector3F position,
@@ -105,37 +128,94 @@ struct Transform* createTransform(
 	transformer->transforms[
 		transformer->transformCount] = transform;
 	transformer->transformCount++;
+
+	qsort(
+		transformer->transforms,
+		transformer->transformCount,
+		sizeof(struct Transform*),
+		compareTransform);
+
 	return transform;
 }
 void destroyTransform(
-	struct Transform* transform)
+	struct Transform* _transform)
 {
-	// TODO: use binary search instead
-
-	if (transform == NULL)
+	if (_transform == NULL)
 		return;
 
 	struct Transformer* transformer =
-		transform->transformer;
+		_transform->transformer;
 	size_t transformCount =
 		transformer->transformCount;
 	struct Transform** transforms =
 		transformer->transforms;
 
-	for (size_t i = 0; i < transformCount; i++)
-	{
-		if (transform == transforms[i])
-		{
-			for (size_t j = i + 1; j < transformCount; j++)
-				transforms[j - 1] = transforms[j];
+	struct Transform** transform = bsearch(
+		&_transform,
+		transforms,
+		transformCount,
+		sizeof(struct Transform*),
+		compareTransform);
 
-			transformer->transformCount--;
-			free(transform);
-			return;
-		}
-	}
+	if (transform == NULL)
+		abort();
 
-	abort();
+	size_t index = transform - transforms;
+
+	for (size_t j = index + 1; j < transformCount; j++)
+		transforms[j - 1] = transforms[j];
+
+	transformer->transformCount--;
+	free(_transform);
+}
+
+struct Vector3F getTransformPosition(
+	const struct Transform* transform)
+{
+	assert(transform != NULL);
+	return transform->position;
+}
+void setTransformPosition(
+	struct Transform* transform,
+	struct Vector3F position)
+{
+	assert(transform != NULL);
+	transform->position = position;
+}
+
+struct Vector3F getTransformScale(
+	const struct Transform* transform)
+{
+	assert(transform != NULL);
+	return transform->scale;
+}
+void setTransformScale(
+	struct Transform* transform,
+	struct Vector3F scale)
+{
+	assert(transform != NULL);
+	transform->scale = scale;
+}
+
+struct Quaternion getTransformRotation(
+	const struct Transform* transform)
+{
+	assert(transform != NULL);
+	return transform->rotation;
+}
+void setTransformRotation(
+	struct Transform* transform,
+	struct Quaternion rotation)
+{
+	assert(transform != NULL);
+	transform->rotation = rotation;
+}
+
+struct Matrix4F getTransformModel(
+	const struct Transform* transform)
+{
+	assert(transform != NULL);
+	return transform->model;
 }
 
 void bakeTransformer(
@@ -162,7 +242,28 @@ void bakeTransformer(
 		transform->model = model;
 	}
 
-	// TODO:
-	// multiply by parent matrices
-	// for ...
+	for (size_t i = 0; i < transformCount; i++)
+	{
+		struct Transform* transform =
+			transforms[i];
+
+		struct Transform* parent =
+			transform->parent;
+
+		if (parent == NULL)
+			continue;
+
+		struct Matrix4F model =
+			transform->model;
+
+		while (parent != NULL)
+		{
+			model = mulMatrix4F(
+				parent->model,
+				model);
+			parent = parent->parent;
+		}
+
+		transform->model = model;
+	}
 }

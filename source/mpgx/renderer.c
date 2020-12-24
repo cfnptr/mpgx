@@ -1,6 +1,7 @@
 #include "mpgx/renderer.h"
 
 #include <assert.h>
+#include <string.h>
 
 typedef int(*CompareRender)(
 	const void*,
@@ -14,12 +15,12 @@ struct Renderer
 	bool ascendingSort;
 	enum CameraType cameraType;
 	union Camera camera;
-	struct Vector3F position;
-	struct Vector3F scale;
-	struct Quaternion rotation;
+	struct Transform* transform;
+	struct Pipeline* pipeline;
 	CompareRender compareRenderFunction;
 	CreateProjMatrix createProjFunction;
 	struct Render** renders;
+	struct Render** tmpRenders;
 	size_t renderCapacity;
 	size_t renderCount;
 };
@@ -36,14 +37,14 @@ int ascendCompareRender(
 	struct Render* renderA =
 		(struct Render*)a;
 	float distanceA = distanceVector3F(
-		renderA->renderer->position,
-		renderA->position);
+		getTransformPosition(renderA->renderer->transform),
+		getTransformPosition(renderA->transform));
 
 	struct Render* renderB =
 		(struct Render*)b;
 	float distanceB = distanceVector3F(
-		renderB->renderer->position,
-		renderB->position);
+		getTransformPosition(renderB->renderer->transform),
+		getTransformPosition(renderB->transform));
 
 	if (distanceA < distanceB)
 		return -1;
@@ -61,14 +62,14 @@ int descendCompareRender(
 	struct Render* renderA =
 		(struct Render*)a;
 	float distanceA = distanceVector3F(
-		renderA->renderer->position,
-		renderA->position);
+		getTransformPosition(renderA->renderer->transform),
+		getTransformPosition(renderA->transform));
 
 	struct Render* renderB =
 		(struct Render*)b;
 	float distanceB = distanceVector3F(
-		renderB->renderer->position,
-		renderB->position);
+		getTransformPosition(renderB->renderer->transform),
+		getTransformPosition(renderB->transform));
 
 	if (distanceA > distanceB)
 		return -1;
@@ -127,11 +128,12 @@ struct Renderer* createRenderer(
 	bool ascendingSort,
 	enum CameraType cameraType,
 	union Camera camera,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation)
+	struct Transform* transform,
+	struct Pipeline* pipeline)
 {
 	assert(window != NULL);
+	assert(transform != NULL);
+	assert(pipeline != NULL);
 
 	struct Renderer* renderer =
 		malloc(sizeof(struct Renderer));
@@ -203,14 +205,24 @@ struct Renderer* createRenderer(
 		return NULL;
 	}
 
+	struct Render** tmpRenders = malloc(
+		sizeof(struct Render*));
+
+	if (tmpRenders == NULL)
+	{
+		free(renders);
+		free(renderer);
+		return NULL;
+	}
+
 	renderer->window = window;
 	renderer->ascendingSort = ascendingSort;
 	renderer->cameraType = cameraType;
 	renderer->camera = camera;
-	renderer->position = position;
-	renderer->scale = scale;
-	renderer->rotation = rotation;
+	renderer->transform = transform;
+	renderer->pipeline = pipeline;
 	renderer->renders = renders;
+	renderer->tmpRenders = tmpRenders;
 	renderer->renderCapacity = 1;
 	renderer->renderCount = 0;
 	return renderer;
@@ -239,19 +251,39 @@ void destroyRenderer(
 	free(renderer);
 }
 
+int compareRender(
+	const void* a,
+	const void* b)
+{
+	if (*(struct Render**)a <
+		*(struct Render**)b)
+	{
+		return -1;
+	}
+	if (*(struct Render**)a ==
+		*(struct Render**)b)
+	{
+		return 0;
+	}
+	if (*(struct Render**)a >
+		*(struct Render**)b)
+	{
+		return 1;
+	}
+
+	abort();
+}
+
 struct Render* createRender(
 	struct Renderer* renderer,
 	bool _render,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
-	struct Matrix4F model,
-	struct Render* parent,
+	struct Transform* transform,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,
 	void* handle)
 {
 	assert(renderer != NULL);
+	assert(transform != NULL);
 	assert(destroyFunction != NULL);
 	assert(renderFunction != NULL);
 
@@ -276,57 +308,77 @@ struct Render* createRender(
 		}
 
 		renderer->renders = renders;
+
+		struct Render** tmpRenders = realloc(
+			renderer->renders,
+			capacity * sizeof(struct Render*));
+
+		if (tmpRenders == NULL)
+		{
+			free(render);
+			return NULL;
+		}
+
+		renderer->tmpRenders = tmpRenders;
 		renderer->renderCapacity = capacity;
 	}
 
 	render->renderer = renderer;
 	render->render = _render;
-	render->position = position;
-	render->scale = scale;
-	render->rotation = rotation;
-	render->model = model;
-	render->parent = parent;
+	render->transform = transform;
 	render->destroyFunction = destroyFunction;
 	render->renderFunction = renderFunction;
+	render->handle = handle;
 
 	renderer->renders[
 		renderer->renderCount] = render;
 	renderer->renderCount++;
+
+	qsort(
+		renderer->renders,
+		renderer->renderCount,
+		sizeof(struct Render*),
+		compareRender);
+
 	return render;
 }
 void destroyRender(
-	struct Render* render)
+	struct Render* _render)
 {
-	if (render == NULL)
+	assert(_render->destroyFunction != NULL);
+
+	if (_render == NULL)
 		return;
 
 	struct Renderer* renderer =
-		render->renderer;
+		_render->renderer;
 	size_t renderCount =
 		renderer->renderCount;
 	struct Render** renders =
 		renderer->renders;
 
-	for (size_t i = 0; i < renderCount; i++)
-	{
-		if (render == renders[i])
-		{
-			for (size_t j = i + 1; j < renderCount; j++)
-				renders[j - 1] = renders[j];
+	struct Render** render = bsearch(
+		&_render,
+		renders,
+		renderCount,
+		sizeof(struct Render*),
+		compareRender);
 
-			renderer->renderCount--;
+	if (render == NULL)
+		abort();
 
-			assert(render->destroyFunction != NULL);
+	size_t index = render - renders;
 
-			DestroyRender destroyFunction =
-				render->destroyFunction;
-			destroyFunction(render);
+	for (size_t j = index + 1; j < renderCount; j++)
+		renders[j - 1] = renders[j];
 
-			return;
-		}
-	}
+	renderer->renderCount--;
 
-	abort();
+	DestroyRender destroyFunction =
+		_render->destroyFunction;
+	destroyFunction(_render);
+
+	free(_render);
 }
 
 void executeRenderer(
@@ -338,42 +390,24 @@ void executeRenderer(
 		renderer->renderCount;
 	struct Render** renders =
 		renderer->renders;
-	CompareRender compareRender =
-		renderer->compareRenderFunction;
+	struct Render** tmpRenders =
+		renderer->tmpRenders;
+	struct Pipeline* pipeline =
+		renderer->pipeline;
+
+	memcpy(
+		tmpRenders,
+		renders,
+		renderCount * sizeof(struct Render*));
 
 	qsort(
-		renders,
+		tmpRenders,
 		renderCount,
 		sizeof(struct Render*),
-		compareRender);
+		renderer->compareRenderFunction);
 
-	for (size_t i = 0; i < renderCount; i++)
-	{
-		struct Render* render = renders[i];
-
-		struct Matrix4F model =
-			createIdentityMatrix4F();
-		model = mulMatrix4F(model,
-			translateMatrix4F(model, render->position));
-		model = mulMatrix4F(model,
-			getQuaternionMatrixF4(render->rotation));
-		model = mulMatrix4F(model,
-			scaleMatrix4F(model, render->scale));
-		render->model = model;
-	}
-
-	// TODO:
-	// multiply by parent matrices
-	// for ...
-
-	struct Matrix4F view =
-		createIdentityMatrix4F();
-	view = mulMatrix4F(view,
-		translateMatrix4F(view, renderer->position));
-	view = mulMatrix4F(view,
-		getQuaternionMatrixF4(renderer->rotation));
-	view = mulMatrix4F(view,
-		scaleMatrix4F(view, renderer->scale));
+	struct Matrix4F view = getTransformModel(
+		renderer->transform);
 
 	CreateProjMatrix createProjFunction =
 		renderer->createProjFunction;
@@ -384,28 +418,42 @@ void executeRenderer(
 	{
 		struct Render* render = renders[i];
 
-		if (render->render)
+		if (render->render == true)
 		{
+			assert(render->transform != NULL);
+			assert(render->renderFunction != NULL);
+
+			struct Matrix4F model = getTransformModel(
+				render->transform);
+
 			struct Matrix4F mvp = mulMatrix4F(
 				proj,
 				view);
 			mvp = mulMatrix4F(
 				mvp,
-				render->model);
-
-			assert(render->renderFunction != NULL);
+				model);
 
 			RenderCommand renderFunction =
 				render->renderFunction;
 
 			renderFunction(
 				render,
-				&render->model,
+				pipeline,
+				&model,
 				&view,
 				&proj,
 				&mvp);
 		}
 	}
+}
+
+struct Render* createMeshRender(
+	struct Renderer* renderer,
+	bool render,
+	struct Transform* transform,
+	struct Mesh* mesh)
+{
+	// TODO:
 }
 
 void destroyTextRender(
@@ -420,6 +468,7 @@ void destroyTextRender(
 }
 void renderTextCommand(
 	struct Render* render,
+	struct Pipeline* pipeline,
 	const struct Matrix4F* model,
 	const struct Matrix4F* view,
 	const struct Matrix4F* proj,
@@ -429,27 +478,22 @@ void renderTextCommand(
 		(struct TextRender*)render->handle;
 	struct Text* text =
 		textRender->text;
-	struct Pipeline* textPipeline =
-		getTextPipeline(text);
 
 	setTextPipelineMVP(
-		textPipeline,
+		pipeline,
 		*mvp);
-
-	bindPipelineCommand(textPipeline);
-	drawTextCommand(text);
+	drawTextCommand(
+		text,
+		pipeline);
 }
 struct Render* createTextRender(
 	struct Renderer* renderer,
 	bool _render,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
-	struct Matrix4F model,
-	struct Render* parent,
+	struct Transform* transform,
 	struct Text* text)
 {
 	assert(renderer != NULL);
+	assert(transform != NULL);
 	assert(text != NULL);
 	assert(renderer->window == getTextWindow(text));
 
@@ -464,11 +508,7 @@ struct Render* createTextRender(
 	struct Render* render = createRender(
 		renderer,
 		_render,
-		position,
-		scale,
-		rotation,
-		model,
-		parent,
+		transform,
 		destroyTextRender,
 		renderTextCommand,
 		textRender);

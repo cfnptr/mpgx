@@ -146,9 +146,12 @@ struct Pipeline* createColorPipeline(
 	struct Window* window,
 	struct Shader* vertexShader,
 	struct Shader* fragmentShader,
-	enum DrawMode drawMode,
-	enum CullFace cullFace,
-	enum FrontFace frontFace);
+	enum DrawMode drawMode);
+
+struct Shader* getColorPipelineVertexShader(
+	const struct Pipeline* pipeline);
+struct Shader* getColorPipelineFragmentShader(
+	const struct Pipeline* pipeline);
 
 struct Matrix4F getColorPipelineMVP(
 	const struct Pipeline* pipeline);
@@ -162,6 +165,7 @@ void setColorPipelineColor(
 	struct Pipeline* pipeline,
 	struct Vector4F color);
 
+// TODO:
 struct Pipeline* createImageColorPipeline(
 	struct Window* window,
 	enum DrawMode drawMode,

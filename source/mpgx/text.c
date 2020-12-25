@@ -273,8 +273,8 @@ inline static bool createTextPixels(
 	size_t* _pixelCount,
 	size_t* _pixelLength)
 {
-	size_t glyphLength =
-		((size_t)sqrtf(glyphCount) + 1);
+	size_t glyphLength = (size_t)sqrtf(
+		(float)glyphCount) + 1;
 	size_t pixelLength =
 		glyphLength * fontSize;
 	size_t pixelCount =
@@ -282,7 +282,7 @@ inline static bool createTextPixels(
 
 	// TODO: get max image size
 	if (pixelLength > 2048)
-		return NULL;
+		return false;
 
 	uint8_t* pixels = malloc(
 		pixelCount * 4 * sizeof(uint8_t));
@@ -456,12 +456,12 @@ inline static bool createTextIndices(
 
 	for (size_t i = 0, j = 0; i < indexCount; i += 6, j += 4)
 	{
-		indices[i + 0] = j + 0;
-		indices[i + 1] = j + 1;
-		indices[i + 2] = j + 2;
-		indices[i + 3] = j + 0;
-		indices[i + 4] = j + 2;
-		indices[i + 5] = j + 3;
+		indices[i + 0] = (uint32_t)j + 0;
+		indices[i + 1] = (uint32_t)j + 1;
+		indices[i + 2] = (uint32_t)j + 2;
+		indices[i + 3] = (uint32_t)j + 0;
+		indices[i + 4] = (uint32_t)j + 2;
+		indices[i + 5] = (uint32_t)j + 3;
 	}
 
 	*_indices = indices;
@@ -1415,10 +1415,10 @@ void drawTextCommand(
 {
 	assert(text != NULL);
 	assert(pipeline != NULL);
-	assert(text->window == pipeline->window);
+	assert(text->window == getPipelineWindow(pipeline));
 
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline->handle;
+		(struct TextPipeline*)getPipelineHandle(pipeline);
 
 	textPipeline->image =
 		text->image;
@@ -1513,12 +1513,12 @@ void destroyGlTextPipeline(
 	struct Pipeline* pipeline)
 {
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline->handle;
+		(struct TextPipeline*)getPipelineHandle(pipeline);
 	struct GlTextPipeline* glTextPipeline =
 		(struct GlTextPipeline*)textPipeline->handle;
 
 	makeWindowContextCurrent(
-		pipeline->window);
+		getPipelineWindow(pipeline));
 
 	glDeleteProgram(
 		glTextPipeline->handle);
@@ -1532,7 +1532,7 @@ void bindGlTextPipelineCommand(
 	struct Pipeline* pipeline)
 {
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline->handle;
+		(struct TextPipeline*)getPipelineHandle(pipeline);
 	struct GlTextPipeline* glTextPipeline =
 		(struct GlTextPipeline*)textPipeline->handle;
 
@@ -1551,15 +1551,13 @@ void bindGlTextPipelineCommand(
 		GL_SRC_ALPHA,
 		GL_ONE_MINUS_SRC_ALPHA);
 
-	// TODO: set drawMode, ...
-
 	assertOpenGL();
 }
 void setGlTextUniformsCommand(
 	struct Pipeline* pipeline)
 {
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline->handle;
+		(struct TextPipeline*)getPipelineHandle(pipeline);
 	struct GlTextPipeline* glTextPipeline =
 		(struct GlTextPipeline*)textPipeline->handle;
 
@@ -1642,6 +1640,8 @@ struct Pipeline* createTextPipeline(
 	assert(window != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
+	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
+	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
 
 	struct TextPipeline* textPipeline =
 		malloc(sizeof(struct TextPipeline));
@@ -1713,7 +1713,7 @@ struct Shader* getTextPipelineVertexShader(
 	assert(pipeline != NULL);
 
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline->handle;
+		(struct TextPipeline*)getPipelineHandle(pipeline);
 	return textPipeline->vertexShader;
 }
 struct Shader* getTextPipelineFragmentShader(
@@ -1722,7 +1722,7 @@ struct Shader* getTextPipelineFragmentShader(
 	assert(pipeline != NULL);
 
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline->handle;
+		(struct TextPipeline*)getPipelineHandle(pipeline);
 	return textPipeline->fragmentShader;
 }
 
@@ -1732,7 +1732,7 @@ struct Vector4F getTextPipelineColor(
 	assert(pipeline != NULL);
 
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline->handle;
+		(struct TextPipeline*)getPipelineHandle(pipeline);
 	return textPipeline->color;
 }
 void setTextPipelineColor(
@@ -1742,7 +1742,7 @@ void setTextPipelineColor(
 	assert(pipeline != NULL);
 
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline->handle;
+		(struct TextPipeline*)getPipelineHandle(pipeline);
 	textPipeline->color = color;
 }
 
@@ -1752,7 +1752,7 @@ struct Matrix4F getTextPipelineMVP(
 	assert(pipeline != NULL);
 
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline->handle;
+		(struct TextPipeline*)getPipelineHandle(pipeline);
 	return textPipeline->mvp;
 }
 void setTextPipelineMVP(
@@ -1762,6 +1762,6 @@ void setTextPipelineMVP(
 	assert(pipeline != NULL);
 
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline->handle;
+		(struct TextPipeline*)getPipelineHandle(pipeline);
 	textPipeline->mvp = mvp;
 }

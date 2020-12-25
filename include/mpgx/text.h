@@ -45,6 +45,9 @@ bool setTextData(
 
 // TODO: add monochrome text support
 
+// TODO: add text coloring
+// Pass color data to the vertex buffer
+
 bool bakeText(
 	struct Text* text,
 	bool reuse);
@@ -55,6 +58,7 @@ void drawTextCommand(
 // TODO:
 // get uniChar offset for text cursor
 
+// TODO: add custom text pipeline support
 struct Pipeline* createTextPipeline(
 	struct Window* window,
 	struct Shader* vertexShader,

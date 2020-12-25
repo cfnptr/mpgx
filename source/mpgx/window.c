@@ -6,8 +6,15 @@
 
 #include <stdio.h>
 
-#define OPENGL_SHADER_HEADER "#version 330 core\n\n#define highp \n#define mediump \n#define lowp \n"
-#define OPENGL_ES_SHADER_HEADER "#version 300 es\n"
+#define OPENGL_SHADER_HEADER \
+"#version 330 core\n\n#define highp \n#define mediump \n#define lowp \n"
+#define OPENGL_ES_SHADER_HEADER \
+"#version 300 es\n"
+
+#if __linux__ || __APPLE__
+#define fseek(stream, offset, origin) \
+fseeko(stream, offset, origin)
+#endif
 
 typedef void(*BeginCommandRecord)(
 	struct Window*);
@@ -126,6 +133,16 @@ struct Shader
 {
 	struct Window* window;
 	enum ShaderType type;
+	void* handle;
+};
+
+struct Pipeline
+{
+	struct Window* window;
+	enum DrawMode drawMode;
+	DestroyPipeline destroyFunction;
+	BindPipelineCommand bindFunction;
+	SetUniformsCommand setUniformsFunction;
 	void* handle;
 };
 
@@ -318,8 +335,6 @@ void drawGlMeshCommand(
 	glBindBuffer(
 		GL_ELEMENT_ARRAY_BUFFER,
 		glIndexBuffer->handle);
-
-	assert(pipeline->setUniformsFunction != NULL);
 
 	SetUniformsCommand setUniformsFunction =
 		pipeline->setUniformsFunction;
@@ -1621,7 +1636,7 @@ struct Shader* readShaderFromFile(
 
 	size_t fileSize = ftell(file);
 
-	seekResult = fseeko(
+	seekResult = fseek(
 		file,
 		0,
 		SEEK_SET);
@@ -1728,7 +1743,6 @@ void destroyPipeline(
 	struct Pipeline* pipeline)
 {
 	assert(pipeline->window->recording == false);
-	assert(pipeline->destroyFunction != NULL);
 
 	if (pipeline == NULL)
 		return;
@@ -1740,12 +1754,30 @@ void destroyPipeline(
 	free(pipeline);
 }
 
+struct Window* getPipelineWindow(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->window;
+}
+enum DrawMode getPipelineDrawMode(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->drawMode;
+}
+void* getPipelineHandle(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->handle;
+}
+
 void bindPipelineCommand(
 	struct Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
 	assert(pipeline->window->recording == true);
-	assert(pipeline->bindFunction != NULL);
 
 	BindPipelineCommand bindFunction =
 		pipeline->bindFunction;

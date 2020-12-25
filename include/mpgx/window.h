@@ -106,16 +106,6 @@ typedef void(*BindPipelineCommand)(
 typedef void(*SetUniformsCommand)(
 	struct Pipeline*);
 
-struct Pipeline
-{
-	struct Window* window;
-	enum DrawMode drawMode;
-	DestroyPipeline destroyFunction;
-	BindPipelineCommand bindFunction;
-	SetUniformsCommand setUniformsFunction;
-	void* handle;
-};
-
 bool initializeGraphics();
 void terminateGraphics();
 
@@ -303,9 +293,12 @@ struct Pipeline* createPipeline(
 void destroyPipeline(
 	struct Pipeline* pipeline);
 
+struct Window* getPipelineWindow(
+	const struct Pipeline* pipeline);
+enum DrawMode getPipelineDrawMode(
+	const struct Pipeline* pipeline);
+void* getPipelineHandle(
+	const struct Pipeline* pipeline);
+
 void bindPipelineCommand(
 	struct Pipeline* pipeline);
-
-// TODO: create shader objects for optimization
-// Shaders could be potentially shared between same pipelines
-// Do not allow shader destruction before pipeline destruction

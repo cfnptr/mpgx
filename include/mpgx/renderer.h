@@ -17,16 +17,6 @@ typedef void(*RenderCommand)(
 	const struct Matrix4F*,
 	const struct Matrix4F*);
 
-struct Render
-{
-	struct Renderer* renderer;
-	bool render;
-	struct Transform* transform;
-	DestroyRender destroyFunction;
-	RenderCommand renderFunction;
-	void* handle;
-};
-
 struct Renderer* createRenderer(
 	struct Window* window,
 	bool ascendingSorting,
@@ -54,6 +44,9 @@ void setRendererCamera(
 	struct Renderer* renderer,
 	union Camera camera);
 
+void executeRenderer(
+	struct Renderer* renderer);
+
 struct Render* createRender(
 	struct Renderer* renderer,
 	bool render,
@@ -64,8 +57,18 @@ struct Render* createRender(
 void destroyRender(
 	struct Render* render);
 
-void executeRenderer(
-	struct Renderer* renderer);
+struct Renderer* getRenderRenderer(
+	const struct Render* render);
+struct Transform* getRenderTransform(
+	const struct Render* render);
+struct Renderer* getRenderHandle(
+	const struct Render* render);
+
+bool getRenderRender(
+	const struct Render* render);
+void setRenderRender(
+	struct Render* render,
+	bool value);
 
 // TODO: create color render
 struct Render* createTextRender(

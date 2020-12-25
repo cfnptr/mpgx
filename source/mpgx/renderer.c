@@ -24,6 +24,15 @@ struct Renderer
 	size_t renderCapacity;
 	size_t renderCount;
 };
+struct Render
+{
+	struct Renderer* renderer;
+	bool render;
+	struct Transform* transform;
+	DestroyRender destroyFunction;
+	RenderCommand renderFunction;
+	void* handle;
+};
 
 struct MeshRender
 {
@@ -300,6 +309,72 @@ void setRendererCamera(
 	renderer->camera = camera;
 }
 
+void executeRenderer(
+	struct Renderer* renderer)
+{
+	assert(renderer != NULL);
+
+	size_t renderCount =
+		renderer->renderCount;
+	struct Render** renders =
+		renderer->renders;
+	struct Render** tmpRenders =
+		renderer->tmpRenders;
+	struct Pipeline* pipeline =
+		renderer->pipeline;
+
+	memcpy(
+		tmpRenders,
+		renders,
+		renderCount * sizeof(struct Render*));
+
+	qsort(
+		tmpRenders,
+		renderCount,
+		sizeof(struct Render*),
+		renderer->compareRenderFunction);
+
+	struct Matrix4F view = getTransformModel(
+		renderer->transform);
+
+	CreateProjMatrix createProjFunction =
+		renderer->createProjFunction;
+	struct Matrix4F proj =
+		createProjFunction(renderer->camera);
+
+	for (size_t i = 0; i < renderCount; i++)
+	{
+		struct Render* render = renders[i];
+
+		if (render->render == true)
+		{
+			assert(render->transform != NULL);
+			assert(render->renderFunction != NULL);
+
+			struct Matrix4F model = getTransformModel(
+				render->transform);
+
+			struct Matrix4F mvp = mulMatrix4F(
+				proj,
+				view);
+			mvp = mulMatrix4F(
+				mvp,
+				model);
+
+			RenderCommand renderFunction =
+				render->renderFunction;
+
+			renderFunction(
+				render,
+				pipeline,
+				&model,
+				&view,
+				&proj,
+				&mvp);
+		}
+	}
+}
+
 int compareRender(
 	const void* a,
 	const void* b)
@@ -430,70 +505,37 @@ void destroyRender(
 	free(_render);
 }
 
-void executeRenderer(
-	struct Renderer* renderer)
+struct Renderer* getRenderRenderer(
+	const struct Render* render)
 {
-	assert(renderer != NULL);
+	assert(render != NULL);
+	return render->renderer;
+}
+struct Transform* getRenderTransform(
+	const struct Render* render)
+{
+	assert(render != NULL);
+	return render->transform;
+}
+struct Renderer* getRenderHandle(
+	const struct Render* render)
+{
+	assert(render != NULL);
+	return render->handle;
+}
 
-	size_t renderCount =
-		renderer->renderCount;
-	struct Render** renders =
-		renderer->renders;
-	struct Render** tmpRenders =
-		renderer->tmpRenders;
-	struct Pipeline* pipeline =
-		renderer->pipeline;
-
-	memcpy(
-		tmpRenders,
-		renders,
-		renderCount * sizeof(struct Render*));
-
-	qsort(
-		tmpRenders,
-		renderCount,
-		sizeof(struct Render*),
-		renderer->compareRenderFunction);
-
-	struct Matrix4F view = getTransformModel(
-		renderer->transform);
-
-	CreateProjMatrix createProjFunction =
-		renderer->createProjFunction;
-	struct Matrix4F proj =
-		createProjFunction(renderer->camera);
-
-	for (size_t i = 0; i < renderCount; i++)
-	{
-		struct Render* render = renders[i];
-
-		if (render->render == true)
-		{
-			assert(render->transform != NULL);
-			assert(render->renderFunction != NULL);
-
-			struct Matrix4F model = getTransformModel(
-				render->transform);
-
-			struct Matrix4F mvp = mulMatrix4F(
-				proj,
-				view);
-			mvp = mulMatrix4F(
-				mvp,
-				model);
-
-			RenderCommand renderFunction =
-				render->renderFunction;
-
-			renderFunction(
-				render,
-				pipeline,
-				&model,
-				&view,
-				&proj,
-				&mvp);
-		}
-	}
+bool getRenderRender(
+	const struct Render* render)
+{
+	assert(render != NULL);
+	return render->render;
+}
+void setRenderRender(
+	struct Render* render,
+	bool value)
+{
+	assert(render != NULL);
+	render->render = value;
 }
 
 void destroyTextRender(

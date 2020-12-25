@@ -1,8 +1,13 @@
 #include "mpgx/window.h"
-#include "mpgx/opengl.h"
+#include "mpgx/pipeline.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
+
+#include <stdio.h>
+
+#define OPENGL_SHADER_HEADER "#version 330 core\n\n#define highp \n#define mediump \n#define lowp \n"
+#define OPENGL_ES_SHADER_HEADER "#version 300 es\n"
 
 typedef void(*BeginCommandRecord)(
 	struct Window*);
@@ -40,6 +45,11 @@ typedef void(*GenerateMipmap)(
 typedef const void*(*GetImageHandle)(
 	const struct Image*);
 
+typedef void(*DestroyShader)(
+	struct Shader*);
+typedef const void*(*GetShaderHandle)(
+	const struct Shader*);
+
 struct Window
 {
 	enum GraphicsAPI api;
@@ -56,6 +66,8 @@ struct Window
 	SetImageData setImageDataFunction;
 	GenerateMipmap generateMipmapFunction;
 	GetImageHandle getImageHandleFunction;
+	DestroyShader destroyShaderFunction;
+	GetShaderHandle getShaderHandleFunction;
 	struct GLFWwindow* handle;
 };
 
@@ -103,6 +115,17 @@ struct Image
 	size_t height;
 	size_t depth;
 	bool mipmap;
+	void* handle;
+};
+
+struct GlShader
+{
+	GLuint handle;
+};
+struct Shader
+{
+	struct Window* window;
+	enum ShaderType type;
 	void* handle;
 };
 
@@ -237,8 +260,7 @@ void setGlBufferData(
 }
 
 inline static struct GlMesh* createGlMesh(
-	struct Window* window,
-	enum DrawIndex _drawIndex)
+	struct Window* window)
 {
 	struct GlMesh* mesh = malloc(
 		sizeof(struct GlMesh));
@@ -302,18 +324,6 @@ void drawGlMeshCommand(
 	SetUniformsCommand setUniformsFunction =
 		pipeline->setUniformsFunction;
 	setUniformsFunction(pipeline);
-
-	if (pipeline->cullFace == FRONT_ONLY_CULL_FACE)
-		glCullFace(GL_FRONT);
-	else if (pipeline->cullFace == BACK_FRONT_CULL_FACE)
-		glCullFace(GL_FRONT_AND_BACK);
-	else
-		glCullFace(GL_BACK);
-
-	if (pipeline->frontFace == CLOCKWISE_FRONT_FACE)
-		glFrontFace(GL_CW);
-	else
-		glFrontFace(GL_CCW);
 
 	GLenum glDrawMode;
 
@@ -561,6 +571,133 @@ const void* getGlImageHandle(
 	return &glImage->handle;
 }
 
+inline static struct GlShader* createGlShader(
+	struct Window* window,
+	enum ShaderType _type,
+	const void* code,
+	bool gles)
+{
+	struct GlShader* shader = malloc(
+		sizeof(struct GlShader));
+
+	if (shader == NULL)
+		return NULL;
+
+	GLenum type;
+
+	if (_type == VERTEX_SHADER_TYPE)
+	{
+		type = GL_VERTEX_SHADER;
+	}
+	else if (_type == FRAGMENT_SHADER_TYPE)
+	{
+		type = GL_FRAGMENT_SHADER;
+	}
+	else if (_type == COMPUTE_SHADER_TYPE)
+	{
+		type = GL_COMPUTE_SHADER;
+	}
+	else
+	{
+		free(shader);
+		return NULL;
+	}
+
+	const char* sources[2];
+
+	if (gles == false)
+		sources[0] = OPENGL_SHADER_HEADER;
+	else
+		sources[0] = OPENGL_ES_SHADER_HEADER;
+
+	sources[1] = (const char*)code;
+
+	glfwMakeContextCurrent(window->handle);
+
+	GLuint handle = glCreateShader(type);
+
+	glShaderSource(
+		handle,
+		2,
+		sources,
+		NULL);
+
+	glCompileShader(handle);
+
+	GLint result;
+
+	glGetShaderiv(
+		handle,
+		GL_COMPILE_STATUS,
+		&result);
+
+	if (result == GL_FALSE)
+	{
+#ifndef NDEBUG
+		GLint length = 0;
+
+		glGetShaderiv(
+			handle,
+			GL_INFO_LOG_LENGTH,
+			&length);
+
+		if (length > 0)
+		{
+			char* infoLog = malloc(
+				length * sizeof(char));
+
+			if (infoLog == NULL)
+			{
+				glDeleteShader(handle);
+				free(shader);
+				return NULL;
+			}
+
+			glGetShaderInfoLog(
+				handle,
+				length,
+				&length,
+				infoLog);
+
+			printf("%s\n", infoLog);
+		}
+#endif
+
+		assertOpenGL();
+
+		glDeleteShader(handle);
+		free(shader);
+		return NULL;
+	}
+
+	assertOpenGL();
+
+	shader->handle = handle;
+	return shader;
+}
+void destroyGlShader(
+	struct Shader* shader)
+{
+	struct GlShader* glShader =
+		(struct GlShader*)shader->handle;
+
+	glfwMakeContextCurrent(
+		shader->window->handle);
+
+	glDeleteShader(glShader->handle);
+
+	assertOpenGL();
+
+	free(glShader);
+}
+const void* getGlShaderHandle(
+	const struct Shader* shader)
+{
+	struct GlShader* glShader =
+		(struct GlShader*)shader->handle;
+	return &glShader->handle;
+}
+
 void glfwErrorCallback(
 	int error,
 	const char* description)
@@ -673,6 +810,10 @@ struct Window* createWindow(
 			generateGlMipmap;
 		window->getImageHandleFunction =
 			getGlImageHandle;
+		window->destroyShaderFunction =
+			destroyGlShader;
+		window->getShaderHandleFunction =
+			getGlShaderHandle;
 	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
 	{
@@ -716,6 +857,10 @@ struct Window* createWindow(
 			generateGlMipmap;
 		window->getImageHandleFunction =
 			getGlImageHandle;
+		window->destroyShaderFunction =
+			destroyGlShader;
+		window->getShaderHandleFunction =
+			getGlShaderHandle;
 	}
 	else
 	{
@@ -1047,9 +1192,7 @@ struct Mesh* createMesh(
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		handle = createGlMesh(
-			window,
-			drawIndex);
+		handle = createGlMesh(window);
 	}
 	else
 	{
@@ -1397,11 +1540,164 @@ const void* getImageHandle(
 	return getHandleFunction(image);
 }
 
+struct Shader* createShader(
+	struct Window* window,
+	enum ShaderType type,
+	const void* code)
+{
+	assert(window != NULL);
+	assert(code != NULL);
+	assert(window->recording == false);
+
+	struct Shader* shader =
+		malloc(sizeof(struct Shader));
+
+	if (shader == NULL)
+		return NULL;
+
+	enum GraphicsAPI api =
+		window->api;
+
+	void* handle;
+
+	if (api == OPENGL_GRAPHICS_API)
+	{
+		handle = createGlShader(
+			window,
+			type,
+			code,
+			false);
+	}
+	else if (api == OPENGL_ES_GRAPHICS_API)
+	{
+		handle = createGlShader(
+			window,
+			type,
+			code,
+			true);
+	}
+	else
+	{
+		free(shader);
+		return NULL;
+	}
+
+	if (handle == NULL)
+	{
+		free(shader);
+		return NULL;
+	}
+
+	shader->window = window;
+	shader->type = type;
+	shader->handle = handle;
+	return shader;
+}
+struct Shader* readShaderFromFile(
+	struct Window* window,
+	enum ShaderType type,
+	const char* filePath)
+{
+	assert(window != NULL);
+	assert(filePath != NULL);
+
+	FILE* file = fopen(
+		filePath,
+		"rb");
+
+	if (file == NULL)
+		return NULL;
+
+	int seekResult = fseeko(
+		file,
+		0,
+		SEEK_END);
+
+	if (seekResult != 0)
+	{
+		fclose(file);
+		return NULL;
+	}
+
+	size_t fileSize = ftell(file);
+
+	seekResult = fseeko(
+		file,
+		0,
+		SEEK_SET);
+
+	if (seekResult != 0)
+	{
+		fclose(file);
+		return NULL;
+	}
+
+	char* code = malloc(
+		(fileSize + 1) * sizeof(char));
+
+	size_t readSize = fread(
+		code,
+		sizeof(char),
+		fileSize,
+		file);
+	code[fileSize] = '\0';
+
+	fclose(file);
+
+	if (readSize != fileSize)
+	{
+		free(code);
+		return NULL;
+	}
+
+	struct Shader* shader = createShader(
+		window,
+		type,
+		code);
+
+	free(code);
+	return shader;
+}
+void destroyShader(
+	struct Shader* shader)
+{
+	assert(shader->window->recording == false);
+
+	if (shader == NULL)
+		return;
+
+	DestroyShader destroyFunction =
+		shader->window->destroyShaderFunction;
+	destroyFunction(shader);
+
+	free(shader);
+}
+
+struct Window* getShaderWindow(
+	const struct Shader* shader)
+{
+	assert(shader != NULL);
+	return shader->window;
+}
+enum ShaderType getShaderType(
+	const struct Shader* shader)
+{
+	assert(shader != NULL);
+	return shader->type;
+}
+const void* getShaderHandle(
+	const struct Shader* shader)
+{
+	assert(shader != NULL);
+
+	GetShaderHandle getHandleFunction =
+		shader->window->getShaderHandleFunction;
+	return getHandleFunction(shader);
+}
+
 struct Pipeline* createPipeline(
 	struct Window* window,
 	enum DrawMode drawMode,
-	enum CullFace cullFace,
-	enum FrontFace frontFace,
 	DestroyPipeline destroyFunction,
 	BindPipelineCommand bindFunction,
 	SetUniformsCommand setUniformsFunction,
@@ -1422,8 +1718,6 @@ struct Pipeline* createPipeline(
 
 	pipeline->window = window;
 	pipeline->drawMode = drawMode;
-	pipeline->cullFace = cullFace;
-	pipeline->frontFace = frontFace;
 	pipeline->destroyFunction = destroyFunction;
 	pipeline->bindFunction = bindFunction;
 	pipeline->setUniformsFunction = setUniformsFunction;

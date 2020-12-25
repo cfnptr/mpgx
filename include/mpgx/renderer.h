@@ -29,13 +29,30 @@ struct Render
 
 struct Renderer* createRenderer(
 	struct Window* window,
-	bool ascendingSort,
+	bool ascendingSorting,
 	enum CameraType cameraType,
 	union Camera camera,
 	struct Transform* transform,
 	struct Pipeline* pipeline);
 void destroyRenderer(
 	struct Renderer* renderer);
+
+struct Window* getRendererWindow(
+	const struct Renderer* renderer);
+bool getRendererAscendingSort(
+	const struct Renderer* renderer);
+enum CameraType getRendererCameraType(
+	const struct Renderer* renderer);
+struct Transform* getRendererTransformer(
+	const struct Renderer* renderer);
+struct Pipeline* getRendererPipeline(
+	const struct Renderer* renderer);
+
+union Camera getRendererCamera(
+	const struct Renderer* renderer);
+void setRendererCamera(
+	struct Renderer* renderer,
+	union Camera camera);
 
 struct Render* createRender(
 	struct Renderer* renderer,
@@ -50,11 +67,7 @@ void destroyRender(
 void executeRenderer(
 	struct Renderer* renderer);
 
-struct Render* createMeshRender(
-	struct Renderer* renderer,
-	bool render,
-	struct Transform* transform,
-	struct Mesh* mesh);
+// TODO: create color render
 struct Render* createTextRender(
 	struct Renderer* renderer,
 	bool render,

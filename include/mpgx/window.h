@@ -9,6 +9,9 @@
 
 typedef void(*WindowRender)(void*);
 
+// TODO:
+// Add other enumerators
+
 enum GraphicsAPI
 {
 	VULKAN_GRAPHICS_API,
@@ -21,7 +24,6 @@ enum BufferType
 	VERTEX_BUFFER_TYPE,
 	INDEX_BUFFER_TYPE,
 	UNIFORM_BUFFER_TYPE,
-	// TODO: other buffer types
 };
 
 enum DrawIndex
@@ -34,14 +36,12 @@ enum ImageType
 {
 	IMAGE_2D_TYPE,
 	IMAGE_3D_TYPE,
-	// TODO: cubemaps
 };
 
 enum ImageFormat
 {
 	R8G8B8A8_UNORM_IMAGE_FORMAT,
 	R8G8B8A8_SRGB_IMAGE_FORMAT,
-	// TODO: add other formats
 };
 
 enum ImageFilter
@@ -57,6 +57,13 @@ enum ImageWrap
 	CLAMP_TO_EDGE_IMAGE_WRAP,
 };
 
+enum ShaderType
+{
+	VERTEX_SHADER_TYPE,
+	FRAGMENT_SHADER_TYPE,
+	COMPUTE_SHADER_TYPE,
+};
+
 enum DrawMode
 {
 	POINTS_DRAW_MODE,
@@ -66,7 +73,6 @@ enum DrawMode
 	TRIANGLE_STRIP_DRAW_MODE,
 	TRIANGLE_FAN_DRAW_MODE,
 	TRIANGLES_DRAW_MODE,
-	// TODO: other draw modes
 };
 
 enum CullFace
@@ -90,7 +96,7 @@ struct Buffer;
 struct Mesh;
 struct Image;
 //struct Framebuffer;
-
+struct Shader;
 struct Pipeline;
 
 typedef void(*DestroyPipeline)(
@@ -104,8 +110,6 @@ struct Pipeline
 {
 	struct Window* window;
 	enum DrawMode drawMode;
-	enum CullFace cullFace;
-	enum FrontFace frontFace;
 	DestroyPipeline destroyFunction;
 	BindPipelineCommand bindFunction;
 	SetUniformsCommand setUniformsFunction;
@@ -271,11 +275,27 @@ bool getImageMipmap(
 const void* getImageHandle(
 	const struct Image* image);
 
+struct Shader* createShader(
+	struct Window* window,
+	enum ShaderType type,
+	const void* code);
+struct Shader* readShaderFromFile(
+	struct Window* window,
+	enum ShaderType type,
+	const char* filePath);
+void destroyShader(
+	struct Shader* shader);
+
+struct Window* getShaderWindow(
+	const struct Shader* shader);
+enum ShaderType getShaderType(
+	const struct Shader* shader);
+const void* getShaderHandle(
+	const struct Shader* shader);
+
 struct Pipeline* createPipeline(
 	struct Window* window,
 	enum DrawMode drawMode,
-	enum CullFace cullFace,
-	enum FrontFace frontFace,
 	DestroyPipeline destroyFunction,
 	BindPipelineCommand bindFunction,
 	SetUniformsCommand setUniformsFunction,

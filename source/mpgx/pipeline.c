@@ -37,9 +37,8 @@ struct ImageColorPipeline
 
 inline static struct GlColorPipeline* createGlColorPipeline(
 	struct Window* window,
-	const void* vertexShader,
-	const void* fragmentShader,
-	bool gles)
+	struct Shader* vertexShader,
+	struct Shader* fragmentShader)
 {
 	struct GlColorPipeline* pipeline = malloc(
 		sizeof(struct GlColorPipeline));
@@ -47,22 +46,16 @@ inline static struct GlColorPipeline* createGlColorPipeline(
 	if (pipeline == NULL)
 		return NULL;
 
-	GLenum stages[2] = {
-		GL_VERTEX_SHADER,
-		GL_FRAGMENT_SHADER,
-	};
-	const char* shaders[2] = {
-		(const char*)vertexShader,
-		(const char*)fragmentShader,
+	struct Shader* shaders[2] = {
+		vertexShader,
+		fragmentShader,
 	};
 
 	makeWindowContextCurrent(window);
 
 	GLuint handle = createGlPipeline(
-		stages,
 		shaders,
-		2,
-		gles);
+		2);
 
 	if (handle == GL_ZERO)
 	{
@@ -176,16 +169,12 @@ void setGlColorPipelineUniforms(
 }
 struct Pipeline* createColorPipeline(
 	struct Window* window,
+	struct Shader* vertexShader,
+	struct Shader* fragmentShader,
 	enum DrawMode drawMode,
 	enum CullFace cullFace,
-	enum FrontFace frontFace,
-	const void* vertexShader,
-	size_t vertexShaderSize,
-	const void* fragmentShader,
-	size_t fragmentShaderSize)
+	enum FrontFace frontFace)
 {
-	// TODO:
-
 	assert(window != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
@@ -205,25 +194,13 @@ struct Pipeline* createColorPipeline(
 	BindPipelineCommand bindFunction;
 	SetUniformsCommand setUniformsFunction;
 
-	if (api == OPENGL_GRAPHICS_API)
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 		handle = createGlColorPipeline(
 			window,
 			vertexShader,
-			fragmentShader,
-			false);
-
-		destroyFunction = destroyGlColorPipeline;
-		bindFunction = bindGlColorPipeline;
-		setUniformsFunction = setGlColorPipelineUniforms;
-	}
-	else if (api == OPENGL_ES_GRAPHICS_API)
-	{
-		handle = createGlColorPipeline(
-			window,
-			vertexShader,
-			fragmentShader,
-			true);
+			fragmentShader);
 
 		destroyFunction = destroyGlColorPipeline;
 		bindFunction = bindGlColorPipeline;
@@ -248,8 +225,6 @@ struct Pipeline* createColorPipeline(
 	struct Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
-		cullFace,
-		frontFace,
 		destroyFunction,
 		NULL,
 		bindFunction,
@@ -265,6 +240,15 @@ struct Pipeline* createColorPipeline(
 	return pipeline;
 }
 
+struct Matrix4F getColorPipelineMVP(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct ColorPipeline* colorPipeline =
+		(struct ColorPipeline*)pipeline;
+	return colorPipeline->mvp;
+}
 void setColorPipelineMVP(
 	struct Pipeline* pipeline,
 	struct Matrix4F mvp)
@@ -274,6 +258,16 @@ void setColorPipelineMVP(
 	struct ColorPipeline* colorPipeline =
 		(struct ColorPipeline*)pipeline;
 	colorPipeline->mvp = mvp;
+}
+
+struct Vector4F getColorPipelineColor(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct ColorPipeline* colorPipeline =
+		(struct ColorPipeline*)pipeline;
+	return colorPipeline->color;
 }
 void setColorPipelineColor(
 	struct Pipeline* pipeline,
@@ -309,7 +303,8 @@ inline static struct GlImageColorPipeline* createGlImageColorPipeline(
 
 	makeWindowContextCurrent(window);
 
-	GLuint handle = createGlPipeline(
+	// TODO:
+	/*GLuint handle = createGlPipeline(
 		stages,
 		shaders,
 		2,
@@ -371,7 +366,7 @@ inline static struct GlImageColorPipeline* createGlImageColorPipeline(
 	pipeline->handle = handle;
 	pipeline->mvpLocation = mvpLocation;
 	pipeline->colorLocation = colorLocation;
-	pipeline->imageLocation = imageLocation;
+	pipeline->imageLocation = imageLocation;*/
 	return pipeline;
 }
 void destroyGlImageColorPipeline(
@@ -538,8 +533,6 @@ struct Pipeline* createImageColorPipeline(
 	struct Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
-		cullFace,
-		frontFace,
 		destroyFunction,
 		NULL,
 		bindFunction,

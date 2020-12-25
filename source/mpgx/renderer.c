@@ -25,6 +25,10 @@ struct Renderer
 	size_t renderCount;
 };
 
+struct MeshRender
+{
+	struct Mesh* mesh;
+};
 struct TextRender
 {
 	struct Text* text;
@@ -251,6 +255,51 @@ void destroyRenderer(
 	free(renderer);
 }
 
+struct Window* getRendererWindow(
+	const struct Renderer* renderer)
+{
+	assert(renderer != NULL);
+	return renderer->window;
+}
+bool getRendererAscendingSort(
+	const struct Renderer* renderer)
+{
+	assert(renderer != NULL);
+	return renderer->ascendingSort;
+}
+enum CameraType getRendererCameraType(
+	const struct Renderer* renderer)
+{
+	assert(renderer != NULL);
+	return renderer->cameraType;
+}
+struct Transform* getRendererTransformer(
+	const struct Renderer* renderer)
+{
+	assert(renderer != NULL);
+	return renderer->transform;
+}
+struct Pipeline* getRendererPipeline(
+	const struct Renderer* renderer)
+{
+	assert(renderer != NULL);
+	return renderer->pipeline;
+}
+
+union Camera getRendererCamera(
+	const struct Renderer* renderer)
+{
+	assert(renderer != NULL);
+	return renderer->camera;
+}
+void setRendererCamera(
+	struct Renderer* renderer,
+	union Camera camera)
+{
+	assert(renderer != NULL);
+	renderer->camera = camera;
+}
+
 int compareRender(
 	const void* a,
 	const void* b)
@@ -447,15 +496,6 @@ void executeRenderer(
 	}
 }
 
-struct Render* createMeshRender(
-	struct Renderer* renderer,
-	bool render,
-	struct Transform* transform,
-	struct Mesh* mesh)
-{
-	// TODO:
-}
-
 void destroyTextRender(
 	struct Render* render)
 {
@@ -476,14 +516,12 @@ void renderTextCommand(
 {
 	struct TextRender* textRender =
 		(struct TextRender*)render->handle;
-	struct Text* text =
-		textRender->text;
 
 	setTextPipelineMVP(
 		pipeline,
 		*mvp);
 	drawTextCommand(
-		text,
+		textRender->text,
 		pipeline);
 }
 struct Render* createTextRender(

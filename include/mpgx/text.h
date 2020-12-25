@@ -4,7 +4,9 @@
 struct Font;
 struct Text;
 
-struct Font* createFont(
+// TODO: add font loading from the memory
+
+struct Font* readFontFromFile(
 	const void* filePath);
 void destroyFont(
 	struct Font* font);
@@ -55,13 +57,14 @@ void drawTextCommand(
 
 struct Pipeline* createTextPipeline(
 	struct Window* window,
-	enum DrawMode drawMode,
-	enum CullFace cullFace,
-	enum FrontFace frontFace,
-	const void* vertexShader,
-	size_t vertexShaderSize,
-	const void* fragmentShader,
-	size_t fragmentShaderSize);
+	struct Shader* vertexShader,
+	struct Shader* fragmentShader,
+	enum DrawMode drawMode);
+
+struct Shader* getTextPipelineVertexShader(
+	const struct Pipeline* pipeline);
+struct Shader* getTextPipelineFragmentShader(
+	const struct Pipeline* pipeline);
 
 struct Vector4F getTextPipelineColor(
 	const struct Pipeline* pipeline);

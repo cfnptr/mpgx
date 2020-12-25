@@ -1,5 +1,5 @@
 #include "mpgx/text.h"
-#include "mpgx/opengl.h"
+#include "mpgx/pipeline.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
@@ -46,13 +46,15 @@ struct GlTextPipeline
 };
 struct TextPipeline
 {
+	struct Shader* vertexShader;
+	struct Shader* fragmentShader;
 	struct Matrix4F mvp;
 	struct Vector4F color;
 	struct Image* image;
 	void* handle;
 };
 
-struct Font* createFont(
+struct Font* readFontFromFile(
 	const void* filePath)
 {
 	assert(filePath != NULL);
@@ -283,7 +285,7 @@ inline static bool createTextPixels(
 		return NULL;
 
 	uint8_t* pixels = malloc(
-		pixelCount * sizeof(uint8_t) * 4);
+		pixelCount * 4 * sizeof(uint8_t));
 
 	if (pixels == NULL)
 		return false;
@@ -1428,9 +1430,8 @@ void drawTextCommand(
 
 inline static struct GlTextPipeline* createGlTextPipeline(
 	struct Window* window,
-	const void* vertexShader,
-	const void* fragmentShader,
-	bool gles)
+	struct Shader* vertexShader,
+	struct Shader* fragmentShader)
 {
 	struct GlTextPipeline* pipeline = malloc(
 		sizeof(struct GlTextPipeline));
@@ -1438,22 +1439,16 @@ inline static struct GlTextPipeline* createGlTextPipeline(
 	if (pipeline == NULL)
 		return NULL;
 
-	GLenum stages[2] = {
-		GL_VERTEX_SHADER,
-		GL_FRAGMENT_SHADER,
-	};
-	const char* shaders[2] = {
-		(const char*)vertexShader,
-		(const char*)fragmentShader,
+	struct Shader* shaders[2] = {
+		vertexShader,
+		fragmentShader,
 	};
 
 	makeWindowContextCurrent(window);
 
 	GLuint handle = createGlPipeline(
-		stages,
 		shaders,
-		2,
-		gles);
+		2);
 
 	if (handle == GL_ZERO)
 	{
@@ -1549,11 +1544,14 @@ void bindGlTextPipelineCommand(
 	glDisable(GL_STENCIL_TEST);
 	glEnable(GL_BLEND);
 
+	glFrontFace(GL_CW);
+	glCullFace(GL_BACK);
+
 	glBlendFunc(
 		GL_SRC_ALPHA,
 		GL_ONE_MINUS_SRC_ALPHA);
 
-	// TODO: change blending to descending ordering
+	// TODO: set drawMode, ...
 
 	assertOpenGL();
 }
@@ -1637,13 +1635,9 @@ void setGlTextUniformsCommand(
 }
 struct Pipeline* createTextPipeline(
 	struct Window* window,
-	enum DrawMode drawMode,
-	enum CullFace cullFace,
-	enum FrontFace frontFace,
-	const void* vertexShader,
-	size_t vertexShaderSize,
-	const void* fragmentShader,
-	size_t fragmentShaderSize)
+	struct Shader* vertexShader,
+	struct Shader* fragmentShader,
+	enum DrawMode drawMode)
 {
 	assert(window != NULL);
 	assert(vertexShader != NULL);
@@ -1664,25 +1658,13 @@ struct Pipeline* createTextPipeline(
 	BindPipelineCommand bindFunction;
 	SetUniformsCommand setUniformsFunction;
 
-	if (api == OPENGL_GRAPHICS_API)
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 		handle = createGlTextPipeline(
 			window,
 			vertexShader,
-			fragmentShader,
-			false);
-
-		destroyFunction = destroyGlTextPipeline;
-		bindFunction = bindGlTextPipelineCommand;
-		setUniformsFunction = setGlTextUniformsCommand;
-	}
-	else if (api == OPENGL_ES_GRAPHICS_API)
-	{
-		handle = createGlTextPipeline(
-			window,
-			vertexShader,
-			fragmentShader,
-			true);
+			fragmentShader);
 
 		destroyFunction = destroyGlTextPipeline;
 		bindFunction = bindGlTextPipelineCommand;
@@ -1700,6 +1682,8 @@ struct Pipeline* createTextPipeline(
 		return NULL;
 	}
 
+	textPipeline->vertexShader = vertexShader;
+	textPipeline->fragmentShader = fragmentShader;
 	textPipeline->mvp = createIdentityMatrix4F();
 	textPipeline->color = createValueVector4F(1.0f);
 	textPipeline->image = NULL;
@@ -1708,8 +1692,6 @@ struct Pipeline* createTextPipeline(
 	struct Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
-		cullFace,
-		frontFace,
 		destroyFunction,
 		bindFunction,
 		setUniformsFunction,
@@ -1723,6 +1705,25 @@ struct Pipeline* createTextPipeline(
 	}
 
 	return pipeline;
+}
+
+struct Shader* getTextPipelineVertexShader(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct TextPipeline* textPipeline =
+		(struct TextPipeline*)pipeline->handle;
+	return textPipeline->vertexShader;
+}
+struct Shader* getTextPipelineFragmentShader(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct TextPipeline* textPipeline =
+		(struct TextPipeline*)pipeline->handle;
+	return textPipeline->fragmentShader;
 }
 
 struct Vector4F getTextPipelineColor(

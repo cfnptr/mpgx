@@ -91,6 +91,12 @@ enum FrontFace
 // 1. save all created objects
 // 2. destroy them on window destroy
 
+// TODO:
+// Replace all enums with uint8_t or unit16_t, ...
+
+// TODO:
+// Also bake create functions into window
+
 struct Window;
 struct Buffer;
 struct Mesh;
@@ -113,6 +119,10 @@ void* getFtLibrary();
 
 struct Window* createWindow(
 	enum GraphicsAPI api,
+	size_t width,
+	size_t height,
+	const char* title);
+struct Window* createAnyWindow(
 	size_t width,
 	size_t height,
 	const char* title);

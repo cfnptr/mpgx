@@ -70,7 +70,11 @@ void setRenderRender(
 	struct Render* render,
 	bool value);
 
-// TODO: create color render
+struct Render* createColorRender(
+	struct Renderer* renderer,
+	bool render,
+	struct Transform* transform,
+	struct Mesh* mesh);
 struct Render* createTextRender(
 	struct Renderer* renderer,
 	bool render,

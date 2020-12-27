@@ -293,12 +293,12 @@ inline static bool createTextPixels(
 	FT_Error result = FT_Set_Pixel_Sizes(
 		face,
 		0,
-		fontSize);
+		(FT_UInt)fontSize);
 
 	if (result != 0)
 	{
 		free(pixels);
-		return NULL;
+		return false;
 	}
 
 	if (textPixelLength < pixelLength)
@@ -1594,18 +1594,11 @@ void setGlTextUniformsCommand(
 		glTextPipeline->imageLocation,
 		0);
 
-	// TODO: TMP
-	struct Matrix4F mvp = translateMatrix4F(
-		scaleMatrix4F(
-			textPipeline->mvp,
-			createValueVector3F(0.1f)),
-		createVector3F(-2, 0, 0));
-
 	glUniformMatrix4fv(
 		glTextPipeline->mvpLocation,
 		1,
 		GL_FALSE,
-		(const float*)&mvp);
+		(const float*)&textPipeline->mvp);
 	glUniform4fv(
 		glTextPipeline->colorLocation,
 		1,

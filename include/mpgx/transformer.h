@@ -40,5 +40,5 @@ void setTransformRotation(
 struct Matrix4F getTransformModel(
 	const struct Transform* transform);
 
-void bakeTransformer(
+void executeTransformer(
 	struct Transformer* transformer);

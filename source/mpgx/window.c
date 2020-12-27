@@ -913,6 +913,28 @@ struct Window* createWindow(
 	window->handle = handle;
 	return window;
 }
+struct Window* createAnyWindow(
+	size_t width,
+	size_t height,
+	const char* title)
+{
+	struct Window* window = createWindow(
+		OPENGL_GRAPHICS_API,
+		width,
+		height,
+		title);
+
+	if (window != NULL)
+		return window;
+
+	window = createWindow(
+		OPENGL_ES_GRAPHICS_API,
+		width,
+		height,
+		title);
+
+	return window;
+}
 void destroyWindow(
 	struct Window* window)
 {
@@ -1623,7 +1645,7 @@ struct Shader* readShaderFromFile(
 	if (file == NULL)
 		return NULL;
 
-	int seekResult = fseeko(
+	int seekResult = fseek(
 		file,
 		0,
 		SEEK_END);

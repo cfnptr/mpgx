@@ -60,29 +60,6 @@ void destroyTransformer(
 	free(transformer);
 }
 
-int compareTransform(
-	const void* a,
-	const void* b)
-{
-	if (*(struct Transform**)a <
-		*(struct Transform**)b)
-	{
-		return -1;
-	}
-	if (*(struct Transform**)a ==
-		*(struct Transform**)b)
-	{
-		return 0;
-	}
-	if (*(struct Transform**)a >
-		*(struct Transform**)b)
-	{
-		return 1;
-	}
-
-	abort();
-}
-
 struct Transform* createTransform(
 	struct Transformer* transformer,
 	struct Vector3F position,
@@ -129,12 +106,6 @@ struct Transform* createTransform(
 		transformer->transformCount] = transform;
 	transformer->transformCount++;
 
-	qsort(
-		transformer->transforms,
-		transformer->transformCount,
-		sizeof(struct Transform*),
-		compareTransform);
-
 	return transform;
 }
 void destroyTransform(
@@ -150,23 +121,20 @@ void destroyTransform(
 	struct Transform** transforms =
 		transformer->transforms;
 
-	struct Transform** transform = bsearch(
-		&_transform,
-		transforms,
-		transformCount,
-		sizeof(struct Transform*),
-		compareTransform);
+	for (size_t i = 0; i < transformCount; i++)
+	{
+		if (transforms[i] == _transform)
+		{
+			for (size_t j = i + 1; j < transformCount; j++)
+				transforms[j - 1] = transforms[j];
 
-	if (transform == NULL)
-		abort();
+			transformer->transformCount--;
+			free(_transform);
+			return;
+		}
+	}
 
-	size_t index = transform - transforms;
-
-	for (size_t j = index + 1; j < transformCount; j++)
-		transforms[j - 1] = transforms[j];
-
-	transformer->transformCount--;
-	free(_transform);
+	abort();
 }
 
 struct Vector3F getTransformPosition(
@@ -218,7 +186,7 @@ struct Matrix4F getTransformModel(
 	return transform->model;
 }
 
-void bakeTransformer(
+void executeTransformer(
 	struct Transformer* transformer)
 {
 	size_t transformCount =

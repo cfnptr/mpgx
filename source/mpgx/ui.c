@@ -14,13 +14,17 @@ struct UiPanel
 };
 
 struct Ui* createUi(
-	struct Window* window,
-	struct Renderer* colorRenderer,
-	struct Renderer* textRenderer)
+	struct Window* window)
 {
 
 }
 void destroyUi(
+	struct Ui* ui)
+{
+
+}
+
+void executeUi(
 	struct Ui* ui)
 {
 

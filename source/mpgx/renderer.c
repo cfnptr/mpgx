@@ -1,4 +1,5 @@
 #include "mpgx/renderer.h"
+#include "mpgx/pipeline.h"
 
 #include <assert.h>
 #include <string.h>
@@ -375,29 +376,6 @@ void executeRenderer(
 	}
 }
 
-int compareRender(
-	const void* a,
-	const void* b)
-{
-	if (*(struct Render**)a <
-		*(struct Render**)b)
-	{
-		return -1;
-	}
-	if (*(struct Render**)a ==
-		*(struct Render**)b)
-	{
-		return 0;
-	}
-	if (*(struct Render**)a >
-		*(struct Render**)b)
-	{
-		return 1;
-	}
-
-	abort();
-}
-
 struct Render* createRender(
 	struct Renderer* renderer,
 	bool _render,
@@ -458,12 +436,6 @@ struct Render* createRender(
 		renderer->renderCount] = render;
 	renderer->renderCount++;
 
-	qsort(
-		renderer->renders,
-		renderer->renderCount,
-		sizeof(struct Render*),
-		compareRender);
-
 	return render;
 }
 void destroyRender(
@@ -481,28 +453,24 @@ void destroyRender(
 	struct Render** renders =
 		renderer->renders;
 
-	struct Render** render = bsearch(
-		&_render,
-		renders,
-		renderCount,
-		sizeof(struct Render*),
-		compareRender);
+	for (size_t i = 0; i < renderCount; i++)
+	{
+		if (renders[i] == _render)
+		{
+			for (size_t j = i + 1; j < renderCount; j++)
+				renders[j - 1] = renders[j];
 
-	if (render == NULL)
-		abort();
+			DestroyRender destroyFunction =
+				_render->destroyFunction;
+			destroyFunction(_render);
 
-	size_t index = render - renders;
+			renderer->renderCount--;
+			free(_render);
+			return;
+		}
+	}
 
-	for (size_t j = index + 1; j < renderCount; j++)
-		renders[j - 1] = renders[j];
-
-	renderer->renderCount--;
-
-	DestroyRender destroyFunction =
-		_render->destroyFunction;
-	destroyFunction(_render);
-
-	free(_render);
+	abort();
 }
 
 struct Renderer* getRenderRenderer(
@@ -536,6 +504,71 @@ void setRenderRender(
 {
 	assert(render != NULL);
 	render->render = value;
+}
+
+void destroyMeshRender(
+	struct Render* render)
+{
+	if (render == NULL)
+		return;
+
+	struct MeshRender* textRender =
+		(struct MeshRender*)render->handle;
+	free(textRender);
+}
+
+void renderColorCommand(
+	struct Render* render,
+	struct Pipeline* pipeline,
+	const struct Matrix4F* model,
+	const struct Matrix4F* view,
+	const struct Matrix4F* proj,
+	const struct Matrix4F* mvp)
+{
+	struct MeshRender* meshRender =
+		(struct MeshRender*)render->handle;
+
+	setColorPipelineMVP(
+		pipeline,
+		*mvp);
+	drawMeshCommand(
+		meshRender->mesh,
+		pipeline);
+}
+struct Render* createColorRender(
+	struct Renderer* renderer,
+	bool _render,
+	struct Transform* transform,
+	struct Mesh* mesh)
+{
+	assert(renderer != NULL);
+	assert(transform != NULL);
+	assert(mesh != NULL);
+	assert(renderer->window == getMeshWindow(mesh));
+
+	struct MeshRender* meshRender = malloc(
+		sizeof(struct MeshRender));
+
+	if (meshRender == NULL)
+		return NULL;
+
+	meshRender->mesh = mesh;
+
+	struct Render* render = createRender(
+		renderer,
+		_render,
+		transform,
+		destroyMeshRender,
+		renderColorCommand,
+		meshRender);
+
+	if (render == NULL)
+	{
+		free(meshRender);
+		return NULL;
+	}
+
+	return render;
 }
 
 void destroyTextRender(

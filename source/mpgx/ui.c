@@ -16,7 +16,8 @@ struct UiPanel
 struct Ui* createUi(
 	struct Window* window)
 {
-
+	// TODO:
+	return NULL;
 }
 void destroyUi(
 	struct Ui* ui)

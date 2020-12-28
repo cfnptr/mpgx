@@ -7,7 +7,7 @@
 #define DEFAULT_WINDOW_WIDTH 800
 #define DEFAULT_WINDOW_HEIGHT 600
 
-typedef void(*WindowRender)(void*);
+typedef void(*UpdateWindow)(void*);
 
 // TODO:
 // Add other enumerators
@@ -88,25 +88,23 @@ enum FrontFace
 };
 
 // TODO:
-// 1. save all created objects
-// 2. destroy them on window destroy
-
-// TODO:
 // Replace all enums with uint8_t or unit16_t, ...
 
-// TODO:
-// Also bake create functions into window
 
 struct Window;
 struct Buffer;
 struct Mesh;
 struct Image;
-//struct Framebuffer;
+struct Framebuffer;
 struct Shader;
 struct Pipeline;
+// TODO:
+//struct Query
+//struct Sampler?
 
 typedef void(*DestroyPipeline)(
-	struct Pipeline*);
+	struct Window*,
+	void*);
 typedef void(*BindPipelineCommand)(
 	struct Pipeline*);
 typedef void(*SetUniformsCommand)(
@@ -121,15 +119,21 @@ struct Window* createWindow(
 	enum GraphicsAPI api,
 	size_t width,
 	size_t height,
-	const char* title);
+	const char* title,
+	UpdateWindow updateFunction,
+	void* updateArgument);
 struct Window* createAnyWindow(
 	size_t width,
 	size_t height,
-	const char* title);
+	const char* title,
+	UpdateWindow updateFunction,
+	void* updateArgument);
 void destroyWindow(
 	struct Window* window);
 
 enum GraphicsAPI getWindowGraphicsAPI(
+	const struct Window* window);
+size_t getWindowMaxImageSize(
 	const struct Window* window);
 double getWindowUpdateTime(
 	const struct Window* window);
@@ -150,10 +154,8 @@ void getWindowFramebufferSize(
 
 void makeWindowContextCurrent(
 	struct Window* window);
-void startWindowUpdate(
-	struct Window* window,
-	WindowRender renderFunction,
-	void* functionArgument);
+void updateWindow(
+	struct Window* window);
 
 void beginCommandRecord(
 	struct Window* window);
@@ -278,7 +280,8 @@ const void* getImageHandle(
 struct Shader* createShader(
 	struct Window* window,
 	enum ShaderType type,
-	const void* code);
+	const void* code,
+	size_t size);
 struct Shader* readShaderFromFile(
 	struct Window* window,
 	enum ShaderType type,

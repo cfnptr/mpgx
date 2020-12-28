@@ -280,10 +280,6 @@ inline static bool createTextPixels(
 	size_t pixelCount =
 		pixelLength * pixelLength;
 
-	// TODO: get max image size
-	if (pixelLength > 2048)
-		return false;
-
 	uint8_t* pixels = malloc(
 		pixelCount * 4 * sizeof(uint8_t));
 
@@ -1510,15 +1506,16 @@ inline static struct GlTextPipeline* createGlTextPipeline(
 	return pipeline;
 }
 void destroyGlTextPipeline(
-	struct Pipeline* pipeline)
+	struct Window* window,
+	void* pipeline)
 {
 	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)getPipelineHandle(pipeline);
+		(struct TextPipeline*)pipeline;
 	struct GlTextPipeline* glTextPipeline =
 		(struct GlTextPipeline*)textPipeline->handle;
 
 	makeWindowContextCurrent(
-		getPipelineWindow(pipeline));
+		window);
 
 	glDeleteProgram(
 		glTextPipeline->handle);
@@ -1692,7 +1689,10 @@ struct Pipeline* createTextPipeline(
 
 	if (pipeline == NULL)
 	{
-		destroyGlTextPipeline(handle);
+		destroyGlTextPipeline(
+			window,
+			handle);
+
 		free(textPipeline);
 		return NULL;
 	}

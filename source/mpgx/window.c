@@ -21,22 +21,42 @@ typedef void(*BeginCommandRecord)(
 typedef void(*EndCommandRecord)(
 	struct Window*);
 
+typedef void*(*CreateBuffer)(
+	struct Window*,
+	enum BufferType,
+	const void*,
+	size_t,
+	bool);
 typedef void(*DestroyBuffer)(
-	struct Buffer*);
+	struct Window*,
+	void*);
 typedef void(*SetBufferData)(
 	struct Buffer*,
 	const void*,
 	size_t,
 	size_t);
 
+typedef void*(*CreateMesh)(
+	struct Window*);
 typedef void(*DestroyMesh)(
-	struct Mesh*);
+	struct Window*,
+	void*);
 typedef void(*DrawMeshCommand)(
 	struct Mesh*,
 	struct Pipeline*);
 
+typedef void*(*CreateImage)(
+	struct Window*,
+	enum ImageType,
+	enum ImageFormat,
+	size_t,
+	size_t,
+	size_t,
+	const void*,
+	bool);
 typedef void(*DestroyImage)(
-	struct Image*);
+	struct Window*,
+	void*);
 typedef void(*SetImageData)(
 	struct Image*,
 	const void*,
@@ -52,30 +72,68 @@ typedef void(*GenerateMipmap)(
 typedef const void*(*GetImageHandle)(
 	const struct Image*);
 
+typedef void*(*CreateFramebuffer)(
+	struct Window*);
+typedef void(*DestroyFramebuffer)(
+	struct Window*,
+	void*);
+typedef void*(*CreateShader)(
+	struct Window*,
+	enum ShaderType,
+	const void*,
+	size_t);
 typedef void(*DestroyShader)(
-	struct Shader*);
+	struct Window*,
+	void*);
 typedef const void*(*GetShaderHandle)(
 	const struct Shader*);
 
 struct Window
 {
 	enum GraphicsAPI api;
-	double updateTime;
-	double deltaTime;
-	bool recording;
+	size_t maxImageSize;
+	UpdateWindow updateFunction;
+	void* updateArgument;
 	BeginCommandRecord beginRecordFunction;
 	BeginCommandRecord endRecordFunction;
+	CreateBuffer createBufferFunction;
 	DestroyBuffer destroyBufferFunction;
 	SetBufferData setBufferDataFunction;
+	CreateMesh createMeshFunction;
 	DestroyMesh destroyMeshFunction;
 	DrawMeshCommand drawMeshFunction;
+	CreateImage createImageFunction;
 	DestroyImage destroyImageFunction;
 	SetImageData setImageDataFunction;
 	GenerateMipmap generateMipmapFunction;
 	GetImageHandle getImageHandleFunction;
+	CreateFramebuffer createFramebufferFunction;
+	DestroyFramebuffer destroyFramebufferFunction;
+	CreateShader createShaderFunction;
 	DestroyShader destroyShaderFunction;
 	GetShaderHandle getShaderHandleFunction;
+	struct Buffer** buffers;
+	size_t bufferCapacity;
+	size_t bufferCount;
+	struct Mesh** meshes;
+	size_t meshCapacity;
+	size_t meshCount;
+	struct Image** images;
+	size_t imageCapacity;
+	size_t imageCount;
+	struct Framebuffer** framebuffers;
+	size_t framebufferCapacity;
+	size_t framebufferCount;
+	struct Shader** shaders;
+	size_t shaderCapacity;
+	size_t shaderCount;
+	struct Pipeline** pipelines;
+	size_t pipelineCapacity;
+	size_t pipelineCount;
 	struct GLFWwindow* handle;
+	double updateTime;
+	double deltaTime;
+	bool recording;
 };
 
 struct GlBuffer
@@ -125,6 +183,12 @@ struct Image
 	void* handle;
 };
 
+struct Framebuffer
+{
+	// TODO:
+	void* handle;
+};
+
 struct GlShader
 {
 	GLuint handle;
@@ -170,11 +234,10 @@ void beginGlCommandRecord(
 void endGlCommandRecord(
 	struct Window* window)
 {
-	glfwSwapBuffers(
-		window->handle);
+	glfwSwapBuffers(window->handle);
 }
 
-inline static struct GlBuffer* createGlBuffer(
+void* createGlBuffer(
 	struct Window* window,
 	enum BufferType _type,
 	const void* data,
@@ -236,13 +299,14 @@ inline static struct GlBuffer* createGlBuffer(
 	return buffer;
 }
 void destroyGlBuffer(
-	struct Buffer* buffer)
+	struct Window* window,
+	void* buffer)
 {
 	struct GlBuffer* glBuffer =
-		(struct GlBuffer*)buffer->handle;
+		(struct GlBuffer*)buffer;
 
 	glfwMakeContextCurrent(
-		buffer->window->handle);
+		window->handle);
 
 	glDeleteBuffers(
 		GL_ONE,
@@ -276,7 +340,7 @@ void setGlBufferData(
 	assertOpenGL();
 }
 
-inline static struct GlMesh* createGlMesh(
+void* createGlMesh(
 	struct Window* window)
 {
 	struct GlMesh* mesh = malloc(
@@ -300,13 +364,14 @@ inline static struct GlMesh* createGlMesh(
 	return mesh;
 }
 void destroyGlMesh(
-	struct Mesh* mesh)
+	struct Window* window,
+	void* mesh)
 {
 	struct GlMesh* glMesh =
-		(struct GlMesh*)mesh->handle;
+		(struct GlMesh*)mesh;
 
 	glfwMakeContextCurrent(
-		mesh->window->handle);
+		window->handle);
 
 	glDeleteVertexArrays(
 		GL_ONE,
@@ -336,9 +401,8 @@ void drawGlMeshCommand(
 		GL_ELEMENT_ARRAY_BUFFER,
 		glIndexBuffer->handle);
 
-	SetUniformsCommand setUniformsFunction =
-		pipeline->setUniformsFunction;
-	setUniformsFunction(pipeline);
+	pipeline->setUniformsFunction(
+		pipeline);
 
 	GLenum glDrawMode;
 
@@ -383,7 +447,7 @@ void drawGlMeshCommand(
 	assertOpenGL();
 }
 
-inline static struct GlImage* createGlImage(
+void* createGlImage(
 	struct Window* window,
 	enum ImageType _type,
 	enum ImageFormat _format,
@@ -489,13 +553,14 @@ inline static struct GlImage* createGlImage(
 	return image;
 }
 void destroyGlImage(
-	struct Image* image)
+	struct Window* window,
+	void* image)
 {
 	struct GlImage* glImage =
-		(struct GlImage*)image->handle;
+		(struct GlImage*)image;
 
 	glfwMakeContextCurrent(
-		image->window->handle);
+		window->handle);
 
 	glDeleteTextures(
 		GL_ONE,
@@ -586,11 +651,11 @@ const void* getGlImageHandle(
 	return &glImage->handle;
 }
 
-inline static struct GlShader* createGlShader(
+void* createGlShader(
 	struct Window* window,
 	enum ShaderType _type,
 	const void* code,
-	bool gles)
+	size_t size)
 {
 	struct GlShader* shader = malloc(
 		sizeof(struct GlShader));
@@ -618,16 +683,22 @@ inline static struct GlShader* createGlShader(
 		return NULL;
 	}
 
+	// TODO: could be optimized by selecting
+	// createGlShader and createGlesShader
+	enum GraphicsAPI api =
+		getWindowGraphicsAPI(window);
+
 	const char* sources[2];
 
-	if (gles == false)
+	if (api == OPENGL_GRAPHICS_API)
 		sources[0] = OPENGL_SHADER_HEADER;
 	else
 		sources[0] = OPENGL_ES_SHADER_HEADER;
 
 	sources[1] = (const char*)code;
 
-	glfwMakeContextCurrent(window->handle);
+	glfwMakeContextCurrent(
+		window->handle);
 
 	GLuint handle = glCreateShader(type);
 
@@ -691,15 +762,17 @@ inline static struct GlShader* createGlShader(
 	return shader;
 }
 void destroyGlShader(
-	struct Shader* shader)
+	struct Window* window,
+	void* shader)
 {
 	struct GlShader* glShader =
-		(struct GlShader*)shader->handle;
+		(struct GlShader*)shader;
 
 	glfwMakeContextCurrent(
-		shader->window->handle);
+		window->handle);
 
-	glDeleteShader(glShader->handle);
+	glDeleteShader(
+		glShader->handle);
 
 	assertOpenGL();
 
@@ -763,11 +836,15 @@ struct Window* createWindow(
 	enum GraphicsAPI api,
 	size_t width,
 	size_t height,
-	const char* title)
+	const char* title,
+	UpdateWindow updateFunction,
+	void* updateArgument)
 {
 	assert(width != 0);
 	assert(height != 0);
 	assert(title != NULL);
+	assert(updateFunction != NULL);
+	assert(graphicsInitialized == true);
 
 	struct Window* window =
 		malloc(sizeof(struct Window));
@@ -777,7 +854,22 @@ struct Window* createWindow(
 
 	glfwDefaultWindowHints();
 
-	if (api == OPENGL_GRAPHICS_API)
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		if (glfwVulkanSupported() == GLFW_FALSE)
+		{
+			free(window);
+			return NULL;
+		}
+
+		glfwWindowHint(
+			GLFW_CLIENT_API,
+			GLFW_NO_API);
+
+		// TODO: add Vulkan support
+		return NULL;
+	}
+	else if (api == OPENGL_GRAPHICS_API)
 	{
 		glfwWindowHint(
 			GLFW_CLIENT_API,
@@ -804,31 +896,6 @@ struct Window* createWindow(
 			GLFW_OPENGL_DEBUG_CONTEXT,
 			GLFW_FALSE);
 #endif
-
-		window->beginRecordFunction =
-			beginGlCommandRecord;
-		window->endRecordFunction =
-			endGlCommandRecord;
-		window->destroyBufferFunction =
-			destroyGlBuffer;
-		window->setBufferDataFunction =
-			setGlBufferData;
-		window->destroyMeshFunction =
-			destroyGlMesh;
-		window->drawMeshFunction =
-			drawGlMeshCommand;
-		window->destroyImageFunction =
-			destroyGlImage;
-		window->setImageDataFunction =
-			setGlImageData;
-		window->generateMipmapFunction =
-			generateGlMipmap;
-		window->getImageHandleFunction =
-			getGlImageHandle;
-		window->destroyShaderFunction =
-			destroyGlShader;
-		window->getShaderHandleFunction =
-			getGlShaderHandle;
 	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
 	{
@@ -851,34 +918,78 @@ struct Window* createWindow(
 			GLFW_OPENGL_DEBUG_CONTEXT,
 			GLFW_FALSE);
 #endif
-
-		window->beginRecordFunction =
-			beginGlCommandRecord;
-		window->endRecordFunction =
-			endGlCommandRecord;
-		window->destroyBufferFunction =
-			destroyGlBuffer;
-		window->setBufferDataFunction =
-			setGlBufferData;
-		window->destroyMeshFunction =
-			destroyGlMesh;
-		window->drawMeshFunction =
-			drawGlMeshCommand;
-		window->destroyImageFunction =
-			destroyGlImage;
-		window->setImageDataFunction =
-			setGlImageData;
-		window->generateMipmapFunction =
-			generateGlMipmap;
-		window->getImageHandleFunction =
-			getGlImageHandle;
-		window->destroyShaderFunction =
-			destroyGlShader;
-		window->getShaderHandleFunction =
-			getGlShaderHandle;
 	}
 	else
 	{
+		free(window);
+		return NULL;
+	}
+
+	struct Buffer** buffers = malloc(
+		sizeof(struct Buffer*));
+
+	if (buffers == NULL)
+	{
+		free(window);
+		return NULL;
+	}
+
+	struct Mesh** meshes = malloc(
+		sizeof(struct Mesh*));
+
+	if (meshes == NULL)
+	{
+		free(buffers);
+		free(window);
+		return NULL;
+	}
+
+	struct Image** images = malloc(
+		sizeof(struct Image*));
+
+	if (images == NULL)
+	{
+		free(meshes);
+		free(buffers);
+		free(window);
+		return NULL;
+	}
+
+	struct Framebuffer** framebuffers = malloc(
+		sizeof(struct Framebuffer*));
+
+	if (images == NULL)
+	{
+		free(images);
+		free(meshes);
+		free(buffers);
+		free(window);
+		return NULL;
+	}
+
+	struct Shader** shaders = malloc(
+		sizeof(struct Shader*));
+
+	if (shaders == NULL)
+	{
+		free(framebuffers);
+		free(images);
+		free(meshes);
+		free(buffers);
+		free(window);
+		return NULL;
+	}
+
+	struct Pipeline** pipelines = malloc(
+		sizeof(struct Pipeline*));
+
+	if (pipelines == NULL)
+	{
+		free(shaders);
+		free(framebuffers);
+		free(images);
+		free(meshes);
+		free(buffers);
 		free(window);
 		return NULL;
 	}
@@ -892,37 +1003,148 @@ struct Window* createWindow(
 
 	if (handle == NULL)
 	{
+		free(pipelines);
+		free(shaders);
+		free(framebuffers);
+		free(images);
+		free(meshes);
+		free(buffers);
 		free(window);
 		return NULL;
 	}
 
-	glfwMakeContextCurrent(
-		handle);
-
-	if (gladLoadGL() == 0)
+	if (api == VULKAN_GRAPHICS_API)
 	{
-		glfwDestroyWindow(handle);
-		free(window);
+		// TODO: implement Vulkan functions
 		return NULL;
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		glfwMakeContextCurrent(
+			handle);
+
+		if (gladLoadGL() == 0)
+		{
+			glfwDestroyWindow(handle);
+			free(pipelines);
+			free(shaders);
+			free(framebuffers);
+			free(images);
+			free(meshes);
+			free(buffers);
+			free(window);
+			return NULL;
+		}
+
+		GLint maxImageSize;
+
+		glGetIntegerv(
+			GL_MAX_TEXTURE_SIZE,
+			&maxImageSize);
+
+		window->maxImageSize =
+			(size_t)maxImageSize;
+
+		assertOpenGL();
+
+		window->updateFunction =
+			updateFunction;
+		window->updateArgument =
+			updateArgument;
+		window->beginRecordFunction =
+			beginGlCommandRecord;
+		window->endRecordFunction =
+			endGlCommandRecord;
+		window->createBufferFunction =
+			createGlBuffer;
+		window->destroyBufferFunction =
+			destroyGlBuffer;
+		window->setBufferDataFunction =
+			setGlBufferData;
+		window->createMeshFunction =
+			createGlMesh;
+		window->destroyMeshFunction =
+			destroyGlMesh;
+		window->drawMeshFunction =
+			drawGlMeshCommand;
+		window->createImageFunction =
+			createGlImage;
+		window->destroyImageFunction =
+			destroyGlImage;
+		window->setImageDataFunction =
+			setGlImageData;
+		window->generateMipmapFunction =
+			generateGlMipmap;
+		window->getImageHandleFunction =
+			getGlImageHandle;
+		// TODO:
+		window->createFramebufferFunction = NULL;
+		window->destroyFramebufferFunction = NULL;
+		window->createShaderFunction =
+			createGlShader;
+		window->destroyShaderFunction =
+			destroyGlShader;
+		window->getShaderHandleFunction =
+			getGlShaderHandle;
 	}
 
 	window->api = api;
+	window->buffers = buffers;
+	window->bufferCapacity = 1;
+	window->bufferCount = 0;
+	window->meshes = meshes;
+	window->meshCapacity = 1;
+	window->meshCount = 0;
+	window->images = images;
+	window->imageCapacity = 1;
+	window->imageCount = 0;
+	window->framebuffers = framebuffers;
+	window->framebufferCapacity = 1;
+	window->framebufferCount = 0;
+	window->shaders = shaders;
+	window->shaderCapacity = 1;
+	window->shaderCount = 0;
+	window->pipelines = pipelines;
+	window->pipelineCapacity = 1;
+	window->pipelineCount = 0;
+	window->handle = handle;
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
 	window->recording = false;
-	window->handle = handle;
 	return window;
 }
 struct Window* createAnyWindow(
 	size_t width,
 	size_t height,
-	const char* title)
+	const char* title,
+	UpdateWindow updateFunction,
+	void* updateArgument)
 {
+	assert(width != 0);
+	assert(height != 0);
+	assert(title != NULL);
+	assert(updateFunction != NULL);
+	assert(graphicsInitialized == true);
+
 	struct Window* window = createWindow(
+		VULKAN_GRAPHICS_API,
+		width,
+		height,
+		title,
+		updateFunction,
+		updateArgument);
+
+	if (window != NULL)
+		return window;
+
+	window = createWindow(
 		OPENGL_GRAPHICS_API,
 		width,
 		height,
-		title);
+		title,
+		updateFunction,
+		updateArgument);
 
 	if (window != NULL)
 		return window;
@@ -931,7 +1153,9 @@ struct Window* createAnyWindow(
 		OPENGL_ES_GRAPHICS_API,
 		width,
 		height,
-		title);
+		title,
+		updateFunction,
+		updateArgument);
 
 	return window;
 }
@@ -942,6 +1166,118 @@ void destroyWindow(
         return;
     
     glfwDestroyWindow(window->handle);
+
+    DestroyBuffer destroyBufferFunction =
+    	window->destroyBufferFunction;
+	size_t bufferCount =
+		window->bufferCount;
+    struct Buffer** buffers =
+    	window->buffers;
+
+	for (size_t i = 0; i < bufferCount; i++)
+	{
+		struct Buffer* buffer = buffers[i];
+
+		destroyBufferFunction(
+			window,
+			buffer->handle);
+		free(buffer);
+	}
+
+	free(buffers);
+
+	DestroyMesh destroyMeshFunction =
+		window->destroyMeshFunction;
+	size_t meshCount =
+		window->meshCount;
+	struct Mesh** meshes =
+		window->meshes;
+
+	for (size_t i = 0; i < meshCount; i++)
+	{
+		struct Mesh* mesh = meshes[i];
+
+		destroyMeshFunction(
+			window,
+			mesh->handle);
+		free(mesh);
+	}
+
+	free(meshes);
+
+	DestroyImage destroyImageFunction =
+		window->destroyImageFunction;
+	size_t imageCount =
+		window->imageCount;
+	struct Image** images =
+		window->images;
+
+	for (size_t i = 0; i < imageCount; i++)
+	{
+		struct Image* image = images[i];
+
+		destroyImageFunction(
+			window,
+			image->handle);
+		free(image);
+	}
+
+	free(images);
+
+	DestroyFramebuffer destroyFramebufferFunction =
+		window->destroyFramebufferFunction;
+	size_t framebufferCount =
+		window->framebufferCount;
+	struct Framebuffer** framebuffers =
+		window->framebuffers;
+
+	for (size_t i = 0; i < framebufferCount; i++)
+	{
+		struct Framebuffer* framebuffer = framebuffers[i];
+
+		destroyFramebufferFunction(
+			window,
+			framebuffer->handle);
+		free(framebuffer);
+	}
+
+	free(framebuffers);
+
+	DestroyShader destroyShaderFunction =
+		window->destroyShaderFunction;
+	size_t shaderCount =
+		window->shaderCount;
+	struct Shader** shaders =
+		window->shaders;
+
+	for (size_t i = 0; i < shaderCount; i++)
+	{
+		struct Shader* shader = shaders[i];
+
+		destroyShaderFunction(
+			window,
+			shader->handle);
+		free(shaders);
+	}
+
+	free(shaders);
+
+	size_t pipelineCount =
+		window->pipelineCount;
+	struct Pipeline** pipelines =
+		window->pipelines;
+
+	for (size_t i = 0; i < pipelineCount; i++)
+	{
+		struct Pipeline* pipeline = pipelines[i];
+
+		pipeline->destroyFunction(
+			window,
+			pipeline->handle);
+		free(pipeline);
+	}
+
+	free(pipelines);
 	free(window);
 }
 
@@ -950,6 +1286,12 @@ enum GraphicsAPI getWindowGraphicsAPI(
 {
 	assert(window != NULL);
 	return window->api;
+}
+size_t getWindowMaxImageSize(
+	const struct Window* window)
+{
+	assert(window != NULL);
+	return window->maxImageSize;
 }
 double getWindowUpdateTime(
 	const struct Window* window)
@@ -1032,13 +1374,10 @@ void makeWindowContextCurrent(
 	glfwMakeContextCurrent(
 		window->handle);
 }
-void startWindowUpdate(
-	struct Window* window,
-	WindowRender renderFunction,
-	void* functionArgument)
+void updateWindow(
+	struct Window* window)
 {
 	assert(window != NULL);
-	assert(renderFunction != NULL);
 	assert(window->recording == false);
 
 	struct GLFWwindow* handle =
@@ -1052,7 +1391,8 @@ void startWindowUpdate(
 		window->deltaTime = time - window->updateTime;
 		window->updateTime = time;
 
-		renderFunction(functionArgument);
+		window->updateFunction(
+			window->updateArgument);
 	}
 }
 
@@ -1063,10 +1403,7 @@ void beginCommandRecord(
 	assert(window->recording == false);
 
 	window->recording = true;
-
-	BeginCommandRecord beginFunction =
-		window->beginRecordFunction;
-	beginFunction(window);
+	window->beginRecordFunction(window);
 }
 void endCommandRecord(
 	struct Window* window)
@@ -1075,10 +1412,7 @@ void endCommandRecord(
 	assert(window->recording == true);
 
 	window->recording = false;
-
-	BeginCommandRecord endFunction =
-		window->endRecordFunction;
-	endFunction(window);
+	window->endRecordFunction(window);
 }
 
 struct Buffer* createBuffer(
@@ -1098,26 +1432,12 @@ struct Buffer* createBuffer(
 	if (buffer == NULL)
 		return NULL;
 
-	enum GraphicsAPI api =
-		window->api;
-
-	void* handle;
-
-	if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		handle = createGlBuffer(
-			window,
-			type,
-			data,
-			size,
-			constant);
-	}
-	else
-	{
-		free(buffer);
-		return NULL;
-	}
+	void* handle = window->createBufferFunction(
+		window,
+		type,
+		data,
+		size,
+		constant);
 
 	if (handle == NULL)
 	{
@@ -1130,6 +1450,31 @@ struct Buffer* createBuffer(
 	buffer->size = size;
 	buffer->constant = constant;
 	buffer->handle = handle;
+
+	if (window->bufferCount == window->bufferCapacity)
+	{
+		size_t capacity =
+			window->bufferCapacity * 2;
+		struct Buffer** buffers = realloc(
+			window->buffers,
+			capacity * sizeof(struct Buffer*));
+
+		if (buffers == NULL)
+		{
+			window->destroyBufferFunction(
+				window,
+				handle);
+
+			free(buffer);
+			return NULL;
+		}
+
+		window->buffers = buffers;
+		window->bufferCapacity = capacity;
+	}
+
+	window->buffers[window->bufferCount] = buffer;
+	window->bufferCount++;
 	return buffer;
 }
 void destroyBuffer(
@@ -1140,11 +1485,31 @@ void destroyBuffer(
 	if (buffer == NULL)
 		return;
 
-	DestroyBuffer destroyFunction =
-		buffer->window->destroyBufferFunction;
+	struct Window* window =
+		buffer->window;
+	size_t bufferCount =
+		window->bufferCount;
+	struct Buffer** buffers =
+		window->buffers;
 
-	destroyFunction(buffer);
-	free(buffer);
+	for (size_t i = 0; i < bufferCount; i++)
+	{
+		if (buffer == buffers[i])
+		{
+			for (size_t j = i + 1; j < bufferCount; j++)
+				buffers[j - 1] = buffers[j];
+
+			window->bufferCount--;
+
+			window->destroyBufferFunction(
+				window,
+				buffer->handle);
+			free(buffer);
+			return;
+		}
+	}
+
+	abort();
 }
 
 struct Window* getBufferWindow(
@@ -1185,10 +1550,7 @@ void setBufferData(
 	assert(size + offset <= buffer->size);
 	assert(buffer->window->recording == false);
 
-	SetBufferData setDataFunction =
-		buffer->window->setBufferDataFunction;
-
-	setDataFunction(
+	buffer->window->setBufferDataFunction(
 		buffer,
 		data,
 		size,
@@ -1221,21 +1583,7 @@ struct Mesh* createMesh(
 	if (mesh == NULL)
 		return NULL;
 
-	enum GraphicsAPI api =
-		window->api;
-
-	void* handle;
-
-	if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		handle = createGlMesh(window);
-	}
-	else
-	{
-		free(mesh);
-		return NULL;
-	}
+	void* handle = window->createMeshFunction(window);
 
 	if (handle == NULL)
 	{
@@ -1249,6 +1597,31 @@ struct Mesh* createMesh(
 	mesh->vertexBuffer = vertexBuffer;
 	mesh->indexBuffer = indexBuffer;
 	mesh->handle = handle;
+
+	if (window->meshCount == window->meshCapacity)
+	{
+		size_t capacity =
+			window->meshCapacity * 2;
+		struct Mesh** meshes = realloc(
+			window->meshes,
+			capacity * sizeof(struct Mesh*));
+
+		if (meshes == NULL)
+		{
+			window->destroyMeshFunction(
+				window,
+				handle);
+
+			free(mesh);
+			return NULL;
+		}
+
+		window->meshes = meshes;
+		window->meshCapacity = capacity;
+	}
+
+	window->meshes[window->meshCount] = mesh;
+	window->meshCount++;
 	return mesh;
 }
 void destroyMesh(
@@ -1259,11 +1632,31 @@ void destroyMesh(
 	if (mesh == NULL)
 		return;
 
-	DestroyMesh destroyFunction =
-		mesh->window->destroyMeshFunction;
+	struct Window* window =
+		mesh->window;
+	size_t meshCount =
+		window->meshCount;
+	struct Mesh** meshes =
+		window->meshes;
 
-	destroyFunction(mesh);
-	free(mesh);
+	for (size_t i = 0; i < meshCount; i++)
+	{
+		if (mesh == meshes[i])
+		{
+			for (size_t j = i + 1; j < meshCount; j++)
+				meshes[j - 1] = meshes[j];
+
+			window->meshCount--;
+
+			window->destroyMeshFunction(
+				window,
+				mesh->handle);
+			free(mesh);
+			return;
+		}
+	}
+
+	abort();
 }
 
 struct Window* getMeshWindow(
@@ -1392,10 +1785,7 @@ void drawMeshCommand(
 	assert(mesh->window == pipeline->window);
 	assert(mesh->window->recording == true);
 
-	DrawMeshCommand drawFunction =
-		mesh->window->drawMeshFunction;
-
-	drawFunction(
+	mesh->window->drawMeshFunction(
 		mesh,
 		pipeline);
 }
@@ -1416,35 +1806,31 @@ struct Image* createImage(
 	assert(depth != 0);
 	assert(window->recording == false);
 
+	size_t maxImageSize =
+		window->maxImageSize;
+
+	if (width > maxImageSize ||
+		height > maxImageSize ||
+		depth > maxImageSize)
+	{
+		return NULL;
+	}
+
 	struct Image* image =
 		malloc(sizeof(struct Image));
 
 	if (image == NULL)
 		return NULL;
 
-	enum GraphicsAPI api =
-		window->api;
-
-	void* handle;
-
-	if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		handle = createGlImage(
-			window,
-			type,
-			format,
-			width,
-			height,
-			depth,
-			pixels,
-			mipmap);
-	}
-	else
-	{
-		free(image);
-		return NULL;
-	}
+	void* handle = window->createImageFunction(
+		window,
+		type,
+		format,
+		width,
+		height,
+		depth,
+		pixels,
+		mipmap);
 
 	if (handle == NULL)
 	{
@@ -1460,6 +1846,31 @@ struct Image* createImage(
 	image->depth = depth;
 	image->mipmap = mipmap;
 	image->handle = handle;
+
+	if (window->imageCount == window->imageCapacity)
+	{
+		size_t capacity =
+			window->imageCapacity * 2;
+		struct Image** images = realloc(
+			window->images,
+			capacity * sizeof(struct Image*));
+
+		if (images == NULL)
+		{
+			window->destroyImageFunction(
+				window,
+				handle);
+
+			free(image);
+			return NULL;
+		}
+
+		window->images = images;
+		window->imageCapacity = capacity;
+	}
+
+	window->images[window->imageCount] = image;
+	window->imageCount++;
 	return image;
 }
 void destroyImage(
@@ -1470,11 +1881,31 @@ void destroyImage(
 	if (image == NULL)
 		return;
 
-	DestroyImage destroyFunction =
-		image->window->destroyImageFunction;
-	destroyFunction(image);
+	struct Window* window =
+		image->window;
+	size_t imageCount =
+		window->imageCount;
+	struct Image** images =
+		window->images;
 
-	free(image);
+	for (size_t i = 0; i < imageCount; i++)
+	{
+		if (image == images[i])
+		{
+			for (size_t j = i + 1; j < imageCount; j++)
+				images[j - 1] = images[j];
+
+			window->imageCount--;
+
+			window->destroyImageFunction(
+				window,
+				image->handle);
+			free(image);
+			return;
+		}
+	}
+
+	abort();
 }
 
 void setImageData(
@@ -1499,10 +1930,7 @@ void setImageData(
 
 	// TODO: check for static image in Vulkan API
 
-	SetImageData setDataFunction =
-		image->window->setImageDataFunction;
-
-	setDataFunction(
+	image->window->setImageDataFunction(
 		image,
 		data,
 		width,
@@ -1519,10 +1947,7 @@ void generateMipmap(
 	assert(image != NULL);
 	assert(image->mipmap == true);
 	assert(image->window->recording == false);
-
-	GenerateMipmap generateMipmapFunction =
-		image->window->generateMipmapFunction;
-	generateMipmapFunction(image);
+	image->window->generateMipmapFunction(image);
 }
 
 struct Window* getImageWindow(
@@ -1571,16 +1996,14 @@ const void* getImageHandle(
 	const struct Image* image)
 {
 	assert(image != NULL);
-
-	GetImageHandle getHandleFunction =
-		image->window->getImageHandleFunction;
-	return getHandleFunction(image);
+	return image->window->getImageHandleFunction(image);
 }
 
 struct Shader* createShader(
 	struct Window* window,
 	enum ShaderType type,
-	const void* code)
+	const void* code,
+	size_t size)
 {
 	assert(window != NULL);
 	assert(code != NULL);
@@ -1592,32 +2015,11 @@ struct Shader* createShader(
 	if (shader == NULL)
 		return NULL;
 
-	enum GraphicsAPI api =
-		window->api;
-
-	void* handle;
-
-	if (api == OPENGL_GRAPHICS_API)
-	{
-		handle = createGlShader(
-			window,
-			type,
-			code,
-			false);
-	}
-	else if (api == OPENGL_ES_GRAPHICS_API)
-	{
-		handle = createGlShader(
-			window,
-			type,
-			code,
-			true);
-	}
-	else
-	{
-		free(shader);
-		return NULL;
-	}
+	void* handle = window->createShaderFunction(
+		window,
+		type,
+		code,
+		size);
 
 	if (handle == NULL)
 	{
@@ -1628,6 +2030,31 @@ struct Shader* createShader(
 	shader->window = window;
 	shader->type = type;
 	shader->handle = handle;
+
+	if (window->shaderCount == window->shaderCapacity)
+	{
+		size_t capacity =
+			window->shaderCapacity * 2;
+		struct Shader** shaders = realloc(
+			window->shaders,
+			capacity * sizeof(struct Shader*));
+
+		if (shaders == NULL)
+		{
+			window->destroyShaderFunction(
+				window,
+				handle);
+
+			free(shader);
+			return NULL;
+		}
+
+		window->shaders = shaders;
+		window->shaderCapacity = capacity;
+	}
+
+	window->shaders[window->shaderCount] = shader;
+	window->shaderCount++;
 	return shader;
 }
 struct Shader* readShaderFromFile(
@@ -1690,7 +2117,8 @@ struct Shader* readShaderFromFile(
 	struct Shader* shader = createShader(
 		window,
 		type,
-		code);
+		code,
+		fileSize);
 
 	free(code);
 	return shader;
@@ -1703,11 +2131,31 @@ void destroyShader(
 	if (shader == NULL)
 		return;
 
-	DestroyShader destroyFunction =
-		shader->window->destroyShaderFunction;
-	destroyFunction(shader);
+	struct Window* window =
+		shader->window;
+	size_t shaderCount =
+		window->shaderCount;
+	struct Shader** shaders =
+		window->shaders;
 
-	free(shader);
+	for (size_t i = 0; i < shaderCount; i++)
+	{
+		if (shader == shaders[i])
+		{
+			for (size_t j = i + 1; j < shaderCount; j++)
+				shaders[j - 1] = shaders[j];
+
+			window->shaderCount--;
+
+			window->destroyShaderFunction(
+				window,
+				shader->handle);
+			free(shader);
+			return;
+		}
+	}
+
+	abort();
 }
 
 struct Window* getShaderWindow(
@@ -1726,10 +2174,7 @@ const void* getShaderHandle(
 	const struct Shader* shader)
 {
 	assert(shader != NULL);
-
-	GetShaderHandle getHandleFunction =
-		shader->window->getShaderHandleFunction;
-	return getHandleFunction(shader);
+	return shader->window->getShaderHandleFunction(shader);
 }
 
 struct Pipeline* createPipeline(
@@ -1759,6 +2204,31 @@ struct Pipeline* createPipeline(
 	pipeline->bindFunction = bindFunction;
 	pipeline->setUniformsFunction = setUniformsFunction;
 	pipeline->handle = handle;
+
+	if (window->pipelineCount == window->pipelineCapacity)
+	{
+		size_t capacity =
+			window->pipelineCapacity * 2;
+		struct Pipeline** pipelines = realloc(
+			window->pipelines,
+			capacity * sizeof(struct Pipeline*));
+
+		if (pipelines == NULL)
+		{
+			destroyFunction(
+				window,
+				handle);
+
+			free(pipeline);
+			return NULL;
+		}
+
+		window->pipelines = pipelines;
+		window->pipelineCapacity = capacity;
+	}
+
+	window->pipelines[window->pipelineCount] = pipeline;
+	window->pipelineCount++;
 	return pipeline;
 }
 void destroyPipeline(
@@ -1769,11 +2239,31 @@ void destroyPipeline(
 	if (pipeline == NULL)
 		return;
 
-	DestroyPipeline destroyFunction =
-		pipeline->destroyFunction;
+	struct Window* window =
+		pipeline->window;
+	size_t pipelineCount =
+		window->pipelineCount;
+	struct Pipeline** pipelines =
+		window->pipelines;
 
-	destroyFunction(pipeline);
-	free(pipeline);
+	for (size_t i = 0; i < pipelineCount; i++)
+	{
+		if (pipeline == pipelines[i])
+		{
+			for (size_t j = i + 1; j < pipelineCount; j++)
+				pipelines[j - 1] = pipelines[j];
+
+			window->pipelineCount--;
+
+			pipeline->destroyFunction(
+				window,
+				pipeline->handle);
+			free(pipeline);
+			return;
+		}
+	}
+
+	abort();
 }
 
 struct Window* getPipelineWindow(
@@ -1800,8 +2290,5 @@ void bindPipelineCommand(
 {
 	assert(pipeline != NULL);
 	assert(pipeline->window->recording == true);
-
-	BindPipelineCommand bindFunction =
-		pipeline->bindFunction;
-	bindFunction(pipeline);
+	pipeline->bindFunction(pipeline);
 }

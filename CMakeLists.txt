@@ -13,10 +13,6 @@ project(mpgx
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 
-configure_file(
-	cmake/defines.h.in
-	mpgx/defines.h)
-
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -27,6 +23,25 @@ set(CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz ON CACHE BOOL "" FORCE)
 set(CMAKE_DISABLE_FIND_PACKAGE_BrotliDec ON CACHE BOOL "" FORCE)
 add_subdirectory(libraries/freetype)
 
+find_package(Vulkan)
+
+set(MPGX_LINK_LIBRARIES
+	glfw
+	freetype)
+
+if (Vulkan_FOUND)
+	set(MPGX_VULKAN_SUPPORT 1)
+
+	list(APPEND MPGX_LINK_LIBRARIES
+		Vulkan::Vulkan)
+else()
+	set(MPGX_VULKAN_SUPPORT 0)
+endif()
+
+configure_file(
+	cmake/defines.h.in
+	mpgx/defines.h)
+
 add_library(mpgx STATIC
 	source/glad/glad.c
 	source/mpgx/pipeline.c
@@ -36,8 +51,7 @@ add_library(mpgx STATIC
 	source/mpgx/ui.c
     source/mpgx/window.c)
 target_link_libraries(mpgx PUBLIC
-	glfw
-	freetype)
+	${MPGX_LINK_LIBRARIES})
 target_include_directories(mpgx PUBLIC
 	${PROJECT_BINARY_DIR}
 	${PROJECT_SOURCE_DIR}/include)

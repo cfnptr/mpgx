@@ -48,7 +48,7 @@ add_library(mpgx STATIC
 	source/mpgx/renderer.c
 	source/mpgx/text.c
 	source/mpgx/transformer.c
-	source/mpgx/ui.c
+    source/mpgx/ui.c
     source/mpgx/window.c)
 target_link_libraries(mpgx PUBLIC
 	${MPGX_LINK_LIBRARIES})

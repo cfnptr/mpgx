@@ -76,6 +76,13 @@ struct Transform* createTransform(
 	if (transform == NULL)
 		return NULL;
 
+	transform->transformer = transformer;
+	transform->position = position;
+	transform->scale = scale;
+	transform->rotation = rotation;
+	transform->model = model;
+	transform->parent = parent;
+
 	if (transformer->transformCount ==
 		transformer->transformCapacity)
 	{
@@ -95,27 +102,19 @@ struct Transform* createTransform(
 		transformer->transformCapacity = capacity;
 	}
 
-	transform->transformer = transformer;
-	transform->position = position;
-	transform->scale = scale;
-	transform->rotation = rotation;
-	transform->model = model;
-	transform->parent = parent;
-
 	transformer->transforms[
 		transformer->transformCount] = transform;
 	transformer->transformCount++;
-
 	return transform;
 }
 void destroyTransform(
-	struct Transform* _transform)
+	struct Transform* transform)
 {
-	if (_transform == NULL)
+	if (transform == NULL)
 		return;
 
 	struct Transformer* transformer =
-		_transform->transformer;
+		transform->transformer;
 	size_t transformCount =
 		transformer->transformCount;
 	struct Transform** transforms =
@@ -123,13 +122,13 @@ void destroyTransform(
 
 	for (size_t i = 0; i < transformCount; i++)
 	{
-		if (transforms[i] == _transform)
+		if (transforms[i] == transform)
 		{
 			for (size_t j = i + 1; j < transformCount; j++)
 				transforms[j - 1] = transforms[j];
 
 			transformer->transformCount--;
-			free(_transform);
+			free(transform);
 			return;
 		}
 	}

@@ -8,7 +8,7 @@ struct Renderer;
 struct Render;
 
 typedef void(*DestroyRender)(
-	struct Render*);
+	void*);
 typedef void(*RenderCommand)(
 	struct Render*,
 	struct Pipeline*,

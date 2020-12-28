@@ -7,10 +7,8 @@
 #define DEFAULT_WINDOW_WIDTH 800
 #define DEFAULT_WINDOW_HEIGHT 600
 
-typedef void(*UpdateWindow)(void*);
-
 // TODO:
-// Add other enumerators
+// Add other enumerations
 
 enum GraphicsAPI
 {
@@ -90,7 +88,6 @@ enum FrontFace
 // TODO:
 // Replace all enums with uint8_t or unit16_t, ...
 
-
 struct Window;
 struct Buffer;
 struct Mesh;
@@ -101,6 +98,8 @@ struct Pipeline;
 // TODO:
 //struct Query
 //struct Sampler?
+
+typedef void(*UpdateWindow)(void*);
 
 typedef void(*DestroyPipeline)(
 	struct Window*,

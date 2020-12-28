@@ -254,13 +254,12 @@ void destroyRenderer(
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
-		assert(renders[i]->destroyFunction != NULL);
-
-		DestroyRender destroyFunction =
-			renders[i]->destroyFunction;
-		destroyFunction(renders[i]);
+		struct Render* render = renders[i];
+		render->destroyFunction(render->handle);
+		free(render);
 	}
 
+	free(renderer->tmpRenders);
 	free(renders);
 	free(renderer);
 }
@@ -395,6 +394,13 @@ struct Render* createRender(
 	if (render == NULL)
 		return NULL;
 
+	render->renderer = renderer;
+	render->render = _render;
+	render->transform = transform;
+	render->destroyFunction = destroyFunction;
+	render->renderFunction = renderFunction;
+	render->handle = handle;
+
 	if (renderer->renderCount == renderer->renderCapacity)
 	{
 		size_t capacity =
@@ -425,29 +431,21 @@ struct Render* createRender(
 		renderer->renderCapacity = capacity;
 	}
 
-	render->renderer = renderer;
-	render->render = _render;
-	render->transform = transform;
-	render->destroyFunction = destroyFunction;
-	render->renderFunction = renderFunction;
-	render->handle = handle;
-
 	renderer->renders[
 		renderer->renderCount] = render;
 	renderer->renderCount++;
-
 	return render;
 }
 void destroyRender(
-	struct Render* _render)
+	struct Render* render)
 {
-	assert(_render->destroyFunction != NULL);
+	assert(render->destroyFunction != NULL);
 
-	if (_render == NULL)
+	if (render == NULL)
 		return;
 
 	struct Renderer* renderer =
-		_render->renderer;
+		render->renderer;
 	size_t renderCount =
 		renderer->renderCount;
 	struct Render** renders =
@@ -455,17 +453,14 @@ void destroyRender(
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
-		if (renders[i] == _render)
+		if (renders[i] == render)
 		{
 			for (size_t j = i + 1; j < renderCount; j++)
 				renders[j - 1] = renders[j];
 
-			DestroyRender destroyFunction =
-				_render->destroyFunction;
-			destroyFunction(_render);
-
+			render->destroyFunction(render->handle);
 			renderer->renderCount--;
-			free(_render);
+			free(render);
 			return;
 		}
 	}
@@ -507,13 +502,13 @@ void setRenderRender(
 }
 
 void destroyMeshRender(
-	struct Render* render)
+	void* render)
 {
 	if (render == NULL)
 		return;
 
 	struct MeshRender* textRender =
-		(struct MeshRender*)render->handle;
+		(struct MeshRender*)render;
 	free(textRender);
 }
 
@@ -572,13 +567,13 @@ struct Render* createColorRender(
 }
 
 void destroyTextRender(
-	struct Render* render)
+	void* render)
 {
 	if (render == NULL)
 		return;
 
 	struct TextRender* textRender =
-		(struct TextRender*)render->handle;
+		(struct TextRender*)render;
 	free(textRender);
 }
 void renderTextCommand(

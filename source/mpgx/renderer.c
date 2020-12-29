@@ -7,19 +7,14 @@
 typedef int(*CompareRender)(
 	const void*,
 	const void*);
-typedef struct Matrix4F(*CreateProjMatrix)(
-	union Camera);
 
 struct Renderer
 {
 	struct Window* window;
 	bool ascendingSort;
-	enum CameraType cameraType;
-	union Camera camera;
 	struct Transform* transform;
 	struct Pipeline* pipeline;
 	CompareRender compareRenderFunction;
-	CreateProjMatrix createProjFunction;
 	struct Render** renders;
 	struct Render** tmpRenders;
 	size_t renderCapacity;
@@ -95,53 +90,9 @@ int descendCompareRender(
 	abort();
 }
 
-struct Matrix4F createVkPerspectiveMatrix(
-	union Camera camera)
-{
-	return createVkPerspectiveMatrix4F(
-		camera.perspective.fieldOfView,
-		camera.perspective.aspectRatio,
-		camera.perspective.nearClipPlane,
-		camera.perspective.farClipPlane);
-}
-struct Matrix4F createGlPerspectiveMatrix(
-	union Camera camera)
-{
-	return createGlPerspectiveMatrix4F(
-		camera.perspective.fieldOfView,
-		camera.perspective.aspectRatio,
-		camera.perspective.nearClipPlane,
-		camera.perspective.farClipPlane);
-}
-
-struct Matrix4F createVkOrthographicMatrix(
-	union Camera camera)
-{
-	return createVkOrthographicMatrix4F(
-		camera.orthographic.leftFrustum,
-		camera.orthographic.rightFrustum,
-		camera.orthographic.bottomFrustum,
-		camera.orthographic.topFrustum,
-		camera.orthographic.nearClipPlane,
-		camera.orthographic.farClipPlane);
-}
-struct Matrix4F createGlOrthographicMatrix(
-	union Camera camera)
-{
-	return createGlOrthographicMatrix4F(
-		camera.orthographic.leftFrustum,
-		camera.orthographic.rightFrustum,
-		camera.orthographic.bottomFrustum,
-		camera.orthographic.topFrustum,
-		camera.orthographic.nearClipPlane,
-		camera.orthographic.farClipPlane);
-}
-
 struct Renderer* createRenderer(
 	struct Window* window,
 	bool ascendingSort,
-	enum CameraType cameraType,
-	union Camera camera,
 	struct Transform* transform,
 	struct Pipeline* pipeline)
 {
@@ -155,9 +106,6 @@ struct Renderer* createRenderer(
 	if (renderer == NULL)
 		return NULL;
 
-	enum GraphicsAPI graphicsAPI =
-		getWindowGraphicsAPI(window);
-
 	if (ascendingSort == true)
 	{
 		renderer->compareRenderFunction =
@@ -167,47 +115,6 @@ struct Renderer* createRenderer(
 	{
 		renderer->compareRenderFunction =
 			descendCompareRender;
-	}
-
-	if (cameraType == PERSPECTIVE_CAMERA_TYPE)
-	{
-		if (graphicsAPI == VULKAN_GRAPHICS_API)
-		{
-			renderer->createProjFunction =
-				createVkPerspectiveMatrix;
-		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
-		{
-			renderer->createProjFunction =
-				createGlPerspectiveMatrix;
-		}
-		else
-		{
-			abort();
-		}
-	}
-	else if (cameraType == ORTHOGRAPHIC_CAMERA_TYPE)
-	{
-		if (graphicsAPI == VULKAN_GRAPHICS_API)
-		{
-			renderer->createProjFunction =
-				createVkOrthographicMatrix;
-		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
-		{
-			renderer->createProjFunction =
-				createGlOrthographicMatrix;
-		}
-		else
-		{
-			abort();
-		}
-	}
-	else
-	{
-		abort();
 	}
 
 	struct Render** renders = malloc(
@@ -231,8 +138,6 @@ struct Renderer* createRenderer(
 
 	renderer->window = window;
 	renderer->ascendingSort = ascendingSort;
-	renderer->cameraType = cameraType;
-	renderer->camera = camera;
 	renderer->transform = transform;
 	renderer->pipeline = pipeline;
 	renderer->renders = renders;
@@ -276,12 +181,6 @@ bool getRendererAscendingSort(
 	assert(renderer != NULL);
 	return renderer->ascendingSort;
 }
-enum CameraType getRendererCameraType(
-	const struct Renderer* renderer)
-{
-	assert(renderer != NULL);
-	return renderer->cameraType;
-}
 struct Transform* getRendererTransformer(
 	const struct Renderer* renderer)
 {
@@ -295,22 +194,9 @@ struct Pipeline* getRendererPipeline(
 	return renderer->pipeline;
 }
 
-union Camera getRendererCamera(
-	const struct Renderer* renderer)
-{
-	assert(renderer != NULL);
-	return renderer->camera;
-}
-void setRendererCamera(
+void executeRenderer(
 	struct Renderer* renderer,
 	union Camera camera)
-{
-	assert(renderer != NULL);
-	renderer->camera = camera;
-}
-
-void executeRenderer(
-	struct Renderer* renderer)
 {
 	assert(renderer != NULL);
 
@@ -337,10 +223,67 @@ void executeRenderer(
 	struct Matrix4F view = getTransformModel(
 		renderer->transform);
 
-	CreateProjMatrix createProjFunction =
-		renderer->createProjFunction;
-	struct Matrix4F proj =
-		createProjFunction(renderer->camera);
+	struct Matrix4F proj;
+
+	uint8_t graphicsAPI = getWindowGraphicsAPI(
+		renderer->window);
+
+	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
+	{
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
+		{
+			proj = createVkPerspectiveMatrix4F(
+				camera.perspective.fieldOfView,
+				camera.perspective.aspectRatio,
+				camera.perspective.nearClipPlane,
+				camera.perspective.farClipPlane);
+		}
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		{
+			proj = createGlPerspectiveMatrix4F(
+				camera.perspective.fieldOfView,
+				camera.perspective.aspectRatio,
+				camera.perspective.nearClipPlane,
+				camera.perspective.farClipPlane);
+		}
+		else
+		{
+			abort();
+		}
+	}
+	else if (camera.orthographic.type == ORTHOGRAPHIC_CAMERA_TYPE)
+	{
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
+		{
+			proj = createVkOrthographicMatrix4F(
+				camera.orthographic.leftFrustum,
+				camera.orthographic.rightFrustum,
+				camera.orthographic.bottomFrustum,
+				camera.orthographic.topFrustum,
+				camera.orthographic.nearClipPlane,
+				camera.orthographic.farClipPlane);
+		}
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		{
+			proj = createGlOrthographicMatrix4F(
+				camera.orthographic.leftFrustum,
+				camera.orthographic.rightFrustum,
+				camera.orthographic.bottomFrustum,
+				camera.orthographic.topFrustum,
+				camera.orthographic.nearClipPlane,
+				camera.orthographic.farClipPlane);
+		}
+		else
+		{
+			abort();
+		}
+	}
+	else
+	{
+		abort();
+	}
 
 	for (size_t i = 0; i < renderCount; i++)
 	{

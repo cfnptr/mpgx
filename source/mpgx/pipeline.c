@@ -15,27 +15,6 @@ struct ColorPipeline
 	void* handle;
 };
 
-struct GlImageColorPipeline
-{
-	GLenum handle;
-	GLint mvpLocation;
-	GLint colorLocation;
-	GLint imageLocation;
-};
-struct ImageColorPipeline
-{
-	enum ImageFilter minFilter;
-	enum ImageFilter magFilter;
-	enum ImageFilter mipmapFilter;
-	enum ImageWrap widthWrap;
-	enum ImageWrap heightWrap;
-	enum ImageWrap depthWrap;
-	struct Matrix4F mvp;
-	struct Vector4F color;
-	struct Image* image;
-	void* handle;
-};
-
 inline static struct GlColorPipeline* createGlColorPipeline(
 	struct Window* window,
 	struct Shader* vertexShader,
@@ -172,7 +151,7 @@ struct Pipeline* createColorPipeline(
 	struct Window* window,
 	struct Shader* vertexShader,
 	struct Shader* fragmentShader,
-	enum DrawMode drawMode)
+	uint8_t drawMode)
 {
 	assert(window != NULL);
 	assert(vertexShader != NULL);
@@ -186,8 +165,7 @@ struct Pipeline* createColorPipeline(
 	if (colorPipeline == NULL)
 		return NULL;
 
-	enum GraphicsAPI api =
-		getWindowGraphicsAPI(window);
+	uint8_t api = getWindowGraphicsAPI(window);
 
 	void* handle;
 

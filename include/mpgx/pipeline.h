@@ -103,8 +103,8 @@ inline static GLuint createGlPipeline(
 }
 
 inline static GLenum getGlImageFilter(
-	enum ImageFilter imageFilter,
-	enum ImageFilter mipmapFilter,
+	uint8_t imageFilter,
+	uint8_t mipmapFilter,
 	bool mipmap)
 {
 	if (imageFilter == NEAREST_IMAGE_FILTER)
@@ -137,7 +137,7 @@ inline static GLenum getGlImageFilter(
 	}
 }
 inline static GLenum getGlImageWrap(
-	enum ImageWrap wrap)
+	uint8_t wrap)
 {
 	if (wrap == CLAMP_TO_EDGE_IMAGE_WRAP)
 		return GL_CLAMP_TO_EDGE;
@@ -151,7 +151,7 @@ struct Pipeline* createColorPipeline(
 	struct Window* window,
 	struct Shader* vertexShader,
 	struct Shader* fragmentShader,
-	enum DrawMode drawMode);
+	uint8_t drawMode);
 
 struct Shader* getColorPipelineVertexShader(
 	const struct Pipeline* pipeline);

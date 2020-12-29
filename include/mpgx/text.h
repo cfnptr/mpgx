@@ -63,7 +63,7 @@ struct Pipeline* createTextPipeline(
 	struct Window* window,
 	struct Shader* vertexShader,
 	struct Shader* fragmentShader,
-	enum DrawMode drawMode);
+	uint8_t drawMode);
 
 struct Shader* getTextPipelineVertexShader(
 	const struct Pipeline* pipeline);

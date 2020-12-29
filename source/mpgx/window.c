@@ -23,7 +23,7 @@ typedef void(*EndCommandRecord)(
 
 typedef void*(*CreateBuffer)(
 	struct Window*,
-	enum BufferType,
+	uint8_t,
 	const void*,
 	size_t,
 	bool);
@@ -47,8 +47,8 @@ typedef void(*DrawMeshCommand)(
 
 typedef void*(*CreateImage)(
 	struct Window*,
-	enum ImageType,
-	enum ImageFormat,
+	uint8_t,
+	uint8_t,
 	size_t,
 	size_t,
 	size_t,
@@ -79,7 +79,7 @@ typedef void(*DestroyFramebuffer)(
 	void*);
 typedef void*(*CreateShader)(
 	struct Window*,
-	enum ShaderType,
+	uint8_t,
 	const void*,
 	size_t);
 typedef void(*DestroyShader)(
@@ -90,7 +90,7 @@ typedef const void*(*GetShaderHandle)(
 
 struct Window
 {
-	enum GraphicsAPI api;
+	uint8_t api;
 	size_t maxImageSize;
 	UpdateWindow updateFunction;
 	void* updateArgument;
@@ -144,7 +144,7 @@ struct GlBuffer
 struct Buffer
 {
 	struct Window* window;
-	enum BufferType type;
+	uint8_t type;
 	size_t size;
 	bool constant;
 	void* handle;
@@ -157,7 +157,7 @@ struct GlMesh
 struct Mesh
 {
 	struct Window* window;
-	enum DrawIndex drawIndex;
+	uint8_t drawIndex;
 	size_t indexCount;
 	struct Buffer* vertexBuffer;
 	struct Buffer* indexBuffer;
@@ -174,8 +174,8 @@ struct GlImage
 struct Image
 {
 	struct Window* window;
-	enum ImageType type;
-	enum ImageFormat format;
+	uint8_t type;
+	uint8_t format;
 	size_t width;
 	size_t height;
 	size_t depth;
@@ -196,14 +196,14 @@ struct GlShader
 struct Shader
 {
 	struct Window* window;
-	enum ShaderType type;
+	uint8_t type;
 	void* handle;
 };
 
 struct Pipeline
 {
 	struct Window* window;
-	enum DrawMode drawMode;
+	uint8_t drawMode;
 	DestroyPipeline destroyFunction;
 	BindPipelineCommand bindFunction;
 	SetUniformsCommand setUniformsFunction;
@@ -239,7 +239,7 @@ void endGlCommandRecord(
 
 void* createGlBuffer(
 	struct Window* window,
-	enum BufferType _type,
+	uint8_t _type,
 	const void* data,
 	size_t size,
 	bool constant)
@@ -449,8 +449,8 @@ void drawGlMeshCommand(
 
 void* createGlImage(
 	struct Window* window,
-	enum ImageType _type,
-	enum ImageFormat _format,
+	uint8_t _type,
+	uint8_t _format,
 	size_t width,
 	size_t height,
 	size_t depth,
@@ -653,7 +653,7 @@ const void* getGlImageHandle(
 
 void* createGlShader(
 	struct Window* window,
-	enum ShaderType _type,
+	uint8_t _type,
 	const void* code,
 	size_t size)
 {
@@ -685,8 +685,7 @@ void* createGlShader(
 
 	// TODO: could be optimized by selecting
 	// createGlShader and createGlesShader
-	enum GraphicsAPI api =
-		getWindowGraphicsAPI(window);
+	uint8_t api = getWindowGraphicsAPI(window);
 
 	const char* sources[2];
 
@@ -833,7 +832,7 @@ void* getFtLibrary()
 }
 
 struct Window* createWindow(
-	enum GraphicsAPI api,
+	uint8_t api,
 	size_t width,
 	size_t height,
 	const char* title,
@@ -1281,7 +1280,7 @@ void destroyWindow(
 	free(window);
 }
 
-enum GraphicsAPI getWindowGraphicsAPI(
+uint8_t getWindowGraphicsAPI(
 	const struct Window* window)
 {
 	assert(window != NULL);
@@ -1417,7 +1416,7 @@ void endCommandRecord(
 
 struct Buffer* createBuffer(
 	struct Window* window,
-	enum BufferType type,
+	uint8_t type,
 	const void* data,
 	size_t size,
 	bool constant)
@@ -1518,7 +1517,7 @@ struct Window* getBufferWindow(
 	assert(buffer != NULL);
 	return buffer->window;
 }
-enum BufferType getBufferType(
+uint8_t getBufferType(
 	const struct Buffer* buffer)
 {
 	assert(buffer != NULL);
@@ -1559,7 +1558,7 @@ void setBufferData(
 
 struct Mesh* createMesh(
 	struct Window* window,
-	enum DrawIndex drawIndex,
+	uint8_t drawIndex,
 	size_t indexCount,
 	struct Buffer* vertexBuffer,
 	struct Buffer* indexBuffer)
@@ -1665,7 +1664,7 @@ struct Window* getMeshWindow(
 	assert(mesh != NULL);
 	return mesh->window;
 }
-enum DrawIndex getMeshDrawIndex(
+uint8_t getMeshDrawIndex(
 	const struct Mesh* mesh)
 {
 	assert(mesh != NULL);
@@ -1717,7 +1716,7 @@ struct Buffer* getMeshIndexBuffer(
 }
 void setMeshIndexBuffer(
 	struct Mesh* mesh,
-	enum DrawIndex drawIndex,
+	uint8_t drawIndex,
 	size_t indexCount,
 	struct Buffer* indexBuffer)
 {
@@ -1751,7 +1750,7 @@ void getMeshBuffers(
 }
 void setMeshBuffers(
 	struct Mesh* mesh,
-	enum DrawIndex drawIndex,
+	uint8_t drawIndex,
 	size_t indexCount,
 	struct Buffer* vertexBuffer,
 	struct Buffer* indexBuffer)
@@ -1792,8 +1791,8 @@ void drawMeshCommand(
 
 struct Image* createImage(
 	struct Window* window,
-	enum ImageType type,
-	enum ImageFormat format,
+	uint8_t type,
+	uint8_t format,
 	size_t width,
 	size_t height,
 	size_t depth,
@@ -1956,13 +1955,13 @@ struct Window* getImageWindow(
 	assert(image != NULL);
 	return image->window;
 }
-enum ImageType getImageType(
+uint8_t getImageType(
 	const struct Image* image)
 {
 	assert(image != NULL);
 	return image->type;
 }
-enum ImageFormat getImageFormat(
+uint8_t getImageFormat(
 	const struct Image* image)
 {
 	assert(image != NULL);
@@ -2001,7 +2000,7 @@ const void* getImageHandle(
 
 struct Shader* createShader(
 	struct Window* window,
-	enum ShaderType type,
+	uint8_t type,
 	const void* code,
 	size_t size)
 {
@@ -2059,7 +2058,7 @@ struct Shader* createShader(
 }
 struct Shader* readShaderFromFile(
 	struct Window* window,
-	enum ShaderType type,
+	uint8_t type,
 	const char* filePath)
 {
 	assert(window != NULL);
@@ -2164,7 +2163,7 @@ struct Window* getShaderWindow(
 	assert(shader != NULL);
 	return shader->window;
 }
-enum ShaderType getShaderType(
+uint8_t getShaderType(
 	const struct Shader* shader)
 {
 	assert(shader != NULL);
@@ -2179,7 +2178,7 @@ const void* getShaderHandle(
 
 struct Pipeline* createPipeline(
 	struct Window* window,
-	enum DrawMode drawMode,
+	uint8_t drawMode,
 	DestroyPipeline destroyFunction,
 	BindPipelineCommand bindFunction,
 	SetUniformsCommand setUniformsFunction,
@@ -2272,7 +2271,7 @@ struct Window* getPipelineWindow(
 	assert(pipeline != NULL);
 	return pipeline->window;
 }
-enum DrawMode getPipelineDrawMode(
+uint8_t getPipelineDrawMode(
 	const struct Pipeline* pipeline)
 {
 	assert(pipeline != NULL);

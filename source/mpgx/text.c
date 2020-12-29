@@ -1625,7 +1625,7 @@ struct Pipeline* createTextPipeline(
 	struct Window* window,
 	struct Shader* vertexShader,
 	struct Shader* fragmentShader,
-	enum DrawMode drawMode)
+	uint8_t drawMode)
 {
 	assert(window != NULL);
 	assert(vertexShader != NULL);
@@ -1639,8 +1639,7 @@ struct Pipeline* createTextPipeline(
 	if (textPipeline == NULL)
 		return NULL;
 
-	enum GraphicsAPI api =
-		getWindowGraphicsAPI(window);;
+	uint8_t api = getWindowGraphicsAPI(window);;
 
 	void* handle;
 

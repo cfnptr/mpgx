@@ -12,81 +12,78 @@
 
 enum GraphicsAPI
 {
-	VULKAN_GRAPHICS_API,
-	OPENGL_GRAPHICS_API,
-	OPENGL_ES_GRAPHICS_API
+	VULKAN_GRAPHICS_API = 0,
+	OPENGL_GRAPHICS_API = 1,
+	OPENGL_ES_GRAPHICS_API = 2,
 };
 
 enum BufferType
 {
-	VERTEX_BUFFER_TYPE,
-	INDEX_BUFFER_TYPE,
-	UNIFORM_BUFFER_TYPE,
+	VERTEX_BUFFER_TYPE = 0,
+	INDEX_BUFFER_TYPE = 1,
+	UNIFORM_BUFFER_TYPE = 2,
 };
 
 enum DrawIndex
 {
-	UINT16_DRAW_INDEX,
-	UINT32_DRAW_INDEX,
+	UINT32_DRAW_INDEX = 0,
+	UINT16_DRAW_INDEX = 1,
 };
 
 enum ImageType
 {
-	IMAGE_2D_TYPE,
-	IMAGE_3D_TYPE,
+	IMAGE_2D_TYPE = 0,
+	IMAGE_3D_TYPE = 1,
 };
 
 enum ImageFormat
 {
-	R8G8B8A8_UNORM_IMAGE_FORMAT,
-	R8G8B8A8_SRGB_IMAGE_FORMAT,
+	R8G8B8A8_UNORM_IMAGE_FORMAT = 0,
+	R8G8B8A8_SRGB_IMAGE_FORMAT = 1,
 };
 
 enum ImageFilter
 {
-	LINEAR_IMAGE_FILTER,
-	NEAREST_IMAGE_FILTER,
+	LINEAR_IMAGE_FILTER = 0,
+	NEAREST_IMAGE_FILTER = 1,
 };
 
 enum ImageWrap
 {
-	REPEAT_IMAGE_WRAP,
-	MIRRORED_REPEAT_IMAGE_WRAP,
-	CLAMP_TO_EDGE_IMAGE_WRAP,
+	REPEAT_IMAGE_WRAP = 0,
+	MIRRORED_REPEAT_IMAGE_WRAP = 1,
+	CLAMP_TO_EDGE_IMAGE_WRAP = 2,
 };
 
 enum ShaderType
 {
-	VERTEX_SHADER_TYPE,
-	FRAGMENT_SHADER_TYPE,
-	COMPUTE_SHADER_TYPE,
+	VERTEX_SHADER_TYPE = 0,
+	FRAGMENT_SHADER_TYPE = 1,
+	COMPUTE_SHADER_TYPE = 2,
 };
 
 enum DrawMode
 {
-	POINTS_DRAW_MODE,
-	LINE_STRIP_DRAW_MODE,
-	LINE_LOOP_DRAW_MODE,
-	LINES_DRAW_MODE,
-	TRIANGLE_STRIP_DRAW_MODE,
-	TRIANGLE_FAN_DRAW_MODE,
-	TRIANGLES_DRAW_MODE,
+	POINTS_DRAW_MODE = 0,
+	LINE_STRIP_DRAW_MODE = 1,
+	LINE_LOOP_DRAW_MODE = 2,
+	LINES_DRAW_MODE = 3,
+	TRIANGLE_STRIP_DRAW_MODE = 4,
+	TRIANGLE_FAN_DRAW_MODE = 5,
+	TRIANGLES_DRAW_MODE = 6,
 };
 
 enum CullFace
 {
-	BACK_ONLY_CULL_FACE,
-	FRONT_ONLY_CULL_FACE,
-	BACK_FRONT_CULL_FACE,
+	BACK_ONLY_CULL_FACE = 0,
+	FRONT_ONLY_CULL_FACE = 1,
+	BACK_FRONT_CULL_FACE = 2,
 };
 enum FrontFace
 {
-	CLOCKWISE_FRONT_FACE,
-	COUNTERCLOCKWISE_FRONT_FACE,
+	CLOCKWISE_FRONT_FACE = 0,
+	COUNTERCLOCKWISE_FRONT_FACE = 1,
 };
-
-// TODO:
-// Replace all enums with uint8_t or unit16_t, ...
 
 struct Window;
 struct Buffer;
@@ -115,7 +112,7 @@ void terminateGraphics();
 void* getFtLibrary();
 
 struct Window* createWindow(
-	enum GraphicsAPI api,
+	uint8_t api,
 	size_t width,
 	size_t height,
 	const char* title,
@@ -130,7 +127,7 @@ struct Window* createAnyWindow(
 void destroyWindow(
 	struct Window* window);
 
-enum GraphicsAPI getWindowGraphicsAPI(
+uint8_t getWindowGraphicsAPI(
 	const struct Window* window);
 size_t getWindowMaxImageSize(
 	const struct Window* window);
@@ -163,7 +160,7 @@ void endCommandRecord(
 
 struct Buffer* createBuffer(
 	struct Window* window,
-	enum BufferType type,
+	uint8_t type,
 	const void* data,
 	size_t size,
 	bool constant);
@@ -172,7 +169,7 @@ void destroyBuffer(
 
 struct Window* getBufferWindow(
 	const struct Buffer* buffer);
-enum BufferType getBufferType(
+uint8_t getBufferType(
 	const struct Buffer* buffer);
 size_t getBufferSize(
 	const struct Buffer* buffer);
@@ -187,7 +184,7 @@ void setBufferData(
 
 struct Mesh* createMesh(
 	struct Window* window,
-	enum DrawIndex drawIndex,
+	uint8_t drawIndex,
 	size_t indexCount,
 	struct Buffer* vertexBuffer,
 	struct Buffer* indexBuffer);
@@ -196,7 +193,7 @@ void destroyMesh(
 
 struct Window* getMeshWindow(
 	const struct Mesh* mesh);
-enum DrawIndex getMeshDrawIndex(
+uint8_t getMeshDrawIndex(
 	const struct Mesh* mesh);
 
 size_t getMeshIndexCount(
@@ -215,7 +212,7 @@ struct Buffer* getMeshIndexBuffer(
 	const struct Mesh* mesh);
 void setMeshIndexBuffer(
 	struct Mesh* mesh,
-	enum DrawIndex drawIndex,
+	uint8_t drawIndex,
 	size_t indexCount,
 	struct Buffer* indexBuffer);
 
@@ -225,7 +222,7 @@ void getMeshBuffers(
 	struct Buffer** indexBuffer);
 void setMeshBuffers(
 	struct Mesh* mesh,
-	enum DrawIndex drawIndex,
+	uint8_t drawIndex,
 	size_t indexCount,
 	struct Buffer* vertexBuffer,
 	struct Buffer* indexBuffer);
@@ -236,8 +233,8 @@ void drawMeshCommand(
 
 struct Image* createImage(
 	struct Window* window,
-	enum ImageType type,
-	enum ImageFormat format,
+	uint8_t type,
+	uint8_t format,
 	size_t width,
 	size_t height,
 	size_t depth,
@@ -261,9 +258,9 @@ void generateMipmap(
 
 struct Window* getImageWindow(
 	const struct Image* image);
-enum ImageType getImageType(
+uint8_t getImageType(
 	const struct Image* image);
-enum ImageFormat getImageFormat(
+uint8_t getImageFormat(
 	const struct Image* image);
 size_t getImageWidth(
 	const struct Image* image);
@@ -278,26 +275,26 @@ const void* getImageHandle(
 
 struct Shader* createShader(
 	struct Window* window,
-	enum ShaderType type,
+	uint8_t type,
 	const void* code,
 	size_t size);
 struct Shader* readShaderFromFile(
 	struct Window* window,
-	enum ShaderType type,
+	uint8_t type,
 	const char* filePath);
 void destroyShader(
 	struct Shader* shader);
 
 struct Window* getShaderWindow(
 	const struct Shader* shader);
-enum ShaderType getShaderType(
+uint8_t getShaderType(
 	const struct Shader* shader);
 const void* getShaderHandle(
 	const struct Shader* shader);
 
 struct Pipeline* createPipeline(
 	struct Window* window,
-	enum DrawMode drawMode,
+	uint8_t drawMode,
 	DestroyPipeline destroyFunction,
 	BindPipelineCommand bindFunction,
 	SetUniformsCommand setUniformsFunction,
@@ -307,7 +304,7 @@ void destroyPipeline(
 
 struct Window* getPipelineWindow(
 	const struct Pipeline* pipeline);
-enum DrawMode getPipelineDrawMode(
+uint8_t getPipelineDrawMode(
 	const struct Pipeline* pipeline);
 void* getPipelineHandle(
 	const struct Pipeline* pipeline);

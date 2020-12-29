@@ -1,15 +1,18 @@
 #pragma once
 #include "matrix.h"
+
 #include <math.h>
+#include <stdint.h>
 
 enum CameraType
 {
-	PERSPECTIVE_CAMERA_TYPE,
-	ORTHOGRAPHIC_CAMERA_TYPE,
+	PERSPECTIVE_CAMERA_TYPE = 0,
+	ORTHOGRAPHIC_CAMERA_TYPE = 1,
 };
 
 struct PerspectiveCamera
 {
+	uint8_t type;
 	float fieldOfView;
 	float aspectRatio;
 	float nearClipPlane;
@@ -17,6 +20,7 @@ struct PerspectiveCamera
 };
 struct OrthographicCamera
 {
+	uint8_t type;
 	float leftFrustum;
 	float rightFrustum;
 	float bottomFrustum;
@@ -31,20 +35,21 @@ union Camera
 	struct OrthographicCamera orthographic;
 };
 
-struct PerspectiveCamera createPerspectiveCamera(
+inline static struct PerspectiveCamera createPerspectiveCamera(
 	float fieldOfView,
 	float aspectRatio,
 	float nearClipPlane,
 	float farClipPlane)
 {
 	struct PerspectiveCamera camera;
+	camera.type = PERSPECTIVE_CAMERA_TYPE;
 	camera.fieldOfView = fieldOfView;
 	camera.aspectRatio = aspectRatio;
 	camera.nearClipPlane = nearClipPlane;
 	camera.farClipPlane = farClipPlane;
 	return camera;
 }
-struct OrthographicCamera createOrthographicCamera(
+inline static struct OrthographicCamera createOrthographicCamera(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,
@@ -53,6 +58,7 @@ struct OrthographicCamera createOrthographicCamera(
 	float farClipPlane)
 {
 	struct OrthographicCamera camera;
+	camera.type = ORTHOGRAPHIC_CAMERA_TYPE;
 	camera.leftFrustum = leftFrustum;
 	camera.rightFrustum = rightFrustum;
 	camera.bottomFrustum = bottomFrustum;

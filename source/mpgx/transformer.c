@@ -65,7 +65,6 @@ struct Transform* createTransform(
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
-	struct Matrix4F model,
 	struct Transform* parent)
 {
 	assert(transformer != NULL);
@@ -80,7 +79,7 @@ struct Transform* createTransform(
 	transform->position = position;
 	transform->scale = scale;
 	transform->rotation = rotation;
-	transform->model = model;
+	transform->model = createIdentityMatrix4F();
 	transform->parent = parent;
 
 	if (transformer->transformCount ==

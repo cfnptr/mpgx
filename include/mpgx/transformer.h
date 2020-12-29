@@ -14,7 +14,6 @@ struct Transform* createTransform(
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
-	struct Matrix4F model,
 	struct Transform* parent);
 void destroyTransform(
 	struct Transform* transform);

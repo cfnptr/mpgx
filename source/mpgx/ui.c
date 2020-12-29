@@ -179,8 +179,7 @@ union Camera getUiCamera(
 		&width,
 		&height);
 
-	union Camera camera;
-	camera.orthographic = createOrthographicCamera(
+	union Camera camera = createOrthographicCamera(
 		(float)positionX,
 		(float)positionX + width,
 		(float)positionY,

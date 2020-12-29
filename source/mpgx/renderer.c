@@ -12,8 +12,9 @@ struct Renderer
 {
 	struct Window* window;
 	bool ascendingSort;
-	struct Transform* transform;
 	struct Pipeline* pipeline;
+	struct Transformer* transformer;
+	struct Transform* transform;
 	CompareRender compareRenderFunction;
 	struct Render** renders;
 	struct Render** tmpRenders;
@@ -93,12 +94,16 @@ int descendCompareRender(
 struct Renderer* createRenderer(
 	struct Window* window,
 	bool ascendingSort,
-	struct Transform* transform,
-	struct Pipeline* pipeline)
+	struct Pipeline* pipeline,
+	struct Transformer* transformer,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Transform* parent)
 {
 	assert(window != NULL);
-	assert(transform != NULL);
 	assert(pipeline != NULL);
+	assert(transformer != NULL);
 
 	struct Renderer* renderer =
 		malloc(sizeof(struct Renderer));
@@ -117,11 +122,25 @@ struct Renderer* createRenderer(
 			descendCompareRender;
 	}
 
+	struct Transform* transform = createTransform(
+		transformer,
+		position,
+		scale,
+		rotation,
+		parent);
+
+	if (transform == NULL)
+	{
+		free(renderer);
+		return NULL;
+	}
+
 	struct Render** renders = malloc(
 		sizeof(struct Render*));
 
 	if (renders == NULL)
 	{
+		destroyTransform(transform);
 		free(renderer);
 		return NULL;
 	}
@@ -132,14 +151,16 @@ struct Renderer* createRenderer(
 	if (tmpRenders == NULL)
 	{
 		free(renders);
+		destroyTransform(transform);
 		free(renderer);
 		return NULL;
 	}
 
 	renderer->window = window;
 	renderer->ascendingSort = ascendingSort;
-	renderer->transform = transform;
 	renderer->pipeline = pipeline;
+	renderer->transformer = transformer;
+	renderer->transform = transform;
 	renderer->renders = renders;
 	renderer->tmpRenders = tmpRenders;
 	renderer->renderCapacity = 1;
@@ -181,7 +202,13 @@ bool getRendererAscendingSort(
 	assert(renderer != NULL);
 	return renderer->ascendingSort;
 }
-struct Transform* getRendererTransformer(
+struct Transformer* getRendererTransformer(
+	const struct Renderer* renderer)
+{
+	assert(renderer != NULL);
+	return renderer->transformer;
+}
+struct Transform* getRendererTransform(
 	const struct Renderer* renderer)
 {
 	assert(renderer != NULL);
@@ -321,13 +348,15 @@ void executeRenderer(
 struct Render* createRender(
 	struct Renderer* renderer,
 	bool _render,
-	struct Transform* transform,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Transform* parent,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,
 	void* handle)
 {
 	assert(renderer != NULL);
-	assert(transform != NULL);
 	assert(destroyFunction != NULL);
 	assert(renderFunction != NULL);
 
@@ -336,6 +365,19 @@ struct Render* createRender(
 
 	if (render == NULL)
 		return NULL;
+
+	struct Transform* transform = createTransform(
+		renderer->transformer,
+		position,
+		scale,
+		rotation,
+		parent);
+
+	if (transform == NULL)
+	{
+		free(render);
+		return NULL;
+	}
 
 	render->renderer = renderer;
 	render->render = _render;
@@ -354,6 +396,7 @@ struct Render* createRender(
 
 		if (renders == NULL)
 		{
+			destroyTransform(transform);
 			free(render);
 			return NULL;
 		}
@@ -366,6 +409,7 @@ struct Render* createRender(
 
 		if (tmpRenders == NULL)
 		{
+			destroyTransform(transform);
 			free(render);
 			return NULL;
 		}
@@ -402,6 +446,8 @@ void destroyRender(
 				renders[j - 1] = renders[j];
 
 			render->destroyFunction(render->handle);
+			destroyTransform(render->transform);
+
 			renderer->renderCount--;
 			free(render);
 			return;
@@ -476,11 +522,13 @@ void renderColorCommand(
 struct Render* createColorRender(
 	struct Renderer* renderer,
 	bool _render,
-	struct Transform* transform,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Transform* parent,
 	struct Mesh* mesh)
 {
 	assert(renderer != NULL);
-	assert(transform != NULL);
 	assert(mesh != NULL);
 	assert(renderer->window == getMeshWindow(mesh));
 
@@ -495,7 +543,10 @@ struct Render* createColorRender(
 	struct Render* render = createRender(
 		renderer,
 		_render,
-		transform,
+		position,
+		scale,
+		rotation,
+		parent,
 		destroyMeshRender,
 		renderColorCommand,
 		meshRender);
@@ -540,11 +591,13 @@ void renderTextCommand(
 struct Render* createTextRender(
 	struct Renderer* renderer,
 	bool _render,
-	struct Transform* transform,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Transform* parent,
 	struct Text* text)
 {
 	assert(renderer != NULL);
-	assert(transform != NULL);
 	assert(text != NULL);
 	assert(renderer->window == getTextWindow(text));
 
@@ -559,7 +612,10 @@ struct Render* createTextRender(
 	struct Render* render = createRender(
 		renderer,
 		_render,
-		transform,
+		position,
+		scale,
+		rotation,
+		parent,
 		destroyTextRender,
 		renderTextCommand,
 		textRender);

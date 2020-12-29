@@ -35,21 +35,24 @@ union Camera
 	struct OrthographicCamera orthographic;
 };
 
-inline static struct PerspectiveCamera createPerspectiveCamera(
+inline static union Camera createPerspectiveCamera(
 	float fieldOfView,
 	float aspectRatio,
 	float nearClipPlane,
 	float farClipPlane)
 {
-	struct PerspectiveCamera camera;
-	camera.type = PERSPECTIVE_CAMERA_TYPE;
-	camera.fieldOfView = fieldOfView;
-	camera.aspectRatio = aspectRatio;
-	camera.nearClipPlane = nearClipPlane;
-	camera.farClipPlane = farClipPlane;
+	struct PerspectiveCamera _camera;
+	_camera.type = PERSPECTIVE_CAMERA_TYPE;
+	_camera.fieldOfView = fieldOfView;
+	_camera.aspectRatio = aspectRatio;
+	_camera.nearClipPlane = nearClipPlane;
+	_camera.farClipPlane = farClipPlane;
+
+	union Camera camera;
+	camera.perspective = _camera;
 	return camera;
 }
-inline static struct OrthographicCamera createOrthographicCamera(
+inline static union Camera createOrthographicCamera(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,
@@ -57,14 +60,17 @@ inline static struct OrthographicCamera createOrthographicCamera(
 	float nearClipPlane,
 	float farClipPlane)
 {
-	struct OrthographicCamera camera;
-	camera.type = ORTHOGRAPHIC_CAMERA_TYPE;
-	camera.leftFrustum = leftFrustum;
-	camera.rightFrustum = rightFrustum;
-	camera.bottomFrustum = bottomFrustum;
-	camera.topFrustum = topFrustum;
-	camera.nearClipPlane = nearClipPlane;
-	camera.farClipPlane = farClipPlane;
+	struct OrthographicCamera _camera;
+	_camera.type = ORTHOGRAPHIC_CAMERA_TYPE;
+	_camera.leftFrustum = leftFrustum;
+	_camera.rightFrustum = rightFrustum;
+	_camera.bottomFrustum = bottomFrustum;
+	_camera.topFrustum = topFrustum;
+	_camera.nearClipPlane = nearClipPlane;
+	_camera.farClipPlane = farClipPlane;
+
+	union Camera camera;
+	camera.orthographic = _camera;
 	return camera;
 }
 

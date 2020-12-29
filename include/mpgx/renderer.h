@@ -20,8 +20,12 @@ typedef void(*RenderCommand)(
 struct Renderer* createRenderer(
 	struct Window* window,
 	bool ascendingSorting,
-	struct Transform* transform,
-	struct Pipeline* pipeline);
+	struct Pipeline* pipeline,
+	struct Transformer* transformer,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Transform* parent);
 void destroyRenderer(
 	struct Renderer* renderer);
 
@@ -29,7 +33,9 @@ struct Window* getRendererWindow(
 	const struct Renderer* renderer);
 bool getRendererAscendingSort(
 	const struct Renderer* renderer);
-struct Transform* getRendererTransformer(
+struct Transformer* getRendererTransformer(
+	const struct Renderer* renderer);
+struct Transform* getRendererTransform(
 	const struct Renderer* renderer);
 struct Pipeline* getRendererPipeline(
 	const struct Renderer* renderer);
@@ -41,7 +47,10 @@ void executeRenderer(
 struct Render* createRender(
 	struct Renderer* renderer,
 	bool render,
-	struct Transform* transform,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Transform* parent,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,
 	void* handle);
@@ -64,10 +73,16 @@ void setRenderRender(
 struct Render* createColorRender(
 	struct Renderer* renderer,
 	bool render,
-	struct Transform* transform,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Transform* parent,
 	struct Mesh* mesh);
 struct Render* createTextRender(
 	struct Renderer* renderer,
 	bool render,
-	struct Transform* transform,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Transform* parent,
 	struct Text* text);

@@ -401,6 +401,8 @@ void drawGlMeshCommand(
 		GL_ELEMENT_ARRAY_BUFFER,
 		glIndexBuffer->handle);
 
+	assertOpenGL();
+
 	pipeline->setUniformsFunction(
 		pipeline);
 

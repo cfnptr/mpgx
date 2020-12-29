@@ -71,7 +71,7 @@ inline static struct Matrix4F getQuaternionMatrixF4(
 	matrix.m30 = 0.0f;
 	matrix.m31 = 0.0f;
 	matrix.m32 = 0.0f;
-	matrix.m33 = 0.0f;
+	matrix.m33 = 1.0f;
 	return matrix;
 }
 

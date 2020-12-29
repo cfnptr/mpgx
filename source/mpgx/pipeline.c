@@ -115,6 +115,9 @@ void bindGlColorPipeline(
 	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_BLEND);
 
+	glFrontFace(GL_CW);
+	glCullFace(GL_BACK);
+
 	assertOpenGL();
 }
 void setGlColorPipelineUniforms(

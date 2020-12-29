@@ -312,6 +312,11 @@ void executeRenderer(
 		abort();
 	}
 
+	executeTransformer(
+		renderer->transformer);
+	bindPipelineCommand(
+		renderer->pipeline);
+
 	for (size_t i = 0; i < renderCount; i++)
 	{
 		struct Render* render = renders[i];
@@ -331,10 +336,7 @@ void executeRenderer(
 				mvp,
 				model);
 
-			RenderCommand renderFunction =
-				render->renderFunction;
-
-			renderFunction(
+			render->renderFunction(
 				render,
 				pipeline,
 				&model,

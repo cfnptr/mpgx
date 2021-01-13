@@ -27,8 +27,9 @@ enum BufferType
 
 enum DrawIndex
 {
-	UINT32_DRAW_INDEX = 0,
-	UINT16_DRAW_INDEX = 1,
+	UINT8_DRAW_INDEX = 0,
+	UINT32_DRAW_INDEX = 1,
+	UINT16_DRAW_INDEX = 2,
 };
 
 enum ImageType

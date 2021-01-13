@@ -40,6 +40,9 @@ struct TextRender
 	struct Text* text;
 };
 
+// TODO:
+//  Take parenting into the account when sorting.
+
 int ascendCompareRender(
 	const void* a,
 	const void* b)
@@ -312,8 +315,6 @@ void executeRenderer(
 		abort();
 	}
 
-	executeTransformer(
-		renderer->transformer);
 	bindPipelineCommand(
 		renderer->pipeline);
 

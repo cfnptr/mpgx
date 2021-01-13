@@ -6,6 +6,8 @@ struct Text;
 
 // TODO: add font loading from the memory
 
+// TODO: add full language font creating support
+
 struct Font* readFontFromFile(
 	const void* filePath);
 void destroyFont(

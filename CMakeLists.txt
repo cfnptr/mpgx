@@ -6,7 +6,7 @@ endif()
 
 project(mpgx 
 	VERSION 1.0.0
-	DESCRIPTION "An open-source multi-platform graphics library"
+	DESCRIPTION "Multi-platform graphics library"
 	HOMEPAGE_URL "https://github.com/cfnptr/mpgx"
 	LANGUAGES C)
 

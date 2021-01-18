@@ -1,20 +1,8 @@
 #pragma once
-#include "mpgx/camera.h"
-#include "mpgx/window.h"
-#include "mpgx/transformer.h"
+#include "mpgx/renderer.h"
 
 struct Ui;
 struct UiElement;
-//struct UiPanel;
-//struct UiImage;
-//struct UiText;
-//struct UiTextField;
-//struct UiButton;
-//struct UiRadioButton;
-//struct UiCheckbox;
-//struct UiToggle;
-//struct UiSlider;
-// TODO: other ui elements
 
 typedef void(*DestroyUiElement)(void*);
 typedef void(*UiEvent)(void*);
@@ -32,7 +20,6 @@ struct UiElement* createUiElement(
 	UiEvent cursorEnterFunction,
 	UiEvent cursorExitFunction,
 	UiEvent cursorStayFunction,
-	UiEvent mousePressFunction,
 	void* handle);
 void destroyUiElement(
 	struct UiElement* element);
@@ -42,3 +29,11 @@ union Camera getUiCamera(
 
 void executeUi(
 	struct Ui* ui);
+
+struct UiElement* createUiButton(
+	struct Ui* ui,
+	struct Render* render,
+	bool enabled,
+	UiEvent cursorEnterFunction,
+	UiEvent cursorExitFunction,
+	UiEvent cursorStayFunction);

@@ -78,6 +78,14 @@ struct Render* createColorRender(
 	struct Quaternion rotation,
 	struct Transform* parent,
 	struct Mesh* mesh);
+struct Render* createSpriteRender(
+	struct Renderer* renderer,
+	bool render,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Transform* parent,
+	struct Mesh* mesh);
 struct Render* createTextRender(
 	struct Renderer* renderer,
 	bool render,

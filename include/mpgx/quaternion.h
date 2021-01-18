@@ -74,6 +74,7 @@ inline static struct Matrix4F getQuaternionMatrixF4(
 	matrix.m33 = 1.0f;
 	return matrix;
 }
+// TODO: quaternion from matrix extraction
 
 inline static struct Quaternion dotQuaternion(
 	struct Quaternion a,

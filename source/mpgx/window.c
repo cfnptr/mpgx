@@ -1369,6 +1369,20 @@ void getWindowFramebufferSize(
 	*_width = (size_t)width;
 	*_height = (size_t)height;
 }
+void getWindowCursorPosition(
+	const struct Window* window,
+	double* x,
+	double* y)
+{
+	assert(window != NULL);
+	assert(x != NULL);
+	assert(y != NULL);
+
+	glfwGetCursorPos(
+		window->handle,
+		x,
+		y);
+}
 
 void makeWindowContextCurrent(
 	struct Window* window)

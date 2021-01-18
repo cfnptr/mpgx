@@ -149,6 +149,10 @@ void getWindowFramebufferSize(
 	const struct Window* window,
 	size_t* width,
 	size_t* height);
+void getWindowCursorPosition(
+	const struct Window* window,
+	double* x,
+	double* y);
 
 void makeWindowContextCurrent(
 	struct Window* window);

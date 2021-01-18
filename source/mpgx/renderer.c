@@ -17,7 +17,6 @@ struct Renderer
 	struct Transform* transform;
 	CompareRender compareRenderFunction;
 	struct Render** renders;
-	struct Render** tmpRenders;
 	size_t renderCapacity;
 	size_t renderCount;
 };
@@ -40,24 +39,27 @@ struct TextRender
 	struct Text* text;
 };
 
-// TODO:
-//  Take parenting into the account when sorting.
-
 int ascendCompareRender(
 	const void* a,
 	const void* b)
 {
-	struct Render* renderA =
+	struct Render* render =
 		(struct Render*)a;
+	struct Vector3F renderPosition = addVector3F(
+		getTransformPosition(render->transform),
+		getTranslationMatrix4F(getTransformModel(render->transform)));
 	float distanceA = distanceVector3F(
-		getTransformPosition(renderA->renderer->transform),
-		getTransformPosition(renderA->transform));
+		getTransformPosition(render->renderer->transform),
+		renderPosition);
 
-	struct Render* renderB =
+	render =
 		(struct Render*)b;
+	renderPosition = addVector3F(
+		getTransformPosition(render->transform),
+		getTranslationMatrix4F(getTransformModel(render->transform)));
 	float distanceB = distanceVector3F(
-		getTransformPosition(renderB->renderer->transform),
-		getTransformPosition(renderB->transform));
+		getTransformPosition(render->renderer->transform),
+		renderPosition);
 
 	if (distanceA < distanceB)
 		return -1;
@@ -72,17 +74,23 @@ int descendCompareRender(
 	const void* a,
 	const void* b)
 {
-	struct Render* renderA =
+	struct Render* render =
 		(struct Render*)a;
+	struct Vector3F renderPosition = addVector3F(
+		getTransformPosition(render->transform),
+		getTranslationMatrix4F(getTransformModel(render->transform)));
 	float distanceA = distanceVector3F(
-		getTransformPosition(renderA->renderer->transform),
-		getTransformPosition(renderA->transform));
+		getTransformPosition(render->renderer->transform),
+		renderPosition);
 
-	struct Render* renderB =
+	render =
 		(struct Render*)b;
+	renderPosition = addVector3F(
+		getTransformPosition(render->transform),
+		getTranslationMatrix4F(getTransformModel(render->transform)));
 	float distanceB = distanceVector3F(
-		getTransformPosition(renderB->renderer->transform),
-		getTransformPosition(renderB->transform));
+		getTransformPosition(render->renderer->transform),
+		renderPosition);
 
 	if (distanceA > distanceB)
 		return -1;
@@ -148,24 +156,12 @@ struct Renderer* createRenderer(
 		return NULL;
 	}
 
-	struct Render** tmpRenders = malloc(
-		sizeof(struct Render*));
-
-	if (tmpRenders == NULL)
-	{
-		free(renders);
-		destroyTransform(transform);
-		free(renderer);
-		return NULL;
-	}
-
 	renderer->window = window;
 	renderer->ascendingSort = ascendingSort;
 	renderer->pipeline = pipeline;
 	renderer->transformer = transformer;
 	renderer->transform = transform;
 	renderer->renders = renders;
-	renderer->tmpRenders = tmpRenders;
 	renderer->renderCapacity = 1;
 	renderer->renderCount = 0;
 	return renderer;
@@ -188,7 +184,6 @@ void destroyRenderer(
 		free(render);
 	}
 
-	free(renderer->tmpRenders);
 	free(renders);
 	free(renderer);
 }
@@ -234,18 +229,11 @@ void executeRenderer(
 		renderer->renderCount;
 	struct Render** renders =
 		renderer->renders;
-	struct Render** tmpRenders =
-		renderer->tmpRenders;
 	struct Pipeline* pipeline =
 		renderer->pipeline;
 
-	memcpy(
-		tmpRenders,
-		renders,
-		renderCount * sizeof(struct Render*));
-
 	qsort(
-		tmpRenders,
+		renders,
 		renderCount,
 		sizeof(struct Render*),
 		renderer->compareRenderFunction);
@@ -405,19 +393,6 @@ struct Render* createRender(
 		}
 
 		renderer->renders = renders;
-
-		struct Render** tmpRenders = realloc(
-			renderer->renders,
-			capacity * sizeof(struct Render*));
-
-		if (tmpRenders == NULL)
-		{
-			destroyTransform(transform);
-			free(render);
-			return NULL;
-		}
-
-		renderer->tmpRenders = tmpRenders;
 		renderer->renderCapacity = capacity;
 	}
 
@@ -429,8 +404,6 @@ struct Render* createRender(
 void destroyRender(
 	struct Render* render)
 {
-	assert(render->destroyFunction != NULL);
-
 	if (render == NULL)
 		return;
 
@@ -496,12 +469,9 @@ void setRenderRender(
 void destroyMeshRender(
 	void* render)
 {
-	if (render == NULL)
-		return;
-
-	struct MeshRender* textRender =
+	struct MeshRender* meshRender =
 		(struct MeshRender*)render;
-	free(textRender);
+	free(meshRender);
 }
 
 void renderColorCommand(
@@ -563,12 +533,68 @@ struct Render* createColorRender(
 	return render;
 }
 
+void renderSpriteCommand(
+	struct Render* render,
+	struct Pipeline* pipeline,
+	const struct Matrix4F* model,
+	const struct Matrix4F* view,
+	const struct Matrix4F* proj,
+	const struct Matrix4F* mvp)
+{
+	struct MeshRender* meshRender =
+		(struct MeshRender*)render->handle;
+
+	setSpritePipelineMVP(
+		pipeline,
+		*mvp);
+	drawMeshCommand(
+		meshRender->mesh,
+		pipeline);
+}
+struct Render* createSpriteRender(
+	struct Renderer* renderer,
+	bool _render,
+	struct Vector3F position,
+	struct Vector3F scale,
+	struct Quaternion rotation,
+	struct Transform* parent,
+	struct Mesh* mesh)
+{
+	assert(renderer != NULL);
+	assert(mesh != NULL);
+	assert(renderer->window == getMeshWindow(mesh));
+
+	struct MeshRender* meshRender = malloc(
+		sizeof(struct MeshRender));
+
+	if (meshRender == NULL)
+		return NULL;
+
+	meshRender->mesh = mesh;
+
+	struct Render* render = createRender(
+		renderer,
+		_render,
+		position,
+		scale,
+		rotation,
+		parent,
+		destroyMeshRender,
+		renderSpriteCommand,
+		meshRender);
+
+	if (render == NULL)
+	{
+		free(meshRender);
+		return NULL;
+	}
+
+	return render;
+}
+
 void destroyTextRender(
 	void* render)
 {
-	if (render == NULL)
-		return;
-
 	struct TextRender* textRender =
 		(struct TextRender*)render;
 	free(textRender);

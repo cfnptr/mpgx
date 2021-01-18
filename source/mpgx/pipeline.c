@@ -15,6 +15,23 @@ struct ColorPipeline
 	void* handle;
 };
 
+struct GlSpritePipeline
+{
+	GLenum handle;
+	GLint mvpLocation;
+	GLint colorLocation;
+	GLint imageLocation;
+};
+struct SpritePipeline
+{
+	struct Shader* vertexShader;
+	struct Shader* fragmentShader;
+	struct Image* image;
+	struct Matrix4F mvp;
+	struct Vector4F color;
+	void* handle;
+};
+
 inline static struct GlColorPipeline* createGlColorPipeline(
 	struct Window* window,
 	struct Shader* vertexShader,
@@ -161,6 +178,8 @@ struct Pipeline* createColorPipeline(
 	assert(fragmentShader != NULL);
 	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
+	assert(getShaderWindow(vertexShader) == window);
+	assert(getShaderWindow(fragmentShader) == window);
 
 	struct ColorPipeline* colorPipeline =
 		malloc(sizeof(struct ColorPipeline));
@@ -283,5 +302,352 @@ void setColorPipelineColor(
 
 	struct ColorPipeline* colorPipeline =
 		(struct ColorPipeline*)getPipelineHandle(pipeline);
+	colorPipeline->color = color;
+}
+
+inline static struct GlSpritePipeline* createGlSpritePipeline(
+	struct Window* window,
+	struct Shader* vertexShader,
+	struct Shader* fragmentShader)
+{
+	struct GlSpritePipeline* pipeline = malloc(
+		sizeof(struct GlSpritePipeline));
+
+	if (pipeline == NULL)
+		return NULL;
+
+	struct Shader* shaders[2] = {
+		vertexShader,
+		fragmentShader,
+	};
+
+	makeWindowContextCurrent(window);
+
+	GLuint handle = createGlPipeline(
+		shaders,
+		2);
+
+	if (handle == GL_ZERO)
+	{
+		free(pipeline);
+		return NULL;
+	}
+
+	GLint mvpLocation = glGetUniformLocation(
+		handle,
+		"u_MVP");
+
+	if (mvpLocation == -1)
+	{
+#ifndef NDEBUG
+		printf("Failed to get 'u_MVP' location\n");
+#endif
+
+		glDeleteProgram(handle);
+		free(pipeline);
+		return NULL;
+	}
+
+	GLint colorLocation = glGetUniformLocation(
+		handle,
+		"u_Color");
+
+	if (colorLocation == -1)
+	{
+#ifndef NDEBUG
+		printf("Failed to get 'u_Color' location\n");
+#endif
+
+		glDeleteProgram(handle);
+		free(pipeline);
+		return NULL;
+	}
+
+	GLint imageLocation = glGetUniformLocation(
+		handle,
+		"u_Image");
+
+	if (imageLocation == -1)
+	{
+#ifndef NDEBUG
+		printf("Failed to get 'u_Image' location\n");
+#endif
+
+		glDeleteProgram(handle);
+		free(pipeline);
+		return NULL;
+	}
+
+	assertOpenGL();
+
+	pipeline->handle = handle;
+	pipeline->mvpLocation = mvpLocation;
+	pipeline->colorLocation = colorLocation;
+	pipeline->imageLocation = imageLocation;
+	return pipeline;
+}
+void destroyGlSpritePipeline(
+	struct Window* window,
+	void* pipeline)
+{
+	struct SpritePipeline* spritePipeline =
+		(struct SpritePipeline*)pipeline;
+	struct GlSpritePipeline* glSpritePipeline =
+		(struct GlSpritePipeline*)spritePipeline->handle;
+
+	makeWindowContextCurrent(window);
+
+	glDeleteProgram(
+		glSpritePipeline->handle);
+
+	assertOpenGL();
+
+	free(glSpritePipeline);
+	free(spritePipeline);
+}
+void bindGlSpritePipeline(
+	struct Pipeline* pipeline)
+{
+	struct SpritePipeline* spritePipeline =
+		(struct SpritePipeline*)getPipelineHandle(pipeline);
+	struct GlSpritePipeline* glSpritePipeline =
+		(struct GlSpritePipeline*)spritePipeline->handle;
+
+	glUseProgram(glSpritePipeline->handle);
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_SCISSOR_TEST);
+	glDisable(GL_STENCIL_TEST);
+	glEnable(GL_BLEND);
+
+	glFrontFace(GL_CW);
+	glCullFace(GL_BACK);
+
+	glBlendFunc(
+		GL_SRC_ALPHA,
+		GL_ONE_MINUS_SRC_ALPHA);
+
+	assertOpenGL();
+}
+void setGlSpritePipelineUniforms(
+	struct Pipeline* pipeline)
+{
+	struct SpritePipeline* spritePipeline =
+		(struct SpritePipeline*)getPipelineHandle(pipeline);
+	struct GlSpritePipeline* glSpritePipeline =
+		(struct GlSpritePipeline*)spritePipeline->handle;
+
+	struct Image* image =
+		spritePipeline->image;
+	GLuint glImage = *(const GLuint*)
+		getImageHandle(image);
+
+	glActiveTexture(GL_TEXTURE0);
+
+	glBindTexture(
+		GL_TEXTURE_2D,
+		glImage);
+
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_WRAP_S,
+		GL_REPEAT);
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_WRAP_T,
+		GL_REPEAT);
+
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_MIN_FILTER,
+		GL_NEAREST);
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_MAG_FILTER,
+		GL_NEAREST);
+
+	glUniform1i(
+		glSpritePipeline->imageLocation,
+		0);
+
+	glUniformMatrix4fv(
+		glSpritePipeline->mvpLocation,
+		1,
+		GL_FALSE,
+		(const GLfloat*)&spritePipeline->mvp);
+	glUniform4fv(
+		glSpritePipeline->colorLocation,
+		1,
+		(const GLfloat*)&spritePipeline->color);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(
+		0,
+		2,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(struct Vector2F) * 2,
+		0);
+	glVertexAttribPointer(
+		1,
+		2,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(struct Vector2F) * 2,
+		(const void*)sizeof(struct Vector2F));
+
+	assertOpenGL();
+}
+struct Pipeline* createSpritePipeline(
+	struct Window* window,
+	struct Shader* vertexShader,
+	struct Shader* fragmentShader,
+	struct Image* image,
+	uint8_t drawMode)
+{
+	assert(window != NULL);
+	assert(vertexShader != NULL);
+	assert(fragmentShader != NULL);
+	assert(image != NULL);
+	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
+	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
+	assert(getShaderWindow(vertexShader) == window);
+	assert(getShaderWindow(fragmentShader) == window);
+	assert(getImageWindow(image) == window);
+
+	struct SpritePipeline* spritePipeline =
+		malloc(sizeof(struct SpritePipeline));
+
+	if (spritePipeline == NULL)
+		return NULL;
+
+	uint8_t api = getWindowGraphicsAPI(window);
+
+	void* handle;
+
+	DestroyPipeline destroyFunction;
+	BindPipelineCommand bindFunction;
+	SetUniformsCommand setUniformsFunction;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		handle = createGlSpritePipeline(
+			window,
+			vertexShader,
+			fragmentShader);
+
+		destroyFunction = destroyGlSpritePipeline;
+		bindFunction = bindGlSpritePipeline;
+		setUniformsFunction = setGlSpritePipelineUniforms;
+	}
+	else
+	{
+		free(spritePipeline);
+		return NULL;
+	}
+
+	if (handle == NULL)
+	{
+		free(spritePipeline);
+		return NULL;
+	}
+
+	spritePipeline->vertexShader = vertexShader;
+	spritePipeline->fragmentShader = fragmentShader;
+	spritePipeline->image = image;
+	spritePipeline->mvp = createIdentityMatrix4F();
+	spritePipeline->color = createValueVector4F(1.0f);
+	spritePipeline->handle = handle;
+
+	struct Pipeline* pipeline = createPipeline(
+		window,
+		drawMode,
+		destroyFunction,
+		bindFunction,
+		setUniformsFunction,
+		spritePipeline);
+
+	if (pipeline == NULL)
+	{
+		destroyGlSpritePipeline(
+			window,
+			handle);
+
+		free(spritePipeline);
+		return NULL;
+	}
+
+	return pipeline;
+}
+
+struct Shader* getSpritePipelineVertexShader(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct SpritePipeline* spritePipeline =
+		(struct SpritePipeline*)getPipelineHandle(pipeline);
+	return spritePipeline->vertexShader;
+}
+struct Shader* getSpritePipelineFragmentShader(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct SpritePipeline* spritePipeline =
+		(struct SpritePipeline*)getPipelineHandle(pipeline);
+	return spritePipeline->fragmentShader;
+}
+struct Image* getSpritePipelineImage(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct SpritePipeline* spritePipeline =
+		(struct SpritePipeline*)getPipelineHandle(pipeline);
+	return spritePipeline->image;
+}
+
+struct Matrix4F getSpritePipelineMVP(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct SpritePipeline* spritePipeline =
+		(struct SpritePipeline*)getPipelineHandle(pipeline);
+	return spritePipeline->mvp;
+}
+void setSpritePipelineMVP(
+	struct Pipeline* pipeline,
+	struct Matrix4F mvp)
+{
+	assert(pipeline != NULL);
+
+	struct SpritePipeline* colorPipeline =
+		(struct SpritePipeline*)getPipelineHandle(pipeline);
+	colorPipeline->mvp = mvp;
+}
+
+struct Vector4F getSpritePipelineColor(
+	const struct Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+
+	struct SpritePipeline* colorPipeline =
+		(struct SpritePipeline*)getPipelineHandle(pipeline);
+	return colorPipeline->color;
+}
+void setSpritePipelineColor(
+	struct Pipeline* pipeline,
+	struct Vector4F color)
+{
+	assert(pipeline != NULL);
+
+	struct SpritePipeline* colorPipeline =
+		(struct SpritePipeline*)getPipelineHandle(pipeline);
 	colorPipeline->color = color;
 }

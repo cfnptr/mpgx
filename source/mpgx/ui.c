@@ -17,9 +17,29 @@ struct UiElement
 	UiEvent cursorEnterFunction;
 	UiEvent cursorExitFunction;
 	UiEvent cursorStayFunction;
-	UiEvent mousePressFunction;
 	void* handle;
 };
+struct UiPanel
+{
+	struct Render* render;
+};
+struct UiButton
+{
+	bool enabled;
+	struct Render* defaultRender;
+	struct Render* highlightedRender;
+	struct Render* pressedRender;
+	struct Render* disabledRender;
+};
+//struct UiImage;
+//struct UiText;
+//struct UiTextField;
+//struct UiButton;
+//struct UiRadioButton;
+//struct UiCheckbox;
+//struct UiToggle;
+//struct UiSlider;
+// TODO: other ui elements
 
 struct Ui* createUi(
 	struct Window* window)
@@ -77,7 +97,6 @@ struct UiElement* createUiElement(
 	UiEvent cursorEnterFunction,
 	UiEvent cursorExitFunction,
 	UiEvent cursorStayFunction,
-	UiEvent mousePressFunction,
 	void* handle)
 {
 	assert(ui != NULL);
@@ -86,7 +105,6 @@ struct UiElement* createUiElement(
 	assert(cursorEnterFunction != NULL);
 	assert(cursorExitFunction != NULL);
 	assert(cursorStayFunction != NULL);
-	assert(mousePressFunction != NULL);
 
 	struct UiElement* element = malloc(
 		sizeof(struct UiElement));
@@ -101,7 +119,6 @@ struct UiElement* createUiElement(
 	element->cursorEnterFunction = cursorEnterFunction;
 	element->cursorExitFunction = cursorExitFunction;
 	element->cursorStayFunction = cursorStayFunction;
-	element->mousePressFunction = mousePressFunction;
 	element->handle = handle;
 
 	if (ui->elementCount == ui->elementCapacity)
@@ -165,13 +182,6 @@ union Camera getUiCamera(
 	struct Window* window =
 		ui->window;
 
-	size_t positionX, positionY;
-
-	getWindowPosition(
-		window,
-		&positionX,
-		&positionY);
-
 	size_t width, height;
 
 	getWindowSize(
@@ -180,10 +190,10 @@ union Camera getUiCamera(
 		&height);
 
 	union Camera camera = createOrthographicCamera(
-		(float)positionX,
-		(float)positionX + width,
-		(float)positionY,
-		(float)positionY + height,
+		0.0f,
+		(float)width,
+		0.0f,
+		(float)height,
 		0.0f,
 		1.0f);
 	return camera;
@@ -192,5 +202,72 @@ union Camera getUiCamera(
 void executeUi(
 	struct Ui* ui)
 {
+	assert(ui != NULL);
 
+	double cursorX, cursorY;
+
+	getWindowCursorPosition(
+		ui->window,
+		&cursorX,
+		&cursorY);
+
+	size_t elementCount = ui->elementCount;
+
+	for (size_t i = 0; i < elementCount; i++)
+	{
+		if (ui->elements[i]->update == false)
+			continue;
+
+		struct UiElement* element = ui->elements[i];
+
+
+	}
+}
+
+void destroyUiPanel(void* panel)
+{
+	struct UiPanel* uiPanel =
+		(struct UiPanel*)panel;
+	free(uiPanel);
+}
+// TODO:
+struct UiElement* createUiButton(
+	struct Ui* ui,
+	struct Render* render,
+	bool enabled,
+	UiEvent cursorEnterFunction,
+	UiEvent cursorExitFunction,
+	UiEvent cursorStayFunction)
+{
+	assert(ui != NULL);
+	assert(render != NULL);
+
+	assert(getRendererWindow(
+		getRenderRenderer(render)) == ui->window);
+
+	struct UiPanel* panel = malloc(
+		sizeof(struct UiPanel));
+
+	if (panel == NULL)
+		return NULL;
+
+	panel->render = render;
+
+	struct UiElement* element = createUiElement(
+		ui,
+		getRenderTransform(render),
+		enabled,
+		destroyUiPanel,
+		cursorEnterFunction,
+		cursorExitFunction,
+		cursorStayFunction,
+		panel);
+
+	if (element == NULL)
+	{
+		free(panel);
+		return NULL;
+	}
+
+	return element;
 }

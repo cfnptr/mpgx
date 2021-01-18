@@ -8,7 +8,7 @@ struct Text;
 
 // TODO: add full language font creating support
 
-struct Font* readFontFromFile(
+struct Font* readFontFile(
 	const void* filePath);
 void destroyFont(
 	struct Font* font);
@@ -60,7 +60,6 @@ void drawTextCommand(
 // TODO:
 // get uniChar offset for text cursor
 
-// TODO: add custom text pipeline support
 struct Pipeline* createTextPipeline(
 	struct Window* window,
 	struct Shader* vertexShader,

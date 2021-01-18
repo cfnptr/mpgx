@@ -48,13 +48,13 @@ struct TextPipeline
 {
 	struct Shader* vertexShader;
 	struct Shader* fragmentShader;
+	struct Image* image;
 	struct Matrix4F mvp;
 	struct Vector4F color;
-	struct Image* image;
 	void* handle;
 };
 
-struct Font* readFontFromFile(
+struct Font* readFontFile(
 	const void* filePath)
 {
 	assert(filePath != NULL);
@@ -1632,6 +1632,8 @@ struct Pipeline* createTextPipeline(
 	assert(fragmentShader != NULL);
 	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
+	assert(getShaderWindow(vertexShader) == window);
+	assert(getShaderWindow(fragmentShader) == window);
 
 	struct TextPipeline* textPipeline =
 		malloc(sizeof(struct TextPipeline));
@@ -1673,9 +1675,9 @@ struct Pipeline* createTextPipeline(
 
 	textPipeline->vertexShader = vertexShader;
 	textPipeline->fragmentShader = fragmentShader;
+	textPipeline->image = NULL;
 	textPipeline->mvp = createIdentityMatrix4F();
 	textPipeline->color = createValueVector4F(1.0f);
-	textPipeline->image = NULL;
 	textPipeline->handle = handle;
 
 	struct Pipeline* pipeline = createPipeline(

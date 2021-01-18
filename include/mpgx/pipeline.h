@@ -169,3 +169,29 @@ struct Vector4F getColorPipelineColor(
 void setColorPipelineColor(
 	struct Pipeline* pipeline,
 	struct Vector4F color);
+
+struct Pipeline* createSpritePipeline(
+	struct Window* window,
+	struct Shader* vertexShader,
+	struct Shader* fragmentShader,
+	struct Image* image,
+	uint8_t drawMode);
+
+struct Shader* getSpritePipelineVertexShader(
+	const struct Pipeline* pipeline);
+struct Shader* getSpritePipelineFragmentShader(
+	const struct Pipeline* pipeline);
+struct Image* getSpritePipelineImage(
+	const struct Pipeline* pipeline);
+
+struct Matrix4F getSpritePipelineMVP(
+	const struct Pipeline* pipeline);
+void setSpritePipelineMVP(
+	struct Pipeline* pipeline,
+	struct Matrix4F mvp);
+
+struct Vector4F getSpritePipelineColor(
+	const struct Pipeline* pipeline);
+void setSpritePipelineColor(
+	struct Pipeline* pipeline,
+	struct Vector4F color);

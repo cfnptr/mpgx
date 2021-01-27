@@ -11,82 +11,77 @@
 #define OPENGL_ES_SHADER_HEADER \
 "#version 300 es\n"
 
-#if __linux__ || __APPLE__
-#define fseek(stream, offset, origin) \
-fseeko(stream, offset, origin)
-#endif
-
 typedef void(*BeginCommandRecord)(
-	struct Window*);
+	struct Window* window);
 typedef void(*EndCommandRecord)(
-	struct Window*);
+	struct Window* window);
 
 typedef void*(*CreateBuffer)(
-	struct Window*,
-	uint8_t,
-	const void*,
-	size_t,
-	bool);
+	struct Window* window,
+	uint8_t type,
+	const void* data,
+	size_t size,
+	bool constant);
 typedef void(*DestroyBuffer)(
-	struct Window*,
-	void*);
+	struct Window* window,
+	void* buffer);
 typedef void(*SetBufferData)(
-	struct Buffer*,
-	const void*,
-	size_t,
-	size_t);
+	struct Buffer* buffer,
+	const void* data,
+	size_t size,
+	size_t offset);
 
 typedef void*(*CreateMesh)(
-	struct Window*);
+	struct Window* window);
 typedef void(*DestroyMesh)(
-	struct Window*,
-	void*);
+	struct Window* window,
+	void* mesh);
 typedef void(*DrawMeshCommand)(
-	struct Mesh*,
-	struct Pipeline*);
+	struct Mesh* mesh,
+	struct Pipeline* pipeline);
 
 typedef void*(*CreateImage)(
-	struct Window*,
-	uint8_t,
-	uint8_t,
-	size_t,
-	size_t,
-	size_t,
-	const void*,
-	bool);
+	struct Window* window,
+	uint8_t type,
+	uint8_t format,
+	size_t width,
+	size_t height,
+	size_t depth,
+	const void* pixels,
+	bool useMipmapping);
 typedef void(*DestroyImage)(
-	struct Window*,
-	void*);
+	struct Window* window,
+	void* image);
 typedef void(*SetImageData)(
-	struct Image*,
-	const void*,
-	size_t,
-	size_t,
-	size_t,
-	size_t,
-	size_t,
-	size_t,
-	size_t);
+	struct Image* image,
+	const void* data,
+	size_t width,
+	size_t height,
+	size_t depth,
+	size_t widthOffset,
+	size_t heightOffset,
+	size_t depthOffset,
+	size_t mipmapLevel);
 typedef void(*GenerateMipmap)(
-	struct Image*);
+	struct Image* image);
 typedef const void*(*GetImageHandle)(
-	const struct Image*);
+	const struct Image* image);
 
 typedef void*(*CreateFramebuffer)(
-	struct Window*);
+	struct Window* window);
 typedef void(*DestroyFramebuffer)(
-	struct Window*,
-	void*);
+	struct Window* window,
+	void* framebuffer);
 typedef void*(*CreateShader)(
-	struct Window*,
-	uint8_t,
-	const void*,
-	size_t);
+	struct Window* window,
+	uint8_t type,
+	const void* code,
+	size_t size);
 typedef void(*DestroyShader)(
-	struct Window*,
-	void*);
+	struct Window* window,
+	void* shader);
 typedef const void*(*GetShaderHandle)(
-	const struct Shader*);
+	const struct Shader* shader);
 
 struct Window
 {

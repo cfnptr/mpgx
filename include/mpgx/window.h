@@ -98,15 +98,16 @@ struct Pipeline;
 //struct Query
 //struct Sampler?
 
-typedef void(*UpdateWindow)(void*);
+typedef void(*UpdateWindow)(
+	void* argument);
 
 typedef void(*DestroyPipeline)(
-	struct Window*,
-	void*);
+	struct Window* window,
+	void* pipeline);
 typedef void(*BindPipelineCommand)(
-	struct Pipeline*);
+	struct Pipeline* pipeline);
 typedef void(*SetUniformsCommand)(
-	struct Pipeline*);
+	struct Pipeline* pipeline);
 
 bool initializeGraphics();
 void terminateGraphics();

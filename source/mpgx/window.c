@@ -179,7 +179,7 @@ struct Image
 	size_t width;
 	size_t height;
 	size_t depth;
-	bool mipmap;
+	bool useMipmapping;
 	void* handle;
 };
 
@@ -832,6 +832,10 @@ void terminateGraphics()
 
 	glfwTerminate();
 	graphicsInitialized = false;
+}
+bool isGraphicsInitialized()
+{
+	return graphicsInitialized;
 }
 
 void* getFtLibrary()
@@ -1551,7 +1555,7 @@ size_t getBufferSize(
 	assert(buffer != NULL);
 	return buffer->size;
 }
-bool getBufferConstant(
+bool isBufferConstant(
 	const struct Buffer* buffer)
 {
 	assert(buffer != NULL);
@@ -1847,7 +1851,7 @@ struct Image* createImage(
 	size_t height,
 	size_t depth,
 	const void* pixels,
-	bool mipmap)
+	bool useMipmapping)
 {
 	assert(window != NULL);
 	assert(width != 0);
@@ -1879,7 +1883,7 @@ struct Image* createImage(
 		height,
 		depth,
 		pixels,
-		mipmap);
+		useMipmapping);
 
 	if (handle == NULL)
 	{
@@ -1893,7 +1897,7 @@ struct Image* createImage(
 	image->width = width;
 	image->height = height;
 	image->depth = depth;
-	image->mipmap = mipmap;
+	image->useMipmapping = useMipmapping;
 	image->handle = handle;
 
 	if (window->imageCount == window->imageCapacity)
@@ -1990,11 +1994,11 @@ void setImageData(
 		depthOffset,
 		mipmapLevel);
 }
-void generateMipmap(
+void generateMipmaps(
 	struct Image* image)
 {
 	assert(image != NULL);
-	assert(image->mipmap == true);
+	assert(image->useMipmapping == true);
 	assert(image->window->recording == false);
 	image->window->generateMipmapFunction(image);
 }
@@ -2035,11 +2039,11 @@ size_t getImageDepth(
 	assert(image != NULL);
 	return image->depth;
 }
-bool getImageMipmap(
+bool isImageUseMipmapping(
 	const struct Image* image)
 {
 	assert(image != NULL);
-	return image->mipmap;
+	return image->useMipmapping;
 }
 const void* getImageHandle(
 	const struct Image* image)

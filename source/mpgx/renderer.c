@@ -194,7 +194,7 @@ struct Window* getRendererWindow(
 	assert(renderer != NULL);
 	return renderer->window;
 }
-bool getRendererAscendingSort(
+bool isRendererAscendingSort(
 	const struct Renderer* renderer)
 {
 	assert(renderer != NULL);

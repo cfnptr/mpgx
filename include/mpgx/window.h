@@ -110,6 +110,7 @@ typedef void(*SetUniformsCommand)(
 
 bool initializeGraphics();
 void terminateGraphics();
+bool isGraphicsInitialized();
 
 void* getFtLibrary();
 
@@ -179,7 +180,7 @@ uint8_t getBufferType(
 	const struct Buffer* buffer);
 size_t getBufferSize(
 	const struct Buffer* buffer);
-bool getBufferConstant(
+bool isBufferConstant(
 	const struct Buffer* buffer);
 
 void setBufferData(
@@ -245,7 +246,7 @@ struct Image* createImage(
 	size_t height,
 	size_t depth,
 	const void* pixels,
-	bool mipmap);
+	bool useMipmap);
 void destroyImage(
 	struct Image* image);
 
@@ -259,7 +260,7 @@ void setImageData(
 	size_t heightOffset,
 	size_t depthOffset,
 	size_t mipmapLevel);
-void generateMipmap(
+void generateMipmaps(
 	struct Image* image);
 
 struct Window* getImageWindow(
@@ -274,7 +275,7 @@ size_t getImageHeight(
 	const struct Image* image);
 size_t getImageDepth(
 	const struct Image* image);
-bool getImageMipmap(
+bool isImageUseMipmapping(
 	const struct Image* image);
 const void* getImageHandle(
 	const struct Image* image);

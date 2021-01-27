@@ -31,7 +31,7 @@ void destroyRenderer(
 
 struct Window* getRendererWindow(
 	const struct Renderer* renderer);
-bool getRendererAscendingSort(
+bool isRendererAscendingSort(
 	const struct Renderer* renderer);
 struct Transformer* getRendererTransformer(
 	const struct Renderer* renderer);

@@ -873,6 +873,7 @@ struct Window* createWindow(
 			GLFW_NO_API);
 
 		// TODO: add Vulkan support
+		free(window);
 		return NULL;
 	}
 	else if (api == OPENGL_GRAPHICS_API)
@@ -2105,7 +2106,7 @@ struct Shader* createShader(
 	window->shaderCount++;
 	return shader;
 }
-struct Shader* readShaderFromFile(
+struct Shader* createShaderFromFile(
 	struct Window* window,
 	uint8_t type,
 	const char* filePath)

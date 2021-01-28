@@ -45,6 +45,7 @@ configure_file(
 add_library(mpgx STATIC
 	source/glad/glad.c
 	source/mpgx/pipeline.c
+	source/mpgx/render.c
 	source/mpgx/renderer.c
 	source/mpgx/text.c
 	source/mpgx/transformer.c

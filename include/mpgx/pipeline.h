@@ -174,14 +174,11 @@ struct Pipeline* createSpritePipeline(
 	struct Window* window,
 	struct Shader* vertexShader,
 	struct Shader* fragmentShader,
-	struct Image* image,
 	uint8_t drawMode);
 
 struct Shader* getSpritePipelineVertexShader(
 	const struct Pipeline* pipeline);
 struct Shader* getSpritePipelineFragmentShader(
-	const struct Pipeline* pipeline);
-struct Image* getSpritePipelineImage(
 	const struct Pipeline* pipeline);
 
 struct Matrix4F getSpritePipelineMVP(

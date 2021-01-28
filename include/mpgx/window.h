@@ -286,7 +286,7 @@ struct Shader* createShader(
 	uint8_t type,
 	const void* code,
 	size_t size);
-struct Shader* readShaderFromFile(
+struct Shader* createShaderFromFile(
 	struct Window* window,
 	uint8_t type,
 	const char* filePath);

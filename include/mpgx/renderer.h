@@ -8,14 +8,14 @@ struct Renderer;
 struct Render;
 
 typedef void(*DestroyRender)(
-	void*);
+	void* render);
 typedef void(*RenderCommand)(
-	struct Render*,
-	struct Pipeline*,
-	const struct Matrix4F*,
-	const struct Matrix4F*,
-	const struct Matrix4F*,
-	const struct Matrix4F*);
+	struct Render* render,
+	struct Pipeline* pipeline,
+	const struct Matrix4F* model,
+	const struct Matrix4F* view,
+	const struct Matrix4F* proj,
+	const struct Matrix4F* mvp);
 
 struct Renderer* createRenderer(
 	struct Window* window,
@@ -46,7 +46,7 @@ void executeRenderer(
 
 struct Render* createRender(
 	struct Renderer* renderer,
-	bool render,
+	bool draw,
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
@@ -64,33 +64,8 @@ struct Transform* getRenderTransform(
 struct Renderer* getRenderHandle(
 	const struct Render* render);
 
-bool getRenderRender(
+bool getRenderDraw(
 	const struct Render* render);
-void setRenderRender(
+void setRenderDraw(
 	struct Render* render,
 	bool value);
-
-struct Render* createColorRender(
-	struct Renderer* renderer,
-	bool render,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
-	struct Transform* parent,
-	struct Mesh* mesh);
-struct Render* createSpriteRender(
-	struct Renderer* renderer,
-	bool render,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
-	struct Transform* parent,
-	struct Mesh* mesh);
-struct Render* createTextRender(
-	struct Renderer* renderer,
-	bool render,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
-	struct Transform* parent,
-	struct Text* text);

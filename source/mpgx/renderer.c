@@ -1,5 +1,4 @@
 #include "mpgx/renderer.h"
-#include "mpgx/pipeline.h"
 
 #include <assert.h>
 #include <string.h>
@@ -23,20 +22,11 @@ struct Renderer
 struct Render
 {
 	struct Renderer* renderer;
-	bool render;
+	bool draw;
 	struct Transform* transform;
 	DestroyRender destroyFunction;
 	RenderCommand renderFunction;
 	void* handle;
-};
-
-struct MeshRender
-{
-	struct Mesh* mesh;
-};
-struct TextRender
-{
-	struct Text* text;
 };
 
 int ascendCompareRender(
@@ -115,6 +105,7 @@ struct Renderer* createRenderer(
 	assert(window != NULL);
 	assert(pipeline != NULL);
 	assert(transformer != NULL);
+	assert(getPipelineWindow(pipeline) == window);
 
 	struct Renderer* renderer =
 		malloc(sizeof(struct Renderer));
@@ -310,7 +301,7 @@ void executeRenderer(
 	{
 		struct Render* render = renders[i];
 
-		if (render->render == true)
+		if (render->draw == true)
 		{
 			assert(render->transform != NULL);
 			assert(render->renderFunction != NULL);
@@ -338,7 +329,7 @@ void executeRenderer(
 
 struct Render* createRender(
 	struct Renderer* renderer,
-	bool _render,
+	bool draw,
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
@@ -351,8 +342,8 @@ struct Render* createRender(
 	assert(destroyFunction != NULL);
 	assert(renderFunction != NULL);
 
-	struct Render* render =
-		malloc(sizeof(struct Render));
+	struct Render* render = malloc(
+		sizeof(struct Render));
 
 	if (render == NULL)
 		return NULL;
@@ -370,8 +361,8 @@ struct Render* createRender(
 		return NULL;
 	}
 
+	render->draw = draw;
 	render->renderer = renderer;
-	render->render = _render;
 	render->transform = transform;
 	render->destroyFunction = destroyFunction;
 	render->renderFunction = renderFunction;
@@ -452,208 +443,16 @@ struct Renderer* getRenderHandle(
 	return render->handle;
 }
 
-bool getRenderRender(
+bool getRenderDraw(
 	const struct Render* render)
 {
 	assert(render != NULL);
-	return render->render;
+	return render->draw;
 }
-void setRenderRender(
+void setRenderDraw(
 	struct Render* render,
 	bool value)
 {
 	assert(render != NULL);
-	render->render = value;
-}
-
-void destroyMeshRender(
-	void* render)
-{
-	struct MeshRender* meshRender =
-		(struct MeshRender*)render;
-	free(meshRender);
-}
-
-void renderColorCommand(
-	struct Render* render,
-	struct Pipeline* pipeline,
-	const struct Matrix4F* model,
-	const struct Matrix4F* view,
-	const struct Matrix4F* proj,
-	const struct Matrix4F* mvp)
-{
-	struct MeshRender* meshRender =
-		(struct MeshRender*)render->handle;
-
-	setColorPipelineMVP(
-		pipeline,
-		*mvp);
-	drawMeshCommand(
-		meshRender->mesh,
-		pipeline);
-}
-struct Render* createColorRender(
-	struct Renderer* renderer,
-	bool _render,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
-	struct Transform* parent,
-	struct Mesh* mesh)
-{
-	assert(renderer != NULL);
-	assert(mesh != NULL);
-	assert(renderer->window == getMeshWindow(mesh));
-
-	struct MeshRender* meshRender = malloc(
-		sizeof(struct MeshRender));
-
-	if (meshRender == NULL)
-		return NULL;
-
-	meshRender->mesh = mesh;
-
-	struct Render* render = createRender(
-		renderer,
-		_render,
-		position,
-		scale,
-		rotation,
-		parent,
-		destroyMeshRender,
-		renderColorCommand,
-		meshRender);
-
-	if (render == NULL)
-	{
-		free(meshRender);
-		return NULL;
-	}
-
-	return render;
-}
-
-void renderSpriteCommand(
-	struct Render* render,
-	struct Pipeline* pipeline,
-	const struct Matrix4F* model,
-	const struct Matrix4F* view,
-	const struct Matrix4F* proj,
-	const struct Matrix4F* mvp)
-{
-	struct MeshRender* meshRender =
-		(struct MeshRender*)render->handle;
-
-	setSpritePipelineMVP(
-		pipeline,
-		*mvp);
-	drawMeshCommand(
-		meshRender->mesh,
-		pipeline);
-}
-struct Render* createSpriteRender(
-	struct Renderer* renderer,
-	bool _render,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
-	struct Transform* parent,
-	struct Mesh* mesh)
-{
-	assert(renderer != NULL);
-	assert(mesh != NULL);
-	assert(renderer->window == getMeshWindow(mesh));
-
-	struct MeshRender* meshRender = malloc(
-		sizeof(struct MeshRender));
-
-	if (meshRender == NULL)
-		return NULL;
-
-	meshRender->mesh = mesh;
-
-	struct Render* render = createRender(
-		renderer,
-		_render,
-		position,
-		scale,
-		rotation,
-		parent,
-		destroyMeshRender,
-		renderSpriteCommand,
-		meshRender);
-
-	if (render == NULL)
-	{
-		free(meshRender);
-		return NULL;
-	}
-
-	return render;
-}
-
-void destroyTextRender(
-	void* render)
-{
-	struct TextRender* textRender =
-		(struct TextRender*)render;
-	free(textRender);
-}
-void renderTextCommand(
-	struct Render* render,
-	struct Pipeline* pipeline,
-	const struct Matrix4F* model,
-	const struct Matrix4F* view,
-	const struct Matrix4F* proj,
-	const struct Matrix4F* mvp)
-{
-	struct TextRender* textRender =
-		(struct TextRender*)render->handle;
-
-	setTextPipelineMVP(
-		pipeline,
-		*mvp);
-	drawTextCommand(
-		textRender->text,
-		pipeline);
-}
-struct Render* createTextRender(
-	struct Renderer* renderer,
-	bool _render,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
-	struct Transform* parent,
-	struct Text* text)
-{
-	assert(renderer != NULL);
-	assert(text != NULL);
-	assert(renderer->window == getTextWindow(text));
-
-	struct TextRender* textRender = malloc(
-		sizeof(struct TextRender));
-
-	if (textRender == NULL)
-		return NULL;
-
-	textRender->text = text;
-
-	struct Render* render = createRender(
-		renderer,
-		_render,
-		position,
-		scale,
-		rotation,
-		parent,
-		destroyTextRender,
-		renderTextCommand,
-		textRender);
-
-	if (render == NULL)
-	{
-		free(textRender);
-		return NULL;
-	}
-
-	return render;
+	render->draw = value;
 }

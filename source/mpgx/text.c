@@ -54,7 +54,7 @@ struct TextPipeline
 	void* handle;
 };
 
-struct Font* readFontFile(
+struct Font* createFontFromFile(
 	const void* filePath)
 {
 	assert(filePath != NULL);

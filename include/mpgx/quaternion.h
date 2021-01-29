@@ -24,12 +24,12 @@ inline static struct Quaternion createEulerQuaternion(
 	struct Vector3F eulerAngles)
 {
 	float s0 = sinf(eulerAngles.x * 0.5f);
-	float s1 = sinf(eulerAngles.x * 0.5f);
-	float s2 = sinf(eulerAngles.x * 0.5f);
+	float s1 = sinf(eulerAngles.y * 0.5f);
+	float s2 = sinf(eulerAngles.z * 0.5f);
 
 	float c0 = cosf(eulerAngles.x * 0.5f);
-	float c1 = cosf(eulerAngles.x * 0.5f);
-	float c2 = cosf(eulerAngles.x * 0.5f);
+	float c1 = cosf(eulerAngles.y * 0.5f);
+	float c2 = cosf(eulerAngles.z * 0.5f);
 
 	struct Quaternion quaternion;
 	quaternion.x = s0 * c1 * c2 - c0 * s1 * s2;

@@ -309,12 +309,12 @@ void executeRenderer(
 			struct Matrix4F model = getTransformModel(
 				render->transform);
 
-			struct Matrix4F mvp = mulMatrix4F(
-				proj,
-				view);
-			mvp = mulMatrix4F(
-				mvp,
-				model);
+			struct Matrix4F mvp = dotMatrix4F(
+				view,
+				proj);
+			mvp = dotMatrix4F(
+				model,
+				mvp);
 
 			render->renderFunction(
 				render,

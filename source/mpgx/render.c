@@ -78,6 +78,15 @@ struct Render* createColorRender(
 
 	return render;
 }
+struct Mesh* getColorRenderMesh(
+	const struct Render* render)
+{
+	assert(render != NULL);
+
+	struct ColorRender* colorRender =
+		(struct ColorRender*)getRenderHandle(render);
+	return colorRender->mesh;
+}
 
 void destroySpriteRender(
 	void* render)
@@ -147,6 +156,24 @@ struct Render* createSpriteRender(
 
 	return render;
 }
+struct Mesh* getSpriteRenderMesh(
+	const struct Render* render)
+{
+	assert(render != NULL);
+
+	struct SpriteRender* spriteRender =
+		(struct SpriteRender*)getRenderHandle(render);
+	return spriteRender->mesh;
+}
+struct Vector4F getSpriteRenderColor(
+	const struct Render* render)
+{
+	assert(render != NULL);
+
+	struct SpriteRender* spriteRender =
+		(struct SpriteRender*)getRenderHandle(render);
+	return spriteRender->color;
+}
 
 void destroyTextRender(
 	void* render)
@@ -210,4 +237,13 @@ struct Render* createTextRender(
 	}
 
 	return render;
+}
+struct Text* getTextRenderText(
+	const struct Render* render)
+{
+	assert(render != NULL);
+
+	struct TextRender* textRender =
+		(struct TextRender*)getRenderHandle(render);
+	return textRender->text;
 }

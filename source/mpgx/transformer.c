@@ -199,12 +199,15 @@ void executeTransformer(
 
 		struct Matrix4F model =
 			createIdentityMatrix4F();
-		model = mulMatrix4F(model,
-			translateMatrix4F(model, transform->position));
-		model = mulMatrix4F(model,
-			getQuaternionMatrixF4(transform->rotation));
-		model = mulMatrix4F(model,
-			scaleMatrix4F(model, transform->scale));
+		model = translateMatrix4F(
+			model,
+			transform->position);
+		model = dotMatrix4F(
+			getQuaternionMatrixF4(transform->rotation),
+			model);
+		model = scaleMatrix4F(
+			model,
+			transform->scale);
 		transform->model = model;
 	}
 

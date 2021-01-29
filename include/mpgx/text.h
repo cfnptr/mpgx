@@ -8,7 +8,7 @@ struct Text;
 
 // TODO: add full language font creating support
 
-struct Font* readFontFile(
+struct Font* createFontFromFile(
 	const void* filePath);
 void destroyFont(
 	struct Font* font);

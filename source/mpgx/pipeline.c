@@ -431,22 +431,14 @@ void setGlSpritePipelineUniforms(
 		(const GLfloat*)&spritePipeline->color);
 
 	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
 
 	glVertexAttribPointer(
 		0,
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vector2F) * 2,
+		sizeof(struct Vector2F),
 		0);
-	glVertexAttribPointer(
-		1,
-		2,
-		GL_FLOAT,
-		GL_FALSE,
-		sizeof(struct Vector2F) * 2,
-		(const void*)sizeof(struct Vector2F));
 
 	assertOpenGL();
 }

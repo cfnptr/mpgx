@@ -43,8 +43,6 @@ struct Transformer* getInterfaceTransformer(
 union Camera executeInterface(
 	struct Interface* interface);
 
-// TODO: rotation
-
 struct InterfaceElement* createInterfaceElement(
 	struct Interface* interface,
 	bool update,

@@ -185,9 +185,13 @@ union Camera executeInterface(
 {
 	assert(interface != NULL);
 
+	size_t elementCount =
+		interface->elementCount;
+	struct InterfaceElement** elements =
+		interface->elements;
+
 	struct Window* window =
 		interface->window;
-
 	struct Vector2I size =
 		getWindowSize(window);
 
@@ -199,25 +203,23 @@ union Camera executeInterface(
 		0.0f,
 		1.0f);
 
-	float halfWidth = (float)size.x / 2.0f;
-	float halfHeight = (float)size.y / 2.0f;
-
-	struct Vector2F cursor =
-		getWindowCursorPosition(window);
+	if (elementCount == 0)
+		return camera;
 
 	bool focused = isWindowFocused(window);
 
 	if (focused == false)
 		return camera;
 
+	struct Vector2F cursor =
+		getWindowCursorPosition(window);
+
+	float halfWidth = (float)size.x / 2.0f;
+	float halfHeight = (float)size.y / 2.0f;
+
 	struct Vector2F cursorPosition = createVector2F(
 		cursor.x - halfWidth,
 		((float)size.y - cursor.y) - halfHeight);
-
-	size_t elementCount =
-		interface->elementCount;
-	struct InterfaceElement** elements =
-		interface->elements;
 
 	updateElementPositions(
 		halfWidth,

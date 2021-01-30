@@ -28,7 +28,7 @@ int ascendCompareRender(
 	const void* b)
 {
 	struct Render* render =
-		(struct Render*)a;
+		*(struct Render**)a;
 	struct Vector3F renderPosition = addVector3F(
 		getTransformPosition(render->transform),
 		getTranslationMatrix4F(getTransformModel(render->transform)));
@@ -37,7 +37,7 @@ int ascendCompareRender(
 		renderPosition);
 
 	render =
-		(struct Render*)b;
+		*(struct Render**)b;
 	renderPosition = addVector3F(
 		getTransformPosition(render->transform),
 		getTranslationMatrix4F(getTransformModel(render->transform)));
@@ -59,7 +59,7 @@ int descendCompareRender(
 	const void* b)
 {
 	struct Render* render =
-		(struct Render*)a;
+		*(struct Render**)a;
 	struct Vector3F renderPosition = addVector3F(
 		getTransformPosition(render->transform),
 		getTranslationMatrix4F(getTransformModel(render->transform)));
@@ -68,7 +68,7 @@ int descendCompareRender(
 		renderPosition);
 
 	render =
-		(struct Render*)b;
+		*(struct Render**)b;
 	renderPosition = addVector3F(
 		getTransformPosition(render->transform),
 		getTranslationMatrix4F(getTransformModel(render->transform)));
@@ -201,8 +201,9 @@ void executeRenderer(
 		renderer->renderCount;
 	struct Render** renders =
 		renderer->renders;
-	struct Pipeline* pipeline =
-		renderer->pipeline;
+
+	if (renderCount == 0)
+		return;
 
 	if (renderer->ascendingSort == true)
 	{
@@ -221,13 +222,15 @@ void executeRenderer(
 			descendCompareRender);
 	}
 
+	struct Pipeline* pipeline =
+		renderer->pipeline;
+	uint8_t graphicsAPI = getWindowGraphicsAPI(
+		getPipelineWindow(pipeline));
+
 	struct Matrix4F view = getTransformModel(
 		renderer->transform);
 
 	struct Matrix4F proj;
-
-	uint8_t graphicsAPI = getWindowGraphicsAPI(
-		getPipelineWindow(pipeline));
 
 	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
 	{
@@ -294,9 +297,6 @@ void executeRenderer(
 
 		if (render->draw == true)
 		{
-			assert(render->transform != NULL);
-			assert(render->renderFunction != NULL);
-
 			struct Matrix4F model = getTransformModel(
 				render->transform);
 
@@ -352,14 +352,15 @@ struct Render* createRender(
 		return NULL;
 	}
 
-	render->draw = draw;
 	render->renderer = renderer;
+	render->draw = draw;
 	render->transform = transform;
 	render->destroyFunction = destroyFunction;
 	render->renderFunction = renderFunction;
 	render->handle = handle;
 
-	if (renderer->renderCount == renderer->renderCapacity)
+	if (renderer->renderCount ==
+		renderer->renderCapacity)
 	{
 		size_t capacity =
 			renderer->renderCapacity * 2;

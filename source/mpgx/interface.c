@@ -11,6 +11,7 @@ struct InterfaceElement
 	uint8_t anchor;
 	struct Vector3F position;
 	struct BoundingBox2F bounds;
+	struct InterfaceElement* parent;
 	DestroyInterfaceElement destroyFunction;
 	OnInterfaceElementEnter onEnterFunction;
 	OnInterfaceElementExit onExitFunction;
@@ -76,57 +77,108 @@ void destroyInterface(
 	free(interface);
 }
 
-inline static struct Vector2F calcTransformPosition(
-	uint8_t anchor,
-	struct Vector3F elementPosition,
-	float halfWidth,
-	float halfHeight)
+struct Window* getInterfaceWindow(
+	const struct Interface* interface)
 {
-	struct Vector2F transformPosition;
+	assert(interface != NULL);
+	return interface->window;
+}
+struct Transformer* getInterfaceTransformer(
+	const struct Interface* interface)
+{
+	assert(interface != NULL);
+	return interface->transformer;
+}
 
+inline static struct Vector3F calcTransformPosition(
+	float halfWidth,
+	float halfHeight,
+	uint8_t anchor,
+	struct Vector3F position)
+{
 	switch (anchor)
 	{
 	default:
 		abort();
 	case CENTER_INTERFACE_ANCHOR:
-		transformPosition.x = elementPosition.x;
-		transformPosition.y = elementPosition.y;
-		break;
+		return position;
 	case LEFT_INTERFACE_ANCHOR:
-		transformPosition.x = elementPosition.x - halfWidth;
-		transformPosition.y = elementPosition.y;
-		break;
+		return createVector3F(
+			position.x - halfWidth,
+			position.y,
+			position.z);
 	case RIGHT_INTERFACE_ANCHOR:
-		transformPosition.x = elementPosition.x + halfWidth;
-		transformPosition.y = elementPosition.y;
-		break;
+		return createVector3F(
+			position.x + halfWidth,
+			position.y,
+			position.z);
 	case BOTTOM_INTERFACE_ANCHOR:
-		transformPosition.x = elementPosition.x;
-		transformPosition.y = elementPosition.y - halfHeight;
-		break;
+		return createVector3F(
+			position.x,
+			position.y - halfHeight,
+			position.z);
 	case TOP_INTERFACE_ANCHOR:
-		transformPosition.x = elementPosition.x;
-		transformPosition.y = elementPosition.y + halfHeight;
-		break;
+		return createVector3F(
+			position.x,
+			position.y + halfHeight,
+			position.z);
 	case LEFT_BOTTOM_INTERFACE_ANCHOR:
-		transformPosition.x = elementPosition.x - halfWidth;
-		transformPosition.y = elementPosition.y - halfHeight;
-		break;
+		return createVector3F(
+			position.x - halfWidth,
+			position.y - halfHeight,
+			position.z);
 	case LEFT_TOP_INTERFACE_ANCHOR:
-		transformPosition.x = elementPosition.x - halfWidth;
-		transformPosition.y = elementPosition.y + halfHeight;
-		break;
+		return createVector3F(
+			position.x - halfWidth,
+			position.y + halfHeight,
+			position.z);
 	case RIGHT_BOTTOM_INTERFACE_ANCHOR:
-		transformPosition.x = elementPosition.x + halfWidth;
-		transformPosition.y = elementPosition.y - halfHeight;
-		break;
+		return createVector3F(
+			position.x + halfWidth,
+			position.y - halfHeight,
+			position.z);
 	case RIGHT_TOP_INTERFACE_ANCHOR:
-		transformPosition.x = elementPosition.x + halfWidth;
-		transformPosition.y = elementPosition.y + halfHeight;
-		break;
+		return createVector3F(
+			position.x + halfWidth,
+			position.y + halfHeight,
+			position.z);
 	}
+}
+inline static void updateElementPositions(
+	float halfWidth,
+	float halfHeight,
+	struct InterfaceElement** elements,
+	size_t elementCount)
+{
+	for (size_t i = 0; i < elementCount; i++)
+	{
+		struct InterfaceElement* element =
+			elements[i];
+		struct Vector3F transformPosition = calcTransformPosition(
+			halfWidth,
+			halfHeight,
+			element->anchor,
+			element->position);
+		struct InterfaceElement* parent =
+			element->parent;
 
-	return transformPosition;
+		while (parent != NULL)
+		{
+			struct Vector3F parentPosition = calcTransformPosition(
+				halfWidth,
+				halfHeight,
+				parent->anchor,
+				parent->position);
+			transformPosition = addVector3F(
+				transformPosition,
+				parentPosition);
+			parent = parent->parent;
+		}
+
+		setTransformPosition(
+			element->transform,
+			transformPosition);
+	}
 }
 union Camera executeInterface(
 	struct Interface* interface)
@@ -136,31 +188,42 @@ union Camera executeInterface(
 	struct Window* window =
 		interface->window;
 
-	size_t width, height;
+	struct Vector2I size =
+		getWindowSize(window);
 
-	getWindowSize(
-		window,
-		&width,
-		&height);
+	union Camera camera = createOrthographicCamera(
+		(float)size.x / -2.0f,
+		(float)size.x / 2.0f,
+		(float)size.y / -2.0f,
+		(float)size.y / 2.0f,
+		0.0f,
+		1.0f);
 
-	float halfWidth = width / 2.0f;
-	float halfHeight = height / 2.0f;
+	float halfWidth = (float)size.x / 2.0f;
+	float halfHeight = (float)size.y / 2.0f;
 
-	double cursorX, cursorY;
+	struct Vector2F cursor =
+		getWindowCursorPosition(window);
 
-	getWindowCursorPosition(
-		window,
-		&cursorX,
-		&cursorY);
+	bool focused = isWindowFocused(window);
+
+	if (focused == false)
+		return camera;
 
 	struct Vector2F cursorPosition = createVector2F(
-		(float)cursorX,
-		(float)cursorY);
+		cursor.x - halfWidth,
+		((float)size.y - cursor.y) - halfHeight);
 
 	size_t elementCount =
 		interface->elementCount;
 	struct InterfaceElement** elements =
 		interface->elements;
+
+	updateElementPositions(
+		halfWidth,
+		halfHeight,
+		elements,
+		elementCount);
 
 	struct InterfaceElement* newElement = NULL;
 
@@ -172,20 +235,16 @@ union Camera executeInterface(
 		if (element->update == false)
 			continue;
 
-		struct Vector2F position = calcTransformPosition(
-			element->anchor,
-			element->position,
-			halfWidth,
-			halfHeight);
-
+		struct Vector3F position = getTransformPosition(
+			element->transform);
 		struct BoundingBox2F bounds =
 			element->bounds;
 		bounds.minimum = addVector2F(
 			bounds.minimum,
-			position);
+			createVector2F(position.x, position.y));
 		bounds.maximum = addVector2F(
 			bounds.maximum,
-			position);
+			createVector2F(position.x, position.y));
 
 		bool colliding = isPointCollidingBoundingBox2F(
 			bounds,
@@ -223,8 +282,13 @@ union Camera executeInterface(
 		{
 			if (lastElement->onExitFunction != NULL)
 				lastElement->onExitFunction(lastElement);
-			if (newElement->onEnterFunction != NULL)
+
+			if (newElement != NULL &&
+				newElement->onEnterFunction != NULL)
+			{
 				newElement->onEnterFunction(newElement);
+			}
+
 			interface->lastElement = newElement;
 		}
 		else
@@ -234,35 +298,13 @@ union Camera executeInterface(
 		}
 	}
 
-	for (size_t i = 0; i < elementCount; i++)
-	{
-		struct InterfaceElement* element =
-			elements[i];
+	updateElementPositions(
+		halfWidth,
+		halfHeight,
+		elements,
+		elementCount);
 
-		struct Vector3F elementPosition =
-			element->position;
-		struct Vector2F position = calcTransformPosition(
-			element->anchor,
-			elementPosition,
-			halfWidth,
-			halfHeight);
-		struct Vector3F transformPosition = createVector3F(
-			position.x,
-			position.y,
-			elementPosition.z);
-
-		setTransformPosition(
-			element->transform,
-			transformPosition);
-	}
-
-	return createOrthographicCamera(
-		width / -2.0f,
-		width / 2.0f,
-		height / -2.0f,
-		height / 2.0f,
-		0.0f,
-		1.0f);
+	return camera;
 }
 
 struct InterfaceElement* createInterfaceElement(
@@ -273,7 +315,7 @@ struct InterfaceElement* createInterfaceElement(
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
-	struct Transform* parent,
+	struct InterfaceElement* parent,
 	DestroyInterfaceElement destroyFunction,
 	OnInterfaceElementEnter onEnterFunction,
 	OnInterfaceElementExit onExitFunction,
@@ -282,6 +324,14 @@ struct InterfaceElement* createInterfaceElement(
 {
 	assert(interface != NULL);
 	assert(destroyFunction != NULL);
+
+#ifndef NDEBUG
+	if (parent != NULL)
+	{
+		assert(interface ==
+			parent->interface);
+	}
+#endif
 
 	struct InterfaceElement* element = malloc(
 		sizeof(struct InterfaceElement));
@@ -294,7 +344,7 @@ struct InterfaceElement* createInterfaceElement(
 		createZeroVector3F(),
 		scale,
 		rotation,
-		parent);
+		NULL);
 
 	if (transform == NULL)
 	{
@@ -308,6 +358,7 @@ struct InterfaceElement* createInterfaceElement(
 	element->anchor = anchor;
 	element->position = position;
 	element->bounds = bounds;
+	element->parent = parent;
 	element->destroyFunction = destroyFunction;
 	element->onEnterFunction = onEnterFunction;
 	element->onExitFunction = onExitFunction;
@@ -444,4 +495,27 @@ void setInterfaceElementBounds(
 {
 	assert(element != NULL);
 	element->bounds = bounds;
+}
+
+struct InterfaceElement* getInterfaceElementParent(
+	const struct InterfaceElement* element)
+{
+	assert(element != NULL);
+	return element->parent;
+}
+void setInterfaceElementParent(
+	struct InterfaceElement* element,
+	struct InterfaceElement* parent)
+{
+	assert(element != NULL);
+
+#ifndef NDEBUG
+	if (parent != NULL)
+	{
+		assert(element->interface ==
+			parent->interface);
+	}
+#endif
+
+	element->parent = parent;
 }

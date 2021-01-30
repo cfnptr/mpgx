@@ -35,6 +35,11 @@ struct Interface* createInterface(
 void destroyInterface(
 	struct Interface* interface);
 
+struct Window* getInterfaceWindow(
+	const struct Interface* interface);
+struct Transformer* getInterfaceTransformer(
+	const struct Interface* interface);
+
 union Camera executeInterface(
 	struct Interface* interface);
 
@@ -48,7 +53,7 @@ struct InterfaceElement* createInterfaceElement(
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
-	struct Transform* parent,
+	struct InterfaceElement* parent,
 	DestroyInterfaceElement destroyFunction,
 	OnInterfaceElementEnter onEnterFunction,
 	OnInterfaceElementExit onExitFunction,
@@ -87,3 +92,9 @@ struct BoundingBox2F getInterfaceElementBounds(
 void setInterfaceElementBounds(
 	struct InterfaceElement* element,
 	struct BoundingBox2F bounds);
+
+struct InterfaceElement* getInterfaceElementParent(
+	const struct InterfaceElement* element);
+void setInterfaceElementParent(
+	struct InterfaceElement* element,
+	struct InterfaceElement* parent);

@@ -18,6 +18,9 @@ struct Transform* createTransform(
 void destroyTransform(
 	struct Transform* transform);
 
+struct Transformer* getTransformTransformer(
+	const struct Transform* transform);
+
 struct Vector3F getTransformPosition(
 	const struct Transform* transform);
 void setTransformPosition(
@@ -35,6 +38,12 @@ struct Quaternion getTransformRotation(
 void setTransformRotation(
 	struct Transform* transform,
 	struct Quaternion rotation);
+
+struct Transform* getTransformParent(
+	const struct Transform* transform);
+void setTransformParent(
+	struct Transform* transform,
+	struct Transform* parent);
 
 struct Matrix4F getTransformModel(
 	const struct Transform* transform);

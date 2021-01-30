@@ -227,7 +227,7 @@ void executeRenderer(
 	struct Matrix4F proj;
 
 	uint8_t graphicsAPI = getWindowGraphicsAPI(
-		getPipelineWindow(renderer->pipeline));
+		getPipelineWindow(pipeline));
 
 	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
 	{
@@ -286,8 +286,7 @@ void executeRenderer(
 		abort();
 	}
 
-	bindPipelineCommand(
-		renderer->pipeline);
+	bindPipelineCommand(pipeline);
 
 	for (size_t i = 0; i < renderCount; i++)
 	{

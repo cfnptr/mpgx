@@ -1312,76 +1312,202 @@ double getWindowDeltaTime(
 	assert(window != NULL);
 	return window->deltaTime;
 }
-void getWindowSize(
-	const struct Window* window,
-	size_t* _width,
-	size_t* _height)
+struct Vector2F getWindowContentScale(
+	const struct Window* window)
 {
 	assert(window != NULL);
-	assert(_width != NULL);
-	assert(_height != NULL);
 
-	int width, height;
+	struct Vector2F scale;
+
+	glfwGetWindowContentScale(
+		window->handle,
+		&scale.x,
+		&scale.y);
+
+	return scale;
+}
+struct Vector2I getWindowFramebufferSize(
+	const struct Window* window)
+{
+	assert(window != NULL);
+
+	struct Vector2I size;
+
+	glfwGetFramebufferSize(
+		window->handle,
+		&size.x,
+		&size.y);
+
+	return size;
+}
+
+struct Vector2I getWindowSize(
+	const struct Window* window)
+{
+	assert(window != NULL);
+
+	struct Vector2I size;
 
 	glfwGetWindowSize(
 		window->handle,
-		&width,
-		&height);
+		&size.x,
+		&size.y);
 
-	*_width = (size_t)width;
-	*_height = (size_t)height;
+	return size;
 }
-void getWindowPosition(
-	const struct Window* window,
-	size_t* _x,
-	size_t* _y)
+void setWindowSize(
+	struct Window* window,
+	struct Vector2I size)
 {
 	assert(window != NULL);
-	assert(_x != NULL);
-	assert(_y != NULL);
 
-	int x, y;
+	glfwSetWindowSize(
+		window->handle,
+		size.x,
+		size.y);
+}
+
+struct Vector2I getWindowPosition(
+	const struct Window* window)
+{
+	assert(window != NULL);
+
+	struct Vector2I position;
 
 	glfwGetWindowPos(
+		window->handle,
+		&position.x,
+		&position.y);
+
+	return position;
+}
+void setWindowPosition(
+	struct Window* window,
+	struct Vector2I position)
+{
+	assert(window != NULL);
+
+	glfwSetWindowPos(
+		window->handle,
+		position.x,
+		position.y);
+}
+
+struct Vector2F getWindowCursorPosition(
+	const struct Window* window)
+{
+	assert(window != NULL);
+
+	double x, y;
+
+	glfwGetCursorPos(
 		window->handle,
 		&x,
 		&y);
 
-	*_x = (size_t)x;
-	*_y = (size_t)y;
+	return createVector2F(
+		(float)x,
+		(float)y);
 }
-void getWindowFramebufferSize(
-	const struct Window* window,
-	size_t* _width,
-	size_t* _height)
+void setWindowCursorPosition(
+	struct Window* window,
+	struct Vector2F position)
 {
 	assert(window != NULL);
-	assert(_width != NULL);
-	assert(_height != NULL);
 
-	int width, height;
-
-	glfwGetFramebufferSize(
+	glfwSetCursorPos(
 		window->handle,
-		&width,
-		&height);
-
-	*_width = (size_t)width;
-	*_height = (size_t)height;
+		(double)position.x,
+		(double)position.y);
 }
-void getWindowCursorPosition(
-	const struct Window* window,
-	double* x,
-	double* y)
+
+bool isWindowFocused(
+	struct Window* window)
 {
 	assert(window != NULL);
-	assert(x != NULL);
-	assert(y != NULL);
 
-	glfwGetCursorPos(
+	return glfwGetWindowAttrib(
 		window->handle,
-		x,
-		y);
+		GLFW_FOCUSED) == GLFW_TRUE;
+}
+bool isWindowIconified(
+	struct Window* window)
+{
+	assert(window != NULL);
+
+	return glfwGetWindowAttrib(
+		window->handle,
+		GLFW_ICONIFIED) == GLFW_TRUE;
+}
+bool isWindowMaximized(
+	struct Window* window)
+{
+	assert(window != NULL);
+
+	return glfwGetWindowAttrib(
+		window->handle,
+		GLFW_MAXIMIZED) == GLFW_TRUE;
+}
+bool isWindowVisible(
+	struct Window* window)
+{
+	assert(window != NULL);
+
+	return glfwGetWindowAttrib(
+		window->handle,
+		GLFW_VISIBLE) == GLFW_TRUE;
+}
+bool isWindowHovered(
+	struct Window* window)
+{
+	assert(window != NULL);
+
+	return glfwGetWindowAttrib(
+		window->handle,
+		GLFW_HOVERED) == GLFW_TRUE;
+}
+
+void iconifyWindow(
+	struct Window* window)
+{
+	assert(window != NULL);
+	glfwIconifyWindow(window->handle);
+}
+void maximizeWindow(
+	struct Window* window)
+{
+	assert(window != NULL);
+	glfwMaximizeWindow(window->handle);
+}
+void restoreWindow(
+	struct Window* window)
+{
+	assert(window != NULL);
+	glfwRestoreWindow(window->handle);
+}
+void showWindow(
+	struct Window* window)
+{
+	assert(window != NULL);
+	glfwShowWindow(window->handle);
+}
+void hideWindow(
+	struct Window* window)
+{
+	assert(window != NULL);
+	glfwHideWindow(window->handle);
+}
+void focusWindow(
+	struct Window* window)
+{
+	assert(window != NULL);
+	glfwFocusWindow(window->handle);
+}
+void requestWindowAttention(
+	struct Window* window)
+{
+	assert(window != NULL);
+	glfwRequestWindowAttention(window->handle);
 }
 
 void makeWindowContextCurrent(

@@ -12,6 +12,7 @@ struct SpriteRender
 };
 struct TextRender
 {
+	struct Vector4F color;
 	struct Text* text;
 };
 
@@ -40,7 +41,7 @@ void renderColorCommand(
 }
 struct Render* createColorRender(
 	struct Renderer* renderer,
-	bool _render,
+	bool draw,
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
@@ -63,7 +64,7 @@ struct Render* createColorRender(
 
 	struct Render* render = createRender(
 		renderer,
-		_render,
+		draw,
 		position,
 		scale,
 		rotation,
@@ -91,7 +92,7 @@ struct Mesh* getColorRenderMesh(
 	return colorRender->mesh;
 }
 void setColorRenderMesh(
-	const struct Render* render,
+	struct Render* render,
 	struct Mesh* mesh)
 {
 	assert(render != NULL);
@@ -130,12 +131,12 @@ void renderSpriteCommand(
 }
 struct Render* createSpriteRender(
 	struct Renderer* renderer,
-	bool _render,
+	bool draw,
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
-	struct Vector4F color,
 	struct Transform* parent,
+	struct Vector4F color,
 	struct Mesh* mesh)
 {
 	assert(renderer != NULL);
@@ -155,7 +156,7 @@ struct Render* createSpriteRender(
 
 	struct Render* render = createRender(
 		renderer,
-		_render,
+		draw,
 		position,
 		scale,
 		rotation,
@@ -173,27 +174,6 @@ struct Render* createSpriteRender(
 	return render;
 }
 
-struct Mesh* getSpriteRenderMesh(
-	const struct Render* render)
-{
-	assert(render != NULL);
-
-	struct SpriteRender* spriteRender =
-		(struct SpriteRender*)getRenderHandle(render);
-	return spriteRender->mesh;
-}
-void setSpriteRenderMesh(
-	const struct Render* render,
-	struct Mesh* mesh)
-{
-	assert(render != NULL);
-	assert(mesh != NULL);
-
-	struct SpriteRender* spriteRender =
-		(struct SpriteRender*)getRenderHandle(render);
-	spriteRender->mesh = mesh;
-}
-
 struct Vector4F getSpriteRenderColor(
 	const struct Render* render)
 {
@@ -204,7 +184,7 @@ struct Vector4F getSpriteRenderColor(
 	return spriteRender->color;
 }
 void setSpriteRenderColor(
-	const struct Render* render,
+	struct Render* render,
 	struct Vector4F color)
 {
 	assert(render != NULL);
@@ -212,6 +192,27 @@ void setSpriteRenderColor(
 	struct SpriteRender* spriteRender =
 		(struct SpriteRender*)getRenderHandle(render);
 	spriteRender->color = color;
+}
+
+struct Mesh* getSpriteRenderMesh(
+	const struct Render* render)
+{
+	assert(render != NULL);
+
+	struct SpriteRender* spriteRender =
+		(struct SpriteRender*)getRenderHandle(render);
+	return spriteRender->mesh;
+}
+void setSpriteRenderMesh(
+	struct Render* render,
+	struct Mesh* mesh)
+{
+	assert(render != NULL);
+	assert(mesh != NULL);
+
+	struct SpriteRender* spriteRender =
+		(struct SpriteRender*)getRenderHandle(render);
+	spriteRender->mesh = mesh;
 }
 
 void destroyTextRender(
@@ -233,17 +234,21 @@ void renderTextCommand(
 	setTextPipelineMVP(
 		pipeline,
 		*mvp);
+	setTextPipelineColor(
+		pipeline,
+		textRender->color);
 	drawTextCommand(
 		textRender->text,
 		pipeline);
 }
 struct Render* createTextRender(
 	struct Renderer* renderer,
-	bool _render,
+	bool draw,
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
 	struct Transform* parent,
+	struct Vector4F color,
 	struct Text* text)
 {
 	assert(renderer != NULL);
@@ -258,11 +263,12 @@ struct Render* createTextRender(
 	if (textRender == NULL)
 		return NULL;
 
+	textRender->color = color;
 	textRender->text = text;
 
 	struct Render* render = createRender(
 		renderer,
-		_render,
+		draw,
 		position,
 		scale,
 		rotation,
@@ -279,6 +285,27 @@ struct Render* createTextRender(
 
 	return render;
 }
+
+struct Vector4F getTextRenderColor(
+	const struct Render* render)
+{
+	assert(render != NULL);
+
+	struct TextRender* textRender =
+		(struct TextRender*)getRenderHandle(render);
+	return textRender->color;
+}
+void setTextRenderColor(
+	struct Render* render,
+	struct Vector4F color)
+{
+	assert(render != NULL);
+
+	struct TextRender* textRender =
+		(struct TextRender*)getRenderHandle(render);
+	textRender->color = color;
+}
+
 struct Text* getTextRenderText(
 	const struct Render* render)
 {

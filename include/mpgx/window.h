@@ -139,22 +139,54 @@ double getWindowUpdateTime(
 	const struct Window* window);
 double getWindowDeltaTime(
 	const struct Window* window);
-void getWindowSize(
-	const struct Window* window,
-	size_t* width,
-	size_t* height);
-void getWindowPosition(
-	const struct Window* window,
-	size_t* x,
-	size_t* y);
-void getWindowFramebufferSize(
-	const struct Window* window,
-	size_t* width,
-	size_t* height);
-void getWindowCursorPosition(
-	const struct Window* window,
-	double* x,
-	double* y);
+struct Vector2F getWindowContentScale(
+	const struct Window* window);
+struct Vector2I getWindowFramebufferSize(
+	const struct Window* window);
+
+struct Vector2I getWindowSize(
+	const struct Window* window);
+void setWindowSize(
+	struct Window* window,
+	struct Vector2I size);
+
+struct Vector2I getWindowPosition(
+	const struct Window* window);
+void setWindowPosition(
+	struct Window* window,
+	struct Vector2I position);
+
+struct Vector2F getWindowCursorPosition(
+	const struct Window* window);
+void setWindowCursorPosition(
+	struct Window* window,
+	struct Vector2F position);
+
+bool isWindowFocused(
+	struct Window* window);
+bool isWindowIconified(
+	struct Window* window);
+bool isWindowMaximized(
+	struct Window* window);
+bool isWindowVisible(
+	struct Window* window);
+bool isWindowHovered(
+	struct Window* window);
+
+void iconifyWindow(
+	struct Window* window);
+void maximizeWindow(
+	struct Window* window);
+void restoreWindow(
+	struct Window* window);
+void showWindow(
+	struct Window* window);
+void hideWindow(
+	struct Window* window);
+void focusWindow(
+	struct Window* window);
+void requestWindowAttention(
+	struct Window* window);
 
 void makeWindowContextCurrent(
 	struct Window* window);

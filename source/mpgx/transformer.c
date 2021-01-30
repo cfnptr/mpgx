@@ -69,6 +69,14 @@ struct Transform* createTransform(
 {
 	assert(transformer != NULL);
 
+#ifndef NDEBUG
+	if (parent != NULL)
+	{
+		assert(transformer ==
+			parent->transformer);
+	}
+#endif
+
 	struct Transform* transform = malloc(
 		sizeof(struct Transform));
 
@@ -135,6 +143,13 @@ void destroyTransform(
 	abort();
 }
 
+struct Transformer* getTransformTransformer(
+	const struct Transform* transform)
+{
+	assert(transform != NULL);
+	return transform->transformer;
+}
+
 struct Vector3F getTransformPosition(
 	const struct Transform* transform)
 {
@@ -175,6 +190,27 @@ void setTransformRotation(
 {
 	assert(transform != NULL);
 	transform->rotation = rotation;
+}
+
+struct Transform* getTransformParent(
+	const struct Transform* transform)
+{
+	assert(transform != NULL);
+	return transform->parent;
+}
+void setTransformParent(
+	struct Transform* transform,
+	struct Transform* parent)
+{
+#ifndef NDEBUG
+	if (parent != NULL)
+	{
+		assert(transform->transformer ==
+			parent->transformer);
+	}
+#endif
+
+	transform->parent = parent;
 }
 
 struct Matrix4F getTransformModel(

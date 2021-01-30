@@ -7,7 +7,7 @@ struct BoundingBox2F
 	struct Vector2F maximum;
 };
 
-struct BoundingBox2F createBoundingBox2F(
+inline static struct BoundingBox2F createBoundingBox2F(
 	struct Vector2F minimum,
 	struct Vector2F maximum)
 {
@@ -17,7 +17,7 @@ struct BoundingBox2F createBoundingBox2F(
 	return box;
 }
 
-bool isPointCollidingBoundingBox2F(
+inline static bool isPointCollidingBoundingBox2F(
 	struct BoundingBox2F box,
 	struct Vector2F point)
 {
@@ -28,7 +28,7 @@ bool isPointCollidingBoundingBox2F(
 		box.maximum.y >= point.y;
 }
 
-bool isCollidingBoundingBox2F(
+inline static bool isCollidingBoundingBox2F(
 	struct BoundingBox2F a,
 	struct BoundingBox2F b)
 {

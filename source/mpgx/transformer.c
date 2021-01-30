@@ -69,8 +69,8 @@ struct Transform* createTransform(
 {
 	assert(transformer != NULL);
 
-	struct Transform* transform =
-		malloc(sizeof(struct Transform));
+	struct Transform* transform = malloc(
+		sizeof(struct Transform));
 
 	if (transform == NULL)
 		return NULL;
@@ -126,8 +126,8 @@ void destroyTransform(
 			for (size_t j = i + 1; j < transformCount; j++)
 				transforms[j - 1] = transforms[j];
 
-			transformer->transformCount--;
 			free(transform);
+			transformer->transformCount--;
 			return;
 		}
 	}
@@ -227,9 +227,9 @@ void executeTransformer(
 
 		while (parent != NULL)
 		{
-			model = mulMatrix4F(
-				parent->model,
-				model);
+			model = dotMatrix4F(
+				model,
+				parent->model);
 			parent = parent->parent;
 		}
 

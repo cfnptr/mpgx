@@ -1520,12 +1520,12 @@ void destroyBuffer(
 			for (size_t j = i + 1; j < bufferCount; j++)
 				buffers[j - 1] = buffers[j];
 
-			window->bufferCount--;
-
 			window->destroyBufferFunction(
 				window,
 				buffer->handle);
 			free(buffer);
+
+			window->bufferCount--;
 			return;
 		}
 	}
@@ -1674,12 +1674,12 @@ void destroyMesh(
 			for (size_t j = i + 1; j < meshCount; j++)
 				meshes[j - 1] = meshes[j];
 
-			window->meshCount--;
-
 			window->destroyMeshFunction(
 				window,
 				mesh->handle);
 			free(mesh);
+
+			window->meshCount--;
 			return;
 		}
 	}
@@ -1944,12 +1944,12 @@ void destroyImage(
 			for (size_t j = i + 1; j < imageCount; j++)
 				images[j - 1] = images[j];
 
-			window->imageCount--;
-
 			window->destroyImageFunction(
 				window,
 				image->handle);
 			free(image);
+
+			window->imageCount--;
 			return;
 		}
 	}
@@ -2194,12 +2194,12 @@ void destroyShader(
 			for (size_t j = i + 1; j < shaderCount; j++)
 				shaders[j - 1] = shaders[j];
 
-			window->shaderCount--;
-
 			window->destroyShaderFunction(
 				window,
 				shader->handle);
 			free(shader);
+
+			window->shaderCount--;
 			return;
 		}
 	}
@@ -2302,12 +2302,12 @@ void destroyPipeline(
 			for (size_t j = i + 1; j < pipelineCount; j++)
 				pipelines[j - 1] = pipelines[j];
 
-			window->pipelineCount--;
-
 			pipeline->destroyFunction(
 				window,
 				pipeline->handle);
 			free(pipeline);
+
+			window->pipelineCount--;
 			return;
 		}
 	}

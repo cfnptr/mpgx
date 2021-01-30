@@ -5,7 +5,6 @@ struct Font;
 struct Text;
 
 // TODO: add font loading from the memory
-
 // TODO: add full language font creating support
 
 struct Font* createFontFromFile(
@@ -24,7 +23,7 @@ void destroyText(
 
 struct Window* getTextWindow(
 	const struct Text* text);
-bool getTextConstant(
+bool isTextConstant(
 	const struct Text* text);
 
 struct Font* getTextFont(
@@ -46,6 +45,7 @@ bool setTextData(
 	const char* data);
 
 // TODO: add monochrome text support
+// FT_LOAD_MONOCHROME
 
 // TODO: add text coloring
 // Pass color data to the vertex buffer

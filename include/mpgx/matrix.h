@@ -37,29 +37,52 @@ inline static struct Matrix4F createMatrixF4(
 	matrix.m33 = m33;
 	return matrix;
 }
-inline static struct Matrix4F createValueMatrixF4(
-	float value)
+inline static struct Matrix4F createZeroMatrixF4()
 {
 	struct Matrix4F matrix;
-	matrix.m00 = value;
-	matrix.m01 = value;
-	matrix.m02 = value;
-	matrix.m03 = value;
+	matrix.m00 = 0.0f;
+	matrix.m01 = 0.0f;
+	matrix.m02 = 0.0f;
+	matrix.m03 = 0.0f;
 
-	matrix.m10 = value;
-	matrix.m11 = value;
-	matrix.m12 = value;
-	matrix.m13 = value;
+	matrix.m10 = 0.0f;
+	matrix.m11 = 0.0f;
+	matrix.m12 = 0.0f;
+	matrix.m13 = 0.0f;
 
-	matrix.m20 = value;
-	matrix.m21 = value;
-	matrix.m22 = value;
-	matrix.m23 = value;
+	matrix.m20 = 0.0f;
+	matrix.m21 = 0.0f;
+	matrix.m22 = 0.0f;
+	matrix.m23 = 0.0f;
 
-	matrix.m30 = value;
-	matrix.m31 = value;
-	matrix.m32 = value;
-	matrix.m33 = value;
+	matrix.m30 = 0.0f;
+	matrix.m31 = 0.0f;
+	matrix.m32 = 0.0f;
+	matrix.m33 = 0.0f;
+	return matrix;
+}
+inline static struct Matrix4F createOneMatrix4F()
+{
+	struct Matrix4F matrix;
+	matrix.m00 = 1.0f;
+	matrix.m01 = 1.0f;
+	matrix.m02 = 1.0f;
+	matrix.m03 = 1.0f;
+
+	matrix.m10 = 1.0f;
+	matrix.m11 = 1.0f;
+	matrix.m12 = 1.0f;
+	matrix.m13 = 1.0f;
+
+	matrix.m20 = 1.0f;
+	matrix.m21 = 1.0f;
+	matrix.m22 = 1.0f;
+	matrix.m23 = 1.0f;
+
+	matrix.m30 = 1.0f;
+	matrix.m31 = 1.0f;
+	matrix.m32 = 1.0f;
+	matrix.m33 = 1.0f;
 	return matrix;
 }
 inline static struct Matrix4F createIdentityMatrix4F()

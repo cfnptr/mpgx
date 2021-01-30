@@ -17,11 +17,12 @@ typedef void(*RenderCommand)(
 	const struct Matrix4F* proj,
 	const struct Matrix4F* mvp);
 
+// TODO: frustum culling
+
 struct Renderer* createRenderer(
-	struct Window* window,
-	bool ascendingSorting,
 	struct Pipeline* pipeline,
 	struct Transformer* transformer,
+	bool ascendingSorting,
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
@@ -29,16 +30,18 @@ struct Renderer* createRenderer(
 void destroyRenderer(
 	struct Renderer* renderer);
 
-struct Window* getRendererWindow(
-	const struct Renderer* renderer);
-bool isRendererAscendingSort(
-	const struct Renderer* renderer);
 struct Transformer* getRendererTransformer(
 	const struct Renderer* renderer);
 struct Transform* getRendererTransform(
 	const struct Renderer* renderer);
 struct Pipeline* getRendererPipeline(
 	const struct Renderer* renderer);
+
+bool getRendererSorting(
+	const struct Renderer* renderer);
+void setRendererSorting(
+	struct Renderer* renderer,
+	bool ascendingSorting);
 
 void executeRenderer(
 	struct Renderer* renderer,
@@ -61,7 +64,7 @@ struct Renderer* getRenderRenderer(
 	const struct Render* render);
 struct Transform* getRenderTransform(
 	const struct Render* render);
-struct Renderer* getRenderHandle(
+void* getRenderHandle(
 	const struct Render* render);
 
 bool getRenderDraw(

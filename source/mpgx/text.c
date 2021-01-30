@@ -349,13 +349,12 @@ inline static bool createTextPixels(
 				size_t pixelPos =
 					(y + pixelPosY) * 4 * pixelLength +
 					(x + pixelPosX) * 4;
-				uint8_t value = bitmap[y * glyphWidth + x];
 
 				// TODO: possibly optimize with texture packing
 				pixels[pixelPos + 0] = 255;
-				pixels[pixelPos + 1] = 0;
+				pixels[pixelPos + 1] = 255;
 				pixels[pixelPos + 2] = 255;
-				pixels[pixelPos + 3] = value;
+				pixels[pixelPos + 3] = bitmap[y * glyphWidth + x];
 			}
 		}
 	}
@@ -801,7 +800,7 @@ struct Window* getTextWindow(
 	assert(text != NULL);
 	return text->window;
 }
-bool getTextConstant(
+bool isTextConstant(
 	const struct Text* text)
 {
 	assert(text != NULL);

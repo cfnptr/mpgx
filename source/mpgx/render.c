@@ -49,7 +49,9 @@ struct Render* createColorRender(
 {
 	assert(renderer != NULL);
 	assert(mesh != NULL);
-	assert(getRendererWindow(renderer) == getMeshWindow(mesh));
+
+	assert(getPipelineWindow(
+		getRendererPipeline(renderer)) == getMeshWindow(mesh));
 
 	struct ColorRender* coloRender = malloc(
 		sizeof(struct ColorRender));
@@ -78,6 +80,7 @@ struct Render* createColorRender(
 
 	return render;
 }
+
 struct Mesh* getColorRenderMesh(
 	const struct Render* render)
 {
@@ -86,6 +89,17 @@ struct Mesh* getColorRenderMesh(
 	struct ColorRender* colorRender =
 		(struct ColorRender*)getRenderHandle(render);
 	return colorRender->mesh;
+}
+void setColorRenderMesh(
+	const struct Render* render,
+	struct Mesh* mesh)
+{
+	assert(render != NULL);
+	assert(mesh != NULL);
+
+	struct ColorRender* colorRender =
+		(struct ColorRender*)getRenderHandle(render);
+	colorRender->mesh = mesh;
 }
 
 void destroySpriteRender(
@@ -126,7 +140,9 @@ struct Render* createSpriteRender(
 {
 	assert(renderer != NULL);
 	assert(mesh != NULL);
-	assert(getRendererWindow(renderer) == getMeshWindow(mesh));
+
+	assert(getPipelineWindow(
+		getRendererPipeline(renderer)) == getMeshWindow(mesh));
 
 	struct SpriteRender* spriteRender = malloc(
 		sizeof(struct SpriteRender));
@@ -156,6 +172,7 @@ struct Render* createSpriteRender(
 
 	return render;
 }
+
 struct Mesh* getSpriteRenderMesh(
 	const struct Render* render)
 {
@@ -165,6 +182,18 @@ struct Mesh* getSpriteRenderMesh(
 		(struct SpriteRender*)getRenderHandle(render);
 	return spriteRender->mesh;
 }
+void setSpriteRenderMesh(
+	const struct Render* render,
+	struct Mesh* mesh)
+{
+	assert(render != NULL);
+	assert(mesh != NULL);
+
+	struct SpriteRender* spriteRender =
+		(struct SpriteRender*)getRenderHandle(render);
+	spriteRender->mesh = mesh;
+}
+
 struct Vector4F getSpriteRenderColor(
 	const struct Render* render)
 {
@@ -173,6 +202,16 @@ struct Vector4F getSpriteRenderColor(
 	struct SpriteRender* spriteRender =
 		(struct SpriteRender*)getRenderHandle(render);
 	return spriteRender->color;
+}
+void setSpriteRenderColor(
+	const struct Render* render,
+	struct Vector4F color)
+{
+	assert(render != NULL);
+
+	struct SpriteRender* spriteRender =
+		(struct SpriteRender*)getRenderHandle(render);
+	spriteRender->color = color;
 }
 
 void destroyTextRender(
@@ -209,7 +248,9 @@ struct Render* createTextRender(
 {
 	assert(renderer != NULL);
 	assert(text != NULL);
-	assert(getRendererWindow(renderer) == getTextWindow(text));
+
+	assert(getPipelineWindow(
+		getRendererPipeline(renderer)) == getTextWindow(text));
 
 	struct TextRender* textRender = malloc(
 		sizeof(struct TextRender));
@@ -246,4 +287,15 @@ struct Text* getTextRenderText(
 	struct TextRender* textRender =
 		(struct TextRender*)getRenderHandle(render);
 	return textRender->text;
+}
+void setTextRenderText(
+	struct Render* render,
+	struct Text* text)
+{
+	assert(render != NULL);
+	assert(text != NULL);
+
+	struct TextRender* textRender =
+		(struct TextRender*)getRenderHandle(render);
+	textRender->text = text;
 }

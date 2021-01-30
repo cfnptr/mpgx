@@ -3,18 +3,12 @@
 #include <assert.h>
 #include <string.h>
 
-typedef int(*CompareRender)(
-	const void*,
-	const void*);
-
 struct Renderer
 {
-	struct Window* window;
-	bool ascendingSort;
 	struct Pipeline* pipeline;
 	struct Transformer* transformer;
+	bool ascendingSort;
 	struct Transform* transform;
-	CompareRender compareRenderFunction;
 	struct Render** renders;
 	size_t renderCapacity;
 	size_t renderCount;
@@ -93,36 +87,22 @@ int descendCompareRender(
 }
 
 struct Renderer* createRenderer(
-	struct Window* window,
-	bool ascendingSort,
 	struct Pipeline* pipeline,
 	struct Transformer* transformer,
+	bool ascendingSort,
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
 	struct Transform* parent)
 {
-	assert(window != NULL);
 	assert(pipeline != NULL);
 	assert(transformer != NULL);
-	assert(getPipelineWindow(pipeline) == window);
 
-	struct Renderer* renderer =
-		malloc(sizeof(struct Renderer));
+	struct Renderer* renderer = malloc(
+		sizeof(struct Renderer));
 
 	if (renderer == NULL)
 		return NULL;
-
-	if (ascendingSort == true)
-	{
-		renderer->compareRenderFunction =
-			ascendCompareRender;
-	}
-	else
-	{
-		renderer->compareRenderFunction =
-			descendCompareRender;
-	}
 
 	struct Transform* transform = createTransform(
 		transformer,
@@ -147,10 +127,9 @@ struct Renderer* createRenderer(
 		return NULL;
 	}
 
-	renderer->window = window;
-	renderer->ascendingSort = ascendingSort;
 	renderer->pipeline = pipeline;
 	renderer->transformer = transformer;
+	renderer->ascendingSort = ascendingSort;
 	renderer->transform = transform;
 	renderer->renders = renders;
 	renderer->renderCapacity = 1;
@@ -179,18 +158,6 @@ void destroyRenderer(
 	free(renderer);
 }
 
-struct Window* getRendererWindow(
-	const struct Renderer* renderer)
-{
-	assert(renderer != NULL);
-	return renderer->window;
-}
-bool isRendererAscendingSort(
-	const struct Renderer* renderer)
-{
-	assert(renderer != NULL);
-	return renderer->ascendingSort;
-}
 struct Transformer* getRendererTransformer(
 	const struct Renderer* renderer)
 {
@@ -210,6 +177,20 @@ struct Pipeline* getRendererPipeline(
 	return renderer->pipeline;
 }
 
+bool getRendererSorting(
+	const struct Renderer* renderer)
+{
+	assert(renderer != NULL);
+	return renderer->ascendingSort;
+}
+void setRendererSorting(
+	struct Renderer* renderer,
+	bool ascendingSorting)
+{
+	assert(renderer != NULL);
+	renderer->ascendingSort = ascendingSorting;
+}
+
 void executeRenderer(
 	struct Renderer* renderer,
 	union Camera camera)
@@ -223,11 +204,22 @@ void executeRenderer(
 	struct Pipeline* pipeline =
 		renderer->pipeline;
 
-	qsort(
-		renders,
-		renderCount,
-		sizeof(struct Render*),
-		renderer->compareRenderFunction);
+	if (renderer->ascendingSort == true)
+	{
+		qsort(
+			renders,
+			renderCount,
+			sizeof(struct Render*),
+			ascendCompareRender);
+	}
+	else
+	{
+		qsort(
+			renders,
+			renderCount,
+			sizeof(struct Render*),
+			descendCompareRender);
+	}
 
 	struct Matrix4F view = getTransformModel(
 		renderer->transform);
@@ -235,7 +227,7 @@ void executeRenderer(
 	struct Matrix4F proj;
 
 	uint8_t graphicsAPI = getWindowGraphicsAPI(
-		renderer->window);
+		getPipelineWindow(renderer->pipeline));
 
 	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
 	{
@@ -414,9 +406,9 @@ void destroyRender(
 
 			render->destroyFunction(render->handle);
 			destroyTransform(render->transform);
+			free(render);
 
 			renderer->renderCount--;
-			free(render);
 			return;
 		}
 	}
@@ -436,7 +428,7 @@ struct Transform* getRenderTransform(
 	assert(render != NULL);
 	return render->transform;
 }
-struct Renderer* getRenderHandle(
+void* getRenderHandle(
 	const struct Render* render)
 {
 	assert(render != NULL);

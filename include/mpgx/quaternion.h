@@ -19,7 +19,6 @@ inline static struct Quaternion createQuaternion(
 	quaternion.w = w;
 	return quaternion;
 }
-
 inline static struct Quaternion createEulerQuaternion(
 	struct Vector3F eulerAngles)
 {
@@ -36,6 +35,24 @@ inline static struct Quaternion createEulerQuaternion(
 	quaternion.y = c0 * s1 * c2 + s0 * c1 * s2;
 	quaternion.z = c0 * c1 * s2 - s0 * s1 * c2;
 	quaternion.w = c0 * c1 * c2 + s0 * s1 * s2;
+	return quaternion;
+}
+inline static struct Quaternion createZeroQuaternion()
+{
+	struct Quaternion quaternion;
+	quaternion.x = 0.0f;
+	quaternion.y = 0.0f;
+	quaternion.z = 0.0f;
+	quaternion.w = 0.0f;
+	return quaternion;
+}
+inline static struct Quaternion createOneQuaternion()
+{
+	struct Quaternion quaternion;
+	quaternion.x = 0.0f;
+	quaternion.y = 0.0f;
+	quaternion.z = 0.0f;
+	quaternion.w = 1.0f;
 	return quaternion;
 }
 

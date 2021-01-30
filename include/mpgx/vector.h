@@ -32,6 +32,27 @@ inline static struct Vector2F createValueVector2F(
 	vector.y = value;
 	return vector;
 }
+inline static struct Vector2F createZeroVector2F()
+{
+	struct Vector2F vector;
+	vector.x = 0.0f;
+	vector.y = 0.0f;
+	return vector;
+}
+inline static struct Vector2F createOneVector2F()
+{
+	struct Vector2F vector;
+	vector.x = 1.0f;
+	vector.y = 1.0f;
+	return vector;
+}
+inline static struct Vector2F createMinusOneVector2F()
+{
+	struct Vector2F vector;
+	vector.x = -1.0f;
+	vector.y = -1.0f;
+	return vector;
+}
 
 inline static struct Vector2F addVector2F(
 	struct Vector2F a,
@@ -184,6 +205,79 @@ inline static struct Vector3F createValueVector3F(
 	vector.x = value;
 	vector.y = value;
 	vector.z = value;
+	return vector;
+}
+inline static struct Vector3F createZeroVector3F()
+{
+	struct Vector3F vector;
+	vector.x = 0.0f;
+	vector.y = 0.0f;
+	vector.z = 0.0f;
+	return vector;
+}
+inline static struct Vector3F createOneVector3F()
+{
+	struct Vector3F vector;
+	vector.x = 1.0f;
+	vector.y = 1.0f;
+	vector.z = 1.0f;
+	return vector;
+}
+inline static struct Vector3F createMinusOneVector3F()
+{
+	struct Vector3F vector;
+	vector.x = -1.0f;
+	vector.y = -1.0f;
+	vector.z = -1.0f;
+	return vector;
+}
+
+inline static struct Vector3F createLeftVector3F()
+{
+	struct Vector3F vector;
+	vector.x = -1.0f;
+	vector.y = 0.0f;
+	vector.z = 0.0f;
+	return vector;
+}
+inline static struct Vector3F createRightVector3F()
+{
+	struct Vector3F vector;
+	vector.x = 1.0f;
+	vector.y = 0.0f;
+	vector.z = 0.0f;
+	return vector;
+}
+inline static struct Vector3F createBottomVector3F()
+{
+	struct Vector3F vector;
+	vector.x = 0.0f;
+	vector.y = -1.0f;
+	vector.z = 0.0f;
+	return vector;
+}
+inline static struct Vector3F createTopVector3F()
+{
+	struct Vector3F vector;
+	vector.x = 0.0f;
+	vector.y = 1.0f;
+	vector.z = 0.0f;
+	return vector;
+}
+inline static struct Vector3F createBackVector3F()
+{
+	struct Vector3F vector;
+	vector.x = 0.0f;
+	vector.y = 0.0f;
+	vector.z = -1.0f;
+	return vector;
+}
+inline static struct Vector3F createFrontVector3F()
+{
+	struct Vector3F vector;
+	vector.x = 0.0f;
+	vector.y = 0.0f;
+	vector.z = 1.0f;
 	return vector;
 }
 
@@ -368,6 +462,33 @@ inline static struct Vector4F createValueVector4F(
 	vector.y = value;
 	vector.z = value;
 	vector.w = value;
+	return vector;
+}
+inline static struct Vector4F createZeroVector4F()
+{
+	struct Vector4F vector;
+	vector.x = 0.0f;
+	vector.y = 0.0f;
+	vector.z = 0.0f;
+	vector.w = 0.0f;
+	return vector;
+}
+inline static struct Vector4F createOneVector4F()
+{
+	struct Vector4F vector;
+	vector.x = 1.0f;
+	vector.y = 1.0f;
+	vector.z = 1.0f;
+	vector.w = 1.0f;
+	return vector;
+}
+inline static struct Vector4F createMinusOneVector4F()
+{
+	struct Vector4F vector;
+	vector.x = -1.0f;
+	vector.y = -1.0f;
+	vector.z = -1.0f;
+	vector.w = -1.0f;
 	return vector;
 }
 

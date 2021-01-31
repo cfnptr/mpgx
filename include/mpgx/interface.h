@@ -31,7 +31,8 @@ typedef void(*OnInterfaceElementStay)(
 
 struct Interface* createInterface(
 	struct Window* window,
-	struct Transformer* transformer);
+	struct Transformer* transformer,
+	struct Vector2F scale);
 void destroyInterface(
 	struct Interface* interface);
 
@@ -47,10 +48,8 @@ struct InterfaceElement* createInterfaceElement(
 	struct Interface* interface,
 	bool update,
 	uint8_t anchor,
-	struct BoundingBox2F bounds,
 	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct BoundingBox2F bounds,
 	struct InterfaceElement* parent,
 	DestroyInterfaceElement destroyFunction,
 	OnInterfaceElementEnter onEnterFunction,

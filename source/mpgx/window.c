@@ -1840,13 +1840,24 @@ void setMeshIndexCount(
 
 #ifndef NDEBUG
 	if (mesh->drawIndex == UINT8_DRAW_INDEX)
-		assert(indexCount * sizeof(uint8_t) <= mesh->indexBuffer->size);
+	{
+		assert(indexCount * sizeof(uint8_t) <=
+			mesh->indexBuffer->size);
+	}
 	else if (mesh->drawIndex == UINT16_DRAW_INDEX)
-		assert(indexCount * sizeof(uint16_t) <= mesh->indexBuffer->size);
+	{
+		assert(indexCount * sizeof(uint16_t) <=
+			mesh->indexBuffer->size);
+	}
 	else if (mesh->drawIndex == UINT32_DRAW_INDEX)
-		assert(indexCount * sizeof(uint32_t) <= mesh->indexBuffer->size);
+	{
+		assert(indexCount * sizeof(uint32_t) <=
+			mesh->indexBuffer->size);
+	}
 	else
+	{
 		abort();
+	}
 #endif
 
 	mesh->indexCount = indexCount;
@@ -1891,13 +1902,24 @@ void setMeshIndexBuffer(
 
 #ifndef NDEBUG
 	if (drawIndex == UINT8_DRAW_INDEX)
-		assert(indexCount * sizeof(uint8_t) <= indexBuffer->size);
+	{
+		assert(indexCount * sizeof(uint8_t) <=
+			indexBuffer->size);
+	}
 	else if (drawIndex == UINT16_DRAW_INDEX)
-		assert(indexCount * sizeof(uint16_t) <= indexBuffer->size);
+	{
+		assert(indexCount * sizeof(uint16_t) <=
+			indexBuffer->size);
+	}
 	else if (drawIndex == UINT32_DRAW_INDEX)
-		assert(indexCount * sizeof(uint32_t) <= indexBuffer->size);
+	{
+		assert(indexCount * sizeof(uint32_t) <=
+			indexBuffer->size);
+	}
 	else
+	{
 		abort();
+	}
 #endif
 
 	mesh->drawIndex = drawIndex;
@@ -1936,13 +1958,24 @@ void setMeshBuffers(
 
 #ifndef NDEBUG
 	if (drawIndex == UINT8_DRAW_INDEX)
-		assert(indexCount * sizeof(uint8_t) <= indexBuffer->size);
+	{
+		assert(indexCount * sizeof(uint8_t) <=
+			indexBuffer->size);
+	}
 	else if (drawIndex == UINT16_DRAW_INDEX)
-		assert(indexCount * sizeof(uint16_t) <= indexBuffer->size);
+	{
+		assert(indexCount * sizeof(uint16_t) <=
+			indexBuffer->size);
+	}
 	else if (drawIndex == UINT32_DRAW_INDEX)
-		assert(indexCount * sizeof(uint32_t) <= indexBuffer->size);
+	{
+		assert(indexCount * sizeof(uint32_t) <=
+			indexBuffer->size);
+	}
 	else
+	{
 		abort();
+	}
 #endif
 
 	mesh->drawIndex = drawIndex;

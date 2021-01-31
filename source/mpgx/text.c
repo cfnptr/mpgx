@@ -19,6 +19,7 @@ struct Text
 	size_t fontSize;
 	char* data;
 	size_t dataSize;
+	size_t uniCharCount;
 	bool constant;
 	struct Image* image;
 	struct Mesh* mesh;
@@ -59,8 +60,8 @@ struct Font* createFontFromFile(
 {
 	assert(filePath != NULL);
 
-	struct Font* font =
-		malloc(sizeof(struct Font));
+	struct Font* font = malloc(
+		sizeof(struct Font));
 
 	if (font == NULL)
 		return NULL;
@@ -236,6 +237,9 @@ inline static bool createTextGlyphs(
 	{
 		uint32_t uniChar = uniChars[i];
 
+		if (uniChar == '\n')
+			continue;
+
 		struct Glyph searchGlyph;
 		searchGlyph.uniChar = uniChar;
 
@@ -269,6 +273,7 @@ inline static bool createTextPixels(
 	struct Glyph* glyphs,
 	size_t glyphCount,
 	size_t textPixelLength,
+	float* _newLineAdvance,
 	uint8_t** _pixels,
 	size_t* _pixelCount,
 	size_t* _pixelLength)
@@ -296,6 +301,9 @@ inline static bool createTextPixels(
 		free(pixels);
 		return false;
 	}
+
+	float newLineAdvance =
+		(face->size->metrics.height / 64.0f) / fontSize;
 
 	if (textPixelLength < pixelLength)
 		textPixelLength = pixelLength;
@@ -359,6 +367,7 @@ inline static bool createTextPixels(
 		}
 	}
 
+	*_newLineAdvance = newLineAdvance;
 	*_pixels = pixels;
 	*_pixelCount = pixelCount;
 	*_pixelLength = pixelLength;
@@ -369,6 +378,7 @@ inline static bool createTextVertices(
 	size_t uniCharCount,
 	const struct Glyph* glyphs,
 	size_t glyphCount,
+	float newLineAdvance,
 	float** _vertices,
 	size_t* _vertexCount)
 {
@@ -386,8 +396,17 @@ inline static bool createTextVertices(
 
 	for (size_t i = 0; i < uniCharCount; i++)
 	{
+		uint32_t uniChar = uniChars[i];
+
+		if (uniChar == '\n')
+		{
+			vertexGlyphPosY -= newLineAdvance;
+			vertexGlyphPosX = 0.0f;
+			continue;
+		}
+
 		struct Glyph searchGlyph;
-		searchGlyph.uniChar = uniChars[i];
+		searchGlyph.uniChar = uniChar;
 
 		struct Glyph* glyph = bsearch(
 			&searchGlyph,
@@ -478,8 +497,8 @@ struct Text* createText(
 	assert(font != NULL);
 	assert(_data != NULL);
 
-	struct Text* text =
-		malloc(sizeof(struct Text));
+	struct Text* text = malloc(
+		sizeof(struct Text));
 
 	if (text == NULL)
 		return NULL;
@@ -572,7 +591,8 @@ struct Text* createText(
 		}
 
 		text->data = data;
-		text->dataSize = dataSize;
+		text->dataSize = 1;
+		text->uniCharCount = 0;
 		text->image = image;
 		text->mesh = mesh;
 	}
@@ -623,6 +643,7 @@ struct Text* createText(
 			_data,
 			dataSize * sizeof(char));
 
+		float newLineAdvance;
 		uint8_t* pixels;
 		size_t pixelCount;
 		size_t pixelLength;
@@ -633,6 +654,7 @@ struct Text* createText(
 			glyphs,
 			glyphCount,
 			0,
+			&newLineAdvance,
 			&pixels,
 			&pixelCount,
 			&pixelLength);
@@ -675,6 +697,7 @@ struct Text* createText(
 			uniCharCount,
 			glyphs,
 			glyphCount,
+			newLineAdvance,
 			&vertices,
 			&vertexCount);
 
@@ -760,6 +783,7 @@ struct Text* createText(
 
 		text->data = data;
 		text->dataSize = dataSize;
+		text->uniCharCount = uniCharCount;
 		text->image = image;
 		text->mesh = mesh;
 	}
@@ -805,6 +829,100 @@ bool isTextConstant(
 {
 	assert(text != NULL);
 	return text->constant;
+}
+
+size_t getTextUnicodeCharCount(
+	const struct Text* text)
+{
+	assert(text != NULL);
+	return text->uniCharCount;
+}
+bool getTextUnicodeCharAdvance(
+	const struct Text* text,
+	size_t index,
+	struct Vector2F* _advance)
+{
+	assert(text != NULL);
+	assert(index < text->uniCharCount);
+	assert(_advance != NULL);
+
+	const char* data = text->data;
+	FT_Face face = text->font->face;
+	size_t fontSize = text->fontSize;
+
+	float newLineAdvance =
+		(face->size->metrics.height / 64.0f) / fontSize;
+
+	struct Vector2F advance =
+		createZeroVector2F();
+
+	for (size_t i = 0, j = 0; j <= index; j++)
+	{
+		uint32_t uniChar;
+
+		if ((data[i] & 0b10000000) == 0)
+		{
+			uniChar = (uint32_t)data[i];
+			i += 1;
+		}
+		else if ((data[i] & 0b11100000) == 0b11000000 &&
+			(data[i + 1] & 0b11000000) == 0b10000000)
+		{
+			uniChar =
+				(uint32_t)(data[i] & 0b00011111) << 6 |
+				(uint32_t)(data[i + 1] & 0b00111111);
+			i += 2;
+		}
+		else if ((data[i] & 0b11110000) == 0b11100000 &&
+			(data[i + 1] & 0b11000000) == 0b10000000 &&
+			(data[i + 2] & 0b11000000) == 0b10000000)
+		{
+			uniChar =
+				(uint32_t)(data[i] & 0b00001111) << 12 |
+				(uint32_t)(data[i + 1] & 0b00111111) << 6 |
+				(uint32_t)(data[i + 2] & 0b00111111);
+			i += 3;
+		}
+		else if ((data[i] & 0b11111000) == 0b11110000 &&
+			(data[i + 1] & 0b11000000) == 0b10000000 &&
+			(data[i + 2] & 0b11000000) == 0b10000000 &&
+			(data[i + 3] & 0b11000000) == 0b10000000)
+		{
+			uniChar =
+				(uint32_t)(data[i] & 0b00000111) << 18 |
+				(uint32_t)(data[i + 1] & 0b00111111) << 12 |
+				(uint32_t)(data[i + 2] & 0b00111111) << 6 |
+				(uint32_t)(data[i + 3] & 0b00111111);
+			i += 4;
+		}
+		else
+		{
+			return false;
+		}
+
+		if (uniChar == '\n')
+		{
+			advance.y -= newLineAdvance;
+			advance.x = 0.0f;
+			continue;
+		}
+
+		FT_UInt charIndex = FT_Get_Char_Index(
+			face,
+			uniChar);
+		FT_Error result = FT_Load_Glyph(
+			face,
+			charIndex,
+			FT_LOAD_BITMAP_METRICS_ONLY);
+
+		if (result != 0)
+			return false;
+
+		advance.x += (face->glyph->advance.x / 64.0f) / fontSize;
+	}
+
+	*_advance = advance;
+	return true;
 }
 
 struct Font* getTextFont(
@@ -908,6 +1026,7 @@ bool bakeText(
 			setMeshIndexCount(
 				text->mesh,
 				0);
+			text->uniCharCount = 0;
 		}
 		else
 		{
@@ -937,6 +1056,7 @@ bool bakeText(
 			size_t textPixelLength =
 				getImageWidth(text->image);
 
+			float newLineAdvance;
 			uint8_t* pixels;
 			size_t pixelCount;
 			size_t pixelLength;
@@ -947,6 +1067,7 @@ bool bakeText(
 				glyphs,
 				glyphCount,
 				textPixelLength,
+				&newLineAdvance,
 				&pixels,
 				&pixelCount,
 				&pixelLength);
@@ -991,6 +1112,7 @@ bool bakeText(
 				uniCharCount,
 				glyphs,
 				glyphCount,
+				newLineAdvance,
 				&vertices,
 				&vertexCount);
 
@@ -1119,6 +1241,8 @@ bool bakeText(
 					vertexBuffer,
 					indexBuffer);
 			}
+
+			text->uniCharCount = uniCharCount;
 		}
 	}
 	else
@@ -1209,7 +1333,8 @@ bool bakeText(
 			free(text->data);
 
 			text->data = data;
-			text->dataSize = dataSize;
+			text->dataSize = 1;
+			text->uniCharCount = 0;
 			text->image = image;
 			text->mesh = mesh;
 		}
@@ -1255,6 +1380,7 @@ bool bakeText(
 				_data,
 				dataSize * sizeof(char));
 
+			float newLineAdvance;
 			uint8_t* pixels;
 			size_t pixelCount;
 			size_t pixelLength;
@@ -1265,6 +1391,7 @@ bool bakeText(
 				glyphs,
 				glyphCount,
 				0,
+				&newLineAdvance,
 				&pixels,
 				&pixelCount,
 				&pixelLength);
@@ -1305,6 +1432,7 @@ bool bakeText(
 				uniCharCount,
 				glyphs,
 				glyphCount,
+				newLineAdvance,
 				&vertices,
 				&vertexCount);
 
@@ -1397,6 +1525,7 @@ bool bakeText(
 
 			text->data = data;
 			text->dataSize = dataSize;
+			text->uniCharCount = uniCharCount;
 			text->image = image;
 			text->mesh = mesh;
 		}

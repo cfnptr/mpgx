@@ -22,6 +22,7 @@ struct Interface
 {
 	struct Window* window;
 	struct Transformer* transformer;
+	struct Vector2F scale;
 	struct InterfaceElement** elements;
 	size_t elementCapacity;
 	size_t elementCount;
@@ -30,7 +31,8 @@ struct Interface
 
 struct Interface* createInterface(
 	struct Window* window,
-	struct Transformer* transformer)
+	struct Transformer* transformer,
+	struct Vector2F scale)
 {
 	assert(window != NULL);
 	assert(transformer != NULL);
@@ -52,6 +54,7 @@ struct Interface* createInterface(
 
 	interface->window = window;
 	interface->transformer = transformer;
+	interface->scale = scale;
 	interface->elements = elements;
 	interface->elementCapacity = 1;
 	interface->elementCount = 0;
@@ -192,14 +195,23 @@ union Camera executeInterface(
 
 	struct Window* window =
 		interface->window;
-	struct Vector2I size =
+	struct Vector2F scale =
+		interface->scale;
+	struct Vector2I windowSize =
 		getWindowSize(window);
 
+	struct Vector2F size;
+	size.x = (float)windowSize.x / scale.x;
+	size.y = (float)windowSize.y / scale.y;
+
+	float halfWidth = size.x / 2.0f;
+	float halfHeight = size.y / 2.0f;
+
 	union Camera camera = createOrthographicCamera(
-		(float)size.x / -2.0f,
-		(float)size.x / 2.0f,
-		(float)size.y / -2.0f,
-		(float)size.y / 2.0f,
+		-halfWidth,
+		halfWidth,
+		-halfHeight,
+		halfHeight,
 		0.0f,
 		1.0f);
 
@@ -214,12 +226,9 @@ union Camera executeInterface(
 	struct Vector2F cursor =
 		getWindowCursorPosition(window);
 
-	float halfWidth = (float)size.x / 2.0f;
-	float halfHeight = (float)size.y / 2.0f;
-
 	struct Vector2F cursorPosition = createVector2F(
-		cursor.x - halfWidth,
-		((float)size.y - cursor.y) - halfHeight);
+		(cursor.x / scale.x) - halfWidth,
+		(size.y - (cursor.y / scale.y)) - halfHeight);
 
 	updateElementPositions(
 		halfWidth,
@@ -313,10 +322,8 @@ struct InterfaceElement* createInterfaceElement(
 	struct Interface* interface,
 	bool update,
 	uint8_t anchor,
-	struct BoundingBox2F bounds,
 	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct BoundingBox2F bounds,
 	struct InterfaceElement* parent,
 	DestroyInterfaceElement destroyFunction,
 	OnInterfaceElementEnter onEnterFunction,
@@ -344,8 +351,8 @@ struct InterfaceElement* createInterfaceElement(
 	struct Transform* transform = createTransform(
 		interface->transformer,
 		createZeroVector3F(),
-		scale,
-		rotation,
+		createOneVector3F(),
+		createOneQuaternion(),
 		NULL);
 
 	if (transform == NULL)

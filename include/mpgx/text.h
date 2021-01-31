@@ -5,7 +5,7 @@ struct Font;
 struct Text;
 
 // TODO: add font loading from the memory
-// TODO: add full language font creating support
+// TODO: add tab symbol handling
 
 struct Font* createFontFromFile(
 	const void* filePath);
@@ -25,6 +25,12 @@ struct Window* getTextWindow(
 	const struct Text* text);
 bool isTextConstant(
 	const struct Text* text);
+size_t getTextUnicodeCharCount(
+	const struct Text* text);
+bool getTextUnicodeCharAdvance(
+	const struct Text* text,
+	size_t index,
+	struct Vector2F* advance);
 
 struct Font* getTextFont(
 	const struct Text* text);
@@ -56,9 +62,6 @@ bool bakeText(
 void drawTextCommand(
 	struct Text* text,
 	struct Pipeline* pipeline);
-
-// TODO:
-// get uniChar offset for text cursor
 
 struct Pipeline* createTextPipeline(
 	struct Window* window,

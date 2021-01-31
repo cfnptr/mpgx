@@ -7,22 +7,21 @@ struct InterfaceElement
 {
 	struct Interface* interface;
 	struct Transform* transform;
-	bool update;
 	uint8_t anchor;
 	struct Vector3F position;
 	struct BoundingBox2F bounds;
 	struct InterfaceElement* parent;
 	DestroyInterfaceElement destroyFunction;
-	OnInterfaceElementEnter onEnterFunction;
-	OnInterfaceElementExit onExitFunction;
-	OnInterfaceElementStay onStayFunction;
+	OnInterfaceElementEvent onEnterFunction;
+	OnInterfaceElementEvent onExitFunction;
+	OnInterfaceElementEvent onStayFunction;
 	void* handle;
 };
 struct Interface
 {
 	struct Window* window;
 	struct Transformer* transformer;
-	struct Vector2F scale;
+	float scale;
 	struct InterfaceElement** elements;
 	size_t elementCapacity;
 	size_t elementCount;
@@ -32,7 +31,7 @@ struct Interface
 struct Interface* createInterface(
 	struct Window* window,
 	struct Transformer* transformer,
-	struct Vector2F scale)
+	float scale)
 {
 	assert(window != NULL);
 	assert(transformer != NULL);
@@ -195,14 +194,14 @@ union Camera executeInterface(
 
 	struct Window* window =
 		interface->window;
-	struct Vector2F scale =
+	float scale =
 		interface->scale;
 	struct Vector2I windowSize =
 		getWindowSize(window);
 
 	struct Vector2F size;
-	size.x = (float)windowSize.x / scale.x;
-	size.y = (float)windowSize.y / scale.y;
+	size.x = (float)windowSize.x / scale;
+	size.y = (float)windowSize.y / scale;
 
 	float halfWidth = size.x / 2.0f;
 	float halfHeight = size.y / 2.0f;
@@ -227,8 +226,8 @@ union Camera executeInterface(
 		getWindowCursorPosition(window);
 
 	struct Vector2F cursorPosition = createVector2F(
-		(cursor.x / scale.x) - halfWidth,
-		(size.y - (cursor.y / scale.y)) - halfHeight);
+		(cursor.x / scale) - halfWidth,
+		(size.y - (cursor.y / scale)) - halfHeight);
 
 	updateElementPositions(
 		halfWidth,
@@ -242,9 +241,6 @@ union Camera executeInterface(
 	{
 		struct InterfaceElement* element =
 			elements[i];
-
-		if (element->update == false)
-			continue;
 
 		struct Vector3F position = getTransformPosition(
 			element->transform);
@@ -320,15 +316,14 @@ union Camera executeInterface(
 
 struct InterfaceElement* createInterfaceElement(
 	struct Interface* interface,
-	bool update,
 	uint8_t anchor,
 	struct Vector3F position,
 	struct BoundingBox2F bounds,
 	struct InterfaceElement* parent,
 	DestroyInterfaceElement destroyFunction,
-	OnInterfaceElementEnter onEnterFunction,
-	OnInterfaceElementExit onExitFunction,
-	OnInterfaceElementStay onStayFunction,
+	OnInterfaceElementEvent onEnterFunction,
+	OnInterfaceElementEvent onExitFunction,
+	OnInterfaceElementEvent onStayFunction,
 	void* handle)
 {
 	assert(interface != NULL);
@@ -348,12 +343,24 @@ struct InterfaceElement* createInterfaceElement(
 	if (element == NULL)
 		return NULL;
 
+	struct Transform* transformParent;
+
+	if (parent != NULL)
+	{
+		assert(interface == parent->interface);
+		transformParent = parent->transform;
+	}
+	else
+	{
+		transformParent = NULL;
+	}
+
 	struct Transform* transform = createTransform(
 		interface->transformer,
 		createZeroVector3F(),
 		createOneVector3F(),
 		createOneQuaternion(),
-		NULL);
+		transformParent);
 
 	if (transform == NULL)
 	{
@@ -363,7 +370,6 @@ struct InterfaceElement* createInterfaceElement(
 
 	element->interface = interface;
 	element->transform = transform;
-	element->update = update;
 	element->anchor = anchor;
 	element->position = position;
 	element->bounds = bounds;
@@ -450,20 +456,6 @@ void* getInterfaceElementHandle(
 	return element->handle;
 }
 
-bool getInterfaceElementUpdate(
-	const struct InterfaceElement* element)
-{
-	assert(element != NULL);
-	return element->update;
-}
-void setInterfaceElementUpdate(
-	struct InterfaceElement* element,
-	bool update)
-{
-	assert(element != NULL);
-	element->update = update;
-}
-
 uint8_t getInterfaceElementAnchor(
 	const struct InterfaceElement* element)
 {
@@ -517,14 +509,21 @@ void setInterfaceElementParent(
 	struct InterfaceElement* parent)
 {
 	assert(element != NULL);
+	element->parent = parent;
 
-#ifndef NDEBUG
 	if (parent != NULL)
 	{
 		assert(element->interface ==
 			parent->interface);
-	}
-#endif
 
-	element->parent = parent;
+		setTransformParent(
+			element->transform,
+			parent->transform);
+	}
+	else
+	{
+		setTransformParent(
+			element->transform,
+			NULL);
+	}
 }

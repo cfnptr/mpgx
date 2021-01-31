@@ -22,17 +22,13 @@ struct InterfaceElement;
 
 typedef void(*DestroyInterfaceElement)(
 	void* element);
-typedef void(*OnInterfaceElementEnter)(
-	struct InterfaceElement* element);
-typedef void(*OnInterfaceElementExit)(
-	struct InterfaceElement* element);
-typedef void(*OnInterfaceElementStay)(
+typedef void(*OnInterfaceElementEvent)(
 	struct InterfaceElement* element);
 
 struct Interface* createInterface(
 	struct Window* window,
 	struct Transformer* transformer,
-	struct Vector2F scale);
+	float scale);
 void destroyInterface(
 	struct Interface* interface);
 
@@ -46,15 +42,14 @@ union Camera executeInterface(
 
 struct InterfaceElement* createInterfaceElement(
 	struct Interface* interface,
-	bool update,
 	uint8_t anchor,
 	struct Vector3F position,
 	struct BoundingBox2F bounds,
 	struct InterfaceElement* parent,
 	DestroyInterfaceElement destroyFunction,
-	OnInterfaceElementEnter onEnterFunction,
-	OnInterfaceElementExit onExitFunction,
-	OnInterfaceElementStay onStayFunction,
+	OnInterfaceElementEvent onEnterFunction,
+	OnInterfaceElementEvent onExitFunction,
+	OnInterfaceElementEvent onStayFunction,
 	void* handle);
 void destroyInterfaceElement(
 	struct InterfaceElement* element);
@@ -65,12 +60,6 @@ struct Transform* getInterfaceElementTransform(
 	const struct InterfaceElement* element);
 void* getInterfaceElementHandle(
 	const struct InterfaceElement* element);
-
-bool getInterfaceElementUpdate(
-	const struct InterfaceElement* element);
-void setInterfaceElementUpdate(
-	struct InterfaceElement* element,
-	bool update);
 
 uint8_t getInterfaceElementAnchor(
 	const struct InterfaceElement* element);

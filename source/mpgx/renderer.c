@@ -18,6 +18,7 @@ struct Render
 	struct Renderer* renderer;
 	bool draw;
 	struct Transform* transform;
+	struct Render* parent;
 	DestroyRender destroyFunction;
 	RenderCommand renderFunction;
 	void* handle;
@@ -295,26 +296,40 @@ void executeRenderer(
 	{
 		struct Render* render = renders[i];
 
-		if (render->draw == true)
+		if (render->draw == false)
+			continue;
+
+		struct Render* parent =
+			render->parent;
+
+		while (parent != NULL)
 		{
-			struct Matrix4F model = getTransformModel(
-				render->transform);
+			if (parent->draw == false)
+				goto CONTINUE;
 
-			struct Matrix4F mvp = dotMatrix4F(
-				view,
-				proj);
-			mvp = dotMatrix4F(
-				model,
-				mvp);
-
-			render->renderFunction(
-				render,
-				pipeline,
-				&model,
-				&view,
-				&proj,
-				&mvp);
+			parent = parent->parent;
 		}
+
+		struct Matrix4F model = getTransformModel(
+			render->transform);
+
+		struct Matrix4F mvp = dotMatrix4F(
+			view,
+			proj);
+		mvp = dotMatrix4F(
+			model,
+			mvp);
+
+		render->renderFunction(
+			render,
+			pipeline,
+			&model,
+			&view,
+			&proj,
+			&mvp);
+
+	CONTINUE:
+		continue;
 	}
 }
 
@@ -324,7 +339,7 @@ struct Render* createRender(
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
-	struct Transform* parent,
+	struct Render* parent,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,
 	void* handle)
@@ -339,12 +354,24 @@ struct Render* createRender(
 	if (render == NULL)
 		return NULL;
 
+	struct Transform* transformParent;
+
+	if (parent != NULL)
+	{
+		assert(renderer == parent->renderer);
+		transformParent = parent->transform;
+	}
+	else
+	{
+		transformParent = NULL;
+	}
+
 	struct Transform* transform = createTransform(
 		renderer->transformer,
 		position,
 		scale,
 		rotation,
-		parent);
+		transformParent);
 
 	if (transform == NULL)
 	{
@@ -355,6 +382,7 @@ struct Render* createRender(
 	render->renderer = renderer;
 	render->draw = draw;
 	render->transform = transform;
+	render->parent = parent;
 	render->destroyFunction = destroyFunction;
 	render->renderFunction = renderFunction;
 	render->handle = handle;
@@ -447,4 +475,91 @@ void setRenderDraw(
 {
 	assert(render != NULL);
 	render->draw = value;
+}
+
+struct Vector3F getRenderPosition(
+	const struct Render* render)
+{
+	assert(render != NULL);
+
+	return getTransformPosition(
+		render->transform);
+}
+void setRenderPosition(
+	struct Render* render,
+	struct Vector3F position)
+{
+	assert(render != NULL);
+
+	setTransformPosition(
+		render->transform,
+		position);
+}
+
+struct Vector3F getRenderScale(
+	const struct Render* render)
+{
+	assert(render != NULL);
+
+	return getTransformScale(
+		render->transform);
+}
+void setRenderScale(
+	struct Render* render,
+	struct Vector3F scale)
+{
+	assert(render != NULL);
+
+	setTransformScale(
+		render->transform,
+		scale);
+}
+
+struct Quaternion getRenderRotation(
+	const struct Render* render)
+{
+	assert(render != NULL);
+
+	return getTransformRotation(
+		render->transform);
+}
+void setRenderRotation(
+	struct Render* render,
+	struct Quaternion rotation)
+{
+	assert(render != NULL);
+
+	setTransformRotation(
+		render->transform,
+		rotation);
+}
+
+struct Render* getRenderParent(
+	const struct Render* render)
+{
+	assert(render != NULL);
+	return render->parent;
+}
+void setRenderParent(
+	struct Render* render,
+	struct Render* parent)
+{
+	assert(render != NULL);
+	render->parent = parent;
+
+	if (parent != NULL)
+	{
+		assert(render->renderer ==
+			parent->renderer);
+
+		setTransformParent(
+			render->transform,
+			parent->transform);
+	}
+	else
+	{
+		setTransformParent(
+			render->transform,
+			NULL);
+	}
 }

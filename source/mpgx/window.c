@@ -1340,6 +1340,34 @@ struct Vector2I getWindowFramebufferSize(
 
 	return size;
 }
+bool getWindowKeyboardKey(
+	const struct Window* window,
+	int key)
+{
+	assert(window != NULL);
+
+	return glfwGetKey(
+		window->handle,
+		key) == GLFW_PRESS;
+}
+bool getWindowMouseButton(
+	const struct Window* window,
+	int button)
+{
+	assert(window != NULL);
+
+	return glfwGetMouseButton(
+		window->handle,
+		button) == GLFW_PRESS;
+}
+const char* getWindowClipboard(
+	const struct Window* window)
+{
+	assert(window != NULL);
+
+	return glfwGetClipboardString(
+		window->handle);
+}
 
 struct Vector2I getWindowSize(
 	const struct Window* window)

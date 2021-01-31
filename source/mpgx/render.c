@@ -45,7 +45,7 @@ struct Render* createColorRender(
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
-	struct Transform* parent,
+	struct Render* parent,
 	struct Mesh* mesh)
 {
 	assert(renderer != NULL);
@@ -135,7 +135,7 @@ struct Render* createSpriteRender(
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
-	struct Transform* parent,
+	struct Render* parent,
 	struct Vector4F color,
 	struct Mesh* mesh)
 {
@@ -247,7 +247,7 @@ struct Render* createTextRender(
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
-	struct Transform* parent,
+	struct Render* parent,
 	struct Vector4F color,
 	struct Text* text)
 {

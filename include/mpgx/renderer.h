@@ -53,7 +53,7 @@ struct Render* createRender(
 	struct Vector3F position,
 	struct Vector3F scale,
 	struct Quaternion rotation,
-	struct Transform* parent,
+	struct Render* parent,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,
 	void* handle);
@@ -72,3 +72,27 @@ bool getRenderDraw(
 void setRenderDraw(
 	struct Render* render,
 	bool value);
+
+struct Vector3F getRenderPosition(
+	const struct Render* render);
+void setRenderPosition(
+	struct Render* render,
+	struct Vector3F position);
+
+struct Vector3F getRenderScale(
+	const struct Render* render);
+void setRenderScale(
+	struct Render* render,
+	struct Vector3F scale);
+
+struct Quaternion getRenderRotation(
+	const struct Render* render);
+void setRenderRotation(
+	struct Render* render,
+	struct Quaternion rotation);
+
+struct Render* getRenderParent(
+	const struct Render* render);
+void setRenderParent(
+	struct Render* render,
+	struct Render* parent);

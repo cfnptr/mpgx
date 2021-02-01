@@ -4,6 +4,9 @@
 struct Transformer;
 struct Transform;
 
+// TODO: move renderer draw to the transfromer update
+// also interface
+
 struct Transformer* createTransformer();
 
 void destroyTransformer(

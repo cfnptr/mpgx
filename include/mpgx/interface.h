@@ -1,8 +1,10 @@
 #pragma once
 #include "mpgx/window.h"
 #include "mpgx/camera.h"
-#include "mpgx/bounding.h"
 #include "mpgx/transformer.h"
+
+#include "cmmt/vector.h"
+#include "cmmt/bounding.h"
 
 enum INTERFACE_ANCHOR
 {
@@ -43,8 +45,8 @@ union Camera executeInterface(
 struct InterfaceElement* createInterfaceElement(
 	struct Interface* interface,
 	uint8_t anchor,
-	struct Vector3F position,
-	struct BoundingBox2F bounds,
+	struct Vec3F position,
+	struct Box2F bounds,
 	struct InterfaceElement* parent,
 	DestroyInterfaceElement destroyFunction,
 	OnInterfaceElementEvent onEnterFunction,
@@ -67,17 +69,17 @@ void setInterfaceElementAnchor(
 	struct InterfaceElement* element,
 	uint8_t anchor);
 
-struct Vector3F getInterfaceElementPosition(
+struct Vec3F getInterfaceElementPosition(
 	const struct InterfaceElement* element);
 void setInterfaceElementPosition(
 	struct InterfaceElement* element,
-	struct Vector3F position);
+	struct Vec3F position);
 
-struct BoundingBox2F getInterfaceElementBounds(
+struct Box2F getInterfaceElementBounds(
 	const struct InterfaceElement* element);
 void setInterfaceElementBounds(
 	struct InterfaceElement* element,
-	struct BoundingBox2F bounds);
+	struct Box2F bounds);
 
 struct InterfaceElement* getInterfaceElementParent(
 	const struct InterfaceElement* element);

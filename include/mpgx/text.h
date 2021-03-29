@@ -1,5 +1,6 @@
 #pragma once
 #include "mpgx/window.h"
+#include <stdbool.h>
 
 struct Font;
 struct Text;
@@ -30,7 +31,7 @@ size_t getTextUnicodeCharCount(
 bool getTextUnicodeCharAdvance(
 	const struct Text* text,
 	size_t index,
-	struct Vector2F* advance);
+	struct Vec2F* advance);
 
 struct Font* getTextFont(
 	const struct Text* text);
@@ -74,14 +75,14 @@ struct Shader* getTextPipelineVertexShader(
 struct Shader* getTextPipelineFragmentShader(
 	const struct Pipeline* pipeline);
 
-struct Vector4F getTextPipelineColor(
+struct Vec4F getTextPipelineColor(
 	const struct Pipeline* pipeline);
 void setTextPipelineColor(
 	struct Pipeline* pipeline,
-	struct Vector4F color);
+	struct Vec4F color);
 
-struct Matrix4F getTextPipelineMVP(
+struct Mat4F getTextPipelineMVP(
 	const struct Pipeline* pipeline);
 void setTextPipelineMVP(
 	struct Pipeline* pipeline,
-	struct Matrix4F mvp);
+	struct Mat4F mvp);

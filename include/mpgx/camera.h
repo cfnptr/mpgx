@@ -1,5 +1,5 @@
 #pragma once
-#include "matrix.h"
+#include "cmmt/matrix.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -74,7 +74,7 @@ inline static union Camera createOrthographicCamera(
 	return camera;
 }
 
-inline static struct Matrix4F createVkPerspectiveMatrix4F(
+inline static struct Mat4F createVkPerspectiveMat4F(
 	float fieldOfView,
 	float aspectRatio,
 	float nearClipPlane,
@@ -82,29 +82,29 @@ inline static struct Matrix4F createVkPerspectiveMatrix4F(
 {
 	float tanHalfFov = tanf(fieldOfView / 2.0f);
 
-	struct Matrix4F m;
-	m.m00 = 1.0f / (aspectRatio * tanHalfFov);
-	m.m01 = 0.0f;
-	m.m02 = 0.0f;
-	m.m03 = 0.0f;
+	struct Mat4F matrix;
+	matrix.m00 = 1.0f / (aspectRatio * tanHalfFov);
+	matrix.m01 = 0.0f;
+	matrix.m02 = 0.0f;
+	matrix.m03 = 0.0f;
 
-	m.m10 = 0.0f;
-	m.m11 = -1.0f / tanHalfFov;
-	m.m12 = 0.0f;
-	m.m13 = 0.0f;
+	matrix.m10 = 0.0f;
+	matrix.m11 = -1.0f / tanHalfFov;
+	matrix.m12 = 0.0f;
+	matrix.m13 = 0.0f;
 
-	m.m20 = 0.0f;
-	m.m21 = 0.0f;
-	m.m22 = farClipPlane / (farClipPlane - nearClipPlane);
-	m.m23 = 0.0f;
+	matrix.m20 = 0.0f;
+	matrix.m21 = 0.0f;
+	matrix.m22 = farClipPlane / (farClipPlane - nearClipPlane);
+	matrix.m23 = 0.0f;
 
-	m.m30 = 0.0f;
-	m.m31 = 0.0f;
-	m.m32 = -(farClipPlane * nearClipPlane) / (farClipPlane - nearClipPlane);
-	m.m33 = 0.0f;
-	return m;
+	matrix.m30 = 0.0f;
+	matrix.m31 = 0.0f;
+	matrix.m32 = -(farClipPlane * nearClipPlane) / (farClipPlane - nearClipPlane);
+	matrix.m33 = 0.0f;
+	return matrix;
 }
-inline static struct Matrix4F createGlPerspectiveMatrix4F(
+inline static struct Mat4F createGlPerspectiveMat4F(
 	float fieldOfView,
 	float aspectRatio,
 	float nearClipPlane,
@@ -112,30 +112,30 @@ inline static struct Matrix4F createGlPerspectiveMatrix4F(
 {
 	float tanHalfFov = tanf(fieldOfView / 2.0f);
 
-	struct Matrix4F m;
-	m.m00 = 1.0f / (aspectRatio * tanHalfFov);
-	m.m01 = 0.0f;
-	m.m02 = 0.0f;
-	m.m03 = 0.0f;
+	struct Mat4F matrix;
+	matrix.m00 = 1.0f / (aspectRatio * tanHalfFov);
+	matrix.m01 = 0.0f;
+	matrix.m02 = 0.0f;
+	matrix.m03 = 0.0f;
 
-	m.m10 = 0.0f;
-	m.m11 = 1.0f / tanHalfFov;
-	m.m12 = 0.0f;
-	m.m13 = 0.0f;
+	matrix.m10 = 0.0f;
+	matrix.m11 = 1.0f / tanHalfFov;
+	matrix.m12 = 0.0f;
+	matrix.m13 = 0.0f;
 
-	m.m20 = 0.0f;
-	m.m21 = 0.0f;
-	m.m22 = (farClipPlane + nearClipPlane) / (farClipPlane - nearClipPlane);
-	m.m23 = 0.0f;
+	matrix.m20 = 0.0f;
+	matrix.m21 = 0.0f;
+	matrix.m22 = (farClipPlane + nearClipPlane) / (farClipPlane - nearClipPlane);
+	matrix.m23 = 0.0f;
 
-	m.m30 = 0.0f;
-	m.m31 = 0.0f;
-	m.m32 = -(2.0f * farClipPlane * nearClipPlane) / (farClipPlane - nearClipPlane);
-	m.m33 = 0.0f;
-	return m;
+	matrix.m30 = 0.0f;
+	matrix.m31 = 0.0f;
+	matrix.m32 = -(2.0f * farClipPlane * nearClipPlane) / (farClipPlane - nearClipPlane);
+	matrix.m33 = 0.0f;
+	return matrix;
 }
 
-inline static struct Matrix4F createVkOrthographicMatrix4F(
+inline static struct Mat4F createVkOrthographicMat4F(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,
@@ -143,29 +143,29 @@ inline static struct Matrix4F createVkOrthographicMatrix4F(
 	float nearClipPlane,
 	float farClipPlane)
 {
-	struct Matrix4F m;
-	m.m00 = 2.0f / (rightFrustum - leftFrustum);
-	m.m01 = 0.0f;
-	m.m02 = 0.0f;
-	m.m03 = 0.0f;
+	struct Mat4F matrix;
+	matrix.m00 = 2.0f / (rightFrustum - leftFrustum);
+	matrix.m01 = 0.0f;
+	matrix.m02 = 0.0f;
+	matrix.m03 = 0.0f;
 
-	m.m10 = 0.0f;
-	m.m11 = -2.0f / (topFrustum - bottomFrustum);
-	m.m12 = 0.0f;
-	m.m13 = 0.0f;
+	matrix.m10 = 0.0f;
+	matrix.m11 = -2.0f / (topFrustum - bottomFrustum);
+	matrix.m12 = 0.0f;
+	matrix.m13 = 0.0f;
 
-	m.m20 = 0.0f;
-	m.m21 = 0.0f;
-	m.m22 = 1.0f / (farClipPlane - nearClipPlane);
-	m.m23 = 0.0f;
+	matrix.m20 = 0.0f;
+	matrix.m21 = 0.0f;
+	matrix.m22 = 1.0f / (farClipPlane - nearClipPlane);
+	matrix.m23 = 0.0f;
 
-	m.m30 = -(rightFrustum + leftFrustum) / (rightFrustum - leftFrustum);
-	m.m31 = -(topFrustum + bottomFrustum) / (topFrustum - bottomFrustum);
-	m.m32 = -nearClipPlane / (farClipPlane - nearClipPlane);
-	m.m33 = 1.0f;
-	return m;
+	matrix.m30 = -(rightFrustum + leftFrustum) / (rightFrustum - leftFrustum);
+	matrix.m31 = -(topFrustum + bottomFrustum) / (topFrustum - bottomFrustum);
+	matrix.m32 = -nearClipPlane / (farClipPlane - nearClipPlane);
+	matrix.m33 = 1.0f;
+	return matrix;
 }
-inline static struct Matrix4F createGlOrthographicMatrix4F(
+inline static struct Mat4F createGlOrthographicMat4F(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,
@@ -173,25 +173,25 @@ inline static struct Matrix4F createGlOrthographicMatrix4F(
 	float nearClipPlane,
 	float farClipPlane)
 {
-	struct Matrix4F m;
-	m.m00 = 2.0f / (rightFrustum - leftFrustum);
-	m.m01 = 0.0f;
-	m.m02 = 0.0f;
-	m.m03 = 0.0f;
+	struct Mat4F matrix;
+	matrix.m00 = 2.0f / (rightFrustum - leftFrustum);
+	matrix.m01 = 0.0f;
+	matrix.m02 = 0.0f;
+	matrix.m03 = 0.0f;
 
-	m.m10 = 0.0f;
-	m.m11 = 2.0f / (topFrustum - bottomFrustum);
-	m.m12 = 0.0f;
-	m.m13 = 0.0f;
+	matrix.m10 = 0.0f;
+	matrix.m11 = 2.0f / (topFrustum - bottomFrustum);
+	matrix.m12 = 0.0f;
+	matrix.m13 = 0.0f;
 
-	m.m20 = 0.0f;
-	m.m21 = 0.0f;
-	m.m22 = 2.0f / (farClipPlane - nearClipPlane);
-	m.m23 = 0.0f;
+	matrix.m20 = 0.0f;
+	matrix.m21 = 0.0f;
+	matrix.m22 = 2.0f / (farClipPlane - nearClipPlane);
+	matrix.m23 = 0.0f;
 
-	m.m30 = -(rightFrustum + leftFrustum) / (rightFrustum - leftFrustum);
-	m.m31 = -(topFrustum + bottomFrustum) / (topFrustum - bottomFrustum);
-	m.m32 = -(farClipPlane + nearClipPlane) / (farClipPlane - nearClipPlane);
-	m.m33 = 1.0f;
-	return m;
+	matrix.m30 = -(rightFrustum + leftFrustum) / (rightFrustum - leftFrustum);
+	matrix.m31 = -(topFrustum + bottomFrustum) / (topFrustum - bottomFrustum);
+	matrix.m32 = -(farClipPlane + nearClipPlane) / (farClipPlane - nearClipPlane);
+	matrix.m33 = 1.0f;
+	return matrix;
 }

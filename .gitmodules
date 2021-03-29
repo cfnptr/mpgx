@@ -4,3 +4,6 @@
 [submodule "libraries/freetype"]
 	path = libraries/freetype
 	url = https://github.com/cfnptr/freetype
+[submodule "libraries/cmmt"]
+	path = libraries/cmmt
+	url = https://github.com/cfnptr/cmmt

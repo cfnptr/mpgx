@@ -1312,12 +1312,12 @@ double getWindowDeltaTime(
 	assert(window != NULL);
 	return window->deltaTime;
 }
-struct Vector2F getWindowContentScale(
+struct Vec2F getWindowContentScale(
 	const struct Window* window)
 {
 	assert(window != NULL);
 
-	struct Vector2F scale;
+	struct Vec2F scale;
 
 	glfwGetWindowContentScale(
 		window->handle,
@@ -1326,12 +1326,12 @@ struct Vector2F getWindowContentScale(
 
 	return scale;
 }
-struct Vector2I getWindowFramebufferSize(
+struct Vec2I getWindowFramebufferSize(
 	const struct Window* window)
 {
 	assert(window != NULL);
 
-	struct Vector2I size;
+	struct Vec2I size;
 
 	glfwGetFramebufferSize(
 		window->handle,
@@ -1369,12 +1369,12 @@ const char* getWindowClipboard(
 		window->handle);
 }
 
-struct Vector2I getWindowSize(
+struct Vec2I getWindowSize(
 	const struct Window* window)
 {
 	assert(window != NULL);
 
-	struct Vector2I size;
+	struct Vec2I size;
 
 	glfwGetWindowSize(
 		window->handle,
@@ -1385,7 +1385,7 @@ struct Vector2I getWindowSize(
 }
 void setWindowSize(
 	struct Window* window,
-	struct Vector2I size)
+	struct Vec2I size)
 {
 	assert(window != NULL);
 
@@ -1395,12 +1395,12 @@ void setWindowSize(
 		size.y);
 }
 
-struct Vector2I getWindowPosition(
+struct Vec2I getWindowPosition(
 	const struct Window* window)
 {
 	assert(window != NULL);
 
-	struct Vector2I position;
+	struct Vec2I position;
 
 	glfwGetWindowPos(
 		window->handle,
@@ -1411,7 +1411,7 @@ struct Vector2I getWindowPosition(
 }
 void setWindowPosition(
 	struct Window* window,
-	struct Vector2I position)
+	struct Vec2I position)
 {
 	assert(window != NULL);
 
@@ -1421,7 +1421,7 @@ void setWindowPosition(
 		position.y);
 }
 
-struct Vector2F getWindowCursorPosition(
+struct Vec2F getWindowCursorPosition(
 	const struct Window* window)
 {
 	assert(window != NULL);
@@ -1433,13 +1433,11 @@ struct Vector2F getWindowCursorPosition(
 		&x,
 		&y);
 
-	return createVector2F(
-		(float)x,
-		(float)y);
+	return vec2F((float)x, (float)y);
 }
 void setWindowCursorPosition(
 	struct Window* window,
-	struct Vector2F position)
+	struct Vec2F position)
 {
 	assert(window != NULL);
 

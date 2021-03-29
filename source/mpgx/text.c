@@ -50,8 +50,8 @@ struct TextPipeline
 	struct Shader* vertexShader;
 	struct Shader* fragmentShader;
 	struct Image* image;
-	struct Matrix4F mvp;
-	struct Vector4F color;
+	struct Mat4F mvp;
+	struct Vec4F color;
 	void* handle;
 };
 
@@ -840,7 +840,7 @@ size_t getTextUnicodeCharCount(
 bool getTextUnicodeCharAdvance(
 	const struct Text* text,
 	size_t index,
-	struct Vector2F* _advance)
+	struct Vec2F* _advance)
 {
 	assert(text != NULL);
 	assert(index < text->uniCharCount);
@@ -853,8 +853,7 @@ bool getTextUnicodeCharAdvance(
 	float newLineAdvance =
 		(face->size->metrics.height / 64.0f) / fontSize;
 
-	struct Vector2F advance =
-		createZeroVector2F();
+	struct Vec2F advance = zeroVec2F();
 
 	for (size_t i = 0, j = 0; j <= index; j++)
 	{
@@ -1737,15 +1736,15 @@ void setGlTextUniformsCommand(
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vector2F) * 2,
+		sizeof(struct Vec2F) * 2,
 		0);
 	glVertexAttribPointer(
 		1,
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vector2F) * 2,
-		(const void*)sizeof(struct Vector2F));
+		sizeof(struct Vec2F) * 2,
+		(const void*)sizeof(struct Vec2F));
 
 	assertOpenGL();
 }
@@ -1804,8 +1803,8 @@ struct Pipeline* createTextPipeline(
 	textPipeline->vertexShader = vertexShader;
 	textPipeline->fragmentShader = fragmentShader;
 	textPipeline->image = NULL;
-	textPipeline->mvp = createIdentityMatrix4F();
-	textPipeline->color = createValueVector4F(1.0f);
+	textPipeline->mvp = identMat4F();
+	textPipeline->color = valVec4F(1.0f);
 	textPipeline->handle = handle;
 
 	struct Pipeline* pipeline = createPipeline(
@@ -1848,7 +1847,7 @@ struct Shader* getTextPipelineFragmentShader(
 	return textPipeline->fragmentShader;
 }
 
-struct Vector4F getTextPipelineColor(
+struct Vec4F getTextPipelineColor(
 	const struct Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
@@ -1859,7 +1858,7 @@ struct Vector4F getTextPipelineColor(
 }
 void setTextPipelineColor(
 	struct Pipeline* pipeline,
-	struct Vector4F color)
+	struct Vec4F color)
 {
 	assert(pipeline != NULL);
 
@@ -1868,7 +1867,7 @@ void setTextPipelineColor(
 	textPipeline->color = color;
 }
 
-struct Matrix4F getTextPipelineMVP(
+struct Mat4F getTextPipelineMVP(
 	const struct Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
@@ -1879,7 +1878,7 @@ struct Matrix4F getTextPipelineMVP(
 }
 void setTextPipelineMVP(
 	struct Pipeline* pipeline,
-	struct Matrix4F mvp)
+	struct Mat4F mvp)
 {
 	assert(pipeline != NULL);
 

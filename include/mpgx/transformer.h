@@ -1,5 +1,5 @@
 #pragma once
-#include "mpgx/quaternion.h"
+#include "cmmt/quaternion.h"
 
 struct Transformer;
 struct Transform;
@@ -14,9 +14,9 @@ void destroyTransformer(
 
 struct Transform* createTransform(
 	struct Transformer* transformer,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Transform* parent);
 void destroyTransform(
 	struct Transform* transform);
@@ -24,23 +24,23 @@ void destroyTransform(
 struct Transformer* getTransformTransformer(
 	const struct Transform* transform);
 
-struct Vector3F getTransformPosition(
+struct Vec3F getTransformPosition(
 	const struct Transform* transform);
 void setTransformPosition(
 	struct Transform* transform,
-	struct Vector3F position);
+	struct Vec3F position);
 
-struct Vector3F getTransformScale(
+struct Vec3F getTransformScale(
 	const struct Transform* transform);
 void setTransformScale(
 	struct Transform* transform,
-	struct Vector3F scale);
+	struct Vec3F scale);
 
-struct Quaternion getTransformRotation(
+struct Quat getTransformRotation(
 	const struct Transform* transform);
 void setTransformRotation(
 	struct Transform* transform,
-	struct Quaternion rotation);
+	struct Quat rotation);
 
 struct Transform* getTransformParent(
 	const struct Transform* transform);
@@ -48,7 +48,7 @@ void setTransformParent(
 	struct Transform* transform,
 	struct Transform* parent);
 
-struct Matrix4F getTransformModel(
+struct Mat4F getTransformModel(
 	const struct Transform* transform);
 
 void executeTransformer(

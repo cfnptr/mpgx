@@ -7,12 +7,12 @@ struct ColorRender
 };
 struct SpriteRender
 {
-	struct Vector4F color;
+	struct Vec4F color;
 	struct Mesh* mesh;
 };
 struct TextRender
 {
-	struct Vector4F color;
+	struct Vec4F color;
 	struct Text* text;
 };
 
@@ -24,10 +24,10 @@ void destroyColorRender(
 void renderColorCommand(
 	struct Render* render,
 	struct Pipeline* pipeline,
-	const struct Matrix4F* model,
-	const struct Matrix4F* view,
-	const struct Matrix4F* proj,
-	const struct Matrix4F* mvp)
+	const struct Mat4F* model,
+	const struct Mat4F* view,
+	const struct Mat4F* proj,
+	const struct Mat4F* mvp)
 {
 	struct ColorRender* colorRender =
 		(struct ColorRender*)getRenderHandle(render);
@@ -42,9 +42,9 @@ void renderColorCommand(
 struct Render* createColorRender(
 	struct Renderer* renderer,
 	bool draw,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Render* parent,
 	struct Mesh* mesh)
 {
@@ -111,10 +111,10 @@ void destroySpriteRender(
 void renderSpriteCommand(
 	struct Render* render,
 	struct Pipeline* pipeline,
-	const struct Matrix4F* model,
-	const struct Matrix4F* view,
-	const struct Matrix4F* proj,
-	const struct Matrix4F* mvp)
+	const struct Mat4F* model,
+	const struct Mat4F* view,
+	const struct Mat4F* proj,
+	const struct Mat4F* mvp)
 {
 	struct SpriteRender* spriteRender =
 		(struct SpriteRender*)getRenderHandle(render);
@@ -132,11 +132,11 @@ void renderSpriteCommand(
 struct Render* createSpriteRender(
 	struct Renderer* renderer,
 	bool draw,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Render* parent,
-	struct Vector4F color,
+	struct Vec4F color,
 	struct Mesh* mesh)
 {
 	assert(renderer != NULL);
@@ -174,7 +174,7 @@ struct Render* createSpriteRender(
 	return render;
 }
 
-struct Vector4F getSpriteRenderColor(
+struct Vec4F getSpriteRenderColor(
 	const struct Render* render)
 {
 	assert(render != NULL);
@@ -185,7 +185,7 @@ struct Vector4F getSpriteRenderColor(
 }
 void setSpriteRenderColor(
 	struct Render* render,
-	struct Vector4F color)
+	struct Vec4F color)
 {
 	assert(render != NULL);
 
@@ -223,10 +223,10 @@ void destroyTextRender(
 void renderTextCommand(
 	struct Render* render,
 	struct Pipeline* pipeline,
-	const struct Matrix4F* model,
-	const struct Matrix4F* view,
-	const struct Matrix4F* proj,
-	const struct Matrix4F* mvp)
+	const struct Mat4F* model,
+	const struct Mat4F* view,
+	const struct Mat4F* proj,
+	const struct Mat4F* mvp)
 {
 	struct TextRender* textRender =
 		(struct TextRender*)getRenderHandle(render);
@@ -244,11 +244,11 @@ void renderTextCommand(
 struct Render* createTextRender(
 	struct Renderer* renderer,
 	bool draw,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Render* parent,
-	struct Vector4F color,
+	struct Vec4F color,
 	struct Text* text)
 {
 	assert(renderer != NULL);
@@ -286,7 +286,7 @@ struct Render* createTextRender(
 	return render;
 }
 
-struct Vector4F getTextRenderColor(
+struct Vec4F getTextRenderColor(
 	const struct Render* render)
 {
 	assert(render != NULL);
@@ -297,7 +297,7 @@ struct Vector4F getTextRenderColor(
 }
 void setTextRenderColor(
 	struct Render* render,
-	struct Vector4F color)
+	struct Vec4F color)
 {
 	assert(render != NULL);
 

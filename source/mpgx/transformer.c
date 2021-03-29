@@ -1,4 +1,5 @@
 #include "mpgx/transformer.h"
+#include "cmmt/matrix.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -12,10 +13,10 @@ struct Transformer
 struct Transform
 {
 	struct Transformer* transformer;
-	struct Vector3F position;
-	struct Vector3F scale;
-	struct Quaternion rotation;
-	struct Matrix4F model;
+	struct Vec3F position;
+	struct Vec3F scale;
+	struct Quat rotation;
+	struct Mat4F model;
 	struct Transform* parent;
 };
 
@@ -62,9 +63,9 @@ void destroyTransformer(
 
 struct Transform* createTransform(
 	struct Transformer* transformer,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Transform* parent)
 {
 	assert(transformer != NULL);
@@ -87,7 +88,7 @@ struct Transform* createTransform(
 	transform->position = position;
 	transform->scale = scale;
 	transform->rotation = rotation;
-	transform->model = createIdentityMatrix4F();
+	transform->model = identMat4F();
 	transform->parent = parent;
 
 	if (transformer->transformCount ==
@@ -150,7 +151,7 @@ struct Transformer* getTransformTransformer(
 	return transform->transformer;
 }
 
-struct Vector3F getTransformPosition(
+struct Vec3F getTransformPosition(
 	const struct Transform* transform)
 {
 	assert(transform != NULL);
@@ -158,13 +159,13 @@ struct Vector3F getTransformPosition(
 }
 void setTransformPosition(
 	struct Transform* transform,
-	struct Vector3F position)
+	struct Vec3F position)
 {
 	assert(transform != NULL);
 	transform->position = position;
 }
 
-struct Vector3F getTransformScale(
+struct Vec3F getTransformScale(
 	const struct Transform* transform)
 {
 	assert(transform != NULL);
@@ -172,13 +173,13 @@ struct Vector3F getTransformScale(
 }
 void setTransformScale(
 	struct Transform* transform,
-	struct Vector3F scale)
+	struct Vec3F scale)
 {
 	assert(transform != NULL);
 	transform->scale = scale;
 }
 
-struct Quaternion getTransformRotation(
+struct Quat getTransformRotation(
 	const struct Transform* transform)
 {
 	assert(transform != NULL);
@@ -186,7 +187,7 @@ struct Quaternion getTransformRotation(
 }
 void setTransformRotation(
 	struct Transform* transform,
-	struct Quaternion rotation)
+	struct Quat rotation)
 {
 	assert(transform != NULL);
 	transform->rotation = rotation;
@@ -213,7 +214,7 @@ void setTransformParent(
 	transform->parent = parent;
 }
 
-struct Matrix4F getTransformModel(
+struct Mat4F getTransformModel(
 	const struct Transform* transform)
 {
 	assert(transform != NULL);
@@ -233,15 +234,15 @@ void executeTransformer(
 		struct Transform* transform =
 			transforms[i];
 
-		struct Matrix4F model =
-			createIdentityMatrix4F();
-		model = translateMatrix4F(
+		struct Mat4F model =
+			identMat4F();
+		model = translateMat4F(
 			model,
 			transform->position);
-		model = dotMatrix4F(
-			getQuaternionMatrixF4(transform->rotation),
+		model = dotMat4F(
+			getQuatMatF4(transform->rotation),
 			model);
-		model = scaleMatrix4F(
+		model = scaleMat4F(
 			model,
 			transform->scale);
 		transform->model = model;
@@ -258,12 +259,12 @@ void executeTransformer(
 		if (parent == NULL)
 			continue;
 
-		struct Matrix4F model =
+		struct Mat4F model =
 			transform->model;
 
 		while (parent != NULL)
 		{
-			model = dotMatrix4F(
+			model = dotMat4F(
 				model,
 				parent->model);
 			parent = parent->parent;

@@ -1,6 +1,6 @@
 #pragma once
-#include "mpgx/vector.h"
-#include "mpgx/matrix.h"
+#include "cmmt/vector.h"
+#include "cmmt/matrix.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -281,9 +281,9 @@ double getWindowUpdateTime(
 	const struct Window* window);
 double getWindowDeltaTime(
 	const struct Window* window);
-struct Vector2F getWindowContentScale(
+struct Vec2F getWindowContentScale(
 	const struct Window* window);
-struct Vector2I getWindowFramebufferSize(
+struct Vec2I getWindowFramebufferSize(
 	const struct Window* window);
 bool getWindowKeyboardKey(
 	const struct Window* window,
@@ -294,23 +294,23 @@ bool getWindowMouseButton(
 const char* getWindowClipboard(
 	const struct Window* window);
 
-struct Vector2I getWindowSize(
+struct Vec2I getWindowSize(
 	const struct Window* window);
 void setWindowSize(
 	struct Window* window,
-	struct Vector2I size);
+	struct Vec2I size);
 
-struct Vector2I getWindowPosition(
+struct Vec2I getWindowPosition(
 	const struct Window* window);
 void setWindowPosition(
 	struct Window* window,
-	struct Vector2I position);
+	struct Vec2I position);
 
-struct Vector2F getWindowCursorPosition(
+struct Vec2F getWindowCursorPosition(
 	const struct Window* window);
 void setWindowCursorPosition(
 	struct Window* window,
-	struct Vector2F position);
+	struct Vec2F position);
 
 bool isWindowFocused(
 	struct Window* window);

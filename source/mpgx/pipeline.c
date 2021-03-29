@@ -10,8 +10,8 @@ struct ColorPipeline
 {
 	struct Shader* vertexShader;
 	struct Shader* fragmentShader;
-	struct Matrix4F mvp;
-	struct Vector4F color;
+	struct Mat4F mvp;
+	struct Vec4F color;
 	void* handle;
 };
 
@@ -25,8 +25,8 @@ struct SpritePipeline
 {
 	struct Shader* vertexShader;
 	struct Shader* fragmentShader;
-	struct Matrix4F mvp;
-	struct Vector4F color;
+	struct Mat4F mvp;
+	struct Vec4F color;
 	void* handle;
 };
 
@@ -160,7 +160,7 @@ void setGlColorPipelineUniforms(
 		3,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vector3F),
+		sizeof(struct Vec3F),
 		0);
 
 	assertOpenGL();
@@ -219,8 +219,8 @@ struct Pipeline* createColorPipeline(
 
 	colorPipeline->vertexShader = vertexShader;
 	colorPipeline->fragmentShader = fragmentShader;
-	colorPipeline->mvp = createIdentityMatrix4F();
-	colorPipeline->color = createValueVector4F(1.0f);
+	colorPipeline->mvp = identMat4F();
+	colorPipeline->color = valVec4F(1.0f);
 	colorPipeline->handle = handle;
 
 	struct Pipeline* pipeline = createPipeline(
@@ -263,7 +263,7 @@ struct Shader* getColorPipelineFragmentShader(
 	return colorPipeline->fragmentShader;
 }
 
-struct Matrix4F getColorPipelineMVP(
+struct Mat4F getColorPipelineMVP(
 	const struct Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
@@ -274,7 +274,7 @@ struct Matrix4F getColorPipelineMVP(
 }
 void setColorPipelineMVP(
 	struct Pipeline* pipeline,
-	struct Matrix4F mvp)
+	struct Mat4F mvp)
 {
 	assert(pipeline != NULL);
 
@@ -283,7 +283,7 @@ void setColorPipelineMVP(
 	colorPipeline->mvp = mvp;
 }
 
-struct Vector4F getColorPipelineColor(
+struct Vec4F getColorPipelineColor(
 	const struct Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
@@ -294,7 +294,7 @@ struct Vector4F getColorPipelineColor(
 }
 void setColorPipelineColor(
 	struct Pipeline* pipeline,
-	struct Vector4F color)
+	struct Vec4F color)
 {
 	assert(pipeline != NULL);
 
@@ -437,7 +437,7 @@ void setGlSpritePipelineUniforms(
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vector2F),
+		sizeof(struct Vec2F),
 		0);
 
 	assertOpenGL();
@@ -496,8 +496,8 @@ struct Pipeline* createSpritePipeline(
 
 	spritePipeline->vertexShader = vertexShader;
 	spritePipeline->fragmentShader = fragmentShader;
-	spritePipeline->mvp = createIdentityMatrix4F();
-	spritePipeline->color = createValueVector4F(1.0f);
+	spritePipeline->mvp = identMat4F();
+	spritePipeline->color = valVec4F(1.0f);
 	spritePipeline->handle = handle;
 
 	struct Pipeline* pipeline = createPipeline(
@@ -540,7 +540,7 @@ struct Shader* getSpritePipelineFragmentShader(
 	return spritePipeline->fragmentShader;
 }
 
-struct Matrix4F getSpritePipelineMVP(
+struct Mat4F getSpritePipelineMVP(
 	const struct Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
@@ -551,7 +551,7 @@ struct Matrix4F getSpritePipelineMVP(
 }
 void setSpritePipelineMVP(
 	struct Pipeline* pipeline,
-	struct Matrix4F mvp)
+	struct Mat4F mvp)
 {
 	assert(pipeline != NULL);
 
@@ -560,7 +560,7 @@ void setSpritePipelineMVP(
 	colorPipeline->mvp = mvp;
 }
 
-struct Vector4F getSpritePipelineColor(
+struct Vec4F getSpritePipelineColor(
 	const struct Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
@@ -571,7 +571,7 @@ struct Vector4F getSpritePipelineColor(
 }
 void setSpritePipelineColor(
 	struct Pipeline* pipeline,
-	struct Vector4F color)
+	struct Vec4F color)
 {
 	assert(pipeline != NULL);
 

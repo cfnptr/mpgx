@@ -4,9 +4,9 @@
 struct Render* createColorRender(
 	struct Renderer* renderer,
 	bool draw,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Render* parent,
 	struct Mesh* mesh);
 
@@ -19,11 +19,11 @@ void setColorRenderMesh(
 struct Render* createSpriteRender(
 	struct Renderer* renderer,
 	bool draw,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Render* parent,
-	struct Vector4F color,
+	struct Vec4F color,
 	struct Mesh* mesh);
 
 struct Mesh* getSpriteRenderMesh(
@@ -32,27 +32,27 @@ void setSpriteRenderMesh(
 	struct Render* render,
 	struct Mesh* mesh);
 
-struct Vector4F getSpriteRenderColor(
+struct Vec4F getSpriteRenderColor(
 	const struct Render* render);
 void setSpriteRenderColor(
 	struct Render* render,
-	struct Vector4F color);
+	struct Vec4F color);
 
 struct Render* createTextRender(
 	struct Renderer* renderer,
 	bool draw,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Render* parent,
-	struct Vector4F color,
+	struct Vec4F color,
 	struct Text* text);
 
-struct Vector4F getTextRenderColor(
+struct Vec4F getTextRenderColor(
 	const struct Render* render);
 void setTextRenderColor(
 	struct Render* render,
-	struct Vector4F color);
+	struct Vec4F color);
 
 struct Text* getTextRenderText(
 	const struct Render* render);

@@ -13,6 +13,8 @@ project(mpgx
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 
+add_subdirectory(libraries/cmmt)
+
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -26,6 +28,7 @@ add_subdirectory(libraries/freetype)
 find_package(Vulkan)
 
 set(MPGX_LINK_LIBRARIES
+	cmmt
 	glfw
 	freetype)
 

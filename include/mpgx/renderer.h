@@ -12,10 +12,10 @@ typedef void(*DestroyRender)(
 typedef void(*RenderCommand)(
 	struct Render* render,
 	struct Pipeline* pipeline,
-	const struct Matrix4F* model,
-	const struct Matrix4F* view,
-	const struct Matrix4F* proj,
-	const struct Matrix4F* mvp);
+	const struct Mat4F* model,
+	const struct Mat4F* view,
+	const struct Mat4F* proj,
+	const struct Mat4F* mvp);
 
 // TODO: frustum culling
 
@@ -23,9 +23,9 @@ struct Renderer* createRenderer(
 	struct Pipeline* pipeline,
 	struct Transformer* transformer,
 	bool ascendingSorting,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Transform* parent);
 void destroyRenderer(
 	struct Renderer* renderer);
@@ -50,9 +50,9 @@ void executeRenderer(
 struct Render* createRender(
 	struct Renderer* renderer,
 	bool draw,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Render* parent,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,
@@ -73,23 +73,23 @@ void setRenderDraw(
 	struct Render* render,
 	bool value);
 
-struct Vector3F getRenderPosition(
+struct Vec3F getRenderPosition(
 	const struct Render* render);
 void setRenderPosition(
 	struct Render* render,
-	struct Vector3F position);
+	struct Vec3F position);
 
-struct Vector3F getRenderScale(
+struct Vec3F getRenderScale(
 	const struct Render* render);
 void setRenderScale(
 	struct Render* render,
-	struct Vector3F scale);
+	struct Vec3F scale);
 
-struct Quaternion getRenderRotation(
+struct Quat getRenderRotation(
 	const struct Render* render);
 void setRenderRotation(
 	struct Render* render,
-	struct Quaternion rotation);
+	struct Quat rotation);
 
 struct Render* getRenderParent(
 	const struct Render* render);

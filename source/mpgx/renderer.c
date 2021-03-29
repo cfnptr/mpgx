@@ -30,19 +30,19 @@ int ascendCompareRender(
 {
 	struct Render* render =
 		*(struct Render**)a;
-	struct Vector3F renderPosition = addVector3F(
+	struct Vec3F renderPosition = addVec3F(
 		getTransformPosition(render->transform),
-		getTranslationMatrix4F(getTransformModel(render->transform)));
-	float distanceA = distanceVector3F(
+		getTranslationMat4F(getTransformModel(render->transform)));
+	float distanceA = distPowVec3F(
 		getTransformPosition(render->renderer->transform),
 		renderPosition);
 
 	render =
 		*(struct Render**)b;
-	renderPosition = addVector3F(
+	renderPosition = addVec3F(
 		getTransformPosition(render->transform),
-		getTranslationMatrix4F(getTransformModel(render->transform)));
-	float distanceB = distanceVector3F(
+		getTranslationMat4F(getTransformModel(render->transform)));
+	float distanceB = distPowVec3F(
 		getTransformPosition(render->renderer->transform),
 		renderPosition);
 
@@ -61,19 +61,19 @@ int descendCompareRender(
 {
 	struct Render* render =
 		*(struct Render**)a;
-	struct Vector3F renderPosition = addVector3F(
+	struct Vec3F renderPosition = addVec3F(
 		getTransformPosition(render->transform),
-		getTranslationMatrix4F(getTransformModel(render->transform)));
-	float distanceA = distanceVector3F(
+		getTranslationMat4F(getTransformModel(render->transform)));
+	float distanceA = distPowVec3F(
 		getTransformPosition(render->renderer->transform),
 		renderPosition);
 
 	render =
 		*(struct Render**)b;
-	renderPosition = addVector3F(
+	renderPosition = addVec3F(
 		getTransformPosition(render->transform),
-		getTranslationMatrix4F(getTransformModel(render->transform)));
-	float distanceB = distanceVector3F(
+		getTranslationMat4F(getTransformModel(render->transform)));
+	float distanceB = distPowVec3F(
 		getTransformPosition(render->renderer->transform),
 		renderPosition);
 
@@ -91,9 +91,9 @@ struct Renderer* createRenderer(
 	struct Pipeline* pipeline,
 	struct Transformer* transformer,
 	bool ascendingSort,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Transform* parent)
 {
 	assert(pipeline != NULL);
@@ -228,16 +228,16 @@ void executeRenderer(
 	uint8_t graphicsAPI = getWindowGraphicsAPI(
 		getPipelineWindow(pipeline));
 
-	struct Matrix4F view = getTransformModel(
+	struct Mat4F view = getTransformModel(
 		renderer->transform);
 
-	struct Matrix4F proj;
+	struct Mat4F proj;
 
 	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
 	{
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
-			proj = createVkPerspectiveMatrix4F(
+			proj = createVkPerspectiveMat4F(
 				camera.perspective.fieldOfView,
 				camera.perspective.aspectRatio,
 				camera.perspective.nearClipPlane,
@@ -246,7 +246,7 @@ void executeRenderer(
 		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
-			proj = createGlPerspectiveMatrix4F(
+			proj = createGlPerspectiveMat4F(
 				camera.perspective.fieldOfView,
 				camera.perspective.aspectRatio,
 				camera.perspective.nearClipPlane,
@@ -261,7 +261,7 @@ void executeRenderer(
 	{
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
-			proj = createVkOrthographicMatrix4F(
+			proj = createVkOrthographicMat4F(
 				camera.orthographic.leftFrustum,
 				camera.orthographic.rightFrustum,
 				camera.orthographic.bottomFrustum,
@@ -272,7 +272,7 @@ void executeRenderer(
 		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
-			proj = createGlOrthographicMatrix4F(
+			proj = createGlOrthographicMat4F(
 				camera.orthographic.leftFrustum,
 				camera.orthographic.rightFrustum,
 				camera.orthographic.bottomFrustum,
@@ -310,13 +310,13 @@ void executeRenderer(
 			parent = parent->parent;
 		}
 
-		struct Matrix4F model = getTransformModel(
+		struct Mat4F model = getTransformModel(
 			render->transform);
 
-		struct Matrix4F mvp = dotMatrix4F(
+		struct Mat4F mvp = dotMat4F(
 			view,
 			proj);
-		mvp = dotMatrix4F(
+		mvp = dotMat4F(
 			model,
 			mvp);
 
@@ -336,9 +336,9 @@ void executeRenderer(
 struct Render* createRender(
 	struct Renderer* renderer,
 	bool draw,
-	struct Vector3F position,
-	struct Vector3F scale,
-	struct Quaternion rotation,
+	struct Vec3F position,
+	struct Vec3F scale,
+	struct Quat rotation,
 	struct Render* parent,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,
@@ -477,7 +477,7 @@ void setRenderDraw(
 	render->draw = value;
 }
 
-struct Vector3F getRenderPosition(
+struct Vec3F getRenderPosition(
 	const struct Render* render)
 {
 	assert(render != NULL);
@@ -487,7 +487,7 @@ struct Vector3F getRenderPosition(
 }
 void setRenderPosition(
 	struct Render* render,
-	struct Vector3F position)
+	struct Vec3F position)
 {
 	assert(render != NULL);
 
@@ -496,7 +496,7 @@ void setRenderPosition(
 		position);
 }
 
-struct Vector3F getRenderScale(
+struct Vec3F getRenderScale(
 	const struct Render* render)
 {
 	assert(render != NULL);
@@ -506,7 +506,7 @@ struct Vector3F getRenderScale(
 }
 void setRenderScale(
 	struct Render* render,
-	struct Vector3F scale)
+	struct Vec3F scale)
 {
 	assert(render != NULL);
 
@@ -515,7 +515,7 @@ void setRenderScale(
 		scale);
 }
 
-struct Quaternion getRenderRotation(
+struct Quat getRenderRotation(
 	const struct Render* render)
 {
 	assert(render != NULL);
@@ -525,7 +525,7 @@ struct Quaternion getRenderRotation(
 }
 void setRenderRotation(
 	struct Render* render,
-	struct Quaternion rotation)
+	struct Quat rotation)
 {
 	assert(render != NULL);
 

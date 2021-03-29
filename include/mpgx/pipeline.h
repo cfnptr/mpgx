@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <stdbool.h>
 
 inline static void assertOpenGL()
 {
@@ -158,17 +159,17 @@ struct Shader* getColorPipelineVertexShader(
 struct Shader* getColorPipelineFragmentShader(
 	const struct Pipeline* pipeline);
 
-struct Matrix4F getColorPipelineMVP(
+struct Mat4F getColorPipelineMVP(
 	const struct Pipeline* pipeline);
 void setColorPipelineMVP(
 	struct Pipeline* pipeline,
-	struct Matrix4F mvp);
+	struct Mat4F mvp);
 
-struct Vector4F getColorPipelineColor(
+struct Vec4F getColorPipelineColor(
 	const struct Pipeline* pipeline);
 void setColorPipelineColor(
 	struct Pipeline* pipeline,
-	struct Vector4F color);
+	struct Vec4F color);
 
 struct Pipeline* createSpritePipeline(
 	struct Window* window,
@@ -181,14 +182,14 @@ struct Shader* getSpritePipelineVertexShader(
 struct Shader* getSpritePipelineFragmentShader(
 	const struct Pipeline* pipeline);
 
-struct Matrix4F getSpritePipelineMVP(
+struct Mat4F getSpritePipelineMVP(
 	const struct Pipeline* pipeline);
 void setSpritePipelineMVP(
 	struct Pipeline* pipeline,
-	struct Matrix4F mvp);
+	struct Mat4F mvp);
 
-struct Vector4F getSpritePipelineColor(
+struct Vec4F getSpritePipelineColor(
 	const struct Pipeline* pipeline);
 void setSpritePipelineColor(
 	struct Pipeline* pipeline,
-	struct Vector4F color);
+	struct Vec4F color);

@@ -23,18 +23,15 @@ struct Renderer* createRenderer(
 	struct Pipeline* pipeline,
 	struct Transformer* transformer,
 	bool ascendingSorting,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
 	struct Transform* parent);
 void destroyRenderer(
 	struct Renderer* renderer);
 
+struct Pipeline* getRendererPipeline(
+	const struct Renderer* renderer);
 struct Transformer* getRendererTransformer(
 	const struct Renderer* renderer);
-struct Transform* getRendererTransform(
-	const struct Renderer* renderer);
-struct Pipeline* getRendererPipeline(
+struct Transform* getRendererParent(
 	const struct Renderer* renderer);
 
 bool getRendererSorting(

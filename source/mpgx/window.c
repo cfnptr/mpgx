@@ -11,6 +11,9 @@
 #define OPENGL_ES_SHADER_HEADER \
 "#version 300 es\n"
 
+// TODO: remove function pointers from the window
+// if statements will be faster
+
 typedef void(*BeginCommandRecord)(
 	struct Window* window);
 typedef void(*EndCommandRecord)(
@@ -30,6 +33,8 @@ typedef void(*SetBufferData)(
 	const void* data,
 	size_t size,
 	size_t offset);
+typedef const void*(*GetBufferHandle)(
+	const struct Buffer* image);
 
 typedef void*(*CreateMesh)(
 	struct Window* window);
@@ -94,6 +99,7 @@ struct Window
 	CreateBuffer createBufferFunction;
 	DestroyBuffer destroyBufferFunction;
 	SetBufferData setBufferDataFunction;
+	GetBufferHandle getBufferHandleFunction;
 	CreateMesh createMeshFunction;
 	DestroyMesh destroyMeshFunction;
 	DrawMeshCommand drawMeshFunction;
@@ -333,6 +339,13 @@ void setGlBufferData(
 		data);
 
 	assertOpenGL();
+}
+const void* getGlBufferHandle(
+	const struct Buffer* image)
+{
+	struct GlBuffer* glBuffer =
+		(struct GlBuffer*)image->handle;
+	return &glBuffer->handle;
 }
 
 void* createGlMesh(
@@ -1069,6 +1082,8 @@ struct Window* createWindow(
 			destroyGlBuffer;
 		window->setBufferDataFunction =
 			setGlBufferData;
+		window->getBufferHandleFunction =
+			getGlBufferHandle;
 		window->createMeshFunction =
 			createGlMesh;
 		window->destroyMeshFunction =
@@ -1653,10 +1668,10 @@ struct Buffer* createBuffer(
 void destroyBuffer(
 	struct Buffer* buffer)
 {
-	assert(buffer->window->recording == false);
-
 	if (buffer == NULL)
 		return;
+
+	assert(buffer->window->recording == false);
 
 	struct Window* window =
 		buffer->window;
@@ -1708,6 +1723,12 @@ bool isBufferConstant(
 {
 	assert(buffer != NULL);
 	return buffer->constant;
+}
+const void* getBufferHandle(
+	const struct Buffer* buffer)
+{
+	assert(buffer != NULL);
+	return buffer->window->getBufferHandleFunction(buffer);
 }
 
 void setBufferData(
@@ -1807,10 +1828,10 @@ struct Mesh* createMesh(
 void destroyMesh(
 	struct Mesh* mesh)
 {
-	assert(mesh->window->recording == false);
-
 	if (mesh == NULL)
 		return;
+
+	assert(mesh->window->recording == false);
 
 	struct Window* window =
 		mesh->window;
@@ -2110,10 +2131,10 @@ struct Image* createImage(
 void destroyImage(
 	struct Image* image)
 {
-	assert(image->window->recording == false);
-
 	if (image == NULL)
 		return;
+
+	assert(image->window->recording == false);
 
 	struct Window* window =
 		image->window;
@@ -2360,10 +2381,10 @@ struct Shader* createShaderFromFile(
 void destroyShader(
 	struct Shader* shader)
 {
-	assert(shader->window->recording == false);
-
 	if (shader == NULL)
 		return;
+
+	assert(shader->window->recording == false);
 
 	struct Window* window =
 		shader->window;
@@ -2468,10 +2489,10 @@ struct Pipeline* createPipeline(
 void destroyPipeline(
 	struct Pipeline* pipeline)
 {
-	assert(pipeline->window->recording == false);
-
 	if (pipeline == NULL)
 		return;
+
+	assert(pipeline->window->recording == false);
 
 	struct Window* window =
 		pipeline->window;

@@ -365,6 +365,8 @@ size_t getBufferSize(
 	const struct Buffer* buffer);
 bool isBufferConstant(
 	const struct Buffer* buffer);
+const void* getBufferHandle(
+	const struct Buffer* buffer);
 
 void setBufferData(
 	struct Buffer* buffer,

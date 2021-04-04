@@ -193,3 +193,50 @@ struct Vec4F getSpritePipelineColor(
 void setSpritePipelineColor(
 	struct Pipeline* pipeline,
 	struct Vec4F color);
+
+struct Pipeline* createDiffusePipeline(
+	struct Window* window,
+	struct Shader* vertexShader,
+	struct Shader* fragmentShader,
+	uint8_t drawMode);
+
+struct Shader* getDiffusePipelineVertexShader(
+	const struct Pipeline* pipeline);
+struct Shader* getDiffusePipelineFragmentShader(
+	const struct Pipeline* pipeline);
+
+struct Mat4F getDiffusePipelineMVP(
+	const struct Pipeline* pipeline);
+void setDiffusePipelineMVP(
+	struct Pipeline* pipeline,
+	struct Mat4F mvp);
+
+struct Mat4F getDiffusePipelineNormal(
+	const struct Pipeline* pipeline);
+void setDiffusePipelineNormal(
+	struct Pipeline* pipeline,
+	struct Mat4F normal);
+
+struct Vec4F getDiffusePipelineObjectColor(
+	const struct Pipeline* pipeline);
+void setDiffusePipelineObjectColor(
+	struct Pipeline* pipeline,
+	struct Vec4F objectColor);
+
+struct Vec4F getDiffusePipelineAmbientColor(
+	const struct Pipeline* pipeline);
+void setDiffusePipelineAmbientColor(
+	struct Pipeline* pipeline,
+	struct Vec4F ambientColor);
+
+struct Vec4F getDiffusePipelineLightColor(
+	const struct Pipeline* pipeline);
+void setDiffusePipelineLightColor(
+	struct Pipeline* pipeline,
+	struct Vec4F lightColor);
+
+struct Vec3F getDiffusePipelineLightDirection(
+	const struct Pipeline* pipeline);
+void setDiffusePipelineLightDirection(
+	struct Pipeline* pipeline,
+	struct Vec3F lightDirection);

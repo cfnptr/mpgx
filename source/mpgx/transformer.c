@@ -72,10 +72,7 @@ struct Transform* createTransform(
 
 #ifndef NDEBUG
 	if (parent != NULL)
-	{
-		assert(transformer ==
-			parent->transformer);
-	}
+		assert(transformer == parent->transformer);
 #endif
 
 	struct Transform* transform = malloc(

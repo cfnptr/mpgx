@@ -120,7 +120,7 @@ inline static struct GlColorPipeline* createGlColorPipeline(
 	pipeline->colorLocation = colorLocation;
 	return pipeline;
 }
-void destroyGlColorPipeline(
+static void destroyGlColorPipeline(
 	struct Window* window,
 	void* pipeline)
 {
@@ -139,7 +139,7 @@ void destroyGlColorPipeline(
 	free(glColorPipeline);
 	free(colorPipeline);
 }
-void bindGlColorPipeline(
+static void bindGlColorPipeline(
 	struct Pipeline* pipeline)
 {
 	struct ColorPipeline* colorPipeline =
@@ -160,7 +160,7 @@ void bindGlColorPipeline(
 
 	assertOpenGL();
 }
-void setGlColorPipelineUniforms(
+static void setGlColorPipelineUniforms(
 	struct Pipeline* pipeline)
 {
 	struct ColorPipeline* colorPipeline =
@@ -385,7 +385,7 @@ inline static struct GlSpritePipeline* createGlSpritePipeline(
 	pipeline->colorLocation = colorLocation;
 	return pipeline;
 }
-void destroyGlSpritePipeline(
+static void destroyGlSpritePipeline(
 	struct Window* window,
 	void* pipeline)
 {
@@ -404,7 +404,7 @@ void destroyGlSpritePipeline(
 	free(glSpritePipeline);
 	free(spritePipeline);
 }
-void bindGlSpritePipeline(
+static void bindGlSpritePipeline(
 	struct Pipeline* pipeline)
 {
 	struct SpritePipeline* spritePipeline =
@@ -429,7 +429,7 @@ void bindGlSpritePipeline(
 
 	assertOpenGL();
 }
-void setGlSpritePipelineUniforms(
+static void setGlSpritePipelineUniforms(
 	struct Pipeline* pipeline)
 {
 	struct SpritePipeline* spritePipeline =
@@ -692,7 +692,7 @@ inline static struct GlDiffusePipeline* createGlDiffusePipeline(
 	pipeline->uniformBuffer = uniformBuffer;
 	return pipeline;
 }
-void destroyGlDiffusePipeline(
+static void destroyGlDiffusePipeline(
 	struct Window* window,
 	void* pipeline)
 {
@@ -711,7 +711,7 @@ void destroyGlDiffusePipeline(
 	free(glDiffusePipeline);
 	free(diffusePipeline);
 }
-void bindGlDiffusePipeline(
+static void bindGlDiffusePipeline(
 	struct Pipeline* pipeline)
 {
 	struct DiffusePipeline* diffusePipeline =
@@ -748,7 +748,7 @@ void bindGlDiffusePipeline(
 		sizeof(struct DiffuseUniformBuffer),
 		0);
 }
-void setGlDiffusePipelineUniforms(
+static void setGlDiffusePipelineUniforms(
 	struct Pipeline* pipeline)
 {
 	struct DiffusePipeline* diffusePipeline =
@@ -1004,6 +1004,8 @@ void setDiffusePipelineLightDirection(
 	assert(pipeline != NULL);
 	struct DiffusePipeline* diffusePipeline =
 		(struct DiffusePipeline*)getPipelineHandle(pipeline);
+
+	lightDirection = normVec3F(lightDirection);
 
 	diffusePipeline->fbo.lightDirection = vec4F(
 		lightDirection.x,

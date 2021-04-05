@@ -214,7 +214,7 @@ struct Pipeline
 static bool graphicsInitialized = false;
 static FT_Library ftLibrary = NULL;
 
-void beginGlCommandRecord(
+static void beginGlCommandRecord(
 	struct Window* window)
 {
 	int width, height;
@@ -232,13 +232,13 @@ void beginGlCommandRecord(
 		GL_DEPTH_BUFFER_BIT |
 		GL_STENCIL_BUFFER_BIT);
 }
-void endGlCommandRecord(
+static void endGlCommandRecord(
 	struct Window* window)
 {
 	glfwSwapBuffers(window->handle);
 }
 
-void* createGlBuffer(
+static void* createGlBuffer(
 	struct Window* window,
 	uint8_t _type,
 	const void* data,
@@ -299,7 +299,7 @@ void* createGlBuffer(
 	buffer->handle = handle;
 	return buffer;
 }
-void destroyGlBuffer(
+static void destroyGlBuffer(
 	struct Window* window,
 	void* buffer)
 {
@@ -317,7 +317,7 @@ void destroyGlBuffer(
 
 	free(glBuffer);
 }
-void setGlBufferData(
+static void setGlBufferData(
 	struct Buffer* buffer,
 	const void* data,
 	size_t size,
@@ -340,7 +340,7 @@ void setGlBufferData(
 
 	assertOpenGL();
 }
-const void* getGlBufferHandle(
+static const void* getGlBufferHandle(
 	const struct Buffer* image)
 {
 	struct GlBuffer* glBuffer =
@@ -348,7 +348,7 @@ const void* getGlBufferHandle(
 	return &glBuffer->handle;
 }
 
-void* createGlMesh(
+static void* createGlMesh(
 	struct Window* window)
 {
 	struct GlMesh* mesh = malloc(
@@ -371,7 +371,7 @@ void* createGlMesh(
 	mesh->handle = handle;
 	return mesh;
 }
-void destroyGlMesh(
+static void destroyGlMesh(
 	struct Window* window,
 	void* mesh)
 {
@@ -389,7 +389,7 @@ void destroyGlMesh(
 
 	free(glMesh);
 }
-void drawGlMeshCommand(
+static void drawGlMeshCommand(
 	struct Mesh* mesh,
 	struct Pipeline* pipeline)
 {
@@ -463,7 +463,7 @@ void drawGlMeshCommand(
 	assertOpenGL();
 }
 
-void* createGlImage(
+static void* createGlImage(
 	struct Window* window,
 	uint8_t _type,
 	uint8_t _format,
@@ -568,7 +568,7 @@ void* createGlImage(
 	image->handle = handle;
 	return image;
 }
-void destroyGlImage(
+static void destroyGlImage(
 	struct Window* window,
 	void* image)
 {
@@ -586,7 +586,7 @@ void destroyGlImage(
 
 	free(glImage);
 }
-void setGlImageData(
+static void setGlImageData(
 	struct Image* image,
 	const void* data,
 	size_t width,
@@ -642,7 +642,7 @@ void setGlImageData(
 
 	assertOpenGL();
 }
-void generateGlMipmap(
+static void generateGlMipmap(
 	struct Image* image)
 {
 	struct GlImage* glImage =
@@ -659,7 +659,7 @@ void generateGlMipmap(
 
 	assertOpenGL();
 }
-const void* getGlImageHandle(
+static const void* getGlImageHandle(
 	const struct Image* image)
 {
 	struct GlImage* glImage =
@@ -667,7 +667,7 @@ const void* getGlImageHandle(
 	return &glImage->handle;
 }
 
-void* createGlShader(
+static void* createGlShader(
 	struct Window* window,
 	uint8_t _type,
 	const void* code,
@@ -699,8 +699,6 @@ void* createGlShader(
 		return NULL;
 	}
 
-	// TODO: could be optimized by selecting
-	// createGlShader and createGlesShader
 	uint8_t api = getWindowGraphicsAPI(window);
 
 	const char* sources[2];
@@ -776,7 +774,7 @@ void* createGlShader(
 	shader->handle = handle;
 	return shader;
 }
-void destroyGlShader(
+static void destroyGlShader(
 	struct Window* window,
 	void* shader)
 {
@@ -793,7 +791,7 @@ void destroyGlShader(
 
 	free(glShader);
 }
-const void* getGlShaderHandle(
+static const void* getGlShaderHandle(
 	const struct Shader* shader)
 {
 	struct GlShader* glShader =
@@ -801,7 +799,7 @@ const void* getGlShaderHandle(
 	return &glShader->handle;
 }
 
-void glfwErrorCallback(
+static void glfwErrorCallback(
 	int error,
 	const char* description)
 {
@@ -1571,6 +1569,8 @@ void updateWindow(
 	struct GLFWwindow* handle =
 		window->handle;
 
+	// TODO: add vsync off/on option
+
 	while (glfwWindowShouldClose(handle) == GLFW_FALSE)
 	{
 		glfwPollEvents();
@@ -1742,7 +1742,6 @@ void setBufferData(
 	assert(size != 0);
 	assert(buffer->constant == false);
 	assert(size + offset <= buffer->size);
-	assert(buffer->window->recording == false);
 
 	buffer->window->setBufferDataFunction(
 		buffer,

@@ -106,7 +106,7 @@ void destroyFont(
 	free(font);
 }
 
-int compareGlyph(
+static int compareGlyph(
 	const void* a,
 	const void* b)
 {
@@ -1632,7 +1632,7 @@ inline static struct GlTextPipeline* createGlTextPipeline(
 	pipeline->imageLocation = imageLocation;
 	return pipeline;
 }
-void destroyGlTextPipeline(
+static void destroyGlTextPipeline(
 	struct Window* window,
 	void* pipeline)
 {
@@ -1652,7 +1652,7 @@ void destroyGlTextPipeline(
 	free(glTextPipeline);
 	free(textPipeline);
 }
-void bindGlTextPipelineCommand(
+static void bindGlTextPipelineCommand(
 	struct Pipeline* pipeline)
 {
 	struct TextPipeline* textPipeline =
@@ -1677,7 +1677,7 @@ void bindGlTextPipelineCommand(
 
 	assertOpenGL();
 }
-void setGlTextUniformsCommand(
+static void setGlTextUniformsCommand(
 	struct Pipeline* pipeline)
 {
 	struct TextPipeline* textPipeline =

@@ -24,7 +24,7 @@ struct Render
 	void* handle;
 };
 
-int ascendCompareRender(
+static int ascendCompareRender(
 	const void* a,
 	const void* b)
 {
@@ -55,7 +55,7 @@ int ascendCompareRender(
 
 	abort();
 }
-int descendCompareRender(
+static int descendCompareRender(
 	const void* a,
 	const void* b)
 {
@@ -95,6 +95,11 @@ struct Renderer* createRenderer(
 {
 	assert(pipeline != NULL);
 	assert(transformer != NULL);
+
+#ifndef NDEBUG
+	if (parent != NULL)
+		assert(getTransformTransformer(parent) == transformer);
+#endif
 
 	struct Renderer* renderer = malloc(
 		sizeof(struct Renderer));
@@ -330,6 +335,11 @@ struct Render* createRender(
 	assert(renderer != NULL);
 	assert(destroyFunction != NULL);
 	assert(renderFunction != NULL);
+
+#ifndef NDEBUG
+	if (parent != NULL)
+		assert(renderer == parent->renderer);
+#endif
 
 	struct Render* render = malloc(
 		sizeof(struct Render));

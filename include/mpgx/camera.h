@@ -4,7 +4,7 @@
 #include <math.h>
 #include <stdint.h>
 
-enum CameraType
+enum CAMERA_TYPE
 {
 	PERSPECTIVE_CAMERA_TYPE = 0,
 	ORTHOGRAPHIC_CAMERA_TYPE = 1,

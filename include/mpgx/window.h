@@ -11,7 +11,7 @@
 // TODO:
 // Add other enumerations
 
-enum KeyboardKey
+enum KEYBOARD_KEY
 {
 	UNKNOWN_KEYBOARD_KEY = -1,
 	SPACE_KEYBOARD_KEY = 32,
@@ -137,7 +137,7 @@ enum KeyboardKey
 	LAST_KEYBOARD_KEY = MENU_KEYBOARD_KEY,
 };
 
-enum MouseButton
+enum MOUSE_BUTTON
 {
 	N1_MOUSE_BUTTON = 0,
 	N2_MOUSE_BUTTON = 1,
@@ -153,60 +153,60 @@ enum MouseButton
 	MIDDLE_MOUSE_BUTTON = N3_MOUSE_BUTTON,
 };
 
-enum GraphicsAPI
+enum GRAPHICS_API
 {
 	VULKAN_GRAPHICS_API = 0,
 	OPENGL_GRAPHICS_API = 1,
 	OPENGL_ES_GRAPHICS_API = 2,
 };
 
-enum BufferType
+enum BUFFER_TYPE
 {
 	VERTEX_BUFFER_TYPE = 0,
 	INDEX_BUFFER_TYPE = 1,
 	UNIFORM_BUFFER_TYPE = 2,
 };
 
-enum DrawIndex
+enum DRAW_INDEX
 {
 	UINT8_DRAW_INDEX = 0,
 	UINT32_DRAW_INDEX = 1,
 	UINT16_DRAW_INDEX = 2,
 };
 
-enum ImageType
+enum IMAGE_TYPE
 {
 	IMAGE_2D_TYPE = 0,
 	IMAGE_3D_TYPE = 1,
 };
 
-enum ImageFormat
+enum IMAGE_FORMAT
 {
 	R8G8B8A8_UNORM_IMAGE_FORMAT = 0,
 	R8G8B8A8_SRGB_IMAGE_FORMAT = 1,
 };
 
-enum ImageFilter
+enum IMAGE_FILTER
 {
 	LINEAR_IMAGE_FILTER = 0,
 	NEAREST_IMAGE_FILTER = 1,
 };
 
-enum ImageWrap
+enum IMAGE_WRAP
 {
 	REPEAT_IMAGE_WRAP = 0,
 	MIRRORED_REPEAT_IMAGE_WRAP = 1,
 	CLAMP_TO_EDGE_IMAGE_WRAP = 2,
 };
 
-enum ShaderType
+enum SHADER_TYPE
 {
 	VERTEX_SHADER_TYPE = 0,
 	FRAGMENT_SHADER_TYPE = 1,
 	COMPUTE_SHADER_TYPE = 2,
 };
 
-enum DrawMode
+enum DRAW_MODE
 {
 	POINTS_DRAW_MODE = 0,
 	LINE_STRIP_DRAW_MODE = 1,
@@ -217,13 +217,13 @@ enum DrawMode
 	TRIANGLES_DRAW_MODE = 6,
 };
 
-enum CullFace
+enum CULL_FACE
 {
 	BACK_ONLY_CULL_FACE = 0,
 	FRONT_ONLY_CULL_FACE = 1,
 	BACK_FRONT_CULL_FACE = 2,
 };
-enum FrontFace
+enum FRONT_FACE
 {
 	CLOCKWISE_FRONT_FACE = 0,
 	COUNTERCLOCKWISE_FRONT_FACE = 1,

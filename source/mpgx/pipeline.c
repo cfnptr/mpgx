@@ -2,6 +2,7 @@
 
 // TODO: combine GlPipeline with Pipeline
 // if statements faster
+// todo fix diffuse normals, not works correctly
 
 struct GlColorPipeline
 {
@@ -701,8 +702,6 @@ static void destroyGlDiffusePipeline(
 	struct GlDiffusePipeline* glDiffusePipeline =
 		(struct GlDiffusePipeline*)diffusePipeline->handle;
 
-	makeWindowContextCurrent(window);
-
 	destroyBuffer(glDiffusePipeline->uniformBuffer);
 	glDeleteProgram(glDiffusePipeline->handle);
 
@@ -1004,8 +1003,6 @@ void setDiffusePipelineLightDirection(
 	assert(pipeline != NULL);
 	struct DiffusePipeline* diffusePipeline =
 		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-
-	lightDirection = normVec3F(lightDirection);
 
 	diffusePipeline->fbo.lightDirection = vec4F(
 		lightDirection.x,

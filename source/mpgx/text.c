@@ -577,6 +577,7 @@ struct Text* createText(
 			window,
 			UINT32_DRAW_INDEX,
 			0,
+			0,
 			vertexBuffer,
 			indexBuffer);
 
@@ -768,6 +769,7 @@ struct Text* createText(
 			window,
 			UINT32_DRAW_INDEX,
 			indexCount,
+			0,
 			vertexBuffer,
 			indexBuffer);
 
@@ -1307,6 +1309,7 @@ bool bakeText(
 				window,
 				UINT32_DRAW_INDEX,
 				0,
+				0,
 				vertexBuffer,
 				indexBuffer);
 
@@ -1498,6 +1501,7 @@ bool bakeText(
 				window,
 				UINT32_DRAW_INDEX,
 				indexCount,
+				0,
 				vertexBuffer,
 				indexBuffer);
 

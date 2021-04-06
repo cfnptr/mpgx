@@ -32,6 +32,7 @@ static void renderColorCommand(
 	const struct Mat4F* model,
 	const struct Mat4F* view,
 	const struct Mat4F* proj,
+	const struct Mat4F* viewProj,
 	const struct Mat4F* mvp)
 {
 	struct ColorRender* colorRender =
@@ -53,6 +54,7 @@ struct Render* createColorRender(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Render* parent,
 	struct Vec4F color,
 	struct Mesh* mesh)
@@ -78,6 +80,7 @@ struct Render* createColorRender(
 		position,
 		scale,
 		rotation,
+		rotationType,
 		parent,
 		destroyColorRender,
 		renderColorCommand,
@@ -141,6 +144,7 @@ static void renderSpriteCommand(
 	const struct Mat4F* model,
 	const struct Mat4F* view,
 	const struct Mat4F* proj,
+	const struct Mat4F* viewProj,
 	const struct Mat4F* mvp)
 {
 	struct SpriteRender* spriteRender =
@@ -162,6 +166,7 @@ struct Render* createSpriteRender(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Render* parent,
 	struct Vec4F color,
 	struct Mesh* mesh)
@@ -187,6 +192,7 @@ struct Render* createSpriteRender(
 		position,
 		scale,
 		rotation,
+		rotationType,
 		parent,
 		destroySpriteRender,
 		renderSpriteCommand,
@@ -250,6 +256,7 @@ static void renderDiffuseCommand(
 	const struct Mat4F* model,
 	const struct Mat4F* view,
 	const struct Mat4F* proj,
+	const struct Mat4F* viewProj,
 	const struct Mat4F* mvp)
 {
 	struct DiffuseRender* diffuseRender =
@@ -273,6 +280,7 @@ struct Render* createDiffuseRender(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Render* parent,
 	struct Mesh* mesh)
 {
@@ -296,6 +304,7 @@ struct Render* createDiffuseRender(
 		position,
 		scale,
 		rotation,
+		rotationType,
 		parent,
 		destroyDiffuseRender,
 		renderDiffuseCommand,
@@ -341,6 +350,7 @@ static void renderTextCommand(
 	const struct Mat4F* model,
 	const struct Mat4F* view,
 	const struct Mat4F* proj,
+	const struct Mat4F* viewProj,
 	const struct Mat4F* mvp)
 {
 	struct TextRender* textRender =
@@ -362,6 +372,7 @@ struct Render* createTextRender(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Render* parent,
 	struct Vec4F color,
 	struct Text* text)
@@ -387,6 +398,7 @@ struct Render* createTextRender(
 		position,
 		scale,
 		rotation,
+	 	rotationType,
 		parent,
 		destroyTextRender,
 		renderTextCommand,

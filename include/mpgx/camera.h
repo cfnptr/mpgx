@@ -96,7 +96,7 @@ inline static struct Mat4F createVkPerspectiveMat4F(
 	matrix.m20 = 0.0f;
 	matrix.m21 = 0.0f;
 	matrix.m22 = farClipPlane / (farClipPlane - nearClipPlane);
-	matrix.m23 = 0.0f;
+	matrix.m23 = 1.0f;
 
 	matrix.m30 = 0.0f;
 	matrix.m31 = 0.0f;
@@ -126,7 +126,7 @@ inline static struct Mat4F createGlPerspectiveMat4F(
 	matrix.m20 = 0.0f;
 	matrix.m21 = 0.0f;
 	matrix.m22 = (farClipPlane + nearClipPlane) / (farClipPlane - nearClipPlane);
-	matrix.m23 = 0.0f;
+	matrix.m23 = 1.0f;
 
 	matrix.m30 = 0.0f;
 	matrix.m31 = 0.0f;

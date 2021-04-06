@@ -216,9 +216,6 @@ void executeRenderer(
 	uint8_t graphicsAPI = getWindowGraphicsAPI(
 		getPipelineWindow(pipeline));
 
-	struct Mat4F view = getTransformModel(
-		renderer->parent);
-
 	struct Mat4F proj;
 
 	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
@@ -278,6 +275,12 @@ void executeRenderer(
 		abort();
 	}
 
+	struct Mat4F view = getTransformModel(
+		renderer->parent);
+	struct Mat4F viewProj = dotMat4F(
+		proj,
+		view);
+
 	bindPipelineCommand(pipeline);
 
 	for (size_t i = 0; i < renderCount; i++)
@@ -302,11 +305,8 @@ void executeRenderer(
 			render->transform);
 
 		struct Mat4F mvp = dotMat4F(
-			view,
-			proj);
-		mvp = dotMat4F(
-			model,
-			mvp);
+			viewProj,
+			model);
 
 		render->renderFunction(
 			render,
@@ -314,6 +314,7 @@ void executeRenderer(
 			&model,
 			&view,
 			&proj,
+			&viewProj,
 			&mvp);
 
 	CONTINUE:
@@ -327,12 +328,14 @@ struct Render* createRender(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Render* parent,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,
 	void* handle)
 {
 	assert(renderer != NULL);
+	assert(rotationType < ROTATION_TYPE_COUNT);
 	assert(destroyFunction != NULL);
 	assert(renderFunction != NULL);
 
@@ -364,6 +367,7 @@ struct Render* createRender(
 		position,
 		scale,
 		rotation,
+		rotationType,
 		transformParent);
 
 	if (transform == NULL)

@@ -7,6 +7,7 @@ struct Render* createColorRender(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Render* parent,
 	struct Vec4F color,
 	struct Mesh* mesh);
@@ -29,6 +30,7 @@ struct Render* createSpriteRender(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Render* parent,
 	struct Vec4F color,
 	struct Mesh* mesh);
@@ -51,6 +53,7 @@ struct Render* createDiffuseRender(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Render* parent,
 	struct Mesh* mesh);
 
@@ -66,6 +69,7 @@ struct Render* createTextRender(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Render* parent,
 	struct Vec4F color,
 	struct Text* text);

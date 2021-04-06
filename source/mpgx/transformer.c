@@ -16,6 +16,7 @@ struct Transform
 	struct Vec3F position;
 	struct Vec3F scale;
 	struct Quat rotation;
+	uint8_t rotationType;
 	struct Mat4F model;
 	struct Transform* parent;
 };
@@ -66,9 +67,11 @@ struct Transform* createTransform(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Transform* parent)
 {
 	assert(transformer != NULL);
+	assert(rotationType < ROTATION_TYPE_COUNT);
 
 #ifndef NDEBUG
 	if (parent != NULL)
@@ -85,6 +88,7 @@ struct Transform* createTransform(
 	transform->position = position;
 	transform->scale = scale;
 	transform->rotation = rotation;
+	transform->rotationType = rotationType;
 	transform->model = identMat4F();
 	transform->parent = parent;
 
@@ -98,10 +102,7 @@ struct Transform* createTransform(
 			capacity * sizeof(struct Transform*));
 
 		if (transforms == NULL)
-		{
-			free(transform);
 			return NULL;
-		}
 
 		transformer->transforms = transforms;
 		transformer->transformCapacity = capacity;
@@ -190,6 +191,21 @@ void setTransformRotation(
 	transform->rotation = rotation;
 }
 
+uint8_t getTransformRotationType(
+	const struct Transform* transform)
+{
+	assert(transform != NULL);
+	return transform->rotationType;
+}
+void setTransformRotationType(
+	struct Transform* transform,
+	uint8_t rotationType)
+{
+	assert(transform != NULL);
+	assert(rotationType < ROTATION_TYPE_COUNT);
+	transform->rotationType = rotationType;
+}
+
 struct Transform* getTransformParent(
 	const struct Transform* transform)
 {
@@ -221,6 +237,8 @@ struct Mat4F getTransformModel(
 void executeTransformer(
 	struct Transformer* transformer)
 {
+	assert(transformer != NULL);
+
 	size_t transformCount =
 		transformer->transformCount;
 	struct Transform** transforms =
@@ -228,17 +246,34 @@ void executeTransformer(
 
 	for (size_t i = 0; i < transformCount; i++)
 	{
-		struct Transform* transform =
-			transforms[i];
+		struct Transform* transform = transforms[i];
+		uint8_t rotationType = transform->rotationType;
 
-		struct Mat4F model =
-			identMat4F();
-		model = translateMat4F(
-			model,
-			transform->position);
-		model = dotMat4F(
-			getQuatMatF4(transform->rotation),
-			model);
+		struct Mat4F model = identMat4F();
+
+		if (rotationType == SPIN_ROTATION_TYPE)
+		{
+			model = translateMat4F(
+				model,
+				transform->position);
+			model = dotMat4F(
+				model,
+				getQuatMatF4(normQuat(transform->rotation)));
+		}
+		else if (rotationType == ORBIT_ROTATION_TYPE)
+		{
+			model = dotMat4F(
+				model,
+				getQuatMatF4(normQuat(transform->rotation)));
+			model = translateMat4F(
+				model,
+				transform->position);
+		}
+		else
+		{
+			abort();
+		}
+
 		model = scaleMat4F(
 			model,
 			transform->scale);
@@ -249,7 +284,6 @@ void executeTransformer(
 	{
 		struct Transform* transform =
 			transforms[i];
-
 		struct Transform* parent =
 			transform->parent;
 
@@ -262,8 +296,8 @@ void executeTransformer(
 		while (parent != NULL)
 		{
 			model = dotMat4F(
-				model,
-				parent->model);
+				parent->model, // TODO: check if correct
+				model);
 			parent = parent->parent;
 		}
 

@@ -360,6 +360,7 @@ struct InterfaceElement* createInterfaceElement(
 		zeroVec3F(),
 		oneVec3F(),
 		oneQuat(),
+		SPIN_ROTATION_TYPE,
 		transformParent);
 
 	if (transform == NULL)

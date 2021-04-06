@@ -11,6 +11,9 @@
 // TODO:
 // Add other enumerations
 
+// TODO: add enumerators count, and check out of bound in the functions
+// TODO: optimize array objects reallocations in window and other classes
+
 enum KEYBOARD_KEY
 {
 	UNKNOWN_KEYBOARD_KEY = -1,
@@ -153,6 +156,13 @@ enum MOUSE_BUTTON
 	MIDDLE_MOUSE_BUTTON = N3_MOUSE_BUTTON,
 };
 
+enum CURSOR_MODE
+{
+	DEFAULT_CURSOR_MODE = 0,
+	HIDDEN_CURSOR_MODE = 1,
+	LOCKED_CURSOR_MODE = 2,
+};
+
 enum GRAPHICS_API
 {
 	VULKAN_GRAPHICS_API = 0,
@@ -169,9 +179,8 @@ enum BUFFER_TYPE
 
 enum DRAW_INDEX
 {
-	UINT8_DRAW_INDEX = 0,
+	UINT16_DRAW_INDEX = 0,
 	UINT32_DRAW_INDEX = 1,
-	UINT16_DRAW_INDEX = 2,
 };
 
 enum IMAGE_TYPE
@@ -312,6 +321,12 @@ void setWindowCursorPosition(
 	struct Window* window,
 	struct Vec2F position);
 
+uint8_t getWindowCursorMode(
+	const struct Window* window);
+void setWindowCursorMode(
+	struct Window* window,
+	uint8_t cursorMode);
+
 bool isWindowFocused(
 	struct Window* window);
 bool isWindowIconified(
@@ -378,6 +393,7 @@ struct Mesh* createMesh(
 	struct Window* window,
 	uint8_t drawIndex,
 	size_t indexCount,
+	size_t indexOffset,
 	struct Buffer* vertexBuffer,
 	struct Buffer* indexBuffer);
 void destroyMesh(
@@ -394,6 +410,12 @@ void setMeshIndexCount(
 	struct Mesh* mesh,
 	size_t indexCount);
 
+size_t getMeshIndexOffset(
+	const struct Mesh* mesh);
+void setMeshIndexOffset(
+	struct Mesh* mesh,
+	size_t indexOffset);
+
 struct Buffer* getMeshVertexBuffer(
 	const struct Mesh* mesh);
 void setMeshVertexBuffer(
@@ -406,6 +428,7 @@ void setMeshIndexBuffer(
 	struct Mesh* mesh,
 	uint8_t drawIndex,
 	size_t indexCount,
+	size_t indexOffset,
 	struct Buffer* indexBuffer);
 
 void getMeshBuffers(

@@ -160,6 +160,7 @@ struct Mesh
 	struct Window* window;
 	uint8_t drawIndex;
 	size_t indexCount;
+	size_t indexOffset;
 	struct Buffer* vertexBuffer;
 	struct Buffer* indexBuffer;
 	void* handle;
@@ -444,21 +445,28 @@ static void drawGlMeshCommand(
 	}
 
 	GLenum glDrawIndex;
+	size_t glIndexOffset;
 
-	if (mesh->drawIndex == UINT8_DRAW_INDEX)
-		glDrawIndex = GL_UNSIGNED_BYTE;
-	else if (mesh->drawIndex == UINT16_DRAW_INDEX)
+	if (mesh->drawIndex == UINT16_DRAW_INDEX)
+	{
 		glDrawIndex = GL_UNSIGNED_SHORT;
+		glIndexOffset = mesh->indexOffset * sizeof(uint16_t);
+	}
 	else if (mesh->drawIndex == UINT32_DRAW_INDEX)
+	{
 		glDrawIndex = GL_UNSIGNED_INT;
+		glIndexOffset = mesh->indexOffset * sizeof(uint32_t);
+	}
 	else
+	{
 		abort();
+	}
 
 	glDrawElements(
 		glDrawMode,
 		(GLsizei)mesh->indexCount,
 		glDrawIndex,
-		NULL);
+		(const void*)glIndexOffset);
 
 	assertOpenGL();
 }
@@ -1109,6 +1117,14 @@ struct Window* createWindow(
 			getGlShaderHandle;
 	}
 
+	if (glfwRawMouseMotionSupported() == GLFW_TRUE)
+	{
+		glfwSetInputMode(
+			handle,
+			GLFW_RAW_MOUSE_MOTION,
+			GLFW_TRUE);
+	}
+
 	window->api = api;
 	window->buffers = buffers;
 	window->bufferCapacity = 1;
@@ -1460,6 +1476,38 @@ void setWindowCursorPosition(
 		(double)position.y);
 }
 
+uint8_t getWindowCursorMode(
+	const struct Window* window)
+{
+	assert(window != NULL);
+
+	return glfwGetInputMode(
+		window->handle,
+		GLFW_CURSOR);
+}
+void setWindowCursorMode(
+	struct Window* window,
+	uint8_t cursorMode)
+{
+	assert(window != NULL);
+
+	int value;
+
+	if (cursorMode == DEFAULT_CURSOR_MODE)
+		value = GLFW_CURSOR_NORMAL;
+	else if (cursorMode == HIDDEN_CURSOR_MODE)
+		value = HIDDEN_CURSOR_MODE;
+	else if (cursorMode == LOCKED_CURSOR_MODE)
+		value = GLFW_CURSOR_DISABLED;
+	else
+		abort();
+
+	glfwSetInputMode(
+		window->handle,
+		GLFW_CURSOR,
+		value);
+}
+
 bool isWindowFocused(
 	struct Window* window)
 {
@@ -1754,6 +1802,7 @@ struct Mesh* createMesh(
 	struct Window* window,
 	uint8_t drawIndex,
 	size_t indexCount,
+	size_t indexOffset,
 	struct Buffer* vertexBuffer,
 	struct Buffer* indexBuffer)
 {
@@ -1767,18 +1816,24 @@ struct Mesh* createMesh(
 	assert(window->recording == false);
 
 #ifndef NDEBUG
-	if (drawIndex == UINT8_DRAW_INDEX)
-		assert(indexCount * sizeof(uint8_t) <= indexBuffer->size);
-	else if (drawIndex == UINT16_DRAW_INDEX)
-		assert(indexCount * sizeof(uint16_t) <= indexBuffer->size);
+	if (drawIndex == UINT16_DRAW_INDEX)
+	{
+		assert(indexCount * sizeof(uint16_t) +
+			indexOffset * sizeof(uint16_t) <= indexBuffer->size);
+	}
 	else if (drawIndex == UINT32_DRAW_INDEX)
-		assert(indexCount * sizeof(uint32_t) <= indexBuffer->size);
+	{
+		assert(indexCount * sizeof(uint32_t) +
+			indexOffset * sizeof(uint32_t) <= indexBuffer->size);
+	}
 	else
+	{
 		abort();
+	}
 #endif
 
-	struct Mesh* mesh =
-		malloc(sizeof(struct Mesh));
+	struct Mesh* mesh = malloc(
+		sizeof(struct Mesh));
 
 	if (mesh == NULL)
 		return NULL;
@@ -1794,6 +1849,7 @@ struct Mesh* createMesh(
 	mesh->window = window;
 	mesh->drawIndex = drawIndex;
 	mesh->indexCount = indexCount;
+	mesh->indexOffset = indexOffset;
 	mesh->vertexBuffer = vertexBuffer;
 	mesh->indexBuffer = indexBuffer;
 	mesh->handle = handle;
@@ -1885,20 +1941,15 @@ void setMeshIndexCount(
 	assert(mesh->window->recording == false);
 
 #ifndef NDEBUG
-	if (mesh->drawIndex == UINT8_DRAW_INDEX)
+	if (mesh->drawIndex == UINT16_DRAW_INDEX)
 	{
-		assert(indexCount * sizeof(uint8_t) <=
-			mesh->indexBuffer->size);
-	}
-	else if (mesh->drawIndex == UINT16_DRAW_INDEX)
-	{
-		assert(indexCount * sizeof(uint16_t) <=
-			mesh->indexBuffer->size);
+		assert(indexCount * sizeof(uint16_t) +
+			mesh->indexOffset * sizeof(uint16_t) <= mesh->indexBuffer->size);
 	}
 	else if (mesh->drawIndex == UINT32_DRAW_INDEX)
 	{
-		assert(indexCount * sizeof(uint32_t) <=
-			mesh->indexBuffer->size);
+		assert(indexCount * sizeof(uint32_t) +
+			mesh->indexOffset * sizeof(uint32_t)<= mesh->indexBuffer->size);
 	}
 	else
 	{
@@ -1907,6 +1958,39 @@ void setMeshIndexCount(
 #endif
 
 	mesh->indexCount = indexCount;
+}
+
+size_t getMeshIndexOffset(
+	const struct Mesh* mesh)
+{
+	assert(mesh != NULL);
+	return mesh->indexOffset;
+}
+void setMeshIndexOffset(
+	struct Mesh* mesh,
+	size_t indexOffset)
+{
+	assert(mesh != NULL);
+	assert(mesh->window->recording == false);
+
+#ifndef NDEBUG
+	if (mesh->drawIndex == UINT16_DRAW_INDEX)
+	{
+		assert(mesh->indexCount * sizeof(uint16_t) +
+			indexOffset * sizeof(uint16_t) <= mesh->indexBuffer->size);
+	}
+	else if (mesh->drawIndex == UINT32_DRAW_INDEX)
+	{
+		assert(mesh->indexCount * sizeof(uint32_t) +
+			indexOffset * sizeof(uint32_t)<= mesh->indexBuffer->size);
+	}
+	else
+	{
+		abort();
+	}
+#endif
+
+	mesh->indexOffset = indexOffset;
 }
 
 struct Buffer* getMeshVertexBuffer(
@@ -1937,6 +2021,7 @@ void setMeshIndexBuffer(
 	struct Mesh* mesh,
 	uint8_t drawIndex,
 	size_t indexCount,
+	size_t indexOffset,
 	struct Buffer* indexBuffer)
 {
 	assert(mesh != NULL);
@@ -1947,20 +2032,15 @@ void setMeshIndexBuffer(
 	assert(mesh->window->recording == false);
 
 #ifndef NDEBUG
-	if (drawIndex == UINT8_DRAW_INDEX)
+	if (drawIndex == UINT16_DRAW_INDEX)
 	{
-		assert(indexCount * sizeof(uint8_t) <=
-			indexBuffer->size);
-	}
-	else if (drawIndex == UINT16_DRAW_INDEX)
-	{
-		assert(indexCount * sizeof(uint16_t) <=
-			indexBuffer->size);
+		assert(indexCount * sizeof(uint16_t) +
+			indexOffset * sizeof(uint16_t) <= indexBuffer->size);
 	}
 	else if (drawIndex == UINT32_DRAW_INDEX)
 	{
-		assert(indexCount * sizeof(uint32_t) <=
-			indexBuffer->size);
+		assert(indexCount * sizeof(uint32_t) +
+			indexOffset * sizeof(uint32_t) <= indexBuffer->size);
 	}
 	else
 	{
@@ -1970,6 +2050,7 @@ void setMeshIndexBuffer(
 
 	mesh->drawIndex = drawIndex;
 	mesh->indexCount = indexCount;
+	mesh->indexOffset = indexOffset;
 	mesh->indexBuffer = indexBuffer;
 }
 
@@ -2003,12 +2084,7 @@ void setMeshBuffers(
 	assert(mesh->window->recording == false);
 
 #ifndef NDEBUG
-	if (drawIndex == UINT8_DRAW_INDEX)
-	{
-		assert(indexCount * sizeof(uint8_t) <=
-			indexBuffer->size);
-	}
-	else if (drawIndex == UINT16_DRAW_INDEX)
+	if (drawIndex == UINT16_DRAW_INDEX)
 	{
 		assert(indexCount * sizeof(uint16_t) <=
 			indexBuffer->size);

@@ -47,6 +47,7 @@ configure_file(
 
 add_library(mpgx STATIC
 	source/glad/glad.c
+    source/mpgx/free_camera.c
 	source/mpgx/interface.c
 	source/mpgx/pipeline.c
 	source/mpgx/render.c

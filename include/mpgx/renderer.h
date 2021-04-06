@@ -15,6 +15,7 @@ typedef void(*RenderCommand)(
 	const struct Mat4F* model,
 	const struct Mat4F* view,
 	const struct Mat4F* proj,
+	const struct Mat4F* viewProj,
 	const struct Mat4F* mvp);
 
 // TODO: frustum culling
@@ -50,6 +51,7 @@ struct Render* createRender(
 	struct Vec3F position,
 	struct Vec3F scale,
 	struct Quat rotation,
+	uint8_t rotationType,
 	struct Render* parent,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,

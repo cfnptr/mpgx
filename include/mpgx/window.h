@@ -14,7 +14,7 @@
 // TODO: add enumerators count, and check out of bound in the functions
 // TODO: optimize array objects reallocations in window and other classes
 
-enum KEYBOARD_KEY
+typedef enum KEYBOARD_KEY
 {
 	UNKNOWN_KEYBOARD_KEY = -1,
 	SPACE_KEYBOARD_KEY = 32,
@@ -138,9 +138,9 @@ enum KEYBOARD_KEY
 	RIGHT_SUPER_KEYBOARD_KEY = 347,
 	MENU_KEYBOARD_KEY = 348,
 	LAST_KEYBOARD_KEY = MENU_KEYBOARD_KEY,
-};
+} KEYBOARD_KEY;
 
-enum MOUSE_BUTTON
+typedef enum MOUSE_BUTTON
 {
 	N1_MOUSE_BUTTON = 0,
 	N2_MOUSE_BUTTON = 1,
@@ -154,68 +154,68 @@ enum MOUSE_BUTTON
 	LEFT_MOUSE_BUTTON = N1_MOUSE_BUTTON,
 	RIGHT_MOUSE_BUTTON = N2_MOUSE_BUTTON,
 	MIDDLE_MOUSE_BUTTON = N3_MOUSE_BUTTON,
-};
+} MOUSE_BUTTON;
 
-enum CURSOR_MODE
+typedef enum CURSOR_MODE
 {
 	DEFAULT_CURSOR_MODE = 0,
 	HIDDEN_CURSOR_MODE = 1,
 	LOCKED_CURSOR_MODE = 2,
-};
+} CURSOR_MODE;
 
-enum GRAPHICS_API
+typedef enum GRAPHICS_API
 {
 	VULKAN_GRAPHICS_API = 0,
 	OPENGL_GRAPHICS_API = 1,
 	OPENGL_ES_GRAPHICS_API = 2,
-};
+} GRAPHICS_API;
 
-enum BUFFER_TYPE
+typedef enum BUFFER_TYPE
 {
 	VERTEX_BUFFER_TYPE = 0,
 	INDEX_BUFFER_TYPE = 1,
 	UNIFORM_BUFFER_TYPE = 2,
-};
+} BUFFER_TYPE;
 
-enum DRAW_INDEX
+typedef enum DRAW_INDEX
 {
 	UINT16_DRAW_INDEX = 0,
 	UINT32_DRAW_INDEX = 1,
-};
+} DRAW_INDEX;
 
-enum IMAGE_TYPE
+typedef enum IMAGE_TYPE
 {
 	IMAGE_2D_TYPE = 0,
 	IMAGE_3D_TYPE = 1,
-};
+} IMAGE_TYPE;
 
-enum IMAGE_FORMAT
+typedef enum IMAGE_FORMAT
 {
 	R8G8B8A8_UNORM_IMAGE_FORMAT = 0,
 	R8G8B8A8_SRGB_IMAGE_FORMAT = 1,
-};
+} IMAGE_FORMAT;
 
-enum IMAGE_FILTER
+typedef enum IMAGE_FILTER
 {
 	LINEAR_IMAGE_FILTER = 0,
 	NEAREST_IMAGE_FILTER = 1,
-};
+} IMAGE_FILTER;
 
-enum IMAGE_WRAP
+typedef enum IMAGE_WRAP
 {
 	REPEAT_IMAGE_WRAP = 0,
 	MIRRORED_REPEAT_IMAGE_WRAP = 1,
 	CLAMP_TO_EDGE_IMAGE_WRAP = 2,
-};
+} IMAGE_WRAP;
 
-enum SHADER_TYPE
+typedef enum SHADER_TYPE
 {
 	VERTEX_SHADER_TYPE = 0,
 	FRAGMENT_SHADER_TYPE = 1,
 	COMPUTE_SHADER_TYPE = 2,
-};
+} SHADER_TYPE;
 
-enum DRAW_MODE
+typedef enum DRAW_MODE
 {
 	POINTS_DRAW_MODE = 0,
 	LINE_STRIP_DRAW_MODE = 1,
@@ -224,41 +224,40 @@ enum DRAW_MODE
 	TRIANGLE_STRIP_DRAW_MODE = 4,
 	TRIANGLE_FAN_DRAW_MODE = 5,
 	TRIANGLES_DRAW_MODE = 6,
-};
+} DRAW_MODE;
 
-enum CULL_FACE
+typedef enum CULL_FACE
 {
 	BACK_ONLY_CULL_FACE = 0,
 	FRONT_ONLY_CULL_FACE = 1,
 	BACK_FRONT_CULL_FACE = 2,
-};
-enum FRONT_FACE
+} CULL_FACE;
+typedef enum FRONT_FACE
 {
 	CLOCKWISE_FRONT_FACE = 0,
 	COUNTERCLOCKWISE_FRONT_FACE = 1,
-};
+} FRONT_FACE;
 
-struct Window;
-struct Buffer;
-struct Mesh;
-struct Image;
-struct Framebuffer;
-struct Shader;
-struct Pipeline;
+typedef struct Window Window;
+typedef union Buffer Buffer;
+typedef union Mesh Mesh;
+typedef union Image Image;
+typedef union Framebuffer Framebuffer;
+typedef union Shader Shader;
+typedef struct Pipeline Pipeline;
 // TODO:
-//struct Query
-//struct Sampler?
+//union Query
+//union Sampler?
 
-typedef void(*UpdateWindow)(
-	void* argument);
+typedef void(*UpdateWindow)(void* argument);
 
 typedef void(*DestroyPipeline)(
-	struct Window* window,
+	Window* window,
 	void* pipeline);
 typedef void(*BindPipelineCommand)(
-	struct Pipeline* pipeline);
+	Pipeline* pipeline);
 typedef void(*SetUniformsCommand)(
-	struct Pipeline* pipeline);
+	Pipeline* pipeline);
 
 bool initializeGraphics();
 void terminateGraphics();
@@ -266,188 +265,158 @@ bool isGraphicsInitialized();
 
 void* getFtLibrary();
 
-struct Window* createWindow(
+Window* createWindow(
 	uint8_t api,
 	size_t width,
 	size_t height,
 	const char* title,
 	UpdateWindow updateFunction,
 	void* updateArgument);
-struct Window* createAnyWindow(
+Window* createAnyWindow(
 	size_t width,
 	size_t height,
 	const char* title,
 	UpdateWindow updateFunction,
 	void* updateArgument);
-void destroyWindow(
-	struct Window* window);
+void destroyWindow(Window* window);
 
-uint8_t getWindowGraphicsAPI(
-	const struct Window* window);
-size_t getWindowMaxImageSize(
-	const struct Window* window);
-double getWindowUpdateTime(
-	const struct Window* window);
-double getWindowDeltaTime(
-	const struct Window* window);
-struct Vec2F getWindowContentScale(
-	const struct Window* window);
-struct Vec2I getWindowFramebufferSize(
-	const struct Window* window);
+uint8_t getWindowGraphicsAPI(const Window* window);
+size_t getWindowMaxImageSize(const Window* window);
+double getWindowUpdateTime(const Window* window);
+double getWindowDeltaTime(const Window* window);
+Vector2F getWindowContentScale(const Window* window);
+Vector2I getWindowFramebufferSize(const Window* window);
+const char* getWindowClipboard(const Window* window);
+
 bool getWindowKeyboardKey(
-	const struct Window* window,
+	const Window* window,
 	int key);
 bool getWindowMouseButton(
-	const struct Window* window,
+	const Window* window,
 	int button);
-const char* getWindowClipboard(
-	const struct Window* window);
 
-struct Vec2I getWindowSize(
-	const struct Window* window);
+
+Vector2I getWindowSize(
+	const Window* window);
 void setWindowSize(
-	struct Window* window,
-	struct Vec2I size);
+	Window* window,
+	Vector2I size);
 
-struct Vec2I getWindowPosition(
-	const struct Window* window);
+Vector2I getWindowPosition(
+	const Window* window);
 void setWindowPosition(
-	struct Window* window,
-	struct Vec2I position);
+	Window* window,
+	Vector2I position);
 
-struct Vec2F getWindowCursorPosition(
-	const struct Window* window);
+Vector2F getWindowCursorPosition(
+	const Window* window);
 void setWindowCursorPosition(
-	struct Window* window,
-	struct Vec2F position);
+	Window* window,
+	Vector2F position);
 
 uint8_t getWindowCursorMode(
-	const struct Window* window);
+	const Window* window);
 void setWindowCursorMode(
-	struct Window* window,
+	Window* window,
 	uint8_t cursorMode);
 
-bool isWindowFocused(
-	struct Window* window);
-bool isWindowIconified(
-	struct Window* window);
-bool isWindowMaximized(
-	struct Window* window);
-bool isWindowVisible(
-	struct Window* window);
-bool isWindowHovered(
-	struct Window* window);
+bool isWindowFocused(Window* window);
+bool isWindowIconified(Window* window);
+bool isWindowMaximized(Window* window);
+bool isWindowVisible(Window* window);
+bool isWindowHovered(Window* window);
 
-void iconifyWindow(
-	struct Window* window);
-void maximizeWindow(
-	struct Window* window);
-void restoreWindow(
-	struct Window* window);
-void showWindow(
-	struct Window* window);
-void hideWindow(
-	struct Window* window);
-void focusWindow(
-	struct Window* window);
-void requestWindowAttention(
-	struct Window* window);
+void iconifyWindow(Window* window);
+void maximizeWindow(Window* window);
+void restoreWindow(Window* window);
+void showWindow(Window* window);
+void hideWindow(Window* window);
+void focusWindow(Window* window);
+void requestWindowAttention(Window* window);
 
-void makeWindowContextCurrent(
-	struct Window* window);
-void updateWindow(
-	struct Window* window);
+void makeWindowContextCurrent(Window* window);
+void updateWindow(Window* window);
 
-void beginCommandRecord(
-	struct Window* window);
-void endCommandRecord(
-	struct Window* window);
+void beginCommandRecord(Window* window);
+void endCommandRecord(Window* window);
 
-struct Buffer* createBuffer(
-	struct Window* window,
+Buffer* createBuffer(
+	Window* window,
 	uint8_t type,
 	const void* data,
 	size_t size,
 	bool constant);
-void destroyBuffer(
-	struct Buffer* buffer);
+void destroyBuffer(Buffer* buffer);
 
-struct Window* getBufferWindow(
-	const struct Buffer* buffer);
-uint8_t getBufferType(
-	const struct Buffer* buffer);
-size_t getBufferSize(
-	const struct Buffer* buffer);
-bool isBufferConstant(
-	const struct Buffer* buffer);
-const void* getBufferHandle(
-	const struct Buffer* buffer);
+Window* getBufferWindow(const Buffer* buffer);
+uint8_t getBufferType(const Buffer* buffer);
+size_t getBufferSize(const Buffer* buffer);
+bool isBufferConstant(const Buffer* buffer);
+const void* getBufferHandle(const Buffer* buffer);
 
 void setBufferData(
-	struct Buffer* buffer,
+	Buffer* buffer,
 	const void* data,
 	size_t size,
 	size_t offset);
 
-struct Mesh* createMesh(
-	struct Window* window,
+Mesh* createMesh(
+	Window* window,
 	uint8_t drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
-	struct Buffer* vertexBuffer,
-	struct Buffer* indexBuffer);
-void destroyMesh(
-	struct Mesh* mesh);
+	Buffer* vertexBuffer,
+	Buffer* indexBuffer);
+void destroyMesh(Mesh* mesh);
 
-struct Window* getMeshWindow(
-	const struct Mesh* mesh);
-uint8_t getMeshDrawIndex(
-	const struct Mesh* mesh);
+Window* getMeshWindow(const Mesh* mesh);
+uint8_t getMeshDrawIndex(const Mesh* mesh);
 
 size_t getMeshIndexCount(
-	const struct Mesh* mesh);
+	const Mesh* mesh);
 void setMeshIndexCount(
-	struct Mesh* mesh,
+	Mesh* mesh,
 	size_t indexCount);
 
 size_t getMeshIndexOffset(
-	const struct Mesh* mesh);
+	const Mesh* mesh);
 void setMeshIndexOffset(
-	struct Mesh* mesh,
+	Mesh* mesh,
 	size_t indexOffset);
 
-struct Buffer* getMeshVertexBuffer(
-	const struct Mesh* mesh);
+Buffer* getMeshVertexBuffer(
+	const Mesh* mesh);
 void setMeshVertexBuffer(
-	struct Mesh* mesh,
-	struct Buffer* vertexBuffer);
+	Mesh* mesh,
+	Buffer* vertexBuffer);
 
-struct Buffer* getMeshIndexBuffer(
-	const struct Mesh* mesh);
+Buffer* getMeshIndexBuffer(
+	const Mesh* mesh);
 void setMeshIndexBuffer(
-	struct Mesh* mesh,
+	Mesh* mesh,
 	uint8_t drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
-	struct Buffer* indexBuffer);
+	Buffer* indexBuffer);
 
 void getMeshBuffers(
-	const struct Mesh* mesh,
-	struct Buffer** vertexBuffer,
-	struct Buffer** indexBuffer);
+	const Mesh* mesh,
+	Buffer** vertexBuffer,
+	Buffer** indexBuffer);
 void setMeshBuffers(
-	struct Mesh* mesh,
+	Mesh* mesh,
 	uint8_t drawIndex,
 	size_t indexCount,
-	struct Buffer* vertexBuffer,
-	struct Buffer* indexBuffer);
+	size_t indexOffset,
+	Buffer* vertexBuffer,
+	Buffer* indexBuffer);
 
 void drawMeshCommand(
-	struct Mesh* mesh,
-	struct Pipeline* pipeline);
+	Mesh* mesh,
+	Pipeline* pipeline);
 
-struct Image* createImage(
-	struct Window* window,
+Image* createImage(
+	Window* window,
 	uint8_t type,
 	uint8_t format,
 	size_t width,
@@ -455,11 +424,10 @@ struct Image* createImage(
 	size_t depth,
 	const void* pixels,
 	bool useMipmap);
-void destroyImage(
-	struct Image* image);
+void destroyImage(Image* image);
 
 void setImageData(
-	struct Image* image,
+	Image* image,
 	const void* data,
 	size_t width,
 	size_t height,
@@ -468,61 +436,43 @@ void setImageData(
 	size_t heightOffset,
 	size_t depthOffset,
 	size_t mipmapLevel);
-void generateMipmaps(
-	struct Image* image);
+void generateMipmaps(Image* image);
 
-struct Window* getImageWindow(
-	const struct Image* image);
-uint8_t getImageType(
-	const struct Image* image);
-uint8_t getImageFormat(
-	const struct Image* image);
-size_t getImageWidth(
-	const struct Image* image);
-size_t getImageHeight(
-	const struct Image* image);
-size_t getImageDepth(
-	const struct Image* image);
-bool isImageUseMipmapping(
-	const struct Image* image);
-const void* getImageHandle(
-	const struct Image* image);
+Window* getImageWindow(const Image* image);
+uint8_t getImageType(const Image* image);
+uint8_t getImageFormat(const Image* image);
+size_t getImageWidth(const Image* image);
+size_t getImageHeight(const Image* image);
+size_t getImageDepth(const Image* image);
+bool isImageUseMipmapping(const Image* image);
+const void* getImageHandle(const Image* image);
 
-struct Shader* createShader(
-	struct Window* window,
+Shader* createShader(
+	Window* window,
 	uint8_t type,
 	const void* code,
 	size_t size);
-struct Shader* createShaderFromFile(
-	struct Window* window,
+Shader* createShaderFromFile(
+	Window* window,
 	uint8_t type,
 	const char* filePath);
-void destroyShader(
-	struct Shader* shader);
+void destroyShader(Shader* shader);
 
-struct Window* getShaderWindow(
-	const struct Shader* shader);
-uint8_t getShaderType(
-	const struct Shader* shader);
-const void* getShaderHandle(
-	const struct Shader* shader);
+Window* getShaderWindow(const Shader* shader);
+uint8_t getShaderType(const Shader* shader);
+const void* getShaderHandle(const Shader* shader);
 
-struct Pipeline* createPipeline(
-	struct Window* window,
+Pipeline* createPipeline(
+	Window* window,
 	uint8_t drawMode,
 	DestroyPipeline destroyFunction,
 	BindPipelineCommand bindFunction,
 	SetUniformsCommand setUniformsFunction,
 	void* handle);
-void destroyPipeline(
-	struct Pipeline* pipeline);
+void destroyPipeline(Pipeline* pipeline);
 
-struct Window* getPipelineWindow(
-	const struct Pipeline* pipeline);
-uint8_t getPipelineDrawMode(
-	const struct Pipeline* pipeline);
-void* getPipelineHandle(
-	const struct Pipeline* pipeline);
+Window* getPipelineWindow(const Pipeline* pipeline);
+uint8_t getPipelineDrawMode(const Pipeline* pipeline);
+void* getPipelineHandle(const Pipeline* pipeline);
 
-void bindPipelineCommand(
-	struct Pipeline* pipeline);
+void bindPipelineCommand(Pipeline* pipeline);

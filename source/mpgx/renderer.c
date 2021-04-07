@@ -5,20 +5,20 @@
 
 struct Renderer
 {
-	struct Pipeline* pipeline;
-	struct Transformer* transformer;
+	Pipeline* pipeline;
+	Transformer* transformer;
 	bool ascendingSort;
-	struct Transform* parent;
-	struct Render** renders;
+	Transform* parent;
+	Render** renders;
 	size_t renderCapacity;
 	size_t renderCount;
 };
 struct Render
 {
-	struct Renderer* renderer;
+	Renderer* renderer;
 	bool draw;
-	struct Transform* transform;
-	struct Render* parent;
+	Transform* transform;
+	Render* parent;
 	DestroyRender destroyFunction;
 	RenderCommand renderFunction;
 	void* handle;
@@ -28,9 +28,9 @@ static int ascendCompareRender(
 	const void* a,
 	const void* b)
 {
-	struct Render* render =
-		*(struct Render**)a;
-	struct Vec3F renderPosition = addVec3F(
+	Render* render =
+		*(Render**)a;
+	Vector3F renderPosition = addVec3F(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceA = distPowVec3F(
@@ -38,7 +38,7 @@ static int ascendCompareRender(
 		renderPosition);
 
 	render =
-		*(struct Render**)b;
+		*(Render**)b;
 	renderPosition = addVec3F(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
@@ -59,9 +59,9 @@ static int descendCompareRender(
 	const void* a,
 	const void* b)
 {
-	struct Render* render =
-		*(struct Render**)a;
-	struct Vec3F renderPosition = addVec3F(
+	Render* render =
+		*(Render**)a;
+	Vector3F renderPosition = addVec3F(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceA = distPowVec3F(
@@ -69,7 +69,7 @@ static int descendCompareRender(
 		renderPosition);
 
 	render =
-		*(struct Render**)b;
+		*(Render**)b;
 	renderPosition = addVec3F(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
@@ -87,11 +87,11 @@ static int descendCompareRender(
 	abort();
 }
 
-struct Renderer* createRenderer(
-	struct Pipeline* pipeline,
-	struct Transformer* transformer,
+Renderer* createRenderer(
+	Pipeline* pipeline,
+	Transformer* transformer,
 	bool ascendingSort,
-	struct Transform* parent)
+	Transform* parent)
 {
 	assert(pipeline != NULL);
 	assert(transformer != NULL);
@@ -101,14 +101,14 @@ struct Renderer* createRenderer(
 		assert(getTransformTransformer(parent) == transformer);
 #endif
 
-	struct Renderer* renderer = malloc(
-		sizeof(struct Renderer));
+	Renderer* renderer = malloc(
+		sizeof(Renderer));
 
 	if (renderer == NULL)
 		return NULL;
 
-	struct Render** renders = malloc(
-		sizeof(struct Render*));
+	Render** renders = malloc(
+		sizeof(Render*));
 
 	if (renders == NULL)
 	{
@@ -126,19 +126,19 @@ struct Renderer* createRenderer(
 	return renderer;
 }
 void destroyRenderer(
-	struct Renderer* renderer)
+	Renderer* renderer)
 {
 	if (renderer == NULL)
 		return;
 
 	size_t renderCount =
 		renderer->renderCount;
-	struct Render** renders =
+	Render** renders =
 		renderer->renders;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
-		struct Render* render = renders[i];
+		Render* render = renders[i];
 		render->destroyFunction(render->handle);
 		free(render);
 	}
@@ -147,33 +147,33 @@ void destroyRenderer(
 	free(renderer);
 }
 
-struct Pipeline* getRendererPipeline(
-	const struct Renderer* renderer)
+Pipeline* getRendererPipeline(
+	const Renderer* renderer)
 {
 	assert(renderer != NULL);
 	return renderer->pipeline;
 }
-struct Transformer* getRendererTransformer(
-	const struct Renderer* renderer)
+Transformer* getRendererTransformer(
+	const Renderer* renderer)
 {
 	assert(renderer != NULL);
 	return renderer->transformer;
 }
-struct Transform* getRendererTransform(
-	const struct Renderer* renderer)
+Transform* getRendererTransform(
+	const Renderer* renderer)
 {
 	assert(renderer != NULL);
 	return renderer->parent;
 }
 
 bool getRendererSorting(
-	const struct Renderer* renderer)
+	const Renderer* renderer)
 {
 	assert(renderer != NULL);
 	return renderer->ascendingSort;
 }
 void setRendererSorting(
-	struct Renderer* renderer,
+	Renderer* renderer,
 	bool ascendingSorting)
 {
 	assert(renderer != NULL);
@@ -181,14 +181,14 @@ void setRendererSorting(
 }
 
 void executeRenderer(
-	struct Renderer* renderer,
-	union Camera camera)
+	Renderer* renderer,
+	Camera camera)
 {
 	assert(renderer != NULL);
 
 	size_t renderCount =
 		renderer->renderCount;
-	struct Render** renders =
+	Render** renders =
 		renderer->renders;
 
 	if (renderCount == 0)
@@ -199,7 +199,7 @@ void executeRenderer(
 		qsort(
 			renders,
 			renderCount,
-			sizeof(struct Render*),
+			sizeof(Render*),
 			ascendCompareRender);
 	}
 	else
@@ -207,16 +207,16 @@ void executeRenderer(
 		qsort(
 			renders,
 			renderCount,
-			sizeof(struct Render*),
+			sizeof(Render*),
 			descendCompareRender);
 	}
 
-	struct Pipeline* pipeline =
+	Pipeline* pipeline =
 		renderer->pipeline;
 	uint8_t graphicsAPI = getWindowGraphicsAPI(
 		getPipelineWindow(pipeline));
 
-	struct Mat4F proj;
+	Matrix4F proj;
 
 	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
 	{
@@ -275,9 +275,9 @@ void executeRenderer(
 		abort();
 	}
 
-	struct Mat4F view = getTransformModel(
+	Matrix4F view = getTransformModel(
 		renderer->parent);
-	struct Mat4F viewProj = dotMat4F(
+	Matrix4F viewProj = dotMat4F(
 		proj,
 		view);
 
@@ -285,12 +285,12 @@ void executeRenderer(
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
-		struct Render* render = renders[i];
+		Render* render = renders[i];
 
 		if (render->draw == false)
 			continue;
 
-		struct Render* parent =
+		Render* parent =
 			render->parent;
 
 		while (parent != NULL)
@@ -301,10 +301,10 @@ void executeRenderer(
 			parent = parent->parent;
 		}
 
-		struct Mat4F model = getTransformModel(
+		Matrix4F model = getTransformModel(
 			render->transform);
 
-		struct Mat4F mvp = dotMat4F(
+		Matrix4F mvp = dotMat4F(
 			viewProj,
 			model);
 
@@ -322,14 +322,14 @@ void executeRenderer(
 	}
 }
 
-struct Render* createRender(
-	struct Renderer* renderer,
+Render* createRender(
+	Renderer* renderer,
 	bool draw,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Render* parent,
+	Render* parent,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,
 	void* handle)
@@ -344,13 +344,13 @@ struct Render* createRender(
 		assert(renderer == parent->renderer);
 #endif
 
-	struct Render* render = malloc(
-		sizeof(struct Render));
+	Render* render = malloc(
+		sizeof(Render));
 
 	if (render == NULL)
 		return NULL;
 
-	struct Transform* transformParent;
+	Transform* transformParent;
 
 	if (parent != NULL)
 	{
@@ -362,7 +362,7 @@ struct Render* createRender(
 		transformParent = NULL;
 	}
 
-	struct Transform* transform = createTransform(
+	Transform* transform = createTransform(
 		renderer->transformer,
 		position,
 		scale,
@@ -389,9 +389,9 @@ struct Render* createRender(
 	{
 		size_t capacity =
 			renderer->renderCapacity * 2;
-		struct Render** renders = realloc(
+		Render** renders = realloc(
 			renderer->renders,
-			capacity * sizeof(struct Render*));
+			capacity * sizeof(Render*));
 
 		if (renders == NULL)
 		{
@@ -410,16 +410,16 @@ struct Render* createRender(
 	return render;
 }
 void destroyRender(
-	struct Render* render)
+	Render* render)
 {
 	if (render == NULL)
 		return;
 
-	struct Renderer* renderer =
+	Renderer* renderer =
 		render->renderer;
 	size_t renderCount =
 		renderer->renderCount;
-	struct Render** renders =
+	Render** renders =
 		renderer->renders;
 
 	for (size_t i = 0; i < renderCount; i++)
@@ -441,41 +441,41 @@ void destroyRender(
 	abort();
 }
 
-struct Renderer* getRenderRenderer(
-	const struct Render* render)
+Renderer* getRenderRenderer(
+	const Render* render)
 {
 	assert(render != NULL);
 	return render->renderer;
 }
-struct Transform* getRenderTransform(
-	const struct Render* render)
+Transform* getRenderTransform(
+	const Render* render)
 {
 	assert(render != NULL);
 	return render->transform;
 }
 void* getRenderHandle(
-	const struct Render* render)
+	const Render* render)
 {
 	assert(render != NULL);
 	return render->handle;
 }
 
 bool getRenderDraw(
-	const struct Render* render)
+	const Render* render)
 {
 	assert(render != NULL);
 	return render->draw;
 }
 void setRenderDraw(
-	struct Render* render,
+	Render* render,
 	bool value)
 {
 	assert(render != NULL);
 	render->draw = value;
 }
 
-struct Vec3F getRenderPosition(
-	const struct Render* render)
+Vector3F getRenderPosition(
+	const Render* render)
 {
 	assert(render != NULL);
 
@@ -483,8 +483,8 @@ struct Vec3F getRenderPosition(
 		render->transform);
 }
 void setRenderPosition(
-	struct Render* render,
-	struct Vec3F position)
+	Render* render,
+	Vector3F position)
 {
 	assert(render != NULL);
 
@@ -493,8 +493,8 @@ void setRenderPosition(
 		position);
 }
 
-struct Vec3F getRenderScale(
-	const struct Render* render)
+Vector3F getRenderScale(
+	const Render* render)
 {
 	assert(render != NULL);
 
@@ -502,8 +502,8 @@ struct Vec3F getRenderScale(
 		render->transform);
 }
 void setRenderScale(
-	struct Render* render,
-	struct Vec3F scale)
+	Render* render,
+	Vector3F scale)
 {
 	assert(render != NULL);
 
@@ -512,8 +512,8 @@ void setRenderScale(
 		scale);
 }
 
-struct Quat getRenderRotation(
-	const struct Render* render)
+Quaternion getRenderRotation(
+	const Render* render)
 {
 	assert(render != NULL);
 
@@ -521,8 +521,8 @@ struct Quat getRenderRotation(
 		render->transform);
 }
 void setRenderRotation(
-	struct Render* render,
-	struct Quat rotation)
+	Render* render,
+	Quaternion rotation)
 {
 	assert(render != NULL);
 
@@ -531,15 +531,15 @@ void setRenderRotation(
 		rotation);
 }
 
-struct Render* getRenderParent(
-	const struct Render* render)
+Render* getRenderParent(
+	const Render* render)
 {
 	assert(render != NULL);
 	return render->parent;
 }
 void setRenderParent(
-	struct Render* render,
-	struct Render* parent)
+	Render* render,
+	Render* parent)
 {
 	assert(render != NULL);
 	render->parent = parent;

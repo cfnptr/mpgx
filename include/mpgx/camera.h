@@ -4,21 +4,21 @@
 #include <math.h>
 #include <stdint.h>
 
-enum CAMERA_TYPE
+typedef enum CAMERA_TYPE
 {
 	PERSPECTIVE_CAMERA_TYPE = 0,
 	ORTHOGRAPHIC_CAMERA_TYPE = 1,
-};
+} CAMERA_TYPE;
 
-struct PerspectiveCamera
+typedef struct PerspectiveCamera
 {
 	uint8_t type;
 	float fieldOfView;
 	float aspectRatio;
 	float nearClipPlane;
 	float farClipPlane;
-};
-struct OrthographicCamera
+} PerspectiveCamera;
+typedef struct OrthographicCamera
 {
 	uint8_t type;
 	float leftFrustum;
@@ -27,32 +27,29 @@ struct OrthographicCamera
 	float topFrustum;
 	float nearClipPlane;
 	float farClipPlane;
-};
+} OrthographicCamera;
 
-union Camera
+typedef union Camera
 {
-	struct PerspectiveCamera perspective;
-	struct OrthographicCamera orthographic;
-};
+	PerspectiveCamera perspective;
+	OrthographicCamera orthographic;
+} Camera;
 
-inline static union Camera createPerspectiveCamera(
+inline static Camera createPerspectiveCamera(
 	float fieldOfView,
 	float aspectRatio,
 	float nearClipPlane,
 	float farClipPlane)
 {
-	struct PerspectiveCamera _camera;
-	_camera.type = PERSPECTIVE_CAMERA_TYPE;
-	_camera.fieldOfView = fieldOfView;
-	_camera.aspectRatio = aspectRatio;
-	_camera.nearClipPlane = nearClipPlane;
-	_camera.farClipPlane = farClipPlane;
-
-	union Camera camera;
-	camera.perspective = _camera;
+	Camera camera;
+	camera.perspective.type = PERSPECTIVE_CAMERA_TYPE;
+	camera.perspective.fieldOfView = fieldOfView;
+	camera.perspective.aspectRatio = aspectRatio;
+	camera.perspective.nearClipPlane = nearClipPlane;
+	camera.perspective.farClipPlane = farClipPlane;
 	return camera;
 }
-inline static union Camera createOrthographicCamera(
+inline static Camera createOrthographicCamera(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,
@@ -60,21 +57,18 @@ inline static union Camera createOrthographicCamera(
 	float nearClipPlane,
 	float farClipPlane)
 {
-	struct OrthographicCamera _camera;
-	_camera.type = ORTHOGRAPHIC_CAMERA_TYPE;
-	_camera.leftFrustum = leftFrustum;
-	_camera.rightFrustum = rightFrustum;
-	_camera.bottomFrustum = bottomFrustum;
-	_camera.topFrustum = topFrustum;
-	_camera.nearClipPlane = nearClipPlane;
-	_camera.farClipPlane = farClipPlane;
-
-	union Camera camera;
-	camera.orthographic = _camera;
+	Camera camera;
+	camera.orthographic.type = ORTHOGRAPHIC_CAMERA_TYPE;
+	camera.orthographic.leftFrustum = leftFrustum;
+	camera.orthographic.rightFrustum = rightFrustum;
+	camera.orthographic.bottomFrustum = bottomFrustum;
+	camera.orthographic.topFrustum = topFrustum;
+	camera.orthographic.nearClipPlane = nearClipPlane;
+	camera.orthographic.farClipPlane = farClipPlane;
 	return camera;
 }
 
-inline static struct Mat4F createVkPerspectiveMat4F(
+inline static Matrix4F createVkPerspectiveMat4F(
 	float fieldOfView,
 	float aspectRatio,
 	float nearClipPlane,
@@ -82,7 +76,7 @@ inline static struct Mat4F createVkPerspectiveMat4F(
 {
 	float tanHalfFov = tanf(fieldOfView / 2.0f);
 
-	struct Mat4F matrix;
+	Matrix4F matrix;
 	matrix.m00 = 1.0f / (aspectRatio * tanHalfFov);
 	matrix.m01 = 0.0f;
 	matrix.m02 = 0.0f;
@@ -104,7 +98,7 @@ inline static struct Mat4F createVkPerspectiveMat4F(
 	matrix.m33 = 0.0f;
 	return matrix;
 }
-inline static struct Mat4F createGlPerspectiveMat4F(
+inline static Matrix4F createGlPerspectiveMat4F(
 	float fieldOfView,
 	float aspectRatio,
 	float nearClipPlane,
@@ -112,7 +106,7 @@ inline static struct Mat4F createGlPerspectiveMat4F(
 {
 	float tanHalfFov = tanf(fieldOfView / 2.0f);
 
-	struct Mat4F matrix;
+	Matrix4F matrix;
 	matrix.m00 = 1.0f / (aspectRatio * tanHalfFov);
 	matrix.m01 = 0.0f;
 	matrix.m02 = 0.0f;
@@ -135,7 +129,7 @@ inline static struct Mat4F createGlPerspectiveMat4F(
 	return matrix;
 }
 
-inline static struct Mat4F createVkOrthographicMat4F(
+inline static Matrix4F createVkOrthographicMat4F(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,
@@ -143,7 +137,7 @@ inline static struct Mat4F createVkOrthographicMat4F(
 	float nearClipPlane,
 	float farClipPlane)
 {
-	struct Mat4F matrix;
+	Matrix4F matrix;
 	matrix.m00 = 2.0f / (rightFrustum - leftFrustum);
 	matrix.m01 = 0.0f;
 	matrix.m02 = 0.0f;
@@ -165,7 +159,7 @@ inline static struct Mat4F createVkOrthographicMat4F(
 	matrix.m33 = 1.0f;
 	return matrix;
 }
-inline static struct Mat4F createGlOrthographicMat4F(
+inline static Matrix4F createGlOrthographicMat4F(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,
@@ -173,7 +167,7 @@ inline static struct Mat4F createGlOrthographicMat4F(
 	float nearClipPlane,
 	float farClipPlane)
 {
-	struct Mat4F matrix;
+	Matrix4F matrix;
 	matrix.m00 = 2.0f / (rightFrustum - leftFrustum);
 	matrix.m01 = 0.0f;
 	matrix.m02 = 0.0f;

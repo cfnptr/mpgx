@@ -2,69 +2,69 @@
 #include "cmmt/quaternion.h"
 #include <stdint.h>
 
-struct Transformer;
-struct Transform;
+typedef struct Transformer Transformer;
+typedef struct Transform Transform;
 
-enum ROTATION_TYPE
+typedef enum ROTATION_TYPE
 {
 	SPIN_ROTATION_TYPE = 0,
 	ORBIT_ROTATION_TYPE = 1,
 	ROTATION_TYPE_COUNT = ORBIT_ROTATION_TYPE + 1,
-};
+} ROTATION_TYPE;
 
 // TODO: move renderer draw to the transfromer update
 // also interface
 
-struct Transformer* createTransformer();
+Transformer* createTransformer();
 
 void destroyTransformer(
-	struct Transformer* transformer);
+	Transformer* transformer);
 
-struct Transform* createTransform(
-	struct Transformer* transformer,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+Transform* createTransform(
+	Transformer* transformer,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Transform* parent);
+	Transform* parent);
 void destroyTransform(
-	struct Transform* transform);
+	Transform* transform);
 
-struct Transformer* getTransformTransformer(
-	const struct Transform* transform);
+Transformer* getTransformTransformer(
+	const Transform* transform);
 
-struct Vec3F getTransformPosition(
-	const struct Transform* transform);
+Vector3F getTransformPosition(
+	const Transform* transform);
 void setTransformPosition(
-	struct Transform* transform,
-	struct Vec3F position);
+	Transform* transform,
+	Vector3F position);
 
-struct Vec3F getTransformScale(
-	const struct Transform* transform);
+Vector3F getTransformScale(
+	const Transform* transform);
 void setTransformScale(
-	struct Transform* transform,
-	struct Vec3F scale);
+	Transform* transform,
+	Vector3F scale);
 
-struct Quat getTransformRotation(
-	const struct Transform* transform);
+Quaternion getTransformRotation(
+	const Transform* transform);
 void setTransformRotation(
-	struct Transform* transform,
-	struct Quat rotation);
+	Transform* transform,
+	Quaternion rotation);
 
 uint8_t getTransformRotationType(
-	const struct Transform* transform);
+	const Transform* transform);
 void setTransformRotationType(
-	struct Transform* transform,
+	Transform* transform,
 	uint8_t rotationType);
 
-struct Transform* getTransformParent(
-	const struct Transform* transform);
+Transform* getTransformParent(
+	const Transform* transform);
 void setTransformParent(
-	struct Transform* transform,
-	struct Transform* parent);
+	Transform* transform,
+	Transform* parent);
 
-struct Mat4F getTransformModel(
-	const struct Transform* transform);
+Matrix4F getTransformModel(
+	const Transform* transform);
 
 void executeTransformer(
-	struct Transformer* transformer);
+	Transformer* transformer);

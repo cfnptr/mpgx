@@ -1,75 +1,99 @@
 #include "mpgx/pipeline.h"
 
-// TODO: combine GlPipeline with Pipeline
-// if statements faster
-// todo fix diffuse normals, not works correctly
-
-struct GlColorPipeline
+typedef struct VkColorPipeline
 {
+	Shader* vertexShader;
+	Shader* fragmentShader;
+	Matrix4F mvp;
+	Vector4F color;
+	// TODO:
+} VkColorPipeline;
+typedef struct GlColorPipeline
+{
+	Shader* vertexShader;
+	Shader* fragmentShader;
+	Matrix4F mvp;
+	Vector4F color;
 	GLenum handle;
 	GLint mvpLocation;
 	GLint colorLocation;
-};
-struct ColorPipeline
+} GlColorPipeline;
+typedef union ColorPipeline
 {
-	struct Shader* vertexShader;
-	struct Shader* fragmentShader;
-	struct Mat4F mvp;
-	struct Vec4F color;
-	void* handle;
-};
+	VkColorPipeline vk;
+	GlColorPipeline gl;
+} ColorPipeline;
 
-struct GlSpritePipeline
+typedef struct VkSpritePipeline
 {
+	Shader* vertexShader;
+	Shader* fragmentShader;
+	Matrix4F mvp;
+	Vector4F color;
+	// TODO:
+} VkSpritePipeline;
+typedef struct GlSpritePipeline
+{
+	Shader* vertexShader;
+	Shader* fragmentShader;
+	Matrix4F mvp;
+	Vector4F color;
 	GLenum handle;
 	GLint mvpLocation;
 	GLint colorLocation;
-};
-struct SpritePipeline
+} GlSpritePipeline;
+typedef union SpritePipeline
 {
-	struct Shader* vertexShader;
-	struct Shader* fragmentShader;
-	struct Mat4F mvp;
-	struct Vec4F color;
-	void* handle;
-};
+	VkSpritePipeline vk;
+	GlSpritePipeline gl;
+} SpritePipeline;
 
-struct GlDiffusePipeline
+typedef struct DiffuseUniformBuffer
 {
+	Vector4F objectColor;
+	Vector4F ambientColor;
+	Vector4F lightColor;
+	Vector4F lightDirection;
+} DiffuseUniformBuffer;
+typedef struct VkDiffusePipeline
+{
+	Shader* vertexShader;
+	Shader* fragmentShader;
+	Matrix4F mvp;
+	Matrix4F normal;
+	DiffuseUniformBuffer fbo;
+	// TODO:
+} VkDiffusePipeline;
+typedef struct GlDiffusePipeline
+{
+	Shader* vertexShader;
+	Shader* fragmentShader;
+	Matrix4F mvp;
+	Matrix4F normal;
+	DiffuseUniformBuffer fbo;
 	GLenum handle;
 	GLint mvpLocation;
 	GLint normalLocation;
-	struct Buffer* uniformBuffer;
-};
-struct DiffuseUniformBuffer
+	Buffer* uniformBuffer;
+} GlDiffusePipeline;
+typedef union DiffusePipeline
 {
-	struct Vec4F objectColor;
-	struct Vec4F ambientColor;
-	struct Vec4F lightColor;
-	struct Vec4F lightDirection;
-};
-struct DiffusePipeline
-{
-	struct Shader* vertexShader;
-	struct Shader* fragmentShader;
-	struct Mat4F mvp;
-	struct Mat4F normal;
-	struct DiffuseUniformBuffer fbo;
-	void* handle;
-};
+	VkDiffusePipeline vk;
+	GlDiffusePipeline gl;
+} DiffusePipeline;
 
-inline static struct GlColorPipeline* createGlColorPipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader)
+inline static ColorPipeline* createGlColorPipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader)
 {
-	struct GlColorPipeline* pipeline = malloc(
-		sizeof(struct GlColorPipeline));
+	ColorPipeline* pipeline = malloc(
+		sizeof(ColorPipeline));
 
 	if (pipeline == NULL)
 		return NULL;
 
-	struct Shader* shaders[2] = {
+	Shader* shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
@@ -116,39 +140,37 @@ inline static struct GlColorPipeline* createGlColorPipeline(
 
 	assertOpenGL();
 
-	pipeline->handle = handle;
-	pipeline->mvpLocation = mvpLocation;
-	pipeline->colorLocation = colorLocation;
+	pipeline->gl.vertexShader = vertexShader;
+	pipeline->gl.fragmentShader = fragmentShader;
+	pipeline->gl.mvp = identMat4F();
+	pipeline->gl.color = valVec4F(1.0f);
+	pipeline->gl.handle = handle;
+	pipeline->gl.mvpLocation = mvpLocation;
+	pipeline->gl.colorLocation = colorLocation;
 	return pipeline;
 }
 static void destroyGlColorPipeline(
-	struct Window* window,
+	Window* window,
 	void* pipeline)
 {
-	struct ColorPipeline* colorPipeline =
-		(struct ColorPipeline*)pipeline;
-	struct GlColorPipeline* glColorPipeline =
-		(struct GlColorPipeline*)colorPipeline->handle;
+	ColorPipeline* colorPipeline =
+		(ColorPipeline*)pipeline;
 
 	makeWindowContextCurrent(window);
 
 	glDeleteProgram(
-		glColorPipeline->handle);
-
+		colorPipeline->gl.handle);
 	assertOpenGL();
 
-	free(glColorPipeline);
 	free(colorPipeline);
 }
 static void bindGlColorPipeline(
-	struct Pipeline* pipeline)
+	Pipeline* pipeline)
 {
-	struct ColorPipeline* colorPipeline =
-		(struct ColorPipeline*)getPipelineHandle(pipeline);
-	struct GlColorPipeline* glColorPipeline =
-		(struct GlColorPipeline*)colorPipeline->handle;
+	ColorPipeline* colorPipeline =
+		getPipelineHandle(pipeline);
 
-	glUseProgram(glColorPipeline->handle);
+	glUseProgram(colorPipeline->gl.handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -162,22 +184,20 @@ static void bindGlColorPipeline(
 	assertOpenGL();
 }
 static void setGlColorPipelineUniforms(
-	struct Pipeline* pipeline)
+	Pipeline* pipeline)
 {
-	struct ColorPipeline* colorPipeline =
-		(struct ColorPipeline*)getPipelineHandle(pipeline);
-	struct GlColorPipeline* glColorPipeline =
-		(struct GlColorPipeline*)colorPipeline->handle;
+	ColorPipeline* colorPipeline =
+		getPipelineHandle(pipeline);
 
 	glUniformMatrix4fv(
-		glColorPipeline->mvpLocation,
+		colorPipeline->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&colorPipeline->mvp);
+		(const GLfloat*)&colorPipeline->gl.mvp);
 	glUniform4fv(
-		glColorPipeline->colorLocation,
+		colorPipeline->gl.colorLocation,
 		1,
-		(const GLfloat*)&colorPipeline->color);
+		(const GLfloat*)&colorPipeline->gl.color);
 
 	glEnableVertexAttribArray(0);
 
@@ -186,15 +206,15 @@ static void setGlColorPipelineUniforms(
 		3,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vec3F),
+		sizeof(Vector3F),
 		0);
 
 	assertOpenGL();
 }
-struct Pipeline* createColorPipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader,
+Pipeline* createColorPipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader,
 	uint8_t drawMode)
 {
 	assert(window != NULL);
@@ -205,16 +225,9 @@ struct Pipeline* createColorPipeline(
 	assert(getShaderWindow(vertexShader) == window);
 	assert(getShaderWindow(fragmentShader) == window);
 
-	struct ColorPipeline* colorPipeline = malloc(
-		sizeof(struct ColorPipeline));
-
-	if (colorPipeline == NULL)
-		return NULL;
-
 	uint8_t api = getWindowGraphicsAPI(window);
 
-	void* handle;
-
+	ColorPipeline* handle;
 	DestroyPipeline destroyFunction;
 	BindPipelineCommand bindFunction;
 	SetUniformsCommand setUniformsFunction;
@@ -233,108 +246,96 @@ struct Pipeline* createColorPipeline(
 	}
 	else
 	{
-		free(colorPipeline);
 		return NULL;
 	}
 
 	if (handle == NULL)
-	{
-		free(colorPipeline);
 		return NULL;
-	}
 
-	colorPipeline->vertexShader = vertexShader;
-	colorPipeline->fragmentShader = fragmentShader;
-	colorPipeline->mvp = identMat4F();
-	colorPipeline->color = valVec4F(1.0f);
-	colorPipeline->handle = handle;
-
-	struct Pipeline* pipeline = createPipeline(
+	Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
 		destroyFunction,
 		bindFunction,
 		setUniformsFunction,
-		colorPipeline);
+		handle);
 
 	if (pipeline == NULL)
 	{
 		destroyFunction(
 			window,
 			handle);
-		
-		free(colorPipeline);
 		return NULL;
 	}
 
 	return pipeline;
 }
 
-struct Shader* getColorPipelineVertexShader(
-	const struct Pipeline* pipeline)
+Shader* getColorPipelineVertexShader(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct ColorPipeline* colorPipeline =
-		(struct ColorPipeline*)getPipelineHandle(pipeline);
-	return colorPipeline->vertexShader;
+	ColorPipeline* colorPipeline =
+		getPipelineHandle(pipeline);
+	return colorPipeline->gl.vertexShader;
 }
-struct Shader* getColorPipelineFragmentShader(
-	const struct Pipeline* pipeline)
+Shader* getColorPipelineFragmentShader(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct ColorPipeline* colorPipeline =
-		(struct ColorPipeline*)getPipelineHandle(pipeline);
-	return colorPipeline->fragmentShader;
+	ColorPipeline* colorPipeline =
+		getPipelineHandle(pipeline);
+	return colorPipeline->vk.fragmentShader;
 }
 
-struct Mat4F getColorPipelineMVP(
-	const struct Pipeline* pipeline)
+Matrix4F getColorPipelineMVP(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct ColorPipeline* colorPipeline =
-		(struct ColorPipeline*)getPipelineHandle(pipeline);
-	return colorPipeline->mvp;
+	ColorPipeline* colorPipeline =
+		getPipelineHandle(pipeline);
+	return colorPipeline->vk.mvp;
 }
 void setColorPipelineMVP(
-	struct Pipeline* pipeline,
-	struct Mat4F mvp)
+	Pipeline* pipeline,
+	Matrix4F mvp)
 {
 	assert(pipeline != NULL);
-	struct ColorPipeline* colorPipeline =
-		(struct ColorPipeline*)getPipelineHandle(pipeline);
-	colorPipeline->mvp = mvp;
+	ColorPipeline* colorPipeline =
+		getPipelineHandle(pipeline);
+	colorPipeline->vk.mvp = mvp;
 }
 
-struct Vec4F getColorPipelineColor(
-	const struct Pipeline* pipeline)
+Vector4F getColorPipelineColor(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct ColorPipeline* colorPipeline =
-		(struct ColorPipeline*)getPipelineHandle(pipeline);
-	return colorPipeline->color;
+	ColorPipeline* colorPipeline =
+		getPipelineHandle(pipeline);
+	return colorPipeline->vk.color;
 }
 void setColorPipelineColor(
-	struct Pipeline* pipeline,
-	struct Vec4F color)
+	Pipeline* pipeline,
+	Vector4F color)
 {
 	assert(pipeline != NULL);
-	struct ColorPipeline* colorPipeline =
-		(struct ColorPipeline*)getPipelineHandle(pipeline);
-	colorPipeline->color = color;
+	ColorPipeline* colorPipeline =
+		getPipelineHandle(pipeline);
+	colorPipeline->vk.color = color;
 }
 
-inline static struct GlSpritePipeline* createGlSpritePipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader)
+inline static SpritePipeline* createGlSpritePipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader)
 {
-	struct GlSpritePipeline* pipeline = malloc(
-		sizeof(struct GlSpritePipeline));
+	SpritePipeline* pipeline = malloc(
+		sizeof(SpritePipeline));
 
 	if (pipeline == NULL)
 		return NULL;
 
-	struct Shader* shaders[2] = {
+	Shader* shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
@@ -381,39 +382,38 @@ inline static struct GlSpritePipeline* createGlSpritePipeline(
 
 	assertOpenGL();
 
-	pipeline->handle = handle;
-	pipeline->mvpLocation = mvpLocation;
-	pipeline->colorLocation = colorLocation;
+	pipeline->gl.vertexShader = vertexShader;
+	pipeline->gl.fragmentShader = fragmentShader;
+	pipeline->gl.mvp = identMat4F();
+	pipeline->gl.color = valVec4F(1.0f);
+	pipeline->gl.handle = handle;
+	pipeline->gl.handle = handle;
+	pipeline->gl.mvpLocation = mvpLocation;
+	pipeline->gl.colorLocation = colorLocation;
 	return pipeline;
 }
 static void destroyGlSpritePipeline(
-	struct Window* window,
+	Window* window,
 	void* pipeline)
 {
-	struct SpritePipeline* spritePipeline =
-		(struct SpritePipeline*)pipeline;
-	struct GlSpritePipeline* glSpritePipeline =
-		(struct GlSpritePipeline*)spritePipeline->handle;
+	SpritePipeline* spritePipeline =
+		(SpritePipeline*)pipeline;
 
 	makeWindowContextCurrent(window);
 
 	glDeleteProgram(
-		glSpritePipeline->handle);
-
+		spritePipeline->gl.handle);
 	assertOpenGL();
 
-	free(glSpritePipeline);
 	free(spritePipeline);
 }
 static void bindGlSpritePipeline(
-	struct Pipeline* pipeline)
+	Pipeline* pipeline)
 {
-	struct SpritePipeline* spritePipeline =
-		(struct SpritePipeline*)getPipelineHandle(pipeline);
-	struct GlSpritePipeline* glSpritePipeline =
-		(struct GlSpritePipeline*)spritePipeline->handle;
+	SpritePipeline* spritePipeline =
+		getPipelineHandle(pipeline);
 
-	glUseProgram(glSpritePipeline->handle);
+	glUseProgram(spritePipeline->gl.handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -431,22 +431,20 @@ static void bindGlSpritePipeline(
 	assertOpenGL();
 }
 static void setGlSpritePipelineUniforms(
-	struct Pipeline* pipeline)
+	Pipeline* pipeline)
 {
-	struct SpritePipeline* spritePipeline =
-		(struct SpritePipeline*)getPipelineHandle(pipeline);
-	struct GlSpritePipeline* glSpritePipeline =
-		(struct GlSpritePipeline*)spritePipeline->handle;
+	SpritePipeline* spritePipeline =
+		getPipelineHandle(pipeline);
 
 	glUniformMatrix4fv(
-		glSpritePipeline->mvpLocation,
+		spritePipeline->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&spritePipeline->mvp);
+		(const GLfloat*)&spritePipeline->gl.mvp);
 	glUniform4fv(
-		glSpritePipeline->colorLocation,
+		spritePipeline->gl.colorLocation,
 		1,
-		(const GLfloat*)&spritePipeline->color);
+		(const GLfloat*)&spritePipeline->gl.color);
 
 	glEnableVertexAttribArray(0);
 
@@ -455,15 +453,15 @@ static void setGlSpritePipelineUniforms(
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vec2F),
+		sizeof(Vector2F),
 		0);
 
 	assertOpenGL();
 }
-struct Pipeline* createSpritePipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader,
+Pipeline* createSpritePipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader,
 	uint8_t drawMode)
 {
 	assert(window != NULL);
@@ -474,16 +472,9 @@ struct Pipeline* createSpritePipeline(
 	assert(getShaderWindow(vertexShader) == window);
 	assert(getShaderWindow(fragmentShader) == window);
 
-	struct SpritePipeline* spritePipeline = malloc(
-		sizeof(struct SpritePipeline));
-
-	if (spritePipeline == NULL)
-		return NULL;
-
 	uint8_t api = getWindowGraphicsAPI(window);
 
-	void* handle;
-
+	SpritePipeline* handle;
 	DestroyPipeline destroyFunction;
 	BindPipelineCommand bindFunction;
 	SetUniformsCommand setUniformsFunction;
@@ -502,108 +493,96 @@ struct Pipeline* createSpritePipeline(
 	}
 	else
 	{
-		free(spritePipeline);
 		return NULL;
 	}
 
 	if (handle == NULL)
-	{
-		free(spritePipeline);
 		return NULL;
-	}
 
-	spritePipeline->vertexShader = vertexShader;
-	spritePipeline->fragmentShader = fragmentShader;
-	spritePipeline->mvp = identMat4F();
-	spritePipeline->color = valVec4F(1.0f);
-	spritePipeline->handle = handle;
-
-	struct Pipeline* pipeline = createPipeline(
+	Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
 		destroyFunction,
 		bindFunction,
 		setUniformsFunction,
-		spritePipeline);
+		handle);
 
 	if (pipeline == NULL)
 	{
 		destroyFunction(
 			window,
 			handle);
-
-		free(spritePipeline);
 		return NULL;
 	}
 
 	return pipeline;
 }
 
-struct Shader* getSpritePipelineVertexShader(
-	const struct Pipeline* pipeline)
+Shader* getSpritePipelineVertexShader(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct SpritePipeline* spritePipeline =
-		(struct SpritePipeline*)getPipelineHandle(pipeline);
-	return spritePipeline->vertexShader;
+	SpritePipeline* spritePipeline =
+		getPipelineHandle(pipeline);
+	return spritePipeline->gl.vertexShader;
 }
-struct Shader* getSpritePipelineFragmentShader(
-	const struct Pipeline* pipeline)
+Shader* getSpritePipelineFragmentShader(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct SpritePipeline* spritePipeline =
-		(struct SpritePipeline*)getPipelineHandle(pipeline);
-	return spritePipeline->fragmentShader;
+	SpritePipeline* spritePipeline =
+		getPipelineHandle(pipeline);
+	return spritePipeline->gl.fragmentShader;
 }
 
-struct Mat4F getSpritePipelineMVP(
-	const struct Pipeline* pipeline)
+Matrix4F getSpritePipelineMVP(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct SpritePipeline* spritePipeline =
-		(struct SpritePipeline*)getPipelineHandle(pipeline);
-	return spritePipeline->mvp;
+	SpritePipeline* spritePipeline =
+		getPipelineHandle(pipeline);
+	return spritePipeline->gl.mvp;
 }
 void setSpritePipelineMVP(
-	struct Pipeline* pipeline,
-	struct Mat4F mvp)
+	Pipeline* pipeline,
+	Matrix4F mvp)
 {
 	assert(pipeline != NULL);
-	struct SpritePipeline* colorPipeline =
-		(struct SpritePipeline*)getPipelineHandle(pipeline);
-	colorPipeline->mvp = mvp;
+	SpritePipeline* colorPipeline =
+		getPipelineHandle(pipeline);
+	colorPipeline->gl.mvp = mvp;
 }
 
-struct Vec4F getSpritePipelineColor(
-	const struct Pipeline* pipeline)
+Vector4F getSpritePipelineColor(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct SpritePipeline* colorPipeline =
-		(struct SpritePipeline*)getPipelineHandle(pipeline);
-	return colorPipeline->color;
+	SpritePipeline* colorPipeline =
+		getPipelineHandle(pipeline);
+	return colorPipeline->vk.color;
 }
 void setSpritePipelineColor(
-	struct Pipeline* pipeline,
-	struct Vec4F color)
+	Pipeline* pipeline,
+	Vector4F color)
 {
 	assert(pipeline != NULL);
-	struct SpritePipeline* colorPipeline =
-		(struct SpritePipeline*)getPipelineHandle(pipeline);
-	colorPipeline->color = color;
+	SpritePipeline* colorPipeline =
+		getPipelineHandle(pipeline);
+	colorPipeline->vk.color = color;
 }
 
-inline static struct GlDiffusePipeline* createGlDiffusePipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader)
+inline static DiffusePipeline* createGlDiffusePipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader)
 {
-	struct GlDiffusePipeline* pipeline = malloc(
-		sizeof(struct GlDiffusePipeline));
+	DiffusePipeline* pipeline = malloc(
+		sizeof(DiffusePipeline));
 
 	if (pipeline == NULL)
 		return NULL;
 
-	struct Shader* shaders[2] = {
+	Shader* shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
@@ -670,11 +649,11 @@ inline static struct GlDiffusePipeline* createGlDiffusePipeline(
 
 	assertOpenGL();
 
-	struct Buffer* uniformBuffer = createBuffer(
+	Buffer* uniformBuffer = createBuffer(
 		window,
 		UNIFORM_BUFFER_TYPE,
 		NULL,
-		sizeof(struct DiffuseUniformBuffer),
+		sizeof(DiffuseUniformBuffer),
 		false);
 
 	if (uniformBuffer == NULL)
@@ -687,38 +666,49 @@ inline static struct GlDiffusePipeline* createGlDiffusePipeline(
 		return NULL;
 	}
 
-	pipeline->handle = handle;
-	pipeline->mvpLocation = mvpLocation;
-	pipeline->normalLocation = normalLocation;
-	pipeline->uniformBuffer = uniformBuffer;
+	Vector3F lightDirection = normVec3F(
+		vec3F(1.0f, 2.0f, 3.0f));
+
+	pipeline->gl.vertexShader = vertexShader;
+	pipeline->gl.fragmentShader = fragmentShader;
+	pipeline->gl.mvp = identMat4F();
+	pipeline->gl.normal = identMat4F();
+	pipeline->gl.fbo.objectColor = valVec4F(1.0f);
+	pipeline->gl.fbo.ambientColor = valVec4F(0.5f);
+	pipeline->gl.fbo.lightColor = valVec4F(1.0f);
+	pipeline->gl.fbo.lightDirection = vec4F(
+		lightDirection.x,
+		lightDirection.y,
+		lightDirection.z,
+		0.0f);
+	pipeline->gl.handle = handle;
+	pipeline->gl.mvpLocation = mvpLocation;
+	pipeline->gl.normalLocation = normalLocation;
+	pipeline->gl.uniformBuffer = uniformBuffer;
 	return pipeline;
 }
 static void destroyGlDiffusePipeline(
-	struct Window* window,
+	Window* window,
 	void* pipeline)
 {
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)pipeline;
-	struct GlDiffusePipeline* glDiffusePipeline =
-		(struct GlDiffusePipeline*)diffusePipeline->handle;
+	DiffusePipeline* diffusePipeline =
+		(DiffusePipeline*)pipeline;
 
-	destroyBuffer(glDiffusePipeline->uniformBuffer);
-	glDeleteProgram(glDiffusePipeline->handle);
+	destroyBuffer(
+		diffusePipeline->gl.uniformBuffer);
 
+	glDeleteProgram(diffusePipeline->gl.handle);
 	assertOpenGL();
 
-	free(glDiffusePipeline);
 	free(diffusePipeline);
 }
 static void bindGlDiffusePipeline(
-	struct Pipeline* pipeline)
+	Pipeline* pipeline)
 {
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	struct GlDiffusePipeline* glDiffusePipeline =
-		(struct GlDiffusePipeline*)diffusePipeline->handle;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
 
-	glUseProgram(glDiffusePipeline->handle);
+	glUseProgram(diffusePipeline->gl.handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -729,8 +719,8 @@ static void bindGlDiffusePipeline(
 	glFrontFace(GL_CW);
 	glCullFace(GL_BACK);
 
-	struct Buffer* uniformBuffer =
-		glDiffusePipeline->uniformBuffer;
+	Buffer* uniformBuffer =
+		diffusePipeline->gl.uniformBuffer;
 	GLuint buffer = *(GLuint*)
 		getBufferHandle(uniformBuffer);
 
@@ -743,28 +733,26 @@ static void bindGlDiffusePipeline(
 
 	setBufferData(
 		uniformBuffer,
-		&diffusePipeline->fbo,
-		sizeof(struct DiffuseUniformBuffer),
+		&diffusePipeline->gl.fbo,
+		sizeof(DiffuseUniformBuffer),
 		0);
 }
 static void setGlDiffusePipelineUniforms(
-	struct Pipeline* pipeline)
+	Pipeline* pipeline)
 {
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	struct GlDiffusePipeline* glDiffusePipeline =
-		(struct GlDiffusePipeline*)diffusePipeline->handle;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
 
 	glUniformMatrix4fv(
-		glDiffusePipeline->mvpLocation,
+		diffusePipeline->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&diffusePipeline->mvp);
+		(const GLfloat*)&diffusePipeline->gl.mvp);
 	glUniformMatrix4fv(
-		glDiffusePipeline->normalLocation,
+		diffusePipeline->gl.normalLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&diffusePipeline->normal);
+		(const GLfloat*)&diffusePipeline->gl.normal);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -774,22 +762,22 @@ static void setGlDiffusePipelineUniforms(
 		3,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vec3F) * 2,
+		sizeof(Vector3F) * 2,
 		0);
 	glVertexAttribPointer(
 		1,
 		3,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vec3F) * 2,
-		(const void*)sizeof(struct Vec3F));
+		sizeof(Vector3F) * 2,
+		(const void*)sizeof(Vector3F));
 
 	assertOpenGL();
 }
-struct Pipeline* createDiffusePipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader,
+Pipeline* createDiffusePipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader,
 	uint8_t drawMode)
 {
 	assert(window != NULL);
@@ -800,16 +788,9 @@ struct Pipeline* createDiffusePipeline(
 	assert(getShaderWindow(vertexShader) == window);
 	assert(getShaderWindow(fragmentShader) == window);
 
-	struct DiffusePipeline* diffusePipeline = malloc(
-		sizeof(struct DiffusePipeline));
-
-	if (diffusePipeline == NULL)
-		return NULL;
-
 	uint8_t api = getWindowGraphicsAPI(window);
 
-	void* handle;
-
+	DiffusePipeline* handle;
 	DestroyPipeline destroyFunction;
 	BindPipelineCommand bindFunction;
 	SetUniformsCommand setUniformsFunction;
@@ -828,183 +809,160 @@ struct Pipeline* createDiffusePipeline(
 	}
 	else
 	{
-		free(diffusePipeline);
 		return NULL;
 	}
 
 	if (handle == NULL)
-	{
-		free(diffusePipeline);
 		return NULL;
-	}
 
-	struct Vec3F lightDirection = normVec3F(
-		vec3F(1.0f, 2.0f, 3.0f));
-
-	diffusePipeline->vertexShader = vertexShader;
-	diffusePipeline->fragmentShader = fragmentShader;
-	diffusePipeline->mvp = identMat4F();
-	diffusePipeline->normal = identMat4F();
-	diffusePipeline->fbo.objectColor = valVec4F(1.0f);
-	diffusePipeline->fbo.ambientColor = valVec4F(0.5f);
-	diffusePipeline->fbo.lightColor = valVec4F(1.0f);
-	diffusePipeline->fbo.lightDirection = vec4F(
-		lightDirection.x,
-		lightDirection.y,
-		lightDirection.z,
-		0.0f);
-	diffusePipeline->handle = handle;
-
-	struct Pipeline* pipeline = createPipeline(
+	Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
 		destroyFunction,
 		bindFunction,
 		setUniformsFunction,
-		diffusePipeline);
+		handle);
 
 	if (pipeline == NULL)
 	{
 		destroyFunction(
 			window,
 			handle);
-
-		free(diffusePipeline);
 		return NULL;
 	}
 
 	return pipeline;
 }
 
-struct Shader* getDiffusePipelineVertexShader(
-	const struct Pipeline* pipeline)
+Shader* getDiffusePipelineVertexShader(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	return diffusePipeline->vertexShader;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	return diffusePipeline->vk.vertexShader;
 }
-struct Shader* getDiffusePipelineFragmentShader(
-	const struct Pipeline* pipeline)
+Shader* getDiffusePipelineFragmentShader(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	return diffusePipeline->fragmentShader;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	return diffusePipeline->vk.fragmentShader;
 }
 
-struct Mat4F getDiffusePipelineMVP(
-	const struct Pipeline* pipeline)
+Matrix4F getDiffusePipelineMVP(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	return diffusePipeline->mvp;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	return diffusePipeline->vk.mvp;
 }
 void setDiffusePipelineMVP(
-	struct Pipeline* pipeline,
-	struct Mat4F mvp)
+	Pipeline* pipeline,
+	Matrix4F mvp)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	diffusePipeline->mvp = mvp;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	diffusePipeline->vk.mvp = mvp;
 }
 
-struct Mat4F getDiffusePipelineNormal(
-	const struct Pipeline* pipeline)
+Matrix4F getDiffusePipelineNormal(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	return diffusePipeline->normal;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	return diffusePipeline->vk.normal;
 }
 void setDiffusePipelineNormal(
-	struct Pipeline* pipeline,
-	struct Mat4F normal)
+	Pipeline* pipeline,
+	Matrix4F normal)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	diffusePipeline->normal = normal;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	diffusePipeline->vk.normal = normal;
 }
 
-struct Vec4F getDiffusePipelineObjectColor(
-	const struct Pipeline* pipeline)
+Vector4F getDiffusePipelineObjectColor(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	return diffusePipeline->fbo.objectColor;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	return diffusePipeline->vk.fbo.objectColor;
 }
 void setDiffusePipelineObjectColor(
-	struct Pipeline* pipeline,
-	struct Vec4F objectColor)
+	Pipeline* pipeline,
+	Vector4F objectColor)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	diffusePipeline->fbo.objectColor = objectColor;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	diffusePipeline->vk.fbo.objectColor = objectColor;
 }
 
-struct Vec4F getDiffusePipelineAmbientColor(
-	const struct Pipeline* pipeline)
+Vector4F getDiffusePipelineAmbientColor(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	return diffusePipeline->fbo.ambientColor;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	return diffusePipeline->vk.fbo.ambientColor;
 }
 void setDiffusePipelineAmbientColor(
-	struct Pipeline* pipeline,
-	struct Vec4F ambientColor)
+	Pipeline* pipeline,
+	Vector4F ambientColor)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	diffusePipeline->fbo.ambientColor = ambientColor;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	diffusePipeline->vk.fbo.ambientColor = ambientColor;
 }
 
-struct Vec4F getDiffusePipelineLightColor(
-	const struct Pipeline* pipeline)
+Vector4F getDiffusePipelineLightColor(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	return diffusePipeline->fbo.lightColor;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	return diffusePipeline->vk.fbo.lightColor;
 }
 void setDiffusePipelineLightColor(
-	struct Pipeline* pipeline,
-	struct Vec4F lightColor)
+	Pipeline* pipeline,
+	Vector4F lightColor)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	diffusePipeline->fbo.lightColor = lightColor;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	diffusePipeline->vk.fbo.lightColor = lightColor;
 }
 
-struct Vec3F getDiffusePipelineLightDirection(
-	const struct Pipeline* pipeline)
+Vector3F getDiffusePipelineLightDirection(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
-	struct Vec4F lightDirection =
-		diffusePipeline->fbo.lightDirection;
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
+	Vector4F lightDirection =
+		diffusePipeline->vk.fbo.lightDirection;
 	return vec3F(
 		lightDirection.x,
 		lightDirection.y,
 		lightDirection.z);
 }
 void setDiffusePipelineLightDirection(
-	struct Pipeline* pipeline,
-	struct Vec3F lightDirection)
+	Pipeline* pipeline,
+	Vector3F lightDirection)
 {
 	assert(pipeline != NULL);
-	struct DiffusePipeline* diffusePipeline =
-		(struct DiffusePipeline*)getPipelineHandle(pipeline);
+	DiffusePipeline* diffusePipeline =
+		getPipelineHandle(pipeline);
 
-	diffusePipeline->fbo.lightDirection = vec4F(
+	diffusePipeline->vk.fbo.lightDirection = vec4F(
 		lightDirection.x,
 		lightDirection.y,
 		lightDirection.z,

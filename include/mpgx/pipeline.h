@@ -24,7 +24,7 @@ inline static void assertOpenGL()
 }
 
 inline static GLuint createGlPipeline(
-	struct Shader** _shaders,
+	Shader** _shaders,
 	size_t shaderCount)
 {
 	assert(_shaders != NULL);
@@ -137,8 +137,7 @@ inline static GLenum getGlImageFilter(
 		}
 	}
 }
-inline static GLenum getGlImageWrap(
-	uint8_t wrap)
+inline static GLenum getGlImageWrap(uint8_t wrap)
 {
 	if (wrap == CLAMP_TO_EDGE_IMAGE_WRAP)
 		return GL_CLAMP_TO_EDGE;
@@ -148,95 +147,95 @@ inline static GLenum getGlImageWrap(
 		return GL_REPEAT;
 }
 
-struct Pipeline* createColorPipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader,
+Pipeline* createColorPipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader,
 	uint8_t drawMode);
 
-struct Shader* getColorPipelineVertexShader(
-	const struct Pipeline* pipeline);
-struct Shader* getColorPipelineFragmentShader(
-	const struct Pipeline* pipeline);
+Shader* getColorPipelineVertexShader(
+	const Pipeline* pipeline);
+Shader* getColorPipelineFragmentShader(
+	const Pipeline* pipeline);
 
-struct Mat4F getColorPipelineMVP(
-	const struct Pipeline* pipeline);
+Matrix4F getColorPipelineMVP(
+	const Pipeline* pipeline);
 void setColorPipelineMVP(
-	struct Pipeline* pipeline,
-	struct Mat4F mvp);
+	Pipeline* pipeline,
+	Matrix4F mvp);
 
-struct Vec4F getColorPipelineColor(
-	const struct Pipeline* pipeline);
+Vector4F getColorPipelineColor(
+	const Pipeline* pipeline);
 void setColorPipelineColor(
-	struct Pipeline* pipeline,
-	struct Vec4F color);
+	Pipeline* pipeline,
+	Vector4F color);
 
-struct Pipeline* createSpritePipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader,
+Pipeline* createSpritePipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader,
 	uint8_t drawMode);
 
-struct Shader* getSpritePipelineVertexShader(
-	const struct Pipeline* pipeline);
-struct Shader* getSpritePipelineFragmentShader(
-	const struct Pipeline* pipeline);
+Shader* getSpritePipelineVertexShader(
+	const Pipeline* pipeline);
+Shader* getSpritePipelineFragmentShader(
+	const Pipeline* pipeline);
 
-struct Mat4F getSpritePipelineMVP(
-	const struct Pipeline* pipeline);
+Matrix4F getSpritePipelineMVP(
+	const Pipeline* pipeline);
 void setSpritePipelineMVP(
-	struct Pipeline* pipeline,
-	struct Mat4F mvp);
+	Pipeline* pipeline,
+	Matrix4F mvp);
 
-struct Vec4F getSpritePipelineColor(
-	const struct Pipeline* pipeline);
+Vector4F getSpritePipelineColor(
+	const Pipeline* pipeline);
 void setSpritePipelineColor(
-	struct Pipeline* pipeline,
-	struct Vec4F color);
+	Pipeline* pipeline,
+	Vector4F color);
 
-struct Pipeline* createDiffusePipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader,
+Pipeline* createDiffusePipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader,
 	uint8_t drawMode);
 
-struct Shader* getDiffusePipelineVertexShader(
-	const struct Pipeline* pipeline);
-struct Shader* getDiffusePipelineFragmentShader(
-	const struct Pipeline* pipeline);
+Shader* getDiffusePipelineVertexShader(
+	const Pipeline* pipeline);
+Shader* getDiffusePipelineFragmentShader(
+	const Pipeline* pipeline);
 
-struct Mat4F getDiffusePipelineMVP(
-	const struct Pipeline* pipeline);
+Matrix4F getDiffusePipelineMVP(
+	const Pipeline* pipeline);
 void setDiffusePipelineMVP(
-	struct Pipeline* pipeline,
-	struct Mat4F mvp);
+	Pipeline* pipeline,
+	Matrix4F mvp);
 
-struct Mat4F getDiffusePipelineNormal(
-	const struct Pipeline* pipeline);
+Matrix4F getDiffusePipelineNormal(
+	const Pipeline* pipeline);
 void setDiffusePipelineNormal(
-	struct Pipeline* pipeline,
-	struct Mat4F normal);
+	Pipeline* pipeline,
+	Matrix4F normal);
 
-struct Vec4F getDiffusePipelineObjectColor(
-	const struct Pipeline* pipeline);
+Vector4F getDiffusePipelineObjectColor(
+	const Pipeline* pipeline);
 void setDiffusePipelineObjectColor(
-	struct Pipeline* pipeline,
-	struct Vec4F objectColor);
+	Pipeline* pipeline,
+	Vector4F objectColor);
 
-struct Vec4F getDiffusePipelineAmbientColor(
-	const struct Pipeline* pipeline);
+Vector4F getDiffusePipelineAmbientColor(
+	const Pipeline* pipeline);
 void setDiffusePipelineAmbientColor(
-	struct Pipeline* pipeline,
-	struct Vec4F ambientColor);
+	Pipeline* pipeline,
+	Vector4F ambientColor);
 
-struct Vec4F getDiffusePipelineLightColor(
-	const struct Pipeline* pipeline);
+Vector4F getDiffusePipelineLightColor(
+	const Pipeline* pipeline);
 void setDiffusePipelineLightColor(
-	struct Pipeline* pipeline,
-	struct Vec4F lightColor);
+	Pipeline* pipeline,
+	Vector4F lightColor);
 
-struct Vec3F getDiffusePipelineLightDirection(
-	const struct Pipeline* pipeline);
+Vector3F getDiffusePipelineLightDirection(
+	const Pipeline* pipeline);
 void setDiffusePipelineLightDirection(
-	struct Pipeline* pipeline,
-	struct Vec3F lightDirection);
+	Pipeline* pipeline,
+	Vector3F lightDirection);

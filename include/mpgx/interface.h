@@ -6,7 +6,7 @@
 #include "cmmt/vector.h"
 #include "cmmt/bounding.h"
 
-enum INTERFACE_ANCHOR
+typedef enum INTERFACE_ANCHOR
 {
 	CENTER_INTERFACE_ANCHOR = 0,
 	LEFT_INTERFACE_ANCHOR = 1,
@@ -17,72 +17,72 @@ enum INTERFACE_ANCHOR
 	LEFT_TOP_INTERFACE_ANCHOR = 6,
 	RIGHT_BOTTOM_INTERFACE_ANCHOR = 7,
 	RIGHT_TOP_INTERFACE_ANCHOR = 8,
-};
+} INTERFACE_ANCHOR;
 
-struct Interface;
-struct InterfaceElement;
+typedef struct Interface Interface;
+typedef struct InterfaceElement InterfaceElement;
 
 typedef void(*DestroyInterfaceElement)(
 	void* element);
 typedef void(*OnInterfaceElementEvent)(
-	struct InterfaceElement* element);
+	InterfaceElement* element);
 
-struct Interface* createInterface(
-	struct Window* window,
-	struct Transformer* transformer,
+Interface* createInterface(
+	Window* window,
+	Transformer* transformer,
 	float scale);
 void destroyInterface(
-	struct Interface* interface);
+	Interface* interface);
 
-struct Window* getInterfaceWindow(
-	const struct Interface* interface);
-struct Transformer* getInterfaceTransformer(
-	const struct Interface* interface);
+Window* getInterfaceWindow(
+	const Interface* interface);
+Transformer* getInterfaceTransformer(
+	const Interface* interface);
 
-union Camera executeInterface(
-	struct Interface* interface);
+Camera executeInterface(
+	Interface* interface);
 
-struct InterfaceElement* createInterfaceElement(
-	struct Interface* interface,
+InterfaceElement* createInterfaceElement(
+	Interface* interface,
 	uint8_t anchor,
-	struct Vec3F position,
-	struct Box2F bounds,
-	struct InterfaceElement* parent,
+	Vector3F position,
+	Box2F bounds,
+	InterfaceElement* parent,
 	DestroyInterfaceElement destroyFunction,
 	OnInterfaceElementEvent onEnterFunction,
 	OnInterfaceElementEvent onExitFunction,
 	OnInterfaceElementEvent onStayFunction,
 	void* handle);
 void destroyInterfaceElement(
-	struct InterfaceElement* element);
+	InterfaceElement* element);
 
-struct Interface* getInterfaceElementInterface(
-	const struct InterfaceElement* element);
-struct Transform* getInterfaceElementTransform(
-	const struct InterfaceElement* element);
+Interface* getInterfaceElementInterface(
+	const InterfaceElement* element);
+Transform* getInterfaceElementTransform(
+	const InterfaceElement* element);
 void* getInterfaceElementHandle(
-	const struct InterfaceElement* element);
+	const InterfaceElement* element);
 
 uint8_t getInterfaceElementAnchor(
-	const struct InterfaceElement* element);
+	const InterfaceElement* element);
 void setInterfaceElementAnchor(
-	struct InterfaceElement* element,
+	InterfaceElement* element,
 	uint8_t anchor);
 
-struct Vec3F getInterfaceElementPosition(
-	const struct InterfaceElement* element);
+Vector3F getInterfaceElementPosition(
+	const InterfaceElement* element);
 void setInterfaceElementPosition(
-	struct InterfaceElement* element,
-	struct Vec3F position);
+	InterfaceElement* element,
+	Vector3F position);
 
-struct Box2F getInterfaceElementBounds(
-	const struct InterfaceElement* element);
+Box2F getInterfaceElementBounds(
+	const InterfaceElement* element);
 void setInterfaceElementBounds(
-	struct InterfaceElement* element,
-	struct Box2F bounds);
+	InterfaceElement* element,
+	Box2F bounds);
 
-struct InterfaceElement* getInterfaceElementParent(
-	const struct InterfaceElement* element);
+InterfaceElement* getInterfaceElementParent(
+	const InterfaceElement* element);
 void setInterfaceElementParent(
-	struct InterfaceElement* element,
-	struct InterfaceElement* parent);
+	InterfaceElement* element,
+	InterfaceElement* parent);

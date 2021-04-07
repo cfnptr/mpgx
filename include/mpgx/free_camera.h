@@ -2,23 +2,23 @@
 #include "mpgx/window.h"
 #include "mpgx/transformer.h"
 
-struct FreeCamera;
+typedef struct FreeCamera FreeCamera;
 
-struct FreeCamera* createFreeCamera(
-	struct Window* window,
-	struct Transform* transform);
+FreeCamera* createFreeCamera(
+	Window* window,
+	Transform* transform);
 void destroyFreeCamera(
-	struct FreeCamera* freeCamera);
+	FreeCamera* freeCamera);
 
-struct Window* getFreeCameraWindow(
-	struct FreeCamera* freeCamera);
+Window* getFreeCameraWindow(
+	FreeCamera* freeCamera);
 
 
-struct Transform* getFreeCameraTransform(
-	struct FreeCamera* freeCamera);
+Transform* getFreeCameraTransform(
+	FreeCamera* freeCamera);
 void setFreeCameraTransform(
-	struct FreeCamera* freeCamera,
-	struct Transform* transform);
+	FreeCamera* freeCamera,
+	Transform* transform);
 
 void updateFreeCamera(
-	struct FreeCamera* freeCamera);
+	FreeCamera* freeCamera);

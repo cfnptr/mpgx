@@ -11,200 +11,113 @@
 #define OPENGL_ES_SHADER_HEADER \
 "#version 300 es\n"
 
-// TODO: remove function pointers from the window
-// if statements will be faster
-
-typedef void(*BeginCommandRecord)(
-	struct Window* window);
-typedef void(*EndCommandRecord)(
-	struct Window* window);
-
-typedef void*(*CreateBuffer)(
-	struct Window* window,
-	uint8_t type,
-	const void* data,
-	size_t size,
-	bool constant);
-typedef void(*DestroyBuffer)(
-	struct Window* window,
-	void* buffer);
-typedef void(*SetBufferData)(
-	struct Buffer* buffer,
-	const void* data,
-	size_t size,
-	size_t offset);
-typedef const void*(*GetBufferHandle)(
-	const struct Buffer* image);
-
-typedef void*(*CreateMesh)(
-	struct Window* window);
-typedef void(*DestroyMesh)(
-	struct Window* window,
-	void* mesh);
-typedef void(*DrawMeshCommand)(
-	struct Mesh* mesh,
-	struct Pipeline* pipeline);
-
-typedef void*(*CreateImage)(
-	struct Window* window,
-	uint8_t type,
-	uint8_t format,
-	size_t width,
-	size_t height,
-	size_t depth,
-	const void* pixels,
-	bool useMipmapping);
-typedef void(*DestroyImage)(
-	struct Window* window,
-	void* image);
-typedef void(*SetImageData)(
-	struct Image* image,
-	const void* data,
-	size_t width,
-	size_t height,
-	size_t depth,
-	size_t widthOffset,
-	size_t heightOffset,
-	size_t depthOffset,
-	size_t mipmapLevel);
-typedef void(*GenerateMipmap)(
-	struct Image* image);
-typedef const void*(*GetImageHandle)(
-	const struct Image* image);
-
-typedef void*(*CreateFramebuffer)(
-	struct Window* window);
-typedef void(*DestroyFramebuffer)(
-	struct Window* window,
-	void* framebuffer);
-typedef void*(*CreateShader)(
-	struct Window* window,
-	uint8_t type,
-	const void* code,
-	size_t size);
-typedef void(*DestroyShader)(
-	struct Window* window,
-	void* shader);
-typedef const void*(*GetShaderHandle)(
-	const struct Shader* shader);
-
-struct Window
+typedef struct VkBuffer_
 {
-	uint8_t api;
-	size_t maxImageSize;
-	UpdateWindow updateFunction;
-	void* updateArgument;
-	BeginCommandRecord beginRecordFunction;
-	BeginCommandRecord endRecordFunction;
-	CreateBuffer createBufferFunction;
-	DestroyBuffer destroyBufferFunction;
-	SetBufferData setBufferDataFunction;
-	GetBufferHandle getBufferHandleFunction;
-	CreateMesh createMeshFunction;
-	DestroyMesh destroyMeshFunction;
-	DrawMeshCommand drawMeshFunction;
-	CreateImage createImageFunction;
-	DestroyImage destroyImageFunction;
-	SetImageData setImageDataFunction;
-	GenerateMipmap generateMipmapFunction;
-	GetImageHandle getImageHandleFunction;
-	CreateFramebuffer createFramebufferFunction;
-	DestroyFramebuffer destroyFramebufferFunction;
-	CreateShader createShaderFunction;
-	DestroyShader destroyShaderFunction;
-	GetShaderHandle getShaderHandleFunction;
-	struct Buffer** buffers;
-	size_t bufferCapacity;
-	size_t bufferCount;
-	struct Mesh** meshes;
-	size_t meshCapacity;
-	size_t meshCount;
-	struct Image** images;
-	size_t imageCapacity;
-	size_t imageCount;
-	struct Framebuffer** framebuffers;
-	size_t framebufferCapacity;
-	size_t framebufferCount;
-	struct Shader** shaders;
-	size_t shaderCapacity;
-	size_t shaderCount;
-	struct Pipeline** pipelines;
-	size_t pipelineCapacity;
-	size_t pipelineCount;
-	struct GLFWwindow* handle;
-	double updateTime;
-	double deltaTime;
-	bool recording;
-};
-
-struct GlBuffer
-{
-	GLenum type;
-	GLuint handle;
-};
-struct Buffer
-{
-	struct Window* window;
+	Window* window;
 	uint8_t type;
 	size_t size;
 	bool constant;
-	void* handle;
+	// TODO:
+} VkBuffer_;
+typedef struct GlBuffer
+{
+	Window* window;
+	uint8_t type;
+	size_t size;
+	bool constant;
+	GLenum glType;
+	GLuint handle;
+} GlBuffer;
+union Buffer
+{
+	VkBuffer_ vk;
+	GlBuffer gl;
 };
 
-struct GlMesh
+typedef struct VkMesh
 {
-	GLuint handle;
-};
-struct Mesh
-{
-	struct Window* window;
+	Window* window;
 	uint8_t drawIndex;
 	size_t indexCount;
 	size_t indexOffset;
-	struct Buffer* vertexBuffer;
-	struct Buffer* indexBuffer;
-	void* handle;
+	Buffer* vertexBuffer;
+	Buffer* indexBuffer;
+	// TODO:
+} VkMesh;
+typedef struct GlMesh
+{
+	Window* window;
+	uint8_t drawIndex;
+	size_t indexCount;
+	size_t indexOffset;
+	Buffer* vertexBuffer;
+	Buffer* indexBuffer;
+	GLuint handle;
+} GlMesh;
+union Mesh
+{
+	VkMesh vk;
+	GlMesh gl;
 };
 
-struct GlImage
+typedef struct VkImage_
 {
-	GLenum type;
-	GLenum dataType;
-	GLenum dataFormat;
-	GLuint handle;
-};
-struct Image
-{
-	struct Window* window;
+	Window* window;
 	uint8_t type;
 	uint8_t format;
 	size_t width;
 	size_t height;
 	size_t depth;
 	bool useMipmapping;
-	void* handle;
+	// TODO:
+} VkImage_;
+typedef struct GlImage
+{
+	Window* window;
+	uint8_t type;
+	uint8_t format;
+	size_t width;
+	size_t height;
+	size_t depth;
+	bool useMipmapping;
+	GLenum glType;
+	GLenum dataType;
+	GLenum dataFormat;
+	GLuint handle;
+} GlImage;
+union Image
+{
+	VkImage_ vk;
+	GlImage gl;
 };
 
-struct Framebuffer
+union Framebuffer
 {
 	// TODO:
 	void* handle;
 };
 
-struct GlShader
+typedef struct VkShader
 {
-	GLuint handle;
-};
-struct Shader
-{
-	struct Window* window;
+	Window* window;
 	uint8_t type;
-	void* handle;
+	// TODO:
+} VkShader;
+typedef struct GlShader
+{
+	Window* window;
+	uint8_t type;
+	GLuint handle;
+} GlShader;
+union Shader
+{
+	GlShader gl;
+	VkShader vk;
 };
 
 struct Pipeline
 {
-	struct Window* window;
+	Window* window;
 	uint8_t drawMode;
 	DestroyPipeline destroyFunction;
 	BindPipelineCommand bindFunction;
@@ -212,599 +125,88 @@ struct Pipeline
 	void* handle;
 };
 
+struct Window
+{
+	uint8_t api;
+	size_t maxImageSize;
+	UpdateWindow updateFunction;
+	void* updateArgument;
+	GLFWwindow* handle;
+	Buffer** buffers;
+	size_t bufferCapacity;
+	size_t bufferCount;
+	Mesh** meshes;
+	size_t meshCapacity;
+	size_t meshCount;
+	Image** images;
+	size_t imageCapacity;
+	size_t imageCount;
+	Framebuffer** framebuffers;
+	size_t framebufferCapacity;
+	size_t framebufferCount;
+	Shader** shaders;
+	size_t shaderCapacity;
+	size_t shaderCount;
+	Pipeline** pipelines;
+	size_t pipelineCapacity;
+	size_t pipelineCount;
+	double updateTime;
+	double deltaTime;
+	bool recording;
+};
+
 static bool graphicsInitialized = false;
 static FT_Library ftLibrary = NULL;
 
-static void beginGlCommandRecord(
-	struct Window* window)
+inline static void destroyGlBuffer(
+	Buffer* buffer)
 {
-	int width, height;
-
-	glfwGetFramebufferSize(
-		window->handle,
-		&width,
-		&height);
-
-	glViewport(0, 0, width, height);
-
-	// TODO: move to the framebuffer
-	glClear(
-		GL_COLOR_BUFFER_BIT |
-		GL_DEPTH_BUFFER_BIT |
-		GL_STENCIL_BUFFER_BIT);
-}
-static void endGlCommandRecord(
-	struct Window* window)
-{
-	glfwSwapBuffers(window->handle);
-}
-
-static void* createGlBuffer(
-	struct Window* window,
-	uint8_t _type,
-	const void* data,
-	size_t size,
-	bool constant)
-{
-	struct GlBuffer* buffer = malloc(
-		sizeof(struct GlBuffer));
-
-	if (buffer == NULL)
-		return NULL;
-
-	GLenum type;
-
-	if (_type == VERTEX_BUFFER_TYPE)
-	{
-		type = GL_ARRAY_BUFFER;
-	}
-	else if (_type == INDEX_BUFFER_TYPE)
-	{
-		type = GL_ELEMENT_ARRAY_BUFFER;
-	}
-	else if (_type == UNIFORM_BUFFER_TYPE)
-	{
-		type = GL_UNIFORM_BUFFER;
-	}
-	else
-	{
-		free(buffer);
-		return NULL;
-	}
-
 	glfwMakeContextCurrent(
-		window->handle);
-
-	GLuint handle = GL_ZERO;
-
-	glGenBuffers(
-		GL_ONE,
-		&handle);
-
-	GLenum usage = constant ?
-		GL_STATIC_DRAW :
-		GL_DYNAMIC_DRAW;
-
-	glBindBuffer(
-		type,
-		handle);
-	glBufferData(
-		type,
-		(GLsizeiptr)(size),
-		data,
-		usage);
-
-	assertOpenGL();
-
-	buffer->type = type;
-	buffer->handle = handle;
-	return buffer;
-}
-static void destroyGlBuffer(
-	struct Window* window,
-	void* buffer)
-{
-	struct GlBuffer* glBuffer =
-		(struct GlBuffer*)buffer;
-
-	glfwMakeContextCurrent(
-		window->handle);
+		buffer->gl.window->handle);
 
 	glDeleteBuffers(
 		GL_ONE,
-		&glBuffer->handle);
-
+		&buffer->gl.handle);
 	assertOpenGL();
 
-	free(glBuffer);
+	free(buffer);
 }
-static void setGlBufferData(
-	struct Buffer* buffer,
-	const void* data,
-	size_t size,
-	size_t offset)
+inline static void destroyGlMesh(
+	Mesh* mesh)
 {
-	struct GlBuffer* glBuffer =
-		(struct GlBuffer*)buffer->handle;
-
 	glfwMakeContextCurrent(
-		buffer->window->handle);
-
-	glBindBuffer(
-		glBuffer->type,
-		glBuffer->handle);
-	glBufferSubData(
-		glBuffer->type,
-		(GLintptr)offset,
-		(GLsizeiptr)size,
-		data);
-
-	assertOpenGL();
-}
-static const void* getGlBufferHandle(
-	const struct Buffer* image)
-{
-	struct GlBuffer* glBuffer =
-		(struct GlBuffer*)image->handle;
-	return &glBuffer->handle;
-}
-
-static void* createGlMesh(
-	struct Window* window)
-{
-	struct GlMesh* mesh = malloc(
-		sizeof(struct GlMesh));
-
-	if (mesh == NULL)
-		return NULL;
-
-	glfwMakeContextCurrent(
-		window->handle);
-
-	GLuint handle = GL_ZERO;
-
-	glGenVertexArrays(
-		GL_ONE,
-		&handle);
-
-	assertOpenGL();
-
-	mesh->handle = handle;
-	return mesh;
-}
-static void destroyGlMesh(
-	struct Window* window,
-	void* mesh)
-{
-	struct GlMesh* glMesh =
-		(struct GlMesh*)mesh;
-
-	glfwMakeContextCurrent(
-		window->handle);
+		mesh->gl.window->handle);
 
 	glDeleteVertexArrays(
 		GL_ONE,
-		&glMesh->handle);
-
+		&mesh->gl.handle);
 	assertOpenGL();
 
-	free(glMesh);
+	free(mesh);
 }
-static void drawGlMeshCommand(
-	struct Mesh* mesh,
-	struct Pipeline* pipeline)
+inline static void destroyGlImage(
+	Image* image)
 {
-	struct GlMesh* glMesh =
-		(struct GlMesh*)mesh->handle;
-	struct GlBuffer* glVertexBuffer =
-		(struct GlBuffer*)mesh->vertexBuffer->handle;
-	struct GlBuffer* glIndexBuffer =
-		(struct GlBuffer*)mesh->indexBuffer->handle;
-
-	glBindVertexArray(
-		glMesh->handle);
-	glBindBuffer(
-		GL_ARRAY_BUFFER,
-		glVertexBuffer->handle);
-	glBindBuffer(
-		GL_ELEMENT_ARRAY_BUFFER,
-		glIndexBuffer->handle);
-
-	assertOpenGL();
-
-	pipeline->setUniformsFunction(
-		pipeline);
-
-	GLenum glDrawMode;
-
-	switch (pipeline->drawMode)
-	{
-	default:
-		abort();
-	case POINTS_DRAW_MODE:
-		glDrawMode = GL_POINTS;
-		break;
-	case LINE_STRIP_DRAW_MODE:
-		glDrawMode = GL_LINE_STRIP;
-		break;
-	case LINE_LOOP_DRAW_MODE:
-		glDrawMode = GL_LINE_LOOP;
-		break;
-	case LINES_DRAW_MODE:
-		glDrawMode = GL_LINES;
-		break;
-	case TRIANGLE_STRIP_DRAW_MODE:
-		glDrawMode = GL_TRIANGLE_STRIP;
-		break;
-	case TRIANGLE_FAN_DRAW_MODE:
-		glDrawMode = GL_TRIANGLE_FAN;
-		break;
-	case TRIANGLES_DRAW_MODE:
-		glDrawMode = GL_TRIANGLES;
-		break;
-	}
-
-	GLenum glDrawIndex;
-	size_t glIndexOffset;
-
-	if (mesh->drawIndex == UINT16_DRAW_INDEX)
-	{
-		glDrawIndex = GL_UNSIGNED_SHORT;
-		glIndexOffset = mesh->indexOffset * sizeof(uint16_t);
-	}
-	else if (mesh->drawIndex == UINT32_DRAW_INDEX)
-	{
-		glDrawIndex = GL_UNSIGNED_INT;
-		glIndexOffset = mesh->indexOffset * sizeof(uint32_t);
-	}
-	else
-	{
-		abort();
-	}
-
-	glDrawElements(
-		glDrawMode,
-		(GLsizei)mesh->indexCount,
-		glDrawIndex,
-		(const void*)glIndexOffset);
-
-	assertOpenGL();
-}
-
-static void* createGlImage(
-	struct Window* window,
-	uint8_t _type,
-	uint8_t _format,
-	size_t width,
-	size_t height,
-	size_t depth,
-	const void* pixels,
-	bool mipmap)
-{
-	struct GlImage* image = malloc(
-		sizeof(struct GlImage));
-
-	if (image == NULL)
-		return NULL;
-
-	GLenum type;
-	GLenum dataFormat;
-	GLenum dataType;
-
-	if (_type == IMAGE_2D_TYPE)
-	{
-		type = GL_TEXTURE_2D;
-	}
-	else if (_type == IMAGE_3D_TYPE)
-	{
-		type = GL_TEXTURE_3D;
-	}
-	else
-	{
-		free(image);
-		return NULL;
-	}
-
-	GLenum format;
-
-	switch (_format)
-	{
-	default:
-		free(image);
-		return NULL;
-	case R8G8B8A8_UNORM_IMAGE_FORMAT:
-		format = GL_RGBA8;
-		dataFormat = GL_RGBA;
-		dataType = GL_UNSIGNED_BYTE;
-		break;
-	case R8G8B8A8_SRGB_IMAGE_FORMAT:
-		format = GL_SRGB8_ALPHA8;
-		dataFormat = GL_RGBA;
-		dataType = GL_UNSIGNED_BYTE;
-		break;
-	}
-
 	glfwMakeContextCurrent(
-		window->handle);
-
-	GLuint handle = GL_ZERO;
-
-	glGenTextures(
-		GL_ONE,
-		&handle);
-
-	glBindTexture(
-		type,
-		handle);
-
-	if (_type == IMAGE_2D_TYPE)
-	{
-		glTexImage2D(
-			type,
-			0,
-			format,
-			(GLsizei)width,
-			(GLsizei)height,
-			0,
-			dataFormat,
-			dataType,
-			pixels);
-	}
-	else
-	{
-		glTexImage3D(
-			type,
-			0,
-			format,
-			(GLsizei)width,
-			(GLsizei)height,
-			(GLsizei)depth,
-			0,
-			dataFormat,
-			dataType,
-			pixels);
-	}
-
-	if (mipmap == true)
-		glGenerateMipmap(type);
-
-	assertOpenGL();
-
-	image->type = type;
-	image->dataType = dataType;
-	image->dataFormat = dataFormat;
-	image->handle = handle;
-	return image;
-}
-static void destroyGlImage(
-	struct Window* window,
-	void* image)
-{
-	struct GlImage* glImage =
-		(struct GlImage*)image;
-
-	glfwMakeContextCurrent(
-		window->handle);
+		image->gl.window->handle);
 
 	glDeleteTextures(
 		GL_ONE,
-		&glImage->handle);
-
+		&image->gl.handle);
 	assertOpenGL();
 
-	free(glImage);
+	free(image);
 }
-static void setGlImageData(
-	struct Image* image,
-	const void* data,
-	size_t width,
-	size_t height,
-	size_t depth,
-	size_t widthOffset,
-	size_t heightOffset,
-	size_t depthOffset,
-	size_t mipmapLevel)
+inline static void destroyGlShader(
+	Shader* shader)
 {
-	struct GlImage* glImage =
-		(struct GlImage*)image->handle;
-
 	glfwMakeContextCurrent(
-		image->window->handle);
+		shader->gl.window->handle);
 
-	glBindTexture(
-		glImage->type,
-		glImage->handle);
-
-	if (image->type == IMAGE_2D_TYPE)
-	{
-		glTexSubImage2D(
-			glImage->type,
-			(GLint)mipmapLevel,
-			(GLint)widthOffset,
-			(GLint)heightOffset,
-			(GLsizei)width,
-			(GLsizei)height,
-			glImage->dataFormat,
-			glImage->dataType,
-			data);
-	}
-	else if (image->type == IMAGE_3D_TYPE)
-	{
-		glTexSubImage3D(
-			glImage->type,
-			(GLint)mipmapLevel,
-			(GLint)widthOffset,
-			(GLint)heightOffset,
-			(GLint)depthOffset,
-			(GLsizei)width,
-			(GLsizei)height,
-			(GLsizei)depth,
-			glImage->dataFormat,
-			glImage->dataType,
-			data);
-	}
-	else
-	{
-		abort();
-	}
-
-	assertOpenGL();
-}
-static void generateGlMipmap(
-	struct Image* image)
-{
-	struct GlImage* glImage =
-		(struct GlImage*)image->handle;
-
-	glfwMakeContextCurrent(
-		image->window->handle);
-
-	glBindTexture(
-		glImage->type,
-		glImage->handle);
-	glGenerateMipmap(
-		glImage->type);
-
-	assertOpenGL();
-}
-static const void* getGlImageHandle(
-	const struct Image* image)
-{
-	struct GlImage* glImage =
-		(struct GlImage*)image->handle;
-	return &glImage->handle;
-}
-
-static void* createGlShader(
-	struct Window* window,
-	uint8_t _type,
-	const void* code,
-	size_t size)
-{
-	struct GlShader* shader = malloc(
-		sizeof(struct GlShader));
-
-	if (shader == NULL)
-		return NULL;
-
-	GLenum type;
-
-	if (_type == VERTEX_SHADER_TYPE)
-	{
-		type = GL_VERTEX_SHADER;
-	}
-	else if (_type == FRAGMENT_SHADER_TYPE)
-	{
-		type = GL_FRAGMENT_SHADER;
-	}
-	else if (_type == COMPUTE_SHADER_TYPE)
-	{
-		type = GL_COMPUTE_SHADER;
-	}
-	else
-	{
-		free(shader);
-		return NULL;
-	}
-
-	uint8_t api = getWindowGraphicsAPI(window);
-
-	const char* sources[2];
-
-	if (api == OPENGL_GRAPHICS_API)
-		sources[0] = OPENGL_SHADER_HEADER;
-	else
-		sources[0] = OPENGL_ES_SHADER_HEADER;
-
-	sources[1] = (const char*)code;
-
-	glfwMakeContextCurrent(
-		window->handle);
-
-	GLuint handle = glCreateShader(type);
-
-	glShaderSource(
-		handle,
-		2,
-		sources,
-		NULL);
-
-	glCompileShader(handle);
-
-	GLint result;
-
-	glGetShaderiv(
-		handle,
-		GL_COMPILE_STATUS,
-		&result);
-
-	if (result == GL_FALSE)
-	{
-#ifndef NDEBUG
-		GLint length = 0;
-
-		glGetShaderiv(
-			handle,
-			GL_INFO_LOG_LENGTH,
-			&length);
-
-		if (length > 0)
-		{
-			char* infoLog = malloc(
-				length * sizeof(char));
-
-			if (infoLog == NULL)
-			{
-				glDeleteShader(handle);
-				free(shader);
-				return NULL;
-			}
-
-			glGetShaderInfoLog(
-				handle,
-				length,
-				&length,
-				infoLog);
-
-			printf("%s\n", infoLog);
-		}
-#endif
-
-		assertOpenGL();
-
-		glDeleteShader(handle);
-		free(shader);
-		return NULL;
-	}
-
+	glDeleteShader(shader->gl.handle);
 	assertOpenGL();
 
-	shader->handle = handle;
-	return shader;
-}
-static void destroyGlShader(
-	struct Window* window,
-	void* shader)
-{
-	struct GlShader* glShader =
-		(struct GlShader*)shader;
-
-	glfwMakeContextCurrent(
-		window->handle);
-
-	glDeleteShader(
-		glShader->handle);
-
-	assertOpenGL();
-
-	free(glShader);
-}
-static const void* getGlShaderHandle(
-	const struct Shader* shader)
-{
-	struct GlShader* glShader =
-		(struct GlShader*)shader->handle;
-	return &glShader->handle;
+	free(shader);
 }
 
 static void glfwErrorCallback(
@@ -813,7 +215,8 @@ static void glfwErrorCallback(
 {
 	fprintf(
 		stderr,
-		"GLFW ERROR: %s\n",
+		"GLFW ERROR: %d, %s\n",
+		error,
 		description);
 
 	abort();
@@ -857,7 +260,7 @@ void* getFtLibrary()
 	return ftLibrary;
 }
 
-struct Window* createWindow(
+Window* createWindow(
 	uint8_t api,
 	size_t width,
 	size_t height,
@@ -871,8 +274,7 @@ struct Window* createWindow(
 	assert(updateFunction != NULL);
 	assert(graphicsInitialized == true);
 
-	struct Window* window =
-		malloc(sizeof(struct Window));
+	Window* window = malloc(sizeof(Window));
 
 	if (window == NULL)
 		return NULL;
@@ -947,77 +349,7 @@ struct Window* createWindow(
 	}
 	else
 	{
-		free(window);
-		return NULL;
-	}
-
-	struct Buffer** buffers = malloc(
-		sizeof(struct Buffer*));
-
-	if (buffers == NULL)
-	{
-		free(window);
-		return NULL;
-	}
-
-	struct Mesh** meshes = malloc(
-		sizeof(struct Mesh*));
-
-	if (meshes == NULL)
-	{
-		free(buffers);
-		free(window);
-		return NULL;
-	}
-
-	struct Image** images = malloc(
-		sizeof(struct Image*));
-
-	if (images == NULL)
-	{
-		free(meshes);
-		free(buffers);
-		free(window);
-		return NULL;
-	}
-
-	struct Framebuffer** framebuffers = malloc(
-		sizeof(struct Framebuffer*));
-
-	if (images == NULL)
-	{
-		free(images);
-		free(meshes);
-		free(buffers);
-		free(window);
-		return NULL;
-	}
-
-	struct Shader** shaders = malloc(
-		sizeof(struct Shader*));
-
-	if (shaders == NULL)
-	{
-		free(framebuffers);
-		free(images);
-		free(meshes);
-		free(buffers);
-		free(window);
-		return NULL;
-	}
-
-	struct Pipeline** pipelines = malloc(
-		sizeof(struct Pipeline*));
-
-	if (pipelines == NULL)
-	{
-		free(shaders);
-		free(framebuffers);
-		free(images);
-		free(meshes);
-		free(buffers);
-		free(window);
-		return NULL;
+		abort();
 	}
 
 	GLFWwindow* handle = glfwCreateWindow(
@@ -1029,92 +361,8 @@ struct Window* createWindow(
 
 	if (handle == NULL)
 	{
-		free(pipelines);
-		free(shaders);
-		free(framebuffers);
-		free(images);
-		free(meshes);
-		free(buffers);
 		free(window);
 		return NULL;
-	}
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-		// TODO: implement Vulkan functions
-		return NULL;
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		glfwMakeContextCurrent(
-			handle);
-
-		if (gladLoadGL() == 0)
-		{
-			glfwDestroyWindow(handle);
-			free(pipelines);
-			free(shaders);
-			free(framebuffers);
-			free(images);
-			free(meshes);
-			free(buffers);
-			free(window);
-			return NULL;
-		}
-
-		GLint maxImageSize;
-
-		glGetIntegerv(
-			GL_MAX_TEXTURE_SIZE,
-			&maxImageSize);
-
-		window->maxImageSize =
-			(size_t)maxImageSize;
-
-		assertOpenGL();
-
-		window->updateFunction =
-			updateFunction;
-		window->updateArgument =
-			updateArgument;
-		window->beginRecordFunction =
-			beginGlCommandRecord;
-		window->endRecordFunction =
-			endGlCommandRecord;
-		window->createBufferFunction =
-			createGlBuffer;
-		window->destroyBufferFunction =
-			destroyGlBuffer;
-		window->setBufferDataFunction =
-			setGlBufferData;
-		window->getBufferHandleFunction =
-			getGlBufferHandle;
-		window->createMeshFunction =
-			createGlMesh;
-		window->destroyMeshFunction =
-			destroyGlMesh;
-		window->drawMeshFunction =
-			drawGlMeshCommand;
-		window->createImageFunction =
-			createGlImage;
-		window->destroyImageFunction =
-			destroyGlImage;
-		window->setImageDataFunction =
-			setGlImageData;
-		window->generateMipmapFunction =
-			generateGlMipmap;
-		window->getImageHandleFunction =
-			getGlImageHandle;
-		// TODO:
-		window->createFramebufferFunction = NULL;
-		window->destroyFramebufferFunction = NULL;
-		window->createShaderFunction =
-			createGlShader;
-		window->destroyShaderFunction =
-			destroyGlShader;
-		window->getShaderHandleFunction =
-			getGlShaderHandle;
 	}
 
 	if (glfwRawMouseMotionSupported() == GLFW_TRUE)
@@ -1125,7 +373,106 @@ struct Window* createWindow(
 			GLFW_TRUE);
 	}
 
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		// TODO: implement Vulkan functions
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		glfwMakeContextCurrent(handle);
+
+		if (gladLoadGL() == 0)
+		{
+			glfwDestroyWindow(handle);
+			free(window);
+			return NULL;
+		}
+
+		GLint maxImageSize;
+
+		glGetIntegerv(
+			GL_MAX_TEXTURE_SIZE,
+			&maxImageSize);
+		assertOpenGL();
+
+		window->maxImageSize = (size_t)maxImageSize;
+	}
+
+	Buffer** buffers = malloc(sizeof(Buffer*));
+
+	if (buffers == NULL)
+	{
+		glfwDestroyWindow(handle);
+		free(window);
+		return NULL;
+	}
+
+	Mesh** meshes = malloc(sizeof(Mesh*));
+
+	if (meshes == NULL)
+	{
+		free(buffers);
+		glfwDestroyWindow(handle);
+		free(window);
+		return NULL;
+	}
+
+	Image** images = malloc(sizeof(Image*));
+
+	if (images == NULL)
+	{
+		free(meshes);
+		free(buffers);
+		glfwDestroyWindow(handle);
+		free(window);
+		return NULL;
+	}
+
+	Framebuffer** framebuffers = malloc(sizeof(Framebuffer*));
+
+	if (images == NULL)
+	{
+		free(images);
+		free(meshes);
+		free(buffers);
+		glfwDestroyWindow(handle);
+		free(window);
+		return NULL;
+	}
+
+	Shader** shaders = malloc(sizeof(Shader*));
+
+	if (shaders == NULL)
+	{
+		free(framebuffers);
+		free(images);
+		free(meshes);
+		free(buffers);
+		glfwDestroyWindow(handle);
+		free(window);
+		return NULL;
+	}
+
+	Pipeline** pipelines = malloc(sizeof(Pipeline*));
+
+	if (pipelines == NULL)
+	{
+		free(shaders);
+		free(framebuffers);
+		free(images);
+		free(meshes);
+		free(buffers);
+		glfwDestroyWindow(handle);
+		free(window);
+		return NULL;
+	}
+
 	window->api = api;
+	window->updateFunction = updateFunction;
+	window->updateArgument = updateArgument;
+	window->handle = handle;
 	window->buffers = buffers;
 	window->bufferCapacity = 1;
 	window->bufferCount = 0;
@@ -1144,13 +491,12 @@ struct Window* createWindow(
 	window->pipelines = pipelines;
 	window->pipelineCapacity = 1;
 	window->pipelineCount = 0;
-	window->handle = handle;
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
 	window->recording = false;
 	return window;
 }
-struct Window* createAnyWindow(
+Window* createAnyWindow(
 	size_t width,
 	size_t height,
 	const char* title,
@@ -1163,7 +509,7 @@ struct Window* createAnyWindow(
 	assert(updateFunction != NULL);
 	assert(graphicsInitialized == true);
 
-	struct Window* window = createWindow(
+	Window* window = createWindow(
 		VULKAN_GRAPHICS_API,
 		width,
 		height,
@@ -1195,158 +541,93 @@ struct Window* createAnyWindow(
 
 	return window;
 }
-void destroyWindow(
-	struct Window* window)
+void destroyWindow(Window* window)
 {
 	if (window == NULL)
         return;
-    
-    glfwDestroyWindow(window->handle);
 
-    DestroyBuffer destroyBufferFunction =
-    	window->destroyBufferFunction;
-	size_t bufferCount =
-		window->bufferCount;
-    struct Buffer** buffers =
-    	window->buffers;
+	Pipeline** pipelines = window->pipelines;
+	size_t pipelineCount = window->pipelineCount;
+	Shader** shaders = window->shaders;
+	size_t shaderCount = window->shaderCount;
+	Framebuffer** framebuffers = window->framebuffers;
+	size_t framebufferCount = window->framebufferCount;
+	Image** images = window->images;
+	size_t imageCount = window->imageCount;
+	Mesh** meshes = window->meshes;
+	size_t meshCount = window->meshCount;
+	Buffer** buffers = window->buffers;
+	size_t bufferCount = window->bufferCount;
 
-	for (size_t i = 0; i < bufferCount; i++)
+	uint8_t api = window->api;
+
+    if (api == VULKAN_GRAPHICS_API)
 	{
-		struct Buffer* buffer = buffers[i];
+    	abort();
+	}
+    else if (api == OPENGL_GRAPHICS_API ||
+    	api == OPENGL_ES_GRAPHICS_API)
+	{
+		for (size_t i = 0; i < pipelineCount; i++)
+		{
+			Pipeline* pipeline = pipelines[i];
 
-		destroyBufferFunction(
-			window,
-			buffer->handle);
-		free(buffer);
+			pipeline->destroyFunction(
+				window,
+				pipeline->handle);
+		}
+
+		for (size_t i = 0; i < shaderCount; i++)
+			destroyGlShader(shaders[i]);
+		/*for (size_t i = 0; i < framebufferCount; i++)
+			destroyGlFramebuffer(framebuffers[i]);*/ // TODO:
+		for (size_t i = 0; i < imageCount; i++)
+			destroyGlImage(images[i]);
+		for (size_t i = 0; i < meshCount; i++)
+			destroyGlMesh(meshes[i]);
+		for (size_t i = 0; i < bufferCount; i++)
+			destroyGlBuffer(buffers[i]);
+	}
+    else
+	{
+    	abort();
 	}
 
 	free(buffers);
-
-	DestroyMesh destroyMeshFunction =
-		window->destroyMeshFunction;
-	size_t meshCount =
-		window->meshCount;
-	struct Mesh** meshes =
-		window->meshes;
-
-	for (size_t i = 0; i < meshCount; i++)
-	{
-		struct Mesh* mesh = meshes[i];
-
-		destroyMeshFunction(
-			window,
-			mesh->handle);
-		free(mesh);
-	}
-
 	free(meshes);
-
-	DestroyImage destroyImageFunction =
-		window->destroyImageFunction;
-	size_t imageCount =
-		window->imageCount;
-	struct Image** images =
-		window->images;
-
-	for (size_t i = 0; i < imageCount; i++)
-	{
-		struct Image* image = images[i];
-
-		destroyImageFunction(
-			window,
-			image->handle);
-		free(image);
-	}
-
 	free(images);
-
-	DestroyFramebuffer destroyFramebufferFunction =
-		window->destroyFramebufferFunction;
-	size_t framebufferCount =
-		window->framebufferCount;
-	struct Framebuffer** framebuffers =
-		window->framebuffers;
-
-	for (size_t i = 0; i < framebufferCount; i++)
-	{
-		struct Framebuffer* framebuffer = framebuffers[i];
-
-		destroyFramebufferFunction(
-			window,
-			framebuffer->handle);
-		free(framebuffer);
-	}
-
 	free(framebuffers);
-
-	DestroyShader destroyShaderFunction =
-		window->destroyShaderFunction;
-	size_t shaderCount =
-		window->shaderCount;
-	struct Shader** shaders =
-		window->shaders;
-
-	for (size_t i = 0; i < shaderCount; i++)
-	{
-		struct Shader* shader = shaders[i];
-
-		destroyShaderFunction(
-			window,
-			shader->handle);
-		free(shaders);
-	}
-
 	free(shaders);
-
-	size_t pipelineCount =
-		window->pipelineCount;
-	struct Pipeline** pipelines =
-		window->pipelines;
-
-	for (size_t i = 0; i < pipelineCount; i++)
-	{
-		struct Pipeline* pipeline = pipelines[i];
-
-		pipeline->destroyFunction(
-			window,
-			pipeline->handle);
-		free(pipeline);
-	}
-
 	free(pipelines);
+	glfwDestroyWindow(window->handle);
 	free(window);
 }
 
-uint8_t getWindowGraphicsAPI(
-	const struct Window* window)
+uint8_t getWindowGraphicsAPI(const Window* window)
 {
 	assert(window != NULL);
 	return window->api;
 }
-size_t getWindowMaxImageSize(
-	const struct Window* window)
+size_t getWindowMaxImageSize(const Window* window)
 {
 	assert(window != NULL);
 	return window->maxImageSize;
 }
-double getWindowUpdateTime(
-	const struct Window* window)
+double getWindowUpdateTime(const Window* window)
 {
 	assert(window != NULL);
 	return window->updateTime;
 }
-double getWindowDeltaTime(
-	const struct Window* window)
+double getWindowDeltaTime(const Window* window)
 {
 	assert(window != NULL);
 	return window->deltaTime;
 }
-struct Vec2F getWindowContentScale(
-	const struct Window* window)
+Vector2F getWindowContentScale(const Window* window)
 {
 	assert(window != NULL);
 
-	struct Vec2F scale;
+	Vector2F scale;
 
 	glfwGetWindowContentScale(
 		window->handle,
@@ -1355,12 +636,11 @@ struct Vec2F getWindowContentScale(
 
 	return scale;
 }
-struct Vec2I getWindowFramebufferSize(
-	const struct Window* window)
+Vector2I getWindowFramebufferSize(const Window* window)
 {
 	assert(window != NULL);
 
-	struct Vec2I size;
+	Vector2I size;
 
 	glfwGetFramebufferSize(
 		window->handle,
@@ -1369,8 +649,14 @@ struct Vec2I getWindowFramebufferSize(
 
 	return size;
 }
+const char* getWindowClipboard(const Window* window)
+{
+	assert(window != NULL);
+	return glfwGetClipboardString(window->handle);
+}
+
 bool getWindowKeyboardKey(
-	const struct Window* window,
+	const Window* window,
 	int key)
 {
 	assert(window != NULL);
@@ -1380,7 +666,7 @@ bool getWindowKeyboardKey(
 		key) == GLFW_PRESS;
 }
 bool getWindowMouseButton(
-	const struct Window* window,
+	const Window* window,
 	int button)
 {
 	assert(window != NULL);
@@ -1389,21 +675,13 @@ bool getWindowMouseButton(
 		window->handle,
 		button) == GLFW_PRESS;
 }
-const char* getWindowClipboard(
-	const struct Window* window)
+
+Vector2I getWindowSize(
+	const Window* window)
 {
 	assert(window != NULL);
 
-	return glfwGetClipboardString(
-		window->handle);
-}
-
-struct Vec2I getWindowSize(
-	const struct Window* window)
-{
-	assert(window != NULL);
-
-	struct Vec2I size;
+	Vector2I size;
 
 	glfwGetWindowSize(
 		window->handle,
@@ -1413,8 +691,8 @@ struct Vec2I getWindowSize(
 	return size;
 }
 void setWindowSize(
-	struct Window* window,
-	struct Vec2I size)
+	Window* window,
+	Vector2I size)
 {
 	assert(window != NULL);
 
@@ -1424,12 +702,12 @@ void setWindowSize(
 		size.y);
 }
 
-struct Vec2I getWindowPosition(
-	const struct Window* window)
+Vector2I getWindowPosition(
+	const Window* window)
 {
 	assert(window != NULL);
 
-	struct Vec2I position;
+	Vector2I position;
 
 	glfwGetWindowPos(
 		window->handle,
@@ -1439,8 +717,8 @@ struct Vec2I getWindowPosition(
 	return position;
 }
 void setWindowPosition(
-	struct Window* window,
-	struct Vec2I position)
+	Window* window,
+	Vector2I position)
 {
 	assert(window != NULL);
 
@@ -1450,8 +728,8 @@ void setWindowPosition(
 		position.y);
 }
 
-struct Vec2F getWindowCursorPosition(
-	const struct Window* window)
+Vector2F getWindowCursorPosition(
+	const Window* window)
 {
 	assert(window != NULL);
 
@@ -1465,8 +743,8 @@ struct Vec2F getWindowCursorPosition(
 	return vec2F((float)x, (float)y);
 }
 void setWindowCursorPosition(
-	struct Window* window,
-	struct Vec2F position)
+	Window* window,
+	Vector2F position)
 {
 	assert(window != NULL);
 
@@ -1477,7 +755,7 @@ void setWindowCursorPosition(
 }
 
 uint8_t getWindowCursorMode(
-	const struct Window* window)
+	const Window* window)
 {
 	assert(window != NULL);
 
@@ -1486,7 +764,7 @@ uint8_t getWindowCursorMode(
 		GLFW_CURSOR);
 }
 void setWindowCursorMode(
-	struct Window* window,
+	Window* window,
 	uint8_t cursorMode)
 {
 	assert(window != NULL);
@@ -1496,7 +774,7 @@ void setWindowCursorMode(
 	if (cursorMode == DEFAULT_CURSOR_MODE)
 		value = GLFW_CURSOR_NORMAL;
 	else if (cursorMode == HIDDEN_CURSOR_MODE)
-		value = HIDDEN_CURSOR_MODE;
+		value = GLFW_CURSOR_HIDDEN;
 	else if (cursorMode == LOCKED_CURSOR_MODE)
 		value = GLFW_CURSOR_DISABLED;
 	else
@@ -1508,8 +786,7 @@ void setWindowCursorMode(
 		value);
 }
 
-bool isWindowFocused(
-	struct Window* window)
+bool isWindowFocused(Window* window)
 {
 	assert(window != NULL);
 
@@ -1517,8 +794,7 @@ bool isWindowFocused(
 		window->handle,
 		GLFW_FOCUSED) == GLFW_TRUE;
 }
-bool isWindowIconified(
-	struct Window* window)
+bool isWindowIconified(Window* window)
 {
 	assert(window != NULL);
 
@@ -1526,8 +802,7 @@ bool isWindowIconified(
 		window->handle,
 		GLFW_ICONIFIED) == GLFW_TRUE;
 }
-bool isWindowMaximized(
-	struct Window* window)
+bool isWindowMaximized(Window* window)
 {
 	assert(window != NULL);
 
@@ -1535,8 +810,7 @@ bool isWindowMaximized(
 		window->handle,
 		GLFW_MAXIMIZED) == GLFW_TRUE;
 }
-bool isWindowVisible(
-	struct Window* window)
+bool isWindowVisible(Window* window)
 {
 	assert(window != NULL);
 
@@ -1544,8 +818,7 @@ bool isWindowVisible(
 		window->handle,
 		GLFW_VISIBLE) == GLFW_TRUE;
 }
-bool isWindowHovered(
-	struct Window* window)
+bool isWindowHovered(Window* window)
 {
 	assert(window != NULL);
 
@@ -1554,68 +827,55 @@ bool isWindowHovered(
 		GLFW_HOVERED) == GLFW_TRUE;
 }
 
-void iconifyWindow(
-	struct Window* window)
+void iconifyWindow(Window* window)
 {
 	assert(window != NULL);
 	glfwIconifyWindow(window->handle);
 }
-void maximizeWindow(
-	struct Window* window)
+void maximizeWindow(Window* window)
 {
 	assert(window != NULL);
 	glfwMaximizeWindow(window->handle);
 }
-void restoreWindow(
-	struct Window* window)
+void restoreWindow(Window* window)
 {
 	assert(window != NULL);
 	glfwRestoreWindow(window->handle);
 }
-void showWindow(
-	struct Window* window)
+void showWindow(Window* window)
 {
 	assert(window != NULL);
 	glfwShowWindow(window->handle);
 }
-void hideWindow(
-	struct Window* window)
+void hideWindow(Window* window)
 {
 	assert(window != NULL);
 	glfwHideWindow(window->handle);
 }
-void focusWindow(
-	struct Window* window)
+void focusWindow(Window* window)
 {
 	assert(window != NULL);
 	glfwFocusWindow(window->handle);
 }
-void requestWindowAttention(
-	struct Window* window)
+void requestWindowAttention(Window* window)
 {
 	assert(window != NULL);
 	glfwRequestWindowAttention(window->handle);
 }
 
-void makeWindowContextCurrent(
-	struct Window* window)
+void makeWindowContextCurrent(Window* window)
 {
 	assert(window != NULL);
-
 	assert(window->api == OPENGL_GRAPHICS_API ||
 		window->api == OPENGL_ES_GRAPHICS_API);
-
-	glfwMakeContextCurrent(
-		window->handle);
+	glfwMakeContextCurrent(window->handle);
 }
-void updateWindow(
-	struct Window* window)
+void updateWindow(Window* window)
 {
 	assert(window != NULL);
 	assert(window->recording == false);
 
-	struct GLFWwindow* handle =
-		window->handle;
+	GLFWwindow* handle = window->handle;
 
 	// TODO: add vsync off/on option
 
@@ -1626,33 +886,145 @@ void updateWindow(
 		double time = glfwGetTime();
 		window->deltaTime = time - window->updateTime;
 		window->updateTime = time;
-
-		window->updateFunction(
-			window->updateArgument);
+		window->updateFunction(window->updateArgument);
 	}
 }
 
-void beginCommandRecord(
-	struct Window* window)
+inline static void beginGlCommandRecord(Window* window)
+{
+	int width, height;
+
+	glfwGetFramebufferSize(
+		window->handle,
+		&width,
+		&height);
+
+	glViewport(0, 0, width, height);
+
+	// TODO: move to the framebuffer
+	glClear(
+		GL_COLOR_BUFFER_BIT |
+		GL_DEPTH_BUFFER_BIT |
+		GL_STENCIL_BUFFER_BIT);
+}
+void beginCommandRecord(Window* window)
 {
 	assert(window != NULL);
 	assert(window->recording == false);
 
+	uint8_t api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		beginGlCommandRecord(window);
+	}
+	else
+	{
+		abort();
+	}
+
 	window->recording = true;
-	window->beginRecordFunction(window);
 }
-void endCommandRecord(
-	struct Window* window)
+
+inline static void endGlCommandRecord(Window* window)
+{
+	glfwSwapBuffers(window->handle);
+}
+void endCommandRecord(Window* window)
 {
 	assert(window != NULL);
 	assert(window->recording == true);
 
+	uint8_t api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		return;
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		endGlCommandRecord(window);
+	}
+	else
+	{
+		abort();
+	}
+
 	window->recording = false;
-	window->endRecordFunction(window);
 }
 
-struct Buffer* createBuffer(
-	struct Window* window,
+inline static Buffer* createGlBuffer(
+	Window* window,
+	uint8_t type,
+	const void* data,
+	size_t size,
+	bool constant)
+{
+	Buffer* buffer = malloc(sizeof(Buffer));
+
+	if (buffer == NULL)
+		return NULL;
+
+	GLenum glType;
+
+	if (type == VERTEX_BUFFER_TYPE)
+	{
+		glType = GL_ARRAY_BUFFER;
+	}
+	else if (type == INDEX_BUFFER_TYPE)
+	{
+		glType = GL_ELEMENT_ARRAY_BUFFER;
+	}
+	else if (type == UNIFORM_BUFFER_TYPE)
+	{
+		glType = GL_UNIFORM_BUFFER;
+	}
+	else
+	{
+		free(buffer);
+		return NULL;
+	}
+
+	glfwMakeContextCurrent(window->handle);
+
+	GLuint handle = GL_ZERO;
+
+	glGenBuffers(
+		GL_ONE,
+		&handle);
+
+	GLenum usage = constant ?
+		GL_STATIC_DRAW :
+		GL_DYNAMIC_DRAW;
+
+	glBindBuffer(
+		glType,
+		handle);
+	glBufferData(
+		glType,
+		(GLsizeiptr)(size),
+		data,
+		usage);
+
+	assertOpenGL();
+
+	buffer->gl.window = window;
+	buffer->gl.type = type;
+	buffer->gl.size = size;
+	buffer->gl.constant = constant;
+	buffer->gl.handle = handle;
+	buffer->gl.glType = glType;
+	buffer->gl.handle = handle;
+	return buffer;
+}
+Buffer* createBuffer(
+	Window* window,
 	uint8_t type,
 	const void* data,
 	size_t size,
@@ -1662,125 +1034,176 @@ struct Buffer* createBuffer(
 	assert(size != 0);
 	assert(window->recording == false);
 
-	struct Buffer* buffer =
-		malloc(sizeof(struct Buffer));
+	uint8_t api = window->api;
+
+	Buffer* buffer;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		return NULL;
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		buffer = createGlBuffer(
+			window,
+			type,
+			data,
+			size,
+			constant);
+	}
+	else
+	{
+		abort();
+	}
 
 	if (buffer == NULL)
 		return NULL;
 
-	void* handle = window->createBufferFunction(
-		window,
-		type,
-		data,
-		size,
-		constant);
+	Buffer** buffers = window->buffers;
+	size_t bufferCount = window->bufferCount;
+	size_t bufferCapacity = window->bufferCapacity;
 
-	if (handle == NULL)
+	if (bufferCount == bufferCapacity)
 	{
-		free(buffer);
-		return NULL;
-	}
+		bufferCapacity *= 2;
 
-	buffer->window = window;
-	buffer->type = type;
-	buffer->size = size;
-	buffer->constant = constant;
-	buffer->handle = handle;
-
-	if (window->bufferCount == window->bufferCapacity)
-	{
-		size_t capacity =
-			window->bufferCapacity * 2;
-		struct Buffer** buffers = realloc(
-			window->buffers,
-			capacity * sizeof(struct Buffer*));
+		buffers = realloc(
+			buffers,
+			bufferCapacity * sizeof(Buffer*));
 
 		if (buffers == NULL)
 		{
-			window->destroyBufferFunction(
-				window,
-				handle);
+			if (api == VULKAN_GRAPHICS_API)
+			{
+				abort();
+			}
+			else if (api == OPENGL_GRAPHICS_API ||
+				api == OPENGL_ES_GRAPHICS_API)
+			{
+				destroyGlBuffer(buffer);
+			}
+			else
+			{
+				abort();
+			}
 
-			free(buffer);
 			return NULL;
 		}
 
 		window->buffers = buffers;
-		window->bufferCapacity = capacity;
+		window->bufferCapacity = bufferCapacity;
 	}
 
-	window->buffers[window->bufferCount] = buffer;
+	buffers[bufferCount] = buffer;
 	window->bufferCount++;
 	return buffer;
 }
-void destroyBuffer(
-	struct Buffer* buffer)
+void destroyBuffer(Buffer* buffer)
 {
 	if (buffer == NULL)
 		return;
 
-	assert(buffer->window->recording == false);
+	assert(buffer->vk.window->recording == false);
 
-	struct Window* window =
-		buffer->window;
-	size_t bufferCount =
-		window->bufferCount;
-	struct Buffer** buffers =
-		window->buffers;
+	Window* window = buffer->vk.window;
+	Buffer** buffers = window->buffers;
+	size_t bufferCount = window->bufferCount;
 
 	for (size_t i = 0; i < bufferCount; i++)
 	{
-		if (buffer == buffers[i])
+		if (buffer != buffers[i])
+			continue;
+
+		for (size_t j = i + 1; j < bufferCount; j++)
+			buffers[j - 1] = buffers[j];
+
+		uint8_t api = window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
 		{
-			for (size_t j = i + 1; j < bufferCount; j++)
-				buffers[j - 1] = buffers[j];
-
-			window->destroyBufferFunction(
-				window,
-				buffer->handle);
-			free(buffer);
-
-			window->bufferCount--;
-			return;
+			abort();
 		}
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
+		{
+			destroyGlBuffer(buffer);
+		}
+		else
+		{
+			abort();
+		}
+
+		window->bufferCount--;
+		return;
 	}
 
 	abort();
 }
 
-struct Window* getBufferWindow(
-	const struct Buffer* buffer)
+Window* getBufferWindow(const Buffer* buffer)
 {
 	assert(buffer != NULL);
-	return buffer->window;
+	return buffer->vk.window;
 }
-uint8_t getBufferType(
-	const struct Buffer* buffer)
+uint8_t getBufferType(const Buffer* buffer)
 {
 	assert(buffer != NULL);
-	return buffer->type;
+	return buffer->vk.type;
 }
-size_t getBufferSize(
-	const struct Buffer* buffer)
+size_t getBufferSize(const Buffer* buffer)
 {
 	assert(buffer != NULL);
-	return buffer->size;
+	return buffer->vk.size;
 }
-bool isBufferConstant(
-	const struct Buffer* buffer)
+bool isBufferConstant(const Buffer* buffer)
 {
 	assert(buffer != NULL);
-	return buffer->constant;
+	return buffer->vk.constant;
 }
-const void* getBufferHandle(
-	const struct Buffer* buffer)
+const void* getBufferHandle(const Buffer* buffer)
 {
 	assert(buffer != NULL);
-	return buffer->window->getBufferHandleFunction(buffer);
+
+	uint8_t api = buffer->vk.window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return &buffer->gl.handle;
+	}
+	else
+	{
+		abort();
+	}
 }
 
+inline static void setGlBufferData(
+	Buffer* buffer,
+	const void* data,
+	size_t size,
+	size_t offset)
+{
+	glfwMakeContextCurrent(
+		buffer->gl.window->handle);
+
+	glBindBuffer(
+		buffer->gl.glType,
+		buffer->gl.handle);
+	glBufferSubData(
+		buffer->gl.glType,
+		(GLintptr)offset,
+		(GLsizeiptr)size,
+		data);
+
+	assertOpenGL();
+}
 void setBufferData(
-	struct Buffer* buffer,
+	Buffer* buffer,
 	const void* data,
 	size_t size,
 	size_t offset)
@@ -1788,43 +1211,91 @@ void setBufferData(
 	assert(buffer != NULL);
 	assert(data != NULL);
 	assert(size != 0);
-	assert(buffer->constant == false);
-	assert(size + offset <= buffer->size);
+	assert(buffer->vk.constant == false);
+	assert(size + offset <= buffer->vk.size);
 
-	buffer->window->setBufferDataFunction(
-		buffer,
-		data,
-		size,
-		offset);
+	uint8_t api = buffer->vk.window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		setGlBufferData(
+			buffer,
+			data,
+			size,
+			offset);
+	}
+	else
+	{
+		abort();
+	}
 }
 
-struct Mesh* createMesh(
-	struct Window* window,
+inline static Mesh* createGlMesh(
+	Window* window,
 	uint8_t drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
-	struct Buffer* vertexBuffer,
-	struct Buffer* indexBuffer)
+	Buffer* vertexBuffer,
+	Buffer* indexBuffer)
+{
+	Mesh* mesh = malloc(sizeof(Mesh));
+
+	if (mesh == NULL)
+		return NULL;
+
+	glfwMakeContextCurrent(
+		window->handle);
+
+	GLuint handle = GL_ZERO;
+
+	glGenVertexArrays(
+		GL_ONE,
+		&handle);
+	assertOpenGL();
+
+	mesh->gl.window = window;
+	mesh->gl.drawIndex = drawIndex;
+	mesh->gl.indexCount = indexCount;
+	mesh->gl.indexOffset = indexOffset;
+	mesh->gl.vertexBuffer = vertexBuffer;
+	mesh->gl.indexBuffer = indexBuffer;
+	mesh->gl.handle = handle;
+	return mesh;
+}
+Mesh* createMesh(
+	Window* window,
+	uint8_t drawIndex,
+	size_t indexCount,
+	size_t indexOffset,
+	Buffer* vertexBuffer,
+	Buffer* indexBuffer)
 {
 	assert(window != NULL);
 	assert(vertexBuffer != NULL);
 	assert(indexBuffer != NULL);
-	assert(window == vertexBuffer->window);
-	assert(window == indexBuffer->window);
-	assert(vertexBuffer->type == VERTEX_BUFFER_TYPE);
-	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
+	assert(window == vertexBuffer->vk.window);
+	assert(window == indexBuffer->vk.window);
+	assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
+	assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
 	assert(window->recording == false);
 
 #ifndef NDEBUG
 	if (drawIndex == UINT16_DRAW_INDEX)
 	{
 		assert(indexCount * sizeof(uint16_t) +
-			indexOffset * sizeof(uint16_t) <= indexBuffer->size);
+			indexOffset * sizeof(uint16_t) <=
+			indexBuffer->vk.size);
 	}
 	else if (drawIndex == UINT32_DRAW_INDEX)
 	{
 		assert(indexCount * sizeof(uint32_t) +
-			indexOffset * sizeof(uint32_t) <= indexBuffer->size);
+			indexOffset * sizeof(uint32_t) <=
+			indexBuffer->vk.size);
 	}
 	else
 	{
@@ -1832,124 +1303,149 @@ struct Mesh* createMesh(
 	}
 #endif
 
-	struct Mesh* mesh = malloc(
-		sizeof(struct Mesh));
+	uint8_t api = window->api;
+
+	Mesh* mesh;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		return NULL;
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		mesh = createGlMesh(
+			window,
+			drawIndex,
+			indexCount,
+			indexOffset,
+			vertexBuffer,
+			indexBuffer);
+	}
+	else
+	{
+		abort();
+	}
 
 	if (mesh == NULL)
 		return NULL;
 
-	void* handle = window->createMeshFunction(window);
+	Mesh** meshes = window->meshes;
+	size_t meshCount = window->meshCount;
+	size_t meshCapacity = window->meshCapacity;
 
-	if (handle == NULL)
+	if (meshCount == meshCapacity)
 	{
-		free(mesh);
-		return NULL;
-	}
+		meshCapacity *= 2;
 
-	mesh->window = window;
-	mesh->drawIndex = drawIndex;
-	mesh->indexCount = indexCount;
-	mesh->indexOffset = indexOffset;
-	mesh->vertexBuffer = vertexBuffer;
-	mesh->indexBuffer = indexBuffer;
-	mesh->handle = handle;
-
-	if (window->meshCount == window->meshCapacity)
-	{
-		size_t capacity =
-			window->meshCapacity * 2;
-		struct Mesh** meshes = realloc(
-			window->meshes,
-			capacity * sizeof(struct Mesh*));
+		meshes = realloc(
+			meshes,
+			meshCapacity * sizeof(Mesh*));
 
 		if (meshes == NULL)
 		{
-			window->destroyMeshFunction(
-				window,
-				handle);
+			if (api == VULKAN_GRAPHICS_API)
+			{
+				abort();
+			}
+			else if (api == OPENGL_GRAPHICS_API ||
+				api == OPENGL_ES_GRAPHICS_API)
+			{
+				destroyGlMesh(mesh);
+			}
+			else
+			{
+				abort();
+			}
 
-			free(mesh);
 			return NULL;
 		}
 
 		window->meshes = meshes;
-		window->meshCapacity = capacity;
+		window->meshCapacity = meshCapacity;
 	}
 
-	window->meshes[window->meshCount] = mesh;
+	meshes[meshCount] = mesh;
 	window->meshCount++;
 	return mesh;
 }
-void destroyMesh(
-	struct Mesh* mesh)
+void destroyMesh(Mesh* mesh)
 {
 	if (mesh == NULL)
 		return;
 
-	assert(mesh->window->recording == false);
+	assert(mesh->vk.window->recording == false);
 
-	struct Window* window =
-		mesh->window;
-	size_t meshCount =
-		window->meshCount;
-	struct Mesh** meshes =
-		window->meshes;
+	Window* window = mesh->vk.window;
+	Mesh** meshes = window->meshes;
+	size_t meshCount = window->meshCount;
 
 	for (size_t i = 0; i < meshCount; i++)
 	{
-		if (mesh == meshes[i])
+		if (mesh != meshes[i])
+			continue;
+
+		for (size_t j = i + 1; j < meshCount; j++)
+			meshes[j - 1] = meshes[j];
+
+		uint8_t api = window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
 		{
-			for (size_t j = i + 1; j < meshCount; j++)
-				meshes[j - 1] = meshes[j];
-
-			window->destroyMeshFunction(
-				window,
-				mesh->handle);
-			free(mesh);
-
-			window->meshCount--;
-			return;
+			abort();
 		}
+		else if (api == OPENGL_GRAPHICS_API)
+		{
+			destroyGlMesh(mesh);
+		}
+		else
+		{
+			abort();
+		}
+
+		window->meshCount--;
+		return;
 	}
 
 	abort();
 }
 
-struct Window* getMeshWindow(
-	const struct Mesh* mesh)
+Window* getMeshWindow(const Mesh* mesh)
 {
 	assert(mesh != NULL);
-	return mesh->window;
+	return mesh->vk.window;
 }
-uint8_t getMeshDrawIndex(
-	const struct Mesh* mesh)
+uint8_t getMeshDrawIndex(const Mesh* mesh)
 {
 	assert(mesh != NULL);
-	return mesh->drawIndex;
+	return mesh->vk.drawIndex;
 }
+
 size_t getMeshIndexCount(
-	const struct Mesh* mesh)
+	const Mesh* mesh)
 {
 	assert(mesh != NULL);
-	return mesh->indexCount;
+	return mesh->vk.indexCount;
 }
 void setMeshIndexCount(
-	struct Mesh* mesh,
+	Mesh* mesh,
 	size_t indexCount)
 {
 	assert(mesh != NULL);
-	assert(mesh->window->recording == false);
+	assert(mesh->vk.window->recording == false);
 
 #ifndef NDEBUG
-	if (mesh->drawIndex == UINT16_DRAW_INDEX)
+	if (mesh->vk.drawIndex == UINT16_DRAW_INDEX)
 	{
 		assert(indexCount * sizeof(uint16_t) +
-			mesh->indexOffset * sizeof(uint16_t) <= mesh->indexBuffer->size);
+			mesh->vk.indexOffset * sizeof(uint16_t) <=
+			mesh->vk.indexBuffer->vk.size);
 	}
-	else if (mesh->drawIndex == UINT32_DRAW_INDEX)
+	else if (mesh->vk.drawIndex == UINT32_DRAW_INDEX)
 	{
 		assert(indexCount * sizeof(uint32_t) +
-			mesh->indexOffset * sizeof(uint32_t)<= mesh->indexBuffer->size);
+			mesh->vk.indexOffset * sizeof(uint32_t) <=
+			mesh->vk.indexBuffer->vk.size);
 	}
 	else
 	{
@@ -1957,32 +1453,34 @@ void setMeshIndexCount(
 	}
 #endif
 
-	mesh->indexCount = indexCount;
+	mesh->vk.indexCount = indexCount;
 }
 
 size_t getMeshIndexOffset(
-	const struct Mesh* mesh)
+	const Mesh* mesh)
 {
 	assert(mesh != NULL);
-	return mesh->indexOffset;
+	return mesh->vk.indexOffset;
 }
 void setMeshIndexOffset(
-	struct Mesh* mesh,
+	Mesh* mesh,
 	size_t indexOffset)
 {
 	assert(mesh != NULL);
-	assert(mesh->window->recording == false);
+	assert(mesh->vk.window->recording == false);
 
 #ifndef NDEBUG
-	if (mesh->drawIndex == UINT16_DRAW_INDEX)
+	if (mesh->vk.drawIndex == UINT16_DRAW_INDEX)
 	{
-		assert(mesh->indexCount * sizeof(uint16_t) +
-			indexOffset * sizeof(uint16_t) <= mesh->indexBuffer->size);
+		assert(mesh->vk.indexCount * sizeof(uint16_t) +
+			indexOffset * sizeof(uint16_t) <=
+			mesh->vk.indexBuffer->vk.size);
 	}
-	else if (mesh->drawIndex == UINT32_DRAW_INDEX)
+	else if (mesh->vk.drawIndex == UINT32_DRAW_INDEX)
 	{
-		assert(mesh->indexCount * sizeof(uint32_t) +
-			indexOffset * sizeof(uint32_t)<= mesh->indexBuffer->size);
+		assert(mesh->vk.indexCount * sizeof(uint32_t) +
+			indexOffset * sizeof(uint32_t) <=
+			mesh->vk.indexBuffer->vk.size);
 	}
 	else
 	{
@@ -1990,57 +1488,59 @@ void setMeshIndexOffset(
 	}
 #endif
 
-	mesh->indexOffset = indexOffset;
+	mesh->vk.indexOffset = indexOffset;
 }
 
-struct Buffer* getMeshVertexBuffer(
-	const struct Mesh* mesh)
+Buffer* getMeshVertexBuffer(
+	const Mesh* mesh)
 {
 	assert(mesh != NULL);
-	return mesh->vertexBuffer;
+	return mesh->vk.vertexBuffer;
 }
 void setMeshVertexBuffer(
-	struct Mesh* mesh,
-	struct Buffer* vertexBuffer)
+	Mesh* mesh,
+	Buffer* vertexBuffer)
 {
 	assert(mesh != NULL);
 	assert(vertexBuffer != NULL);
-	assert(mesh->window == vertexBuffer->window);
-	assert(vertexBuffer->type == VERTEX_BUFFER_TYPE);
-	assert(mesh->window->recording == false);
-	mesh->vertexBuffer = vertexBuffer;
+	assert(mesh->vk.window == vertexBuffer->vk.window);
+	assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
+	assert(mesh->vk.window->recording == false);
+	mesh->vk.vertexBuffer = vertexBuffer;
 }
 
-struct Buffer* getMeshIndexBuffer(
-	const struct Mesh* mesh)
+Buffer* getMeshIndexBuffer(
+	const Mesh* mesh)
 {
 	assert(mesh != NULL);
-	return mesh->indexBuffer;
+	return mesh->vk.indexBuffer;
 }
 void setMeshIndexBuffer(
-	struct Mesh* mesh,
+	Mesh* mesh,
 	uint8_t drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
-	struct Buffer* indexBuffer)
+	Buffer* indexBuffer)
 {
 	assert(mesh != NULL);
 	assert(indexCount != 0);
 	assert(indexBuffer != NULL);
-	assert(mesh->window == indexBuffer->window);
-	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
-	assert(mesh->window->recording == false);
+	assert(mesh->vk.window == indexBuffer->vk.window);
+	assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
+	assert(mesh->vk.window->recording == false);
 
 #ifndef NDEBUG
 	if (drawIndex == UINT16_DRAW_INDEX)
 	{
 		assert(indexCount * sizeof(uint16_t) +
-			indexOffset * sizeof(uint16_t) <= indexBuffer->size);
+			indexOffset * sizeof(uint16_t) <=
+			indexBuffer->vk.size);
 	}
 	else if (drawIndex == UINT32_DRAW_INDEX)
 	{
 		assert(indexCount * sizeof(uint32_t) +
-			indexOffset * sizeof(uint32_t) <= indexBuffer->size);
+			indexOffset * sizeof(uint32_t) <=
+			indexBuffer->vk.size);
 	}
 	else
 	{
@@ -2048,51 +1548,54 @@ void setMeshIndexBuffer(
 	}
 #endif
 
-	mesh->drawIndex = drawIndex;
-	mesh->indexCount = indexCount;
-	mesh->indexOffset = indexOffset;
-	mesh->indexBuffer = indexBuffer;
+	mesh->vk.drawIndex = drawIndex;
+	mesh->vk.indexCount = indexCount;
+	mesh->vk.indexOffset = indexOffset;
+	mesh->vk.indexBuffer = indexBuffer;
 }
 
 void getMeshBuffers(
-	const struct Mesh* mesh,
-	struct Buffer** vertexBuffer,
-	struct Buffer** indexBuffer)
+	const Mesh* mesh,
+	Buffer** vertexBuffer,
+	Buffer** indexBuffer)
 {
 	assert(mesh != NULL);
 	assert(vertexBuffer != NULL);
 	assert(indexBuffer != NULL);
 
-	*vertexBuffer = mesh->vertexBuffer;
-	*indexBuffer = mesh->indexBuffer;
+	*vertexBuffer = mesh->vk.vertexBuffer;
+	*indexBuffer = mesh->vk.indexBuffer;
 }
 void setMeshBuffers(
-	struct Mesh* mesh,
+	Mesh* mesh,
 	uint8_t drawIndex,
 	size_t indexCount,
-	struct Buffer* vertexBuffer,
-	struct Buffer* indexBuffer)
+	size_t indexOffset,
+	Buffer* vertexBuffer,
+	Buffer* indexBuffer)
 {
 	assert(mesh != NULL);
 	assert(indexCount != 0);
 	assert(vertexBuffer != NULL);
 	assert(indexBuffer != NULL);
-	assert(mesh->window == vertexBuffer->window);
-	assert(mesh->window == indexBuffer->window);
-	assert(vertexBuffer->type == VERTEX_BUFFER_TYPE);
-	assert(indexBuffer->type == INDEX_BUFFER_TYPE);
-	assert(mesh->window->recording == false);
+	assert(mesh->vk.window == vertexBuffer->vk.window);
+	assert(mesh->vk.window == indexBuffer->vk.window);
+	assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
+	assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
+	assert(mesh->vk.window->recording == false);
 
 #ifndef NDEBUG
 	if (drawIndex == UINT16_DRAW_INDEX)
 	{
-		assert(indexCount * sizeof(uint16_t) <=
-			indexBuffer->size);
+		assert(indexCount * sizeof(uint16_t) +
+			indexOffset * sizeof(uint16_t) <=
+			indexBuffer->vk.size);
 	}
 	else if (drawIndex == UINT32_DRAW_INDEX)
 	{
-		assert(indexCount * sizeof(uint32_t) <=
-			indexBuffer->size);
+		assert(indexCount * sizeof(uint32_t) +
+			indexOffset * sizeof(uint32_t) <=
+			indexBuffer->vk.size);
 	}
 	else
 	{
@@ -2100,28 +1603,230 @@ void setMeshBuffers(
 	}
 #endif
 
-	mesh->drawIndex = drawIndex;
-	mesh->indexCount = indexCount;
-	mesh->vertexBuffer = vertexBuffer;
-	mesh->indexBuffer = indexBuffer;
+	mesh->vk.drawIndex = drawIndex;
+	mesh->vk.indexCount = indexCount;
+	mesh->vk.indexOffset = indexOffset;
+	mesh->vk.vertexBuffer = vertexBuffer;
+	mesh->vk.indexBuffer = indexBuffer;
 }
 
+inline static void drawGlMeshCommand(
+	Mesh* mesh,
+	Pipeline* pipeline)
+{
+	Buffer* vertexBuffer = mesh->gl.vertexBuffer;
+	Buffer* indexBuffer = mesh->gl.indexBuffer;
+
+	glBindVertexArray(
+		mesh->gl.handle);
+	glBindBuffer(
+		GL_ARRAY_BUFFER,
+		vertexBuffer->gl.handle);
+	glBindBuffer(
+		GL_ELEMENT_ARRAY_BUFFER,
+		indexBuffer->gl.handle);
+	assertOpenGL();
+
+	pipeline->setUniformsFunction(pipeline);
+
+	GLenum glDrawMode;
+
+	switch (pipeline->drawMode)
+	{
+	default:
+		abort();
+	case POINTS_DRAW_MODE:
+		glDrawMode = GL_POINTS;
+		break;
+	case LINE_STRIP_DRAW_MODE:
+		glDrawMode = GL_LINE_STRIP;
+		break;
+	case LINE_LOOP_DRAW_MODE:
+		glDrawMode = GL_LINE_LOOP;
+		break;
+	case LINES_DRAW_MODE:
+		glDrawMode = GL_LINES;
+		break;
+	case TRIANGLE_STRIP_DRAW_MODE:
+		glDrawMode = GL_TRIANGLE_STRIP;
+		break;
+	case TRIANGLE_FAN_DRAW_MODE:
+		glDrawMode = GL_TRIANGLE_FAN;
+		break;
+	case TRIANGLES_DRAW_MODE:
+		glDrawMode = GL_TRIANGLES;
+		break;
+	}
+
+	uint8_t drawIndex = mesh->gl.drawIndex;
+
+	GLenum glDrawIndex;
+	size_t glIndexOffset;
+
+	if (drawIndex == UINT16_DRAW_INDEX)
+	{
+		glDrawIndex = GL_UNSIGNED_SHORT;
+		glIndexOffset = mesh->gl.indexOffset * sizeof(uint16_t);
+	}
+	else if (drawIndex == UINT32_DRAW_INDEX)
+	{
+		glDrawIndex = GL_UNSIGNED_INT;
+		glIndexOffset = mesh->gl.indexOffset * sizeof(uint32_t);
+	}
+	else
+	{
+		abort();
+	}
+
+	glDrawElements(
+		glDrawMode,
+		(GLsizei)mesh->gl.indexCount,
+		glDrawIndex,
+		(const void*)glIndexOffset);
+
+	assertOpenGL();
+}
 void drawMeshCommand(
-	struct Mesh* mesh,
-	struct Pipeline* pipeline)
+	Mesh* mesh,
+	Pipeline* pipeline)
 {
 	assert(mesh != NULL);
 	assert(pipeline != NULL);
-	assert(mesh->window == pipeline->window);
-	assert(mesh->window->recording == true);
+	assert(mesh->vk.window == pipeline->window);
+	assert(mesh->vk.window->recording == true);
 
-	mesh->window->drawMeshFunction(
-		mesh,
-		pipeline);
+	uint8_t api = pipeline->window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		drawGlMeshCommand(
+			mesh,
+			pipeline);
+	}
+	else
+	{
+		abort();
+	}
 }
 
-struct Image* createImage(
-	struct Window* window,
+inline static Image* createGlImage(
+	Window* window,
+	uint8_t type,
+	uint8_t format,
+	size_t width,
+	size_t height,
+	size_t depth,
+	const void* pixels,
+	bool useMipmapping)
+{
+	Image* image = malloc(sizeof(Image));
+
+	if (image == NULL)
+		return NULL;
+
+	GLenum glType;
+	GLenum dataFormat;
+	GLenum dataType;
+
+	if (type == IMAGE_2D_TYPE)
+	{
+		glType = GL_TEXTURE_2D;
+	}
+	else if (type == IMAGE_3D_TYPE)
+	{
+		glType = GL_TEXTURE_3D;
+	}
+	else
+	{
+		abort();
+	}
+
+	GLenum glFormat;
+
+	switch (format)
+	{
+	default:
+		free(image);
+		return NULL;
+	case R8G8B8A8_UNORM_IMAGE_FORMAT:
+		glFormat = GL_RGBA8;
+		dataFormat = GL_RGBA;
+		dataType = GL_UNSIGNED_BYTE;
+		break;
+	case R8G8B8A8_SRGB_IMAGE_FORMAT:
+		glFormat = GL_SRGB8_ALPHA8;
+		dataFormat = GL_RGBA;
+		dataType = GL_UNSIGNED_BYTE;
+		break;
+	}
+
+	glfwMakeContextCurrent(
+		window->handle);
+
+	GLuint handle = GL_ZERO;
+
+	glGenTextures(
+		GL_ONE,
+		&handle);
+
+	glBindTexture(
+		glType,
+		handle);
+
+	if (type == IMAGE_2D_TYPE)
+	{
+		glTexImage2D(
+			glType,
+			0,
+			glFormat,
+			(GLsizei)width,
+			(GLsizei)height,
+			0,
+			dataFormat,
+			dataType,
+			pixels);
+	}
+	else
+	{
+		glTexImage3D(
+			glType,
+			0,
+			glFormat,
+			(GLsizei)width,
+			(GLsizei)height,
+			(GLsizei)depth,
+			0,
+			dataFormat,
+			dataType,
+			pixels);
+	}
+
+	if (useMipmapping == true)
+		glGenerateMipmap(glType);
+
+	assertOpenGL();
+
+	image->gl.window = window;
+	image->gl.type = type;
+	image->gl.format = format;
+	image->gl.width = width;
+	image->gl.height = height;
+	image->gl.depth = depth;
+	image->gl.useMipmapping = useMipmapping;
+	image->gl.handle = handle;
+	image->gl.glType = glType;
+	image->gl.dataType = dataType;
+	image->gl.dataFormat = dataFormat;
+	image->gl.handle = handle;
+	return image;
+}
+Image* createImage(
+	Window* window,
 	uint8_t type,
 	uint8_t format,
 	size_t width,
@@ -2136,8 +1841,7 @@ struct Image* createImage(
 	assert(depth != 0);
 	assert(window->recording == false);
 
-	size_t maxImageSize =
-		window->maxImageSize;
+	size_t maxImageSize = window->maxImageSize;
 
 	if (width > maxImageSize ||
 		height > maxImageSize ||
@@ -2146,100 +1850,173 @@ struct Image* createImage(
 		return NULL;
 	}
 
-	struct Image* image =
-		malloc(sizeof(struct Image));
+	uint8_t api = window->api;
+
+	Image* image;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		image = createGlImage(
+			window,
+			type,
+			format,
+			width,
+			height,
+			depth,
+			pixels,
+			useMipmapping);
+	}
+	else
+	{
+		abort();
+	}
 
 	if (image == NULL)
 		return NULL;
 
-	void* handle = window->createImageFunction(
-		window,
-		type,
-		format,
-		width,
-		height,
-		depth,
-		pixels,
-		useMipmapping);
+	Image** images = window->images;
+	size_t imageCount = window->imageCount;
+	size_t imageCapacity = window->imageCapacity;
 
-	if (handle == NULL)
+	if (imageCount == imageCapacity)
 	{
-		free(image);
-		return NULL;
-	}
+		imageCapacity *= 2;
 
-	image->window = window;
-	image->type = type;
-	image->format = format;
-	image->width = width;
-	image->height = height;
-	image->depth = depth;
-	image->useMipmapping = useMipmapping;
-	image->handle = handle;
-
-	if (window->imageCount == window->imageCapacity)
-	{
-		size_t capacity =
-			window->imageCapacity * 2;
-		struct Image** images = realloc(
-			window->images,
-			capacity * sizeof(struct Image*));
+		images = realloc(
+			images,
+			imageCapacity * sizeof(Image*));
 
 		if (images == NULL)
 		{
-			window->destroyImageFunction(
-				window,
-				handle);
+			if (api == VULKAN_GRAPHICS_API)
+			{
+				abort();
+			}
+			else if (api == OPENGL_GRAPHICS_API ||
+				api == OPENGL_ES_GRAPHICS_API)
+			{
+				destroyGlImage(image);
+			}
+			else
+			{
+				abort();
+			}
 
-			free(image);
 			return NULL;
 		}
 
 		window->images = images;
-		window->imageCapacity = capacity;
+		window->imageCapacity = imageCapacity;
 	}
 
-	window->images[window->imageCount] = image;
+	images[imageCount] = image;
 	window->imageCount++;
 	return image;
 }
-void destroyImage(
-	struct Image* image)
+void destroyImage(Image* image)
 {
 	if (image == NULL)
 		return;
 
-	assert(image->window->recording == false);
+	assert(image->vk.window->recording == false);
 
-	struct Window* window =
-		image->window;
-	size_t imageCount =
-		window->imageCount;
-	struct Image** images =
-		window->images;
+	Window* window = image->vk.window;
+	Image** images = window->images;
+	size_t imageCount = window->imageCount;
 
 	for (size_t i = 0; i < imageCount; i++)
 	{
-		if (image == images[i])
+		if (image != images[i])
+			continue;
+
+		for (size_t j = i + 1; j < imageCount; j++)
+			images[j - 1] = images[j];
+
+		uint8_t api = image->vk.window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
 		{
-			for (size_t j = i + 1; j < imageCount; j++)
-				images[j - 1] = images[j];
-
-			window->destroyImageFunction(
-				window,
-				image->handle);
-			free(image);
-
-			window->imageCount--;
-			return;
+			abort();
 		}
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
+		{
+			destroyGlImage(image);
+		}
+		else
+		{
+			abort();
+		}
+
+		window->imageCount--;
+		return;
 	}
 
 	abort();
 }
 
+inline static void setGlImageData(
+	Image* image,
+	const void* data,
+	size_t width,
+	size_t height,
+	size_t depth,
+	size_t widthOffset,
+	size_t heightOffset,
+	size_t depthOffset,
+	size_t mipmapLevel)
+{
+	glfwMakeContextCurrent(
+		image->gl.window->handle);
+
+	glBindTexture(
+		image->gl.glType,
+		image->gl.handle);
+
+	uint8_t type = image->gl.type;
+
+	if (type == IMAGE_2D_TYPE)
+	{
+		glTexSubImage2D(
+			image->gl.glType,
+			(GLint)mipmapLevel,
+			(GLint)widthOffset,
+			(GLint)heightOffset,
+			(GLsizei)width,
+			(GLsizei)height,
+			image->gl.dataFormat,
+			image->gl.dataType,
+			data);
+	}
+	else if (type == IMAGE_3D_TYPE)
+	{
+		glTexSubImage3D(
+			image->gl.glType,
+			(GLint)mipmapLevel,
+			(GLint)widthOffset,
+			(GLint)heightOffset,
+			(GLint)depthOffset,
+			(GLsizei)width,
+			(GLsizei)height,
+			(GLsizei)depth,
+			image->gl.dataFormat,
+			image->gl.dataType,
+			data);
+	}
+	else
+	{
+		abort();
+	}
+
+	assertOpenGL();
+}
 void setImageData(
-	struct Image* image,
+	Image* image,
 	const void* data,
 	size_t width,
 	size_t height,
@@ -2253,84 +2030,234 @@ void setImageData(
 	assert(width != 0);
 	assert(height != 0);
 	assert(depth != 0);
-	assert(width + widthOffset <= image->width);
-	assert(height + heightOffset <= image->width);
-	assert(depth + depthOffset <= image->width);
-	assert(image->window->recording == false);
+	assert(width + widthOffset <= image->vk.width);
+	assert(height + heightOffset <= image->vk.width);
+	assert(depth + depthOffset <= image->vk.width);
+	assert(image->vk.window->recording == false);
 
 	// TODO: check for static image in Vulkan API
 
-	image->window->setImageDataFunction(
-		image,
-		data,
-		width,
-		height,
-		depth,
-		widthOffset,
-		heightOffset,
-		depthOffset,
-		mipmapLevel);
-}
-void generateMipmaps(
-	struct Image* image)
-{
-	assert(image != NULL);
-	assert(image->useMipmapping == true);
-	assert(image->window->recording == false);
-	image->window->generateMipmapFunction(image);
+	uint8_t api = image->vk.window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		setGlImageData(
+			image,
+			data,
+			width,
+			height,
+			depth,
+			widthOffset,
+			heightOffset,
+			depthOffset,
+			mipmapLevel);
+	}
+	else
+	{
+		abort();
+	}
 }
 
-struct Window* getImageWindow(
-	const struct Image* image)
+inline static void generateGlMipmaps(Image* image)
 {
-	assert(image != NULL);
-	return image->window;
+	glfwMakeContextCurrent(
+		image->gl.window->handle);
+
+	glBindTexture(
+		image->gl.glType,
+		image->gl.handle);
+	glGenerateMipmap(
+		image->gl.glType);
+
+	assertOpenGL();
 }
-uint8_t getImageType(
-	const struct Image* image)
+void generateMipmaps(Image* image)
 {
 	assert(image != NULL);
-	return image->type;
-}
-uint8_t getImageFormat(
-	const struct Image* image)
-{
-	assert(image != NULL);
-	return image->format;
-}
-size_t getImageWidth(
-	const struct Image* image)
-{
-	assert(image != NULL);
-	return image->width;
-}
-size_t getImageHeight(
-	const struct Image* image)
-{
-	assert(image != NULL);
-	return image->height;
-}
-size_t getImageDepth(
-	const struct Image* image)
-{
-	assert(image != NULL);
-	return image->depth;
-}
-bool isImageUseMipmapping(
-	const struct Image* image)
-{
-	assert(image != NULL);
-	return image->useMipmapping;
-}
-const void* getImageHandle(
-	const struct Image* image)
-{
-	assert(image != NULL);
-	return image->window->getImageHandleFunction(image);
+	assert(image->vk.useMipmapping == true);
+	assert(image->vk.window->recording == false);
+
+	uint8_t api = image->vk.window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		generateGlMipmaps(image);
+	}
+	else
+	{
+		abort();
+	}
 }
 
-struct Shader* createShader(
-	struct Window* window,
+Window* getImageWindow(const Image* image)
+{
+	assert(image != NULL);
+	return image->vk.window;
+}
+uint8_t getImageType(const Image* image)
+{
+	assert(image != NULL);
+	return image->vk.type;
+}
+uint8_t getImageFormat(const Image* image)
+{
+	assert(image != NULL);
+	return image->vk.format;
+}
+size_t getImageWidth(const Image* image)
+{
+	assert(image != NULL);
+	return image->vk.width;
+}
+size_t getImageHeight(const Image* image)
+{
+	assert(image != NULL);
+	return image->vk.height;
+}
+size_t getImageDepth(const Image* image)
+{
+	assert(image != NULL);
+	return image->vk.depth;
+}
+bool isImageUseMipmapping(const Image* image)
+{
+	assert(image != NULL);
+	return image->vk.useMipmapping;
+}
+const void* getImageHandle(const Image* image)
+{
+	assert(image != NULL);
+
+	uint8_t api = image->vk.window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return &image->gl.handle;
+	}
+	else
+	{
+		abort();
+	}
+}
+
+inline static Shader* createGlShader(
+	Window* window,
+	uint8_t type,
+	const void* code,
+	size_t size)
+{
+	Shader* shader = malloc(sizeof(Shader));
+
+	if (shader == NULL)
+		return NULL;
+
+	GLenum glType;
+
+	if (type == VERTEX_SHADER_TYPE)
+		glType = GL_VERTEX_SHADER;
+	else if (type == FRAGMENT_SHADER_TYPE)
+		glType = GL_FRAGMENT_SHADER;
+	else if (type == COMPUTE_SHADER_TYPE)
+		glType = GL_COMPUTE_SHADER;
+	else
+		abort();
+
+	uint8_t api = window->api;
+
+	const char* sources[2];
+
+	if (api == OPENGL_GRAPHICS_API)
+		sources[0] = OPENGL_SHADER_HEADER;
+	else if (api == OPENGL_ES_GRAPHICS_API)
+		sources[0] = OPENGL_ES_SHADER_HEADER;
+	else
+		abort();
+
+	sources[1] = (const char*)code;
+
+	glfwMakeContextCurrent(
+		window->handle);
+
+	GLuint handle = glCreateShader(glType);
+
+	glShaderSource(
+		handle,
+		2,
+		sources,
+		NULL);
+
+	glCompileShader(handle);
+
+	GLint result;
+
+	glGetShaderiv(
+		handle,
+		GL_COMPILE_STATUS,
+		&result);
+
+	if (result == GL_FALSE)
+	{
+#ifndef NDEBUG
+		GLint length = 0;
+
+		glGetShaderiv(
+			handle,
+			GL_INFO_LOG_LENGTH,
+			&length);
+
+		if (length > 0)
+		{
+			char* infoLog = malloc(
+				length * sizeof(char));
+
+			if (infoLog == NULL)
+			{
+				glDeleteShader(handle);
+				free(shader);
+				return NULL;
+			}
+
+			glGetShaderInfoLog(
+				handle,
+				length,
+				&length,
+				infoLog);
+
+			printf("%s\n", infoLog);
+		}
+#endif
+
+		assertOpenGL();
+
+		glDeleteShader(handle);
+		free(shader);
+		return NULL;
+	}
+
+	assertOpenGL();
+
+	shader->gl.window = window;
+	shader->gl.type = type;
+	shader->gl.handle = handle;
+	return shader;
+}
+Shader* createShader(
+	Window* window,
 	uint8_t type,
 	const void* code,
 	size_t size)
@@ -2339,56 +2266,73 @@ struct Shader* createShader(
 	assert(code != NULL);
 	assert(window->recording == false);
 
-	struct Shader* shader =
-		malloc(sizeof(struct Shader));
+	uint8_t api = window->api;
+
+	Shader* shader;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		shader = createGlShader(
+			window,
+			type,
+			code,
+			size);
+	}
+	else
+	{
+		abort();
+	}
 
 	if (shader == NULL)
 		return NULL;
 
-	void* handle = window->createShaderFunction(
-		window,
-		type,
-		code,
-		size);
+	Shader** shaders = window->shaders;
+	size_t shaderCount = window->shaderCount;
+	size_t shaderCapacity = window->shaderCapacity;
 
-	if (handle == NULL)
+	if (shaderCount == shaderCapacity)
 	{
-		free(shader);
-		return NULL;
-	}
+		shaderCapacity *= 2;
 
-	shader->window = window;
-	shader->type = type;
-	shader->handle = handle;
-
-	if (window->shaderCount == window->shaderCapacity)
-	{
-		size_t capacity =
-			window->shaderCapacity * 2;
-		struct Shader** shaders = realloc(
-			window->shaders,
-			capacity * sizeof(struct Shader*));
+		shaders = realloc(
+			shaders,
+			shaderCapacity * sizeof(Shader*));
 
 		if (shaders == NULL)
 		{
-			window->destroyShaderFunction(
-				window,
-				handle);
+			if (api == VULKAN_GRAPHICS_API)
+			{
+				abort();
+			}
+			else if (api == OPENGL_GRAPHICS_API ||
+				api == OPENGL_ES_GRAPHICS_API)
+			{
+				destroyGlShader(shader);
+			}
+			else
+			{
+				abort();
+			}
 
 			free(shader);
 			return NULL;
 		}
 
 		window->shaders = shaders;
-		window->shaderCapacity = capacity;
+		window->shaderCapacity = shaderCapacity;
 	}
 
-	window->shaders[window->shaderCount] = shader;
+	shaders[shaderCount] = shader;
 	window->shaderCount++;
 	return shader;
 }
-struct Shader* createShaderFromFile(
-	struct Window* window,
+Shader* createShaderFromFile(
+	Window* window,
 	uint8_t type,
 	const char* filePath)
 {
@@ -2444,7 +2388,7 @@ struct Shader* createShaderFromFile(
 		return NULL;
 	}
 
-	struct Shader* shader = createShader(
+	Shader* shader = createShader(
 		window,
 		type,
 		code,
@@ -2453,62 +2397,81 @@ struct Shader* createShaderFromFile(
 	free(code);
 	return shader;
 }
-void destroyShader(
-	struct Shader* shader)
+void destroyShader(Shader* shader)
 {
 	if (shader == NULL)
 		return;
 
-	assert(shader->window->recording == false);
+	assert(shader->vk.window->recording == false);
 
-	struct Window* window =
-		shader->window;
-	size_t shaderCount =
-		window->shaderCount;
-	struct Shader** shaders =
-		window->shaders;
+	Window* window = shader->vk.window;
+	Shader** shaders = window->shaders;
+	size_t shaderCount = window->shaderCount;
 
 	for (size_t i = 0; i < shaderCount; i++)
 	{
-		if (shader == shaders[i])
+		if (shader != shaders[i])
+			continue;
+
+		for (size_t j = i + 1; j < shaderCount; j++)
+			shaders[j - 1] = shaders[j];
+
+		uint8_t api = window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
 		{
-			for (size_t j = i + 1; j < shaderCount; j++)
-				shaders[j - 1] = shaders[j];
-
-			window->destroyShaderFunction(
-				window,
-				shader->handle);
-			free(shader);
-
-			window->shaderCount--;
-			return;
+			abort();
 		}
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
+		{
+			destroyGlShader(shader);
+		}
+		else
+		{
+			abort();
+		}
+
+		window->shaderCount--;
+		return;
 	}
 
 	abort();
 }
 
-struct Window* getShaderWindow(
-	const struct Shader* shader)
+Window* getShaderWindow(const Shader* shader)
 {
 	assert(shader != NULL);
-	return shader->window;
+	return shader->vk.window;
 }
-uint8_t getShaderType(
-	const struct Shader* shader)
+uint8_t getShaderType(const Shader* shader)
 {
 	assert(shader != NULL);
-	return shader->type;
+	return shader->vk.type;
 }
-const void* getShaderHandle(
-	const struct Shader* shader)
+const void* getShaderHandle(const Shader* shader)
 {
 	assert(shader != NULL);
-	return shader->window->getShaderHandleFunction(shader);
+
+	uint8_t api = shader->vk.window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return &shader->gl.handle;
+	}
+	else
+	{
+		abort();
+	}
 }
 
-struct Pipeline* createPipeline(
-	struct Window* window,
+Pipeline* createPipeline(
+	Window* window,
 	uint8_t drawMode,
 	DestroyPipeline destroyFunction,
 	BindPipelineCommand bindFunction,
@@ -2522,8 +2485,7 @@ struct Pipeline* createPipeline(
 	assert(handle != NULL);
 	assert(window->recording == false);
 
-	struct Pipeline* pipeline =
-		malloc(sizeof(struct Pipeline));
+	Pipeline* pipeline = malloc(sizeof(Pipeline));
 
 	if (pipeline == NULL)
 		return NULL;
@@ -2539,9 +2501,9 @@ struct Pipeline* createPipeline(
 	{
 		size_t capacity =
 			window->pipelineCapacity * 2;
-		struct Pipeline** pipelines = realloc(
+		Pipeline** pipelines = realloc(
 			window->pipelines,
-			capacity * sizeof(struct Pipeline*));
+			capacity * sizeof(Pipeline*));
 
 		if (pipelines == NULL)
 		{
@@ -2561,62 +2523,54 @@ struct Pipeline* createPipeline(
 	window->pipelineCount++;
 	return pipeline;
 }
-void destroyPipeline(
-	struct Pipeline* pipeline)
+void destroyPipeline(Pipeline* pipeline)
 {
 	if (pipeline == NULL)
 		return;
 
 	assert(pipeline->window->recording == false);
 
-	struct Window* window =
-		pipeline->window;
-	size_t pipelineCount =
-		window->pipelineCount;
-	struct Pipeline** pipelines =
-		window->pipelines;
+	Window* window = pipeline->window;
+	Pipeline** pipelines = window->pipelines;
+	size_t pipelineCount = window->pipelineCount;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
-		if (pipeline == pipelines[i])
-		{
-			for (size_t j = i + 1; j < pipelineCount; j++)
-				pipelines[j - 1] = pipelines[j];
+		if (pipeline != pipelines[i])
+			continue;
 
-			pipeline->destroyFunction(
-				window,
-				pipeline->handle);
-			free(pipeline);
+		for (size_t j = i + 1; j < pipelineCount; j++)
+			pipelines[j - 1] = pipelines[j];
 
-			window->pipelineCount--;
-			return;
-		}
+		pipeline->destroyFunction(
+			window,
+			pipeline->handle);
+		free(pipeline);
+
+		window->pipelineCount--;
+		return;
 	}
 
 	abort();
 }
 
-struct Window* getPipelineWindow(
-	const struct Pipeline* pipeline)
+Window* getPipelineWindow(const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->window;
 }
-uint8_t getPipelineDrawMode(
-	const struct Pipeline* pipeline)
+uint8_t getPipelineDrawMode(const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->drawMode;
 }
-void* getPipelineHandle(
-	const struct Pipeline* pipeline)
+void* getPipelineHandle(const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->handle;
 }
 
-void bindPipelineCommand(
-	struct Pipeline* pipeline)
+void bindPipelineCommand(Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
 	assert(pipeline->window->recording == true);

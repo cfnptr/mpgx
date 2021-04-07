@@ -1,87 +1,87 @@
 #pragma once
 #include "mpgx/renderer.h"
 
-struct Render* createColorRender(
-	struct Renderer* renderer,
+Render* createColorRender(
+	Renderer* renderer,
 	bool draw,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Render* parent,
-	struct Vec4F color,
-	struct Mesh* mesh);
+	Render* parent,
+	Vector4F color,
+	Mesh* mesh);
 
-struct Mesh* getColorRenderMesh(
-	const struct Render* render);
+Mesh* getColorRenderMesh(
+	const Render* render);
 void setColorRenderMesh(
-	struct Render* render,
-	struct Mesh* mesh);
+	Render* render,
+	Mesh* mesh);
 
-struct Vec4F getColorRenderColor(
-	const struct Render* render);
+Vector4F getColorRenderColor(
+	const Render* render);
 void setColorRenderColor(
-	struct Render* render,
-	struct Vec4F color);
+	Render* render,
+	Vector4F color);
 
-struct Render* createSpriteRender(
-	struct Renderer* renderer,
+Render* createSpriteRender(
+	Renderer* renderer,
 	bool draw,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Render* parent,
-	struct Vec4F color,
-	struct Mesh* mesh);
+	Render* parent,
+	Vector4F color,
+	Mesh* mesh);
 
-struct Vec4F getSpriteRenderColor(
-	const struct Render* render);
+Vector4F getSpriteRenderColor(
+	const Render* render);
 void setSpriteRenderColor(
-	struct Render* render,
-	struct Vec4F color);
+	Render* render,
+	Vector4F color);
 
-struct Mesh* getSpriteRenderMesh(
-	const struct Render* render);
+Mesh* getSpriteRenderMesh(
+	const Render* render);
 void setSpriteRenderMesh(
-	struct Render* render,
-	struct Mesh* mesh);
+	Render* render,
+	Mesh* mesh);
 
-struct Render* createDiffuseRender(
-	struct Renderer* renderer,
+Render* createDiffuseRender(
+	Renderer* renderer,
 	bool draw,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Render* parent,
-	struct Mesh* mesh);
+	Render* parent,
+	Mesh* mesh);
 
-struct Mesh* getDiffuseRenderMesh(
-	const struct Render* render);
+Mesh* getDiffuseRenderMesh(
+	const Render* render);
 void setDiffuseRenderMesh(
-	struct Render* render,
-	struct Mesh* mesh);
+	Render* render,
+	Mesh* mesh);
 
-struct Render* createTextRender(
-	struct Renderer* renderer,
+Render* createTextRender(
+	Renderer* renderer,
 	bool draw,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Render* parent,
-	struct Vec4F color,
-	struct Text* text);
+	Render* parent,
+	Vector4F color,
+	Text* text);
 
-struct Vec4F getTextRenderColor(
-	const struct Render* render);
+Vector4F getTextRenderColor(
+	const Render* render);
 void setTextRenderColor(
-	struct Render* render,
-	struct Vec4F color);
+	Render* render,
+	Vector4F color);
 
-struct Text* getTextRenderText(
-	const struct Render* render);
+Text* getTextRenderText(
+	const Render* render);
 void setTextRenderText(
-	struct Render* render,
-	struct Text* text);
+	Render* render,
+	Text* text);

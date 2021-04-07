@@ -4,94 +4,94 @@
 #include "mpgx/camera.h"
 #include "mpgx/transformer.h"
 
-struct Renderer;
-struct Render;
+typedef struct Renderer Renderer;
+typedef struct Render Render;
 
 typedef void(*DestroyRender)(
 	void* render);
 typedef void(*RenderCommand)(
-	struct Render* render,
-	struct Pipeline* pipeline,
-	const struct Mat4F* model,
-	const struct Mat4F* view,
-	const struct Mat4F* proj,
-	const struct Mat4F* viewProj,
-	const struct Mat4F* mvp);
+	Render* render,
+	Pipeline* pipeline,
+	const Matrix4F* model,
+	const Matrix4F* view,
+	const Matrix4F* proj,
+	const Matrix4F* viewProj,
+	const Matrix4F* mvp);
 
 // TODO: frustum culling
 
-struct Renderer* createRenderer(
-	struct Pipeline* pipeline,
-	struct Transformer* transformer,
+Renderer* createRenderer(
+	Pipeline* pipeline,
+	Transformer* transformer,
 	bool ascendingSorting,
-	struct Transform* parent);
+	Transform* parent);
 void destroyRenderer(
-	struct Renderer* renderer);
+	Renderer* renderer);
 
-struct Pipeline* getRendererPipeline(
-	const struct Renderer* renderer);
-struct Transformer* getRendererTransformer(
-	const struct Renderer* renderer);
-struct Transform* getRendererParent(
-	const struct Renderer* renderer);
+Pipeline* getRendererPipeline(
+	const Renderer* renderer);
+Transformer* getRendererTransformer(
+	const Renderer* renderer);
+Transform* getRendererParent(
+	const Renderer* renderer);
 
 bool getRendererSorting(
-	const struct Renderer* renderer);
+	const Renderer* renderer);
 void setRendererSorting(
-	struct Renderer* renderer,
+	Renderer* renderer,
 	bool ascendingSorting);
 
 void executeRenderer(
-	struct Renderer* renderer,
-	union Camera camera);
+	Renderer* renderer,
+	Camera camera);
 
-struct Render* createRender(
-	struct Renderer* renderer,
+Render* createRender(
+	Renderer* renderer,
 	bool draw,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Render* parent,
+	Render* parent,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction,
 	void* handle);
 void destroyRender(
-	struct Render* render);
+	Render* render);
 
-struct Renderer* getRenderRenderer(
-	const struct Render* render);
-struct Transform* getRenderTransform(
-	const struct Render* render);
+Renderer* getRenderRenderer(
+	const Render* render);
+Transform* getRenderTransform(
+	const Render* render);
 void* getRenderHandle(
-	const struct Render* render);
+	const Render* render);
 
 bool getRenderDraw(
-	const struct Render* render);
+	const Render* render);
 void setRenderDraw(
-	struct Render* render,
+	Render* render,
 	bool value);
 
-struct Vec3F getRenderPosition(
-	const struct Render* render);
+Vector3F getRenderPosition(
+	const Render* render);
 void setRenderPosition(
-	struct Render* render,
-	struct Vec3F position);
+	Render* render,
+	Vector3F position);
 
-struct Vec3F getRenderScale(
-	const struct Render* render);
+Vector3F getRenderScale(
+	const Render* render);
 void setRenderScale(
-	struct Render* render,
-	struct Vec3F scale);
+	Render* render,
+	Vector3F scale);
 
-struct Quat getRenderRotation(
-	const struct Render* render);
+Quaternion getRenderRotation(
+	const Render* render);
 void setRenderRotation(
-	struct Render* render,
-	struct Quat rotation);
+	Render* render,
+	Quaternion rotation);
 
-struct Render* getRenderParent(
-	const struct Render* render);
+Render* getRenderParent(
+	const Render* render);
 void setRenderParent(
-	struct Render* render,
-	struct Render* parent);
+	Render* render,
+	Render* parent);

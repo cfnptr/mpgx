@@ -2,53 +2,53 @@
 #include "mpgx/window.h"
 #include <stdbool.h>
 
-struct Font;
-struct Text;
+typedef struct Font Font;
+typedef struct Text Text;
 
 // TODO: add font loading from the memory
 // TODO: add tab symbol handling
 
-struct Font* createFontFromFile(
+Font* createFontFromFile(
 	const void* filePath);
 void destroyFont(
-	struct Font* font);
+	Font* font);
 
-struct Text* createText(
-	struct Window* window,
-	struct Font* font,
+Text* createText(
+	Window* window,
+	Font* font,
 	size_t fontSize,
 	const char* data,
 	bool constant);
 void destroyText(
-	struct Text* text);
+	Text* text);
 
-struct Window* getTextWindow(
-	const struct Text* text);
+Window* getTextWindow(
+	const Text* text);
 bool isTextConstant(
-	const struct Text* text);
+	const Text* text);
 size_t getTextUnicodeCharCount(
-	const struct Text* text);
+	const Text* text);
 bool getTextUnicodeCharAdvance(
-	const struct Text* text,
+	const Text* text,
 	size_t index,
-	struct Vec2F* advance);
+	Vector2F* advance);
 
-struct Font* getTextFont(
-	const struct Text* text);
+Font* getTextFont(
+	const Text* text);
 void setTextFont(
-	struct Text* text,
-	struct Font* font);
+	Text* text,
+	Font* font);
 
 size_t getTextFontSize(
-	const struct Text* text);
+	const Text* text);
 void setTextFontSize(
-	struct Text* text,
+	Text* text,
 	size_t fontSize);
 
 const char* getTextData(
-	const struct Text* text);
+	const Text* text);
 bool setTextData(
-	struct Text* text,
+	Text* text,
 	const char* data);
 
 // TODO: add monochrome text support
@@ -58,31 +58,31 @@ bool setTextData(
 // Pass color data to the vertex buffer
 
 bool bakeText(
-	struct Text* text,
+	Text* text,
 	bool reuse);
 void drawTextCommand(
-	struct Text* text,
-	struct Pipeline* pipeline);
+	Text* text,
+	Pipeline* pipeline);
 
-struct Pipeline* createTextPipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader,
+Pipeline* createTextPipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader,
 	uint8_t drawMode);
 
-struct Shader* getTextPipelineVertexShader(
-	const struct Pipeline* pipeline);
-struct Shader* getTextPipelineFragmentShader(
-	const struct Pipeline* pipeline);
+Shader* getTextPipelineVertexShader(
+	const Pipeline* pipeline);
+Shader* getTextPipelineFragmentShader(
+	const Pipeline* pipeline);
 
-struct Vec4F getTextPipelineColor(
-	const struct Pipeline* pipeline);
+Vector4F getTextPipelineColor(
+	const Pipeline* pipeline);
 void setTextPipelineColor(
-	struct Pipeline* pipeline,
-	struct Vec4F color);
+	Pipeline* pipeline,
+	Vector4F color);
 
-struct Mat4F getTextPipelineMVP(
-	const struct Pipeline* pipeline);
+Matrix4F getTextPipelineMVP(
+	const Pipeline* pipeline);
 void setTextPipelineMVP(
-	struct Pipeline* pipeline,
-	struct Mat4F mvp);
+	Pipeline* pipeline,
+	Matrix4F mvp);

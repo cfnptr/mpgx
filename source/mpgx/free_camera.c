@@ -6,21 +6,21 @@
 
 struct FreeCamera
 {
-	struct Window* window;
-	struct Transform* transform;
-	struct Vec2F rotation;
-	struct Vec2F lastCursorPosition;
+	Window* window;
+	Transform* transform;
+	Vector2F rotation;
+	Vector2F lastCursorPosition;
 };
 
-struct FreeCamera* createFreeCamera(
-	struct Window* window,
-	struct Transform* transform)
+FreeCamera* createFreeCamera(
+	Window* window,
+	Transform* transform)
 {
 	assert(window != NULL);
 	assert(transform != NULL);
 
-	struct FreeCamera* freeCamera = malloc(
-		sizeof(struct FreeCamera));
+	FreeCamera* freeCamera = malloc(
+		sizeof(FreeCamera));
 
 	if (freeCamera == NULL)
 		return NULL;
@@ -33,7 +33,7 @@ struct FreeCamera* createFreeCamera(
 	return freeCamera;
 }
 void destroyFreeCamera(
-	struct FreeCamera* freeCamera)
+	FreeCamera* freeCamera)
 {
 	if (freeCamera == NULL)
 		return;
@@ -41,21 +41,21 @@ void destroyFreeCamera(
 	free(freeCamera);
 }
 
-struct Window* getFreeCameraWindow(
-	struct FreeCamera* freeCamera)
+Window* getFreeCameraWindow(
+	FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->window;
 }
-struct Transform* getFreeCameraTransform(
-	struct FreeCamera* freeCamera)
+Transform* getFreeCameraTransform(
+	FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->transform;
 }
 void setFreeCameraTransform(
-	struct FreeCamera* freeCamera,
-	struct Transform* transform)
+	FreeCamera* freeCamera,
+	Transform* transform)
 {
 	assert(freeCamera != NULL);
 	assert(transform != NULL);
@@ -63,11 +63,11 @@ void setFreeCameraTransform(
 }
 
 void updateFreeCamera(
-	struct FreeCamera* freeCamera)
+	FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 
-	struct Window* window =
+	Window* window =
 		freeCamera->window;
 
 	if (getWindowMouseButton(window, RIGHT_MOUSE_BUTTON))
@@ -78,13 +78,13 @@ void updateFreeCamera(
 
 		float deltaTime = (float)
 			getWindowDeltaTime(window);
-		struct Transform* transform =
+		Transform* transform =
 			freeCamera->transform;
-		struct Vec2F rotation =
+		Vector2F rotation =
 			freeCamera->rotation;
-		struct Vec2F lastCursorPosition =
+		Vector2F lastCursorPosition =
 			freeCamera->lastCursorPosition;
-		struct Vec2F cursorPosition =
+		Vector2F cursorPosition =
 			getWindowCursorPosition(window);
 
 		if (lastCursorPosition.x == 0 && lastCursorPosition.y == 0)
@@ -101,7 +101,7 @@ void updateFreeCamera(
 		freeCamera->rotation = rotation;
 		freeCamera->lastCursorPosition = cursorPosition;
 
-		struct Quat transformRotation = eulerQuat(vec3F(
+		Quaternion transformRotation = eulerQuat(vec3F(
 			rotation.y,
 			rotation.x,
 			0.0f));
@@ -109,7 +109,7 @@ void updateFreeCamera(
 			transform,
 			transformRotation);
 
-		struct Vec3F translation = zeroVec3F();
+		Vector3F translation = zeroVec3F();
 
 		if (getWindowKeyboardKey(window, A_KEYBOARD_KEY))
 			translation.x = RIGHT_AXIS_VALUE * deltaTime;
@@ -128,7 +128,7 @@ void updateFreeCamera(
 			transformRotation,
 			translation);
 
-		struct Vec3F transformPosition =
+		Vector3F transformPosition =
 			getTransformPosition(transform);
 		transformPosition = addVec3F(
 			transformPosition,

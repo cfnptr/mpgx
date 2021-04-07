@@ -14,17 +14,18 @@ struct Font
 
 struct Text
 {
-	struct Window* window;
-	struct Font* font;
+	Window* window;
+	Font* font;
 	size_t fontSize;
 	char* data;
 	size_t dataSize;
 	size_t uniCharCount;
 	bool constant;
-	struct Image* image;
-	struct Mesh* mesh;
+	Image* image;
+	Mesh* mesh;
 };
-struct Glyph
+
+typedef struct Glyph
 {
 	uint32_t uniChar;
 	float posX;
@@ -36,32 +37,42 @@ struct Glyph
 	float texCoordV;
 	float texCoordS;
 	float texCoordT;
-};
+} Glyph;
 
-struct GlTextPipeline
+typedef struct VkTextPipeline
 {
+	Shader* vertexShader;
+	Shader* fragmentShader;
+	Image* image;
+	Matrix4F mvp;
+	Vector4F color;
+	// TODO:
+} VkTextPipeline;
+typedef struct GlTextPipeline
+{
+	Shader* vertexShader;
+	Shader* fragmentShader;
+	Image* image;
+	Matrix4F mvp;
+	Vector4F color;
 	GLenum handle;
 	GLint mvpLocation;
 	GLint colorLocation;
 	GLint imageLocation;
-};
-struct TextPipeline
+} GlTextPipeline;
+typedef union TextPipeline
 {
-	struct Shader* vertexShader;
-	struct Shader* fragmentShader;
-	struct Image* image;
-	struct Mat4F mvp;
-	struct Vec4F color;
-	void* handle;
-};
+	VkTextPipeline vk;
+	GlTextPipeline gl;
+} TextPipeline;
 
-struct Font* createFontFromFile(
+Font* createFontFromFile(
 	const void* filePath)
 {
 	assert(filePath != NULL);
 
-	struct Font* font = malloc(
-		sizeof(struct Font));
+	Font* font = malloc(
+		sizeof(Font));
 
 	if (font == NULL)
 		return NULL;
@@ -97,7 +108,7 @@ struct Font* createFontFromFile(
 	return font;
 }
 void destroyFont(
-	struct Font* font)
+	Font* font)
 {
 	if (font == NULL)
 		return;
@@ -110,18 +121,18 @@ static int compareGlyph(
 	const void* a,
 	const void* b)
 {
-	if (((struct Glyph*)a)->uniChar <
-		((struct Glyph*)b)->uniChar)
+	if (((Glyph*)a)->uniChar <
+		((Glyph*)b)->uniChar)
 	{
 		return -1;
 	}
-	if (((struct Glyph*)a)->uniChar ==
-		((struct Glyph*)b)->uniChar)
+	if (((Glyph*)a)->uniChar ==
+		((Glyph*)b)->uniChar)
 	{
 		return 0;
 	}
-	if (((struct Glyph*)a)->uniChar >
-		((struct Glyph*)b)->uniChar)
+	if (((Glyph*)a)->uniChar >
+		((Glyph*)b)->uniChar)
 	{
 		return 1;
 	}
@@ -222,13 +233,13 @@ inline static uint32_t* createTextUniChars(
 inline static bool createTextGlyphs(
 	const uint32_t* uniChars,
 	size_t uniCharCount,
-	struct Glyph** _glyphs,
+	Glyph** _glyphs,
 	size_t* _glyphCount)
 {
 	size_t glyphCount = 0;
 
-	struct Glyph* glyphs = malloc(
-		uniCharCount * sizeof(struct Glyph));
+	Glyph* glyphs = malloc(
+		uniCharCount * sizeof(Glyph));
 
 	if (glyphs == NULL)
 		return false;
@@ -240,14 +251,14 @@ inline static bool createTextGlyphs(
 		if (uniChar == '\n')
 			continue;
 
-		struct Glyph searchGlyph;
+		Glyph searchGlyph;
 		searchGlyph.uniChar = uniChar;
 
-		struct Glyph* glyph = bsearch(
+		Glyph* glyph = bsearch(
 			&searchGlyph,
 			glyphs,
 			glyphCount,
-			sizeof(struct Glyph),
+			sizeof(Glyph),
 			compareGlyph);
 
 		if (glyph == NULL)
@@ -258,7 +269,7 @@ inline static bool createTextGlyphs(
 			qsort(
 				glyphs,
 				glyphCount,
-				sizeof(struct Glyph),
+				sizeof(Glyph),
 				compareGlyph);
 		}
 	}
@@ -270,7 +281,7 @@ inline static bool createTextGlyphs(
 inline static bool createTextPixels(
 	FT_Face face,
 	size_t fontSize,
-	struct Glyph* glyphs,
+	Glyph* glyphs,
 	size_t glyphCount,
 	size_t textPixelLength,
 	float* _newLineAdvance,
@@ -310,7 +321,7 @@ inline static bool createTextPixels(
 
 	for (size_t i = 0; i < glyphCount; i++)
 	{
-		struct Glyph glyph;
+		Glyph glyph;
 		glyph.uniChar = glyphs[i].uniChar;
 
 		FT_UInt charIndex = FT_Get_Char_Index(
@@ -376,7 +387,7 @@ inline static bool createTextPixels(
 inline static bool createTextVertices(
 	const uint32_t* uniChars,
 	size_t uniCharCount,
-	const struct Glyph* glyphs,
+	const Glyph* glyphs,
 	size_t glyphCount,
 	float newLineAdvance,
 	float** _vertices,
@@ -405,14 +416,14 @@ inline static bool createTextVertices(
 			continue;
 		}
 
-		struct Glyph searchGlyph;
+		Glyph searchGlyph;
 		searchGlyph.uniChar = uniChar;
 
-		struct Glyph* glyph = bsearch(
+		Glyph* glyph = bsearch(
 			&searchGlyph,
 			glyphs,
 			glyphCount,
-			sizeof(struct Glyph),
+			sizeof(Glyph),
 			compareGlyph);
 
 		if (glyph == NULL)
@@ -482,9 +493,9 @@ inline static bool createTextIndices(
 	*_indexCount = indexCount;
 	return true;
 }
-struct Text* createText(
-	struct Window* window,
-	struct Font* font,
+Text* createText(
+	Window* window,
+	Font* font,
 	size_t fontSize,
 	const char* _data,
 	bool constant)
@@ -497,8 +508,8 @@ struct Text* createText(
 	assert(font != NULL);
 	assert(_data != NULL);
 
-	struct Text* text = malloc(
-		sizeof(struct Text));
+	Text* text = malloc(
+		sizeof(Text));
 
 	if (text == NULL)
 		return NULL;
@@ -525,7 +536,7 @@ struct Text* createText(
 
 		data[0] = '\0';
 
-		struct Image* image = createImage(
+		Image* image = createImage(
 			window,
 			IMAGE_2D_TYPE,
 			R8G8B8A8_UNORM_IMAGE_FORMAT,
@@ -542,7 +553,7 @@ struct Text* createText(
 			return NULL;
 		}
 
-		struct Buffer* vertexBuffer = createBuffer(
+		Buffer* vertexBuffer = createBuffer(
 			window,
 			VERTEX_BUFFER_TYPE,
 			NULL,
@@ -557,7 +568,7 @@ struct Text* createText(
 			return NULL;
 		}
 
-		struct Buffer* indexBuffer = createBuffer(
+		Buffer* indexBuffer = createBuffer(
 			window,
 			INDEX_BUFFER_TYPE,
 			NULL,
@@ -573,7 +584,7 @@ struct Text* createText(
 			return NULL;
 		}
 
-		struct Mesh* mesh = createMesh(
+		Mesh* mesh = createMesh(
 			window,
 			UINT32_DRAW_INDEX,
 			0,
@@ -610,7 +621,7 @@ struct Text* createText(
 			return NULL;
 		}
 
-		struct Glyph* glyphs;
+		Glyph* glyphs;
 		size_t glyphCount;
 
 		bool result = createTextGlyphs(
@@ -669,7 +680,7 @@ struct Text* createText(
 			return NULL;
 		}
 
-		struct Image* image = createImage(
+		Image* image = createImage(
 			window,
 			IMAGE_2D_TYPE,
 			R8G8B8A8_UNORM_IMAGE_FORMAT,
@@ -713,7 +724,7 @@ struct Text* createText(
 			return NULL;
 		}
 
-		struct Buffer* vertexBuffer = createBuffer(
+		Buffer* vertexBuffer = createBuffer(
 			window,
 			VERTEX_BUFFER_TYPE,
 			vertices,
@@ -747,7 +758,7 @@ struct Text* createText(
 			return NULL;
 		}
 
-		struct Buffer* indexBuffer = createBuffer(
+		Buffer* indexBuffer = createBuffer(
 			window,
 			INDEX_BUFFER_TYPE,
 			indices,
@@ -765,7 +776,7 @@ struct Text* createText(
 			return NULL;
 		}
 
-		struct Mesh* mesh = createMesh(
+		Mesh* mesh = createMesh(
 			window,
 			UINT32_DRAW_INDEX,
 			indexCount,
@@ -797,13 +808,13 @@ struct Text* createText(
 	return text;
 }
 void destroyText(
-	struct Text* text)
+	Text* text)
 {
 	if (text == NULL)
 		return;
 
-	struct Buffer* vertexBuffer;
-	struct Buffer* indexBuffer;
+	Buffer* vertexBuffer;
+	Buffer* indexBuffer;
 
 	getMeshBuffers(
 		text->mesh,
@@ -820,29 +831,29 @@ void destroyText(
 	free(text);
 }
 
-struct Window* getTextWindow(
-	const struct Text* text)
+Window* getTextWindow(
+	const Text* text)
 {
 	assert(text != NULL);
 	return text->window;
 }
 bool isTextConstant(
-	const struct Text* text)
+	const Text* text)
 {
 	assert(text != NULL);
 	return text->constant;
 }
 
 size_t getTextUnicodeCharCount(
-	const struct Text* text)
+	const Text* text)
 {
 	assert(text != NULL);
 	return text->uniCharCount;
 }
 bool getTextUnicodeCharAdvance(
-	const struct Text* text,
+	const Text* text,
 	size_t index,
-	struct Vec2F* _advance)
+	Vector2F* _advance)
 {
 	assert(text != NULL);
 	assert(index < text->uniCharCount);
@@ -855,7 +866,7 @@ bool getTextUnicodeCharAdvance(
 	float newLineAdvance =
 		(face->size->metrics.height / 64.0f) / fontSize;
 
-	struct Vec2F advance = zeroVec2F();
+	Vector2F advance = zeroVec2F();
 
 	for (size_t i = 0, j = 0; j <= index; j++)
 	{
@@ -926,15 +937,15 @@ bool getTextUnicodeCharAdvance(
 	return true;
 }
 
-struct Font* getTextFont(
-	const struct Text* text)
+Font* getTextFont(
+	const Text* text)
 {
 	assert(text != NULL);
 	return text->font;
 }
 void setTextFont(
-	struct Text* text,
-	struct Font* font)
+	Text* text,
+	Font* font)
 {
 	assert(text != NULL);
 	assert(font != NULL);
@@ -943,13 +954,13 @@ void setTextFont(
 }
 
 size_t getTextFontSize(
-	const struct Text* text)
+	const Text* text)
 {
 	assert(text != NULL);
 	return text->fontSize;
 }
 void setTextFontSize(
-	struct Text* text,
+	Text* text,
 	size_t fontSize)
 {
 	assert(text != NULL);
@@ -958,13 +969,13 @@ void setTextFontSize(
 }
 
 const char* getTextData(
-	const struct Text* text)
+	const Text* text)
 {
 	assert(text != NULL);
 	return text->data;
 }
 bool setTextData(
-	struct Text* text,
+	Text* text,
 	const char* _data)
 {
 	assert(text != NULL);
@@ -1003,13 +1014,13 @@ bool setTextData(
 }
 
 bool bakeText(
-	struct Text* text,
+	Text* text,
 	bool reuse)
 {
 	assert(text != NULL);
 	assert(text->constant == false);
 
-	struct Window* window =
+	Window* window =
 		text->window;
 	const char* _data =
 		text->data;
@@ -1039,7 +1050,7 @@ bool bakeText(
 			if (uniChars == NULL)
 				return false;
 
-			struct Glyph* glyphs;
+			Glyph* glyphs;
 			size_t glyphCount;
 
 			bool result = createTextGlyphs(
@@ -1080,7 +1091,7 @@ bool bakeText(
 				return false;
 			}
 
-			struct Image* image = NULL;
+			Image* image = NULL;
 
 			if (pixelLength > textPixelLength)
 			{
@@ -1127,8 +1138,8 @@ bool bakeText(
 				return false;
 			}
 
-			struct Buffer* vertexBuffer = NULL;
-			struct Buffer* indexBuffer = NULL;
+			Buffer* vertexBuffer = NULL;
+			Buffer* indexBuffer = NULL;
 
 			size_t textVertexBufferSize = getBufferSize(
 				getMeshVertexBuffer(text->mesh));
@@ -1208,7 +1219,7 @@ bool bakeText(
 
 			if (vertexBuffer == NULL)
 			{
-				struct Buffer* _vertexBuffer =
+				Buffer* _vertexBuffer =
 					getMeshVertexBuffer(text->mesh);
 
 				setBufferData(
@@ -1224,8 +1235,8 @@ bool bakeText(
 			}
 			else
 			{
-				struct Buffer* _vertexBuffer;
-				struct Buffer* _indexBuffer;
+				Buffer* _vertexBuffer;
+				Buffer* _indexBuffer;
 
 				getMeshBuffers(
 					text->mesh,
@@ -1239,6 +1250,7 @@ bool bakeText(
 					text->mesh,
 					UINT32_DRAW_INDEX,
 					uniCharCount * 6,
+					0,
 					vertexBuffer,
 					indexBuffer);
 			}
@@ -1260,7 +1272,7 @@ bool bakeText(
 
 			data[0] = '\0';
 
-			struct Image* image = createImage(
+			Image* image = createImage(
 				window,
 				IMAGE_2D_TYPE,
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
@@ -1276,7 +1288,7 @@ bool bakeText(
 				return false;
 			}
 
-			struct Buffer* vertexBuffer = createBuffer(
+			Buffer* vertexBuffer = createBuffer(
 				window,
 				VERTEX_BUFFER_TYPE,
 				NULL,
@@ -1290,7 +1302,7 @@ bool bakeText(
 				return false;
 			}
 
-			struct Buffer* indexBuffer = createBuffer(
+			Buffer* indexBuffer = createBuffer(
 				window,
 				INDEX_BUFFER_TYPE,
 				NULL,
@@ -1305,7 +1317,7 @@ bool bakeText(
 				return false;
 			}
 
-			struct Mesh* mesh = createMesh(
+			Mesh* mesh = createMesh(
 				window,
 				UINT32_DRAW_INDEX,
 				0,
@@ -1350,7 +1362,7 @@ bool bakeText(
 			if (uniChars == NULL)
 				return false;
 
-			struct Glyph* glyphs;
+			Glyph* glyphs;
 			size_t glyphCount;
 
 			bool result = createTextGlyphs(
@@ -1406,7 +1418,7 @@ bool bakeText(
 				return false;
 			}
 
-			struct Image* image = createImage(
+			Image* image = createImage(
 				window,
 				IMAGE_2D_TYPE,
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
@@ -1448,7 +1460,7 @@ bool bakeText(
 				return false;
 			}
 
-			struct Buffer* vertexBuffer = createBuffer(
+			Buffer* vertexBuffer = createBuffer(
 				window,
 				VERTEX_BUFFER_TYPE,
 				vertices,
@@ -1480,7 +1492,7 @@ bool bakeText(
 				return false;
 			}
 
-			struct Buffer* indexBuffer = createBuffer(
+			Buffer* indexBuffer = createBuffer(
 				window,
 				INDEX_BUFFER_TYPE,
 				indices,
@@ -1497,7 +1509,7 @@ bool bakeText(
 				return false;
 			}
 
-			struct Mesh* mesh = createMesh(
+			Mesh* mesh = createMesh(
 				window,
 				UINT32_DRAW_INDEX,
 				indexCount,
@@ -1537,36 +1549,35 @@ bool bakeText(
 	return true;
 }
 void drawTextCommand(
-	struct Text* text,
-	struct Pipeline* pipeline)
+	Text* text,
+	Pipeline* pipeline)
 {
 	assert(text != NULL);
 	assert(pipeline != NULL);
 	assert(text->window == getPipelineWindow(pipeline));
 
-	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)getPipelineHandle(pipeline);
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
 
-	textPipeline->image =
+	textPipeline->vk.image =
 		text->image;
-
 	drawMeshCommand(
 		text->mesh,
 		pipeline);
 }
 
-inline static struct GlTextPipeline* createGlTextPipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader)
+inline static TextPipeline* createGlTextPipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader)
 {
-	struct GlTextPipeline* pipeline = malloc(
-		sizeof(struct GlTextPipeline));
+	TextPipeline* pipeline = malloc(
+		sizeof(TextPipeline));
 
 	if (pipeline == NULL)
 		return NULL;
 
-	struct Shader* shaders[2] = {
+	Shader* shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
@@ -1630,41 +1641,39 @@ inline static struct GlTextPipeline* createGlTextPipeline(
 
 	assertOpenGL();
 
-	pipeline->handle = handle;
-	pipeline->mvpLocation = mvpLocation;
-	pipeline->colorLocation = colorLocation;
-	pipeline->imageLocation = imageLocation;
+	pipeline->gl.vertexShader = vertexShader;
+	pipeline->gl.fragmentShader = fragmentShader;
+	pipeline->gl.image = NULL;
+	pipeline->gl.mvp = identMat4F();
+	pipeline->gl.color = valVec4F(1.0f);
+	pipeline->gl.handle = handle;
+	pipeline->gl.mvpLocation = mvpLocation;
+	pipeline->gl.colorLocation = colorLocation;
+	pipeline->gl.imageLocation = imageLocation;
 	return pipeline;
 }
 static void destroyGlTextPipeline(
-	struct Window* window,
+	Window* window,
 	void* pipeline)
 {
-	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)pipeline;
-	struct GlTextPipeline* glTextPipeline =
-		(struct GlTextPipeline*)textPipeline->handle;
+	TextPipeline* textPipeline =
+		(TextPipeline*)pipeline;
 
-	makeWindowContextCurrent(
-		window);
+	makeWindowContextCurrent(window);
 
 	glDeleteProgram(
-		glTextPipeline->handle);
-
+		textPipeline->gl.handle);
 	assertOpenGL();
 
-	free(glTextPipeline);
 	free(textPipeline);
 }
 static void bindGlTextPipelineCommand(
-	struct Pipeline* pipeline)
+	Pipeline* pipeline)
 {
-	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)getPipelineHandle(pipeline);
-	struct GlTextPipeline* glTextPipeline =
-		(struct GlTextPipeline*)textPipeline->handle;
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
 
-	glUseProgram(glTextPipeline->handle);
+	glUseProgram(textPipeline->gl.handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -1682,15 +1691,13 @@ static void bindGlTextPipelineCommand(
 	assertOpenGL();
 }
 static void setGlTextUniformsCommand(
-	struct Pipeline* pipeline)
+	Pipeline* pipeline)
 {
-	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)getPipelineHandle(pipeline);
-	struct GlTextPipeline* glTextPipeline =
-		(struct GlTextPipeline*)textPipeline->handle;
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
 
-	struct Image* image =
-		textPipeline->image;
+	Image* image =
+		textPipeline->gl.image;
 	GLuint glImage = *(const GLuint*)
 		getImageHandle(image);
 
@@ -1719,18 +1726,18 @@ static void setGlTextUniformsCommand(
 		GL_NEAREST);
 
 	glUniform1i(
-		glTextPipeline->imageLocation,
+		textPipeline->gl.imageLocation,
 		0);
 
 	glUniformMatrix4fv(
-		glTextPipeline->mvpLocation,
+		textPipeline->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const float*)&textPipeline->mvp);
+		(const float*)&textPipeline->gl.mvp);
 	glUniform4fv(
-		glTextPipeline->colorLocation,
+		textPipeline->gl.colorLocation,
 		1,
-		(const float*)&textPipeline->color);
+		(const float*)&textPipeline->gl.color);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -1740,22 +1747,22 @@ static void setGlTextUniformsCommand(
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vec2F) * 2,
+		sizeof(Vector2F) * 2,
 		0);
 	glVertexAttribPointer(
 		1,
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct Vec2F) * 2,
-		(const void*)sizeof(struct Vec2F));
+		sizeof(Vector2F) * 2,
+		(const void*)sizeof(Vector2F));
 
 	assertOpenGL();
 }
-struct Pipeline* createTextPipeline(
-	struct Window* window,
-	struct Shader* vertexShader,
-	struct Shader* fragmentShader,
+Pipeline* createTextPipeline(
+	Window* window,
+	Shader* vertexShader,
+	Shader* fragmentShader,
 	uint8_t drawMode)
 {
 	assert(window != NULL);
@@ -1766,16 +1773,9 @@ struct Pipeline* createTextPipeline(
 	assert(getShaderWindow(vertexShader) == window);
 	assert(getShaderWindow(fragmentShader) == window);
 
-	struct TextPipeline* textPipeline =
-		malloc(sizeof(struct TextPipeline));
-
-	if (textPipeline == NULL)
-		return NULL;
-
 	uint8_t api = getWindowGraphicsAPI(window);;
 
-	void* handle;
-
+	TextPipeline* handle;
 	DestroyPipeline destroyFunction;
 	BindPipelineCommand bindFunction;
 	SetUniformsCommand setUniformsFunction;
@@ -1794,99 +1794,80 @@ struct Pipeline* createTextPipeline(
 	}
 	else
 	{
-		free(textPipeline);
 		return NULL;
 	}
 
 	if (handle == NULL)
-	{
-		free(textPipeline);
 		return NULL;
-	}
 
-	textPipeline->vertexShader = vertexShader;
-	textPipeline->fragmentShader = fragmentShader;
-	textPipeline->image = NULL;
-	textPipeline->mvp = identMat4F();
-	textPipeline->color = valVec4F(1.0f);
-	textPipeline->handle = handle;
-
-	struct Pipeline* pipeline = createPipeline(
+	Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
 		destroyFunction,
 		bindFunction,
 		setUniformsFunction,
-		textPipeline);
+		handle);
 
 	if (pipeline == NULL)
 	{
-		destroyGlTextPipeline(
+		destroyFunction(
 			window,
 			handle);
-
-		free(textPipeline);
 		return NULL;
 	}
 
 	return pipeline;
 }
 
-struct Shader* getTextPipelineVertexShader(
-	const struct Pipeline* pipeline)
+Shader* getTextPipelineVertexShader(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-
-	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)getPipelineHandle(pipeline);
-	return textPipeline->vertexShader;
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
+	return textPipeline->vk.vertexShader;
 }
-struct Shader* getTextPipelineFragmentShader(
-	const struct Pipeline* pipeline)
+Shader* getTextPipelineFragmentShader(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-
-	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)getPipelineHandle(pipeline);
-	return textPipeline->fragmentShader;
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
+	return textPipeline->vk.fragmentShader;
 }
 
-struct Vec4F getTextPipelineColor(
-	const struct Pipeline* pipeline)
+Vector4F getTextPipelineColor(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-
-	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)getPipelineHandle(pipeline);
-	return textPipeline->color;
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
+	return textPipeline->vk.color;
 }
 void setTextPipelineColor(
-	struct Pipeline* pipeline,
-	struct Vec4F color)
+	Pipeline* pipeline,
+	Vector4F color)
 {
 	assert(pipeline != NULL);
-
-	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)getPipelineHandle(pipeline);
-	textPipeline->color = color;
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
+	textPipeline->vk.color = color;
 }
 
-struct Mat4F getTextPipelineMVP(
-	const struct Pipeline* pipeline)
+Matrix4F getTextPipelineMVP(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-
-	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)getPipelineHandle(pipeline);
-	return textPipeline->mvp;
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
+	return textPipeline->vk.mvp;
 }
 void setTextPipelineMVP(
-	struct Pipeline* pipeline,
-	struct Mat4F mvp)
+	Pipeline* pipeline,
+	Matrix4F mvp)
 {
 	assert(pipeline != NULL);
-
-	struct TextPipeline* textPipeline =
-		(struct TextPipeline*)getPipelineHandle(pipeline);
-	textPipeline->mvp = mvp;
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
+	textPipeline->vk.mvp = mvp;
 }

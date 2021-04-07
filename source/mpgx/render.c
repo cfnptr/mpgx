@@ -1,42 +1,41 @@
 #include "mpgx/render.h"
 #include "mpgx/pipeline.h"
 
-struct ColorRender
+typedef struct ColorRender
 {
-	struct Vec4F color;
-	struct Mesh* mesh;
-};
-struct SpriteRender
+	Vector4F color;
+	Mesh* mesh;
+} ColorRender;
+typedef struct SpriteRender
 {
-	struct Vec4F color;
-	struct Mesh* mesh;
-};
-struct DiffuseRender
+	Vector4F color;
+	Mesh* mesh;
+} SpriteRender;
+typedef struct DiffuseRender
 {
-	struct Mesh* mesh;
-};
-struct TextRender
+	Mesh* mesh;
+} DiffuseRender;
+typedef struct TextRender
 {
-	struct Vec4F color;
-	struct Text* text;
-};
+	Vector4F color;
+	Text* text;
+} TextRender;
 
-static void destroyColorRender(
-	void* render)
+static void destroyColorRender(void* render)
 {
 	free(render);
 }
 static void renderColorCommand(
-	struct Render* render,
-	struct Pipeline* pipeline,
-	const struct Mat4F* model,
-	const struct Mat4F* view,
-	const struct Mat4F* proj,
-	const struct Mat4F* viewProj,
-	const struct Mat4F* mvp)
+	Render* render,
+	Pipeline* pipeline,
+	const Matrix4F* model,
+	const Matrix4F* view,
+	const Matrix4F* proj,
+	const Matrix4F* viewProj,
+	const Matrix4F* mvp)
 {
-	struct ColorRender* colorRender =
-		(struct ColorRender*)getRenderHandle(render);
+	ColorRender* colorRender =
+		getRenderHandle(render);
 
 	setColorPipelineMVP(
 		pipeline,
@@ -48,16 +47,16 @@ static void renderColorCommand(
 		colorRender->mesh,
 		pipeline);
 }
-struct Render* createColorRender(
-	struct Renderer* renderer,
+Render* createColorRender(
+	Renderer* renderer,
 	bool draw,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Render* parent,
-	struct Vec4F color,
-	struct Mesh* mesh)
+	Render* parent,
+	Vector4F color,
+	Mesh* mesh)
 {
 	assert(renderer != NULL);
 	assert(mesh != NULL);
@@ -65,8 +64,8 @@ struct Render* createColorRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) == getMeshWindow(mesh));
 
-	struct ColorRender* colorRender = malloc(
-		sizeof(struct ColorRender));
+	ColorRender* colorRender = malloc(
+		sizeof(ColorRender));
 
 	if (colorRender == NULL)
 		return NULL;
@@ -74,7 +73,7 @@ struct Render* createColorRender(
 	colorRender->color = color;
 	colorRender->mesh = mesh;
 
-	struct Render* render = createRender(
+	Render* render = createRender(
 		renderer,
 		draw,
 		position,
@@ -95,41 +94,41 @@ struct Render* createColorRender(
 	return render;
 }
 
-struct Mesh* getColorRenderMesh(
-	const struct Render* render)
+Mesh* getColorRenderMesh(
+	const Render* render)
 {
 	assert(render != NULL);
-	struct ColorRender* colorRender =
-		(struct ColorRender*)getRenderHandle(render);
+	ColorRender* colorRender =
+		getRenderHandle(render);
 	return colorRender->mesh;
 }
 void setColorRenderMesh(
-	struct Render* render,
-	struct Mesh* mesh)
+	Render* render,
+	Mesh* mesh)
 {
 	assert(render != NULL);
 	assert(mesh != NULL);
 
-	struct ColorRender* colorRender =
-		(struct ColorRender*)getRenderHandle(render);
+	ColorRender* colorRender =
+		getRenderHandle(render);
 	colorRender->mesh = mesh;
 }
 
-struct Vec4F getColorRenderColor(
-	const struct Render* render)
+Vector4F getColorRenderColor(
+	const Render* render)
 {
 	assert(render != NULL);
-	struct ColorRender* colorRender =
-		(struct ColorRender*)getRenderHandle(render);
+	ColorRender* colorRender =
+		getRenderHandle(render);
 	return colorRender->color;
 }
 void setColorRenderColor(
-	struct Render* render,
-	struct Vec4F color)
+	Render* render,
+	Vector4F color)
 {
 	assert(render != NULL);
-	struct ColorRender* colorRender =
-		(struct ColorRender*)getRenderHandle(render);
+	ColorRender* colorRender =
+		getRenderHandle(render);
 	colorRender->color = color;
 }
 
@@ -139,16 +138,16 @@ static void destroySpriteRender(
 	free(render);
 }
 static void renderSpriteCommand(
-	struct Render* render,
-	struct Pipeline* pipeline,
-	const struct Mat4F* model,
-	const struct Mat4F* view,
-	const struct Mat4F* proj,
-	const struct Mat4F* viewProj,
-	const struct Mat4F* mvp)
+	Render* render,
+	Pipeline* pipeline,
+	const Matrix4F* model,
+	const Matrix4F* view,
+	const Matrix4F* proj,
+	const Matrix4F* viewProj,
+	const Matrix4F* mvp)
 {
-	struct SpriteRender* spriteRender =
-		(struct SpriteRender*)getRenderHandle(render);
+	SpriteRender* spriteRender =
+		getRenderHandle(render);
 
 	setSpritePipelineMVP(
 		pipeline,
@@ -160,16 +159,16 @@ static void renderSpriteCommand(
 		spriteRender->mesh,
 		pipeline);
 }
-struct Render* createSpriteRender(
-	struct Renderer* renderer,
+Render* createSpriteRender(
+	Renderer* renderer,
 	bool draw,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Render* parent,
-	struct Vec4F color,
-	struct Mesh* mesh)
+	Render* parent,
+	Vector4F color,
+	Mesh* mesh)
 {
 	assert(renderer != NULL);
 	assert(mesh != NULL);
@@ -177,8 +176,8 @@ struct Render* createSpriteRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) == getMeshWindow(mesh));
 
-	struct SpriteRender* spriteRender = malloc(
-		sizeof(struct SpriteRender));
+	SpriteRender* spriteRender = malloc(
+		sizeof(SpriteRender));
 
 	if (spriteRender == NULL)
 		return NULL;
@@ -186,7 +185,7 @@ struct Render* createSpriteRender(
 	spriteRender->color = color;
 	spriteRender->mesh = mesh;
 
-	struct Render* render = createRender(
+	Render* render = createRender(
 		renderer,
 		draw,
 		position,
@@ -207,41 +206,41 @@ struct Render* createSpriteRender(
 	return render;
 }
 
-struct Vec4F getSpriteRenderColor(
-	const struct Render* render)
+Vector4F getSpriteRenderColor(
+	const Render* render)
 {
 	assert(render != NULL);
-	struct SpriteRender* spriteRender =
-		(struct SpriteRender*)getRenderHandle(render);
+	SpriteRender* spriteRender =
+		getRenderHandle(render);
 	return spriteRender->color;
 }
 void setSpriteRenderColor(
-	struct Render* render,
-	struct Vec4F color)
+	Render* render,
+	Vector4F color)
 {
 	assert(render != NULL);
-	struct SpriteRender* spriteRender =
-		(struct SpriteRender*)getRenderHandle(render);
+	SpriteRender* spriteRender =
+		getRenderHandle(render);
 	spriteRender->color = color;
 }
 
-struct Mesh* getSpriteRenderMesh(
-	const struct Render* render)
+Mesh* getSpriteRenderMesh(
+	const Render* render)
 {
 	assert(render != NULL);
-	struct SpriteRender* spriteRender =
-		(struct SpriteRender*)getRenderHandle(render);
+	SpriteRender* spriteRender =
+		getRenderHandle(render);
 	return spriteRender->mesh;
 }
 void setSpriteRenderMesh(
-	struct Render* render,
-	struct Mesh* mesh)
+	Render* render,
+	Mesh* mesh)
 {
 	assert(render != NULL);
 	assert(mesh != NULL);
 
-	struct SpriteRender* spriteRender =
-		(struct SpriteRender*)getRenderHandle(render);
+	SpriteRender* spriteRender =
+		getRenderHandle(render);
 	spriteRender->mesh = mesh;
 }
 
@@ -251,17 +250,17 @@ static void destroyDiffuseRender(
 	free(render);
 }
 static void renderDiffuseCommand(
-	struct Render* render,
-	struct Pipeline* pipeline,
-	const struct Mat4F* model,
-	const struct Mat4F* view,
-	const struct Mat4F* proj,
-	const struct Mat4F* viewProj,
-	const struct Mat4F* mvp)
+	Render* render,
+	Pipeline* pipeline,
+	const Matrix4F* model,
+	const Matrix4F* view,
+	const Matrix4F* proj,
+	const Matrix4F* viewProj,
+	const Matrix4F* mvp)
 {
-	struct DiffuseRender* diffuseRender =
-		(struct DiffuseRender*)getRenderHandle(render);
-	struct Mat4F normal = invMat4F(
+	DiffuseRender* diffuseRender =
+		getRenderHandle(render);
+	Matrix4F normal = invMat4F(
 		transposeMat4F(*model));
 
 	setDiffusePipelineMVP(
@@ -274,15 +273,15 @@ static void renderDiffuseCommand(
 		diffuseRender->mesh,
 		pipeline);
 }
-struct Render* createDiffuseRender(
-	struct Renderer* renderer,
+Render* createDiffuseRender(
+	Renderer* renderer,
 	bool draw,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Render* parent,
-	struct Mesh* mesh)
+	Render* parent,
+	Mesh* mesh)
 {
 	assert(renderer != NULL);
 	assert(mesh != NULL);
@@ -290,15 +289,15 @@ struct Render* createDiffuseRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) == getMeshWindow(mesh));
 
-	struct DiffuseRender* diffuseRender = malloc(
-		sizeof(struct DiffuseRender));
+	DiffuseRender* diffuseRender = malloc(
+		sizeof(DiffuseRender));
 
 	if (diffuseRender == NULL)
 		return NULL;
 
 	diffuseRender->mesh = mesh;
 
-	struct Render* render = createRender(
+	Render* render = createRender(
 		renderer,
 		draw,
 		position,
@@ -319,23 +318,23 @@ struct Render* createDiffuseRender(
 	return render;
 }
 
-struct Mesh* getDiffuseRenderMesh(
-	const struct Render* render)
+Mesh* getDiffuseRenderMesh(
+	const Render* render)
 {
 	assert(render != NULL);
-	struct DiffuseRender* diffuseRender =
-		(struct DiffuseRender*)getRenderHandle(render);
+	DiffuseRender* diffuseRender =
+		getRenderHandle(render);
 	return diffuseRender->mesh;
 }
 void setDiffuseRenderMesh(
-	struct Render* render,
-	struct Mesh* mesh)
+	Render* render,
+	Mesh* mesh)
 {
 	assert(render != NULL);
 	assert(mesh != NULL);
 
-	struct DiffuseRender* diffuseRender =
-		(struct DiffuseRender*)getRenderHandle(render);
+	DiffuseRender* diffuseRender =
+		getRenderHandle(render);
 	diffuseRender->mesh = mesh;
 }
 
@@ -345,16 +344,16 @@ static void destroyTextRender(
 	free(render);
 }
 static void renderTextCommand(
-	struct Render* render,
-	struct Pipeline* pipeline,
-	const struct Mat4F* model,
-	const struct Mat4F* view,
-	const struct Mat4F* proj,
-	const struct Mat4F* viewProj,
-	const struct Mat4F* mvp)
+	Render* render,
+	Pipeline* pipeline,
+	const Matrix4F* model,
+	const Matrix4F* view,
+	const Matrix4F* proj,
+	const Matrix4F* viewProj,
+	const Matrix4F* mvp)
 {
-	struct TextRender* textRender =
-		(struct TextRender*)getRenderHandle(render);
+	TextRender* textRender =
+		getRenderHandle(render);
 
 	setTextPipelineMVP(
 		pipeline,
@@ -366,16 +365,16 @@ static void renderTextCommand(
 		textRender->text,
 		pipeline);
 }
-struct Render* createTextRender(
-	struct Renderer* renderer,
+Render* createTextRender(
+	Renderer* renderer,
 	bool draw,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Render* parent,
-	struct Vec4F color,
-	struct Text* text)
+	Render* parent,
+	Vector4F color,
+	Text* text)
 {
 	assert(renderer != NULL);
 	assert(text != NULL);
@@ -383,8 +382,8 @@ struct Render* createTextRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) == getTextWindow(text));
 
-	struct TextRender* textRender = malloc(
-		sizeof(struct TextRender));
+	TextRender* textRender = malloc(
+		sizeof(TextRender));
 
 	if (textRender == NULL)
 		return NULL;
@@ -392,7 +391,7 @@ struct Render* createTextRender(
 	textRender->color = color;
 	textRender->text = text;
 
-	struct Render* render = createRender(
+	Render* render = createRender(
 		renderer,
 		draw,
 		position,
@@ -413,40 +412,40 @@ struct Render* createTextRender(
 	return render;
 }
 
-struct Vec4F getTextRenderColor(
-	const struct Render* render)
+Vector4F getTextRenderColor(
+	const Render* render)
 {
 	assert(render != NULL);
-	struct TextRender* textRender =
-		(struct TextRender*)getRenderHandle(render);
+	TextRender* textRender =
+		getRenderHandle(render);
 	return textRender->color;
 }
 void setTextRenderColor(
-	struct Render* render,
-	struct Vec4F color)
+	Render* render,
+	Vector4F color)
 {
 	assert(render != NULL);
-	struct TextRender* textRender =
-		(struct TextRender*)getRenderHandle(render);
+	TextRender* textRender =
+		getRenderHandle(render);
 	textRender->color = color;
 }
 
-struct Text* getTextRenderText(
-	const struct Render* render)
+Text* getTextRenderText(
+	const Render* render)
 {
 	assert(render != NULL);
-	struct TextRender* textRender =
-		(struct TextRender*)getRenderHandle(render);
+	TextRender* textRender =
+		getRenderHandle(render);
 	return textRender->text;
 }
 void setTextRenderText(
-	struct Render* render,
-	struct Text* text)
+	Render* render,
+	Text* text)
 {
 	assert(render != NULL);
 	assert(text != NULL);
 
-	struct TextRender* textRender =
-		(struct TextRender*)getRenderHandle(render);
+	TextRender* textRender =
+		getRenderHandle(render);
 	textRender->text = text;
 }

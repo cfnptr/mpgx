@@ -5,12 +5,12 @@
 
 struct InterfaceElement
 {
-	struct Interface* interface;
-	struct Transform* transform;
+	Interface* interface;
+	Transform* transform;
 	uint8_t anchor;
-	struct Vec3F position;
-	struct Box2F bounds;
-	struct InterfaceElement* parent;
+	Vector3F position;
+	Box2F bounds;
+	InterfaceElement* parent;
 	DestroyInterfaceElement destroyFunction;
 	OnInterfaceElementEvent onEnterFunction;
 	OnInterfaceElementEvent onExitFunction;
@@ -19,31 +19,31 @@ struct InterfaceElement
 };
 struct Interface
 {
-	struct Window* window;
-	struct Transformer* transformer;
+	Window* window;
+	Transformer* transformer;
 	float scale;
-	struct InterfaceElement** elements;
+	InterfaceElement** elements;
 	size_t elementCapacity;
 	size_t elementCount;
-	struct InterfaceElement* lastElement;
+	InterfaceElement* lastElement;
 };
 
-struct Interface* createInterface(
-	struct Window* window,
-	struct Transformer* transformer,
+Interface* createInterface(
+	Window* window,
+	Transformer* transformer,
 	float scale)
 {
 	assert(window != NULL);
 	assert(transformer != NULL);
 
-	struct Interface* interface = malloc(
-		sizeof(struct Interface));
+	Interface* interface = malloc(
+		sizeof(Interface));
 
 	if (interface == NULL)
 		return NULL;
 
-	struct InterfaceElement** elements = malloc(
-		sizeof(struct InterfaceElement*));
+	InterfaceElement** elements = malloc(
+		sizeof(InterfaceElement*));
 
 	if (elements == NULL)
 	{
@@ -62,14 +62,14 @@ struct Interface* createInterface(
 }
 
 void destroyInterface(
-	struct Interface* interface)
+	Interface* interface)
 {
 	if (interface == NULL)
 		return;
 
 	size_t elementCount =
 		interface->elementCount;
-	struct InterfaceElement** elements =
+	InterfaceElement** elements =
 		interface->elements;
 
 	for (size_t i = 0; i < elementCount; i++)
@@ -79,24 +79,24 @@ void destroyInterface(
 	free(interface);
 }
 
-struct Window* getInterfaceWindow(
-	const struct Interface* interface)
+Window* getInterfaceWindow(
+	const Interface* interface)
 {
 	assert(interface != NULL);
 	return interface->window;
 }
-struct Transformer* getInterfaceTransformer(
-	const struct Interface* interface)
+Transformer* getInterfaceTransformer(
+	const Interface* interface)
 {
 	assert(interface != NULL);
 	return interface->transformer;
 }
 
-inline static struct Vec3F calcTransformPosition(
+inline static Vector3F calcTransformPosition(
 	float halfWidth,
 	float halfHeight,
 	uint8_t anchor,
-	struct Vec3F position)
+	Vector3F position)
 {
 	switch (anchor)
 	{
@@ -149,24 +149,24 @@ inline static struct Vec3F calcTransformPosition(
 inline static void updateElementPositions(
 	float halfWidth,
 	float halfHeight,
-	struct InterfaceElement** elements,
+	InterfaceElement** elements,
 	size_t elementCount)
 {
 	for (size_t i = 0; i < elementCount; i++)
 	{
-		struct InterfaceElement* element =
+		InterfaceElement* element =
 			elements[i];
-		struct Vec3F transformPosition = calcTransformPosition(
+		Vector3F transformPosition = calcTransformPosition(
 			halfWidth,
 			halfHeight,
 			element->anchor,
 			element->position);
-		struct InterfaceElement* parent =
+		InterfaceElement* parent =
 			element->parent;
 
 		while (parent != NULL)
 		{
-			struct Vec3F parentPosition = calcTransformPosition(
+			Vector3F parentPosition = calcTransformPosition(
 				halfWidth,
 				halfHeight,
 				parent->anchor,
@@ -182,31 +182,31 @@ inline static void updateElementPositions(
 			transformPosition);
 	}
 }
-union Camera executeInterface(
-	struct Interface* interface)
+Camera executeInterface(
+	Interface* interface)
 {
 	assert(interface != NULL);
 
 	size_t elementCount =
 		interface->elementCount;
-	struct InterfaceElement** elements =
+	InterfaceElement** elements =
 		interface->elements;
 
-	struct Window* window =
+	Window* window =
 		interface->window;
 	float scale =
 		interface->scale;
-	struct Vec2I windowSize =
+	Vector2I windowSize =
 		getWindowSize(window);
 
-	struct Vec2F size;
+	Vector2F size;
 	size.x = (float)windowSize.x / scale;
 	size.y = (float)windowSize.y / scale;
 
 	float halfWidth = size.x / 2.0f;
 	float halfHeight = size.y / 2.0f;
 
-	union Camera camera = createOrthographicCamera(
+	Camera camera = createOrthographicCamera(
 		-halfWidth,
 		halfWidth,
 		-halfHeight,
@@ -222,10 +222,10 @@ union Camera executeInterface(
 	if (focused == false)
 		return camera;
 
-	struct Vec2F cursor =
+	Vector2F cursor =
 		getWindowCursorPosition(window);
 
-	struct Vec2F cursorPosition = vec2F(
+	Vector2F cursorPosition = vec2F(
 		(cursor.x / scale) - halfWidth,
 		(size.y - (cursor.y / scale)) - halfHeight);
 
@@ -235,16 +235,16 @@ union Camera executeInterface(
 		elements,
 		elementCount);
 
-	struct InterfaceElement* newElement = NULL;
+	InterfaceElement* newElement = NULL;
 
 	for (size_t i = 0; i < elementCount; i++)
 	{
-		struct InterfaceElement* element =
+		InterfaceElement* element =
 			elements[i];
 
-		struct Vec3F position = getTransformPosition(
+		Vector3F position = getTransformPosition(
 			element->transform);
-		struct Box2F bounds =
+		Box2F bounds =
 			element->bounds;
 		bounds.minimum = addVec2F(
 			bounds.minimum,
@@ -271,7 +271,7 @@ union Camera executeInterface(
 		}
 	}
 
-	struct InterfaceElement* lastElement =
+	InterfaceElement* lastElement =
 		interface->lastElement;
 
 	if (lastElement == NULL)
@@ -314,12 +314,12 @@ union Camera executeInterface(
 	return camera;
 }
 
-struct InterfaceElement* createInterfaceElement(
-	struct Interface* interface,
+InterfaceElement* createInterfaceElement(
+	Interface* interface,
 	uint8_t anchor,
-	struct Vec3F position,
-	struct Box2F bounds,
-	struct InterfaceElement* parent,
+	Vector3F position,
+	Box2F bounds,
+	InterfaceElement* parent,
 	DestroyInterfaceElement destroyFunction,
 	OnInterfaceElementEvent onEnterFunction,
 	OnInterfaceElementEvent onExitFunction,
@@ -337,13 +337,13 @@ struct InterfaceElement* createInterfaceElement(
 	}
 #endif
 
-	struct InterfaceElement* element = malloc(
-		sizeof(struct InterfaceElement));
+	InterfaceElement* element = malloc(
+		sizeof(InterfaceElement));
 
 	if (element == NULL)
 		return NULL;
 
-	struct Transform* transformParent;
+	Transform* transformParent;
 
 	if (parent != NULL)
 	{
@@ -355,7 +355,7 @@ struct InterfaceElement* createInterfaceElement(
 		transformParent = NULL;
 	}
 
-	struct Transform* transform = createTransform(
+	Transform* transform = createTransform(
 		interface->transformer,
 		zeroVec3F(),
 		oneVec3F(),
@@ -386,9 +386,9 @@ struct InterfaceElement* createInterfaceElement(
 	{
 		size_t capacity =
 			interface->elementCapacity * 2;
-		struct InterfaceElement** elements = realloc(
+		InterfaceElement** elements = realloc(
 			interface->elements,
-			capacity * sizeof(struct InterfaceElement*));
+			capacity * sizeof(InterfaceElement*));
 
 		if (elements == NULL)
 		{
@@ -407,16 +407,16 @@ struct InterfaceElement* createInterfaceElement(
 	return element;
 }
 void destroyInterfaceElement(
-	struct InterfaceElement* element)
+	InterfaceElement* element)
 {
 	if (element == NULL)
 		return;
 
-	struct Interface* interface =
+	Interface* interface =
 		element->interface;
 	size_t elementCount =
 		interface->elementCount;
-	struct InterfaceElement** elements =
+	InterfaceElement** elements =
 		interface->elements;
 
 	for (size_t i = 0; i < elementCount; i++)
@@ -438,76 +438,76 @@ void destroyInterfaceElement(
 	abort();
 }
 
-struct Interface* getInterfaceElementInterface(
-	const struct InterfaceElement* element)
+Interface* getInterfaceElementInterface(
+	const InterfaceElement* element)
 {
 	assert(element != NULL);
 	return element->interface;
 }
-struct Transform* getInterfaceElementTransform(
-	const struct InterfaceElement* element)
+Transform* getInterfaceElementTransform(
+	const InterfaceElement* element)
 {
 	assert(element != NULL);
 	return element->transform;
 }
 void* getInterfaceElementHandle(
-	const struct InterfaceElement* element)
+	const InterfaceElement* element)
 {
 	assert(element != NULL);
 	return element->handle;
 }
 
 uint8_t getInterfaceElementAnchor(
-	const struct InterfaceElement* element)
+	const InterfaceElement* element)
 {
 	assert(element != NULL);
 	return element->anchor;
 }
 void setInterfaceElementAnchor(
-	struct InterfaceElement* element,
+	InterfaceElement* element,
 	uint8_t anchor)
 {
 	assert(element != NULL);
 	element->anchor = anchor;
 }
 
-struct Vec3F getInterfaceElementPosition(
-	const struct InterfaceElement* element)
+Vector3F getInterfaceElementPosition(
+	const InterfaceElement* element)
 {
 	assert(element != NULL);
 	return element->position;
 }
 void setInterfaceElementPosition(
-	struct InterfaceElement* element,
-	struct Vec3F position)
+	InterfaceElement* element,
+	Vector3F position)
 {
 	assert(element != NULL);
 	element->position = position;
 }
 
-struct Box2F getInterfaceElementBounds(
-	const struct InterfaceElement* element)
+Box2F getInterfaceElementBounds(
+	const InterfaceElement* element)
 {
 	assert(element != NULL);
 	return element->bounds;
 }
 void setInterfaceElementBounds(
-	struct InterfaceElement* element,
-	struct Box2F bounds)
+	InterfaceElement* element,
+	Box2F bounds)
 {
 	assert(element != NULL);
 	element->bounds = bounds;
 }
 
-struct InterfaceElement* getInterfaceElementParent(
-	const struct InterfaceElement* element)
+InterfaceElement* getInterfaceElementParent(
+	const InterfaceElement* element)
 {
 	assert(element != NULL);
 	return element->parent;
 }
 void setInterfaceElementParent(
-	struct InterfaceElement* element,
-	struct InterfaceElement* parent)
+	InterfaceElement* element,
+	InterfaceElement* parent)
 {
 	assert(element != NULL);
 	element->parent = parent;

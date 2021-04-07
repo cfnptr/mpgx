@@ -6,31 +6,31 @@
 
 struct Transformer
 {
-	struct Transform** transforms;
+	Transform** transforms;
 	size_t transformCapacity;
 	size_t transformCount;
 };
 struct Transform
 {
-	struct Transformer* transformer;
-	struct Vec3F position;
-	struct Vec3F scale;
-	struct Quat rotation;
+	Transformer* transformer;
+	Vector3F position;
+	Vector3F scale;
+	Quaternion rotation;
 	uint8_t rotationType;
-	struct Mat4F model;
-	struct Transform* parent;
+	Matrix4F model;
+	Transform* parent;
 };
 
-struct Transformer* createTransformer()
+Transformer* createTransformer()
 {
-	struct Transformer* transformer = malloc(
-		sizeof(struct Transformer));
+	Transformer* transformer = malloc(
+		sizeof(Transformer));
 
 	if (transformer == NULL)
 		return NULL;
 
-	struct Transform** transforms = malloc(
-		sizeof(struct Transform*));
+	Transform** transforms = malloc(
+		sizeof(Transform*));
 
 	if (transforms == NULL)
 	{
@@ -45,14 +45,14 @@ struct Transformer* createTransformer()
 }
 
 void destroyTransformer(
-	struct Transformer* transformer)
+	Transformer* transformer)
 {
 	if (transformer == NULL)
 		return;
 
 	size_t transformCount =
 		transformer->transformCount;
-	struct Transform** transforms =
+	Transform** transforms =
 		transformer->transforms;
 
 	for (size_t i = 0; i < transformCount; i++)
@@ -62,13 +62,13 @@ void destroyTransformer(
 	free(transformer);
 }
 
-struct Transform* createTransform(
-	struct Transformer* transformer,
-	struct Vec3F position,
-	struct Vec3F scale,
-	struct Quat rotation,
+Transform* createTransform(
+	Transformer* transformer,
+	Vector3F position,
+	Vector3F scale,
+	Quaternion rotation,
 	uint8_t rotationType,
-	struct Transform* parent)
+	Transform* parent)
 {
 	assert(transformer != NULL);
 	assert(rotationType < ROTATION_TYPE_COUNT);
@@ -78,8 +78,8 @@ struct Transform* createTransform(
 		assert(transformer == parent->transformer);
 #endif
 
-	struct Transform* transform = malloc(
-		sizeof(struct Transform));
+	Transform* transform = malloc(
+		sizeof(Transform));
 
 	if (transform == NULL)
 		return NULL;
@@ -97,9 +97,9 @@ struct Transform* createTransform(
 	{
 		size_t capacity =
 			transformer->transformCapacity * 2;
-		struct Transform** transforms = realloc(
+		Transform** transforms = realloc(
 			transformer->transforms,
-			capacity * sizeof(struct Transform*));
+			capacity * sizeof(Transform*));
 
 		if (transforms == NULL)
 			return NULL;
@@ -114,16 +114,16 @@ struct Transform* createTransform(
 	return transform;
 }
 void destroyTransform(
-	struct Transform* transform)
+	Transform* transform)
 {
 	if (transform == NULL)
 		return;
 
-	struct Transformer* transformer =
+	Transformer* transformer =
 		transform->transformer;
 	size_t transformCount =
 		transformer->transformCount;
-	struct Transform** transforms =
+	Transform** transforms =
 		transformer->transforms;
 
 	for (size_t i = 0; i < transformCount; i++)
@@ -142,63 +142,63 @@ void destroyTransform(
 	abort();
 }
 
-struct Transformer* getTransformTransformer(
-	const struct Transform* transform)
+Transformer* getTransformTransformer(
+	const Transform* transform)
 {
 	assert(transform != NULL);
 	return transform->transformer;
 }
 
-struct Vec3F getTransformPosition(
-	const struct Transform* transform)
+Vector3F getTransformPosition(
+	const Transform* transform)
 {
 	assert(transform != NULL);
 	return transform->position;
 }
 void setTransformPosition(
-	struct Transform* transform,
-	struct Vec3F position)
+	Transform* transform,
+	Vector3F position)
 {
 	assert(transform != NULL);
 	transform->position = position;
 }
 
-struct Vec3F getTransformScale(
-	const struct Transform* transform)
+Vector3F getTransformScale(
+	const Transform* transform)
 {
 	assert(transform != NULL);
 	return transform->scale;
 }
 void setTransformScale(
-	struct Transform* transform,
-	struct Vec3F scale)
+	Transform* transform,
+	Vector3F scale)
 {
 	assert(transform != NULL);
 	transform->scale = scale;
 }
 
-struct Quat getTransformRotation(
-	const struct Transform* transform)
+Quaternion getTransformRotation(
+	const Transform* transform)
 {
 	assert(transform != NULL);
 	return transform->rotation;
 }
 void setTransformRotation(
-	struct Transform* transform,
-	struct Quat rotation)
+	Transform* transform,
+	Quaternion rotation)
 {
 	assert(transform != NULL);
 	transform->rotation = rotation;
 }
 
 uint8_t getTransformRotationType(
-	const struct Transform* transform)
+	const Transform* transform)
 {
 	assert(transform != NULL);
 	return transform->rotationType;
 }
 void setTransformRotationType(
-	struct Transform* transform,
+	Transform* transform,
 	uint8_t rotationType)
 {
 	assert(transform != NULL);
@@ -206,15 +206,15 @@ void setTransformRotationType(
 	transform->rotationType = rotationType;
 }
 
-struct Transform* getTransformParent(
-	const struct Transform* transform)
+Transform* getTransformParent(
+	const Transform* transform)
 {
 	assert(transform != NULL);
 	return transform->parent;
 }
 void setTransformParent(
-	struct Transform* transform,
-	struct Transform* parent)
+	Transform* transform,
+	Transform* parent)
 {
 #ifndef NDEBUG
 	if (parent != NULL)
@@ -227,29 +227,29 @@ void setTransformParent(
 	transform->parent = parent;
 }
 
-struct Mat4F getTransformModel(
-	const struct Transform* transform)
+Matrix4F getTransformModel(
+	const Transform* transform)
 {
 	assert(transform != NULL);
 	return transform->model;
 }
 
 void executeTransformer(
-	struct Transformer* transformer)
+	Transformer* transformer)
 {
 	assert(transformer != NULL);
 
 	size_t transformCount =
 		transformer->transformCount;
-	struct Transform** transforms =
+	Transform** transforms =
 		transformer->transforms;
 
 	for (size_t i = 0; i < transformCount; i++)
 	{
-		struct Transform* transform = transforms[i];
+		Transform* transform = transforms[i];
 		uint8_t rotationType = transform->rotationType;
 
-		struct Mat4F model = identMat4F();
+		Matrix4F model = identMat4F();
 
 		if (rotationType == SPIN_ROTATION_TYPE)
 		{
@@ -282,16 +282,13 @@ void executeTransformer(
 
 	for (size_t i = 0; i < transformCount; i++)
 	{
-		struct Transform* transform =
-			transforms[i];
-		struct Transform* parent =
-			transform->parent;
+		Transform* transform = transforms[i];
+		Transform* parent = transform->parent;
 
 		if (parent == NULL)
 			continue;
 
-		struct Mat4F model =
-			transform->model;
+		Matrix4F model = transform->model;
 
 		while (parent != NULL)
 		{

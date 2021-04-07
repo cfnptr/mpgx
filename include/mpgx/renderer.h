@@ -24,15 +24,20 @@ Renderer* createRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSorting,
-	Transform* parent);
-void destroyRenderer(
-	Renderer* renderer);
+	Transform* parent,
+	DestroyRender destroyFunction,
+	RenderCommand renderFunction);
+void destroyRenderer(Renderer* renderer);
 
 Pipeline* getRendererPipeline(
 	const Renderer* renderer);
 Transformer* getRendererTransformer(
 	const Renderer* renderer);
 Transform* getRendererParent(
+	const Renderer* renderer);
+DestroyRender getRendererDestroyFunction(
+	const Renderer* renderer);
+RenderCommand getRendererRenderFunction(
 	const Renderer* renderer);
 
 bool getRendererSorting(
@@ -41,36 +46,24 @@ void setRendererSorting(
 	Renderer* renderer,
 	bool ascendingSorting);
 
-void executeRenderer(
+void updateRenderer(
 	Renderer* renderer,
 	Camera camera);
 
 Render* createRender(
 	Renderer* renderer,
-	bool draw,
 	Vector3F position,
 	Vector3F scale,
 	Quaternion rotation,
 	uint8_t rotationType,
 	Render* parent,
-	DestroyRender destroyFunction,
-	RenderCommand renderFunction,
+	bool update,
 	void* handle);
-void destroyRender(
-	Render* render);
+void destroyRender(Render* render);
 
-Renderer* getRenderRenderer(
-	const Render* render);
-Transform* getRenderTransform(
-	const Render* render);
-void* getRenderHandle(
-	const Render* render);
-
-bool getRenderDraw(
-	const Render* render);
-void setRenderDraw(
-	Render* render,
-	bool value);
+Renderer* getRenderRenderer(const Render* render);
+Transform* getRenderTransform(const Render* render);
+void* getRenderHandle(const Render* render);
 
 Vector3F getRenderPosition(
 	const Render* render);
@@ -95,3 +88,9 @@ Render* getRenderParent(
 void setRenderParent(
 	Render* render,
 	Render* parent);
+
+bool getRenderUpdate(
+	const Render* render);
+void setRenderUpdate(
+	Render* render,
+	bool update);

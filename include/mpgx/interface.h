@@ -32,16 +32,20 @@ Interface* createInterface(
 	Window* window,
 	Transformer* transformer,
 	float scale);
-void destroyInterface(
-	Interface* interface);
+void destroyInterface(Interface* interface);
 
 Window* getInterfaceWindow(
 	const Interface* interface);
 Transformer* getInterfaceTransformer(
 	const Interface* interface);
 
-Camera executeInterface(
-	Interface* interface);
+float getInterfaceScale(
+	const Interface* interface);
+void setInterfaceScale(
+	Interface* interface,
+	float scale);
+
+Camera updateInterface(Interface* interface);
 
 InterfaceElement* createInterfaceElement(
 	Interface* interface,
@@ -49,6 +53,7 @@ InterfaceElement* createInterfaceElement(
 	Vector3F position,
 	Box2F bounds,
 	InterfaceElement* parent,
+	bool update,
 	DestroyInterfaceElement destroyFunction,
 	OnInterfaceElementEvent onEnterFunction,
 	OnInterfaceElementEvent onExitFunction,
@@ -60,6 +65,14 @@ void destroyInterfaceElement(
 Interface* getInterfaceElementInterface(
 	const InterfaceElement* element);
 Transform* getInterfaceElementTransform(
+	const InterfaceElement* element);
+DestroyInterfaceElement getInterfaceElementDestroyFunction(
+	const InterfaceElement* element);
+OnInterfaceElementEvent getInterfaceElementOnEnterFunction(
+	const InterfaceElement* element);
+OnInterfaceElementEvent getInterfaceElementOnExitFunction(
+	const InterfaceElement* element);
+OnInterfaceElementEvent getInterfaceElementOnStayFunction(
 	const InterfaceElement* element);
 void* getInterfaceElementHandle(
 	const InterfaceElement* element);
@@ -87,3 +100,9 @@ InterfaceElement* getInterfaceElementParent(
 void setInterfaceElementParent(
 	InterfaceElement* element,
 	InterfaceElement* parent);
+
+bool getInterfaceElementUpdate(
+	const InterfaceElement* element);
+void setInterfaceElementUpdate(
+	InterfaceElement* element,
+	bool update);

@@ -10,6 +10,8 @@ struct FreeCamera
 	Transform* transform;
 	Vector2F rotation;
 	Vector2F lastCursorPosition;
+	float moveSpeed;
+	float viewSpeed;
 };
 
 FreeCamera* createFreeCamera(
@@ -30,6 +32,8 @@ FreeCamera* createFreeCamera(
 	freeCamera->rotation = zeroVec2F();
 	freeCamera->lastCursorPosition =
 		getWindowCursorPosition(window);
+	freeCamera->moveSpeed = 2.0f;
+	freeCamera->viewSpeed = 1.0f;
 	return freeCamera;
 }
 void destroyFreeCamera(
@@ -41,12 +45,12 @@ void destroyFreeCamera(
 	free(freeCamera);
 }
 
-Window* getFreeCameraWindow(
-	FreeCamera* freeCamera)
+Window* getFreeCameraWindow(FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->window;
 }
+
 Transform* getFreeCameraTransform(
 	FreeCamera* freeCamera)
 {
@@ -62,13 +66,39 @@ void setFreeCameraTransform(
 	freeCamera->transform = transform;
 }
 
-void updateFreeCamera(
+float getFreeCameraMoveSpeed(
 	FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
+	return freeCamera->moveSpeed;
+}
+void setFreeCameraMoveSpeed(
+	FreeCamera* freeCamera,
+	float moveSpeed)
+{
+	assert(freeCamera != NULL);
+	freeCamera->moveSpeed = moveSpeed;
+}
 
-	Window* window =
-		freeCamera->window;
+float getFreeCameraViewSpeed(
+	FreeCamera* freeCamera)
+{
+	assert(freeCamera != NULL);
+	return freeCamera->viewSpeed;
+}
+void setFreeCameraViewSpeed(
+	FreeCamera* freeCamera,
+	float viewSpeed)
+{
+	assert(freeCamera != NULL);
+	freeCamera->viewSpeed = viewSpeed;
+}
+
+void updateFreeCamera(FreeCamera* freeCamera)
+{
+	assert(freeCamera != NULL);
+
+	Window* window = freeCamera->window;
 
 	if (getWindowMouseButton(window, RIGHT_MOUSE_BUTTON))
 	{
@@ -76,22 +106,19 @@ void updateFreeCamera(
 			window,
 			LOCKED_CURSOR_MODE);
 
-		float deltaTime = (float)
-			getWindowDeltaTime(window);
-		Transform* transform =
-			freeCamera->transform;
-		Vector2F rotation =
-			freeCamera->rotation;
-		Vector2F lastCursorPosition =
-			freeCamera->lastCursorPosition;
-		Vector2F cursorPosition =
-			getWindowCursorPosition(window);
+		float deltaTime = (float)getWindowDeltaTime(window);
+		Transform* transform = freeCamera->transform;
+		Vector2F rotation = freeCamera->rotation;
+		Vector2F lastCursorPosition = freeCamera->lastCursorPosition;
+		float moveSpeed = freeCamera->moveSpeed;
+		float viewSpeed = freeCamera->viewSpeed;
+		Vector2F cursorPosition = getWindowCursorPosition(window);
 
 		if (lastCursorPosition.x == 0 && lastCursorPosition.y == 0)
 			lastCursorPosition = cursorPosition;
 
-		rotation.x += (cursorPosition.x - lastCursorPosition.x) / 100.0f;
-		rotation.y += (cursorPosition.y - lastCursorPosition.y) / 100.0f;
+		rotation.x += (cursorPosition.x - lastCursorPosition.x) * (viewSpeed / 200.0f);
+		rotation.y += (cursorPosition.y - lastCursorPosition.y) * (viewSpeed / 200.0f);
 
 		if (rotation.y > degToRadF(89.9f))
 			rotation.y = degToRadF(89.9f);
@@ -112,17 +139,17 @@ void updateFreeCamera(
 		Vector3F translation = zeroVec3F();
 
 		if (getWindowKeyboardKey(window, A_KEYBOARD_KEY))
-			translation.x = RIGHT_AXIS_VALUE * deltaTime;
+			translation.x = RIGHT_AXIS_VALUE * deltaTime * moveSpeed;
 		else if (getWindowKeyboardKey(window, D_KEYBOARD_KEY))
-			translation.x = LEFT_AXIS_VALUE * deltaTime;
+			translation.x = LEFT_AXIS_VALUE * deltaTime * moveSpeed;
 		if (getWindowKeyboardKey(window, LEFT_SHIFT_KEYBOARD_KEY))
-			translation.y = TOP_AXIS_VALUE * deltaTime;
+			translation.y = TOP_AXIS_VALUE * deltaTime * moveSpeed;
 		else if (getWindowKeyboardKey(window, SPACE_KEYBOARD_KEY))
-			translation.y = BOTTOM_AXIS_VALUE * deltaTime;
+			translation.y = BOTTOM_AXIS_VALUE * deltaTime * moveSpeed;
 		if (getWindowKeyboardKey(window, S_KEYBOARD_KEY))
-			translation.z = FRONT_AXIS_VALUE * deltaTime;
+			translation.z = FRONT_AXIS_VALUE * deltaTime * moveSpeed;
 		else if (getWindowKeyboardKey(window, W_KEYBOARD_KEY))
-			translation.z = BACK_AXIS_VALUE * deltaTime;
+			translation.z = BACK_AXIS_VALUE * deltaTime * moveSpeed;
 
 		translation = dotVecQuat3F(
 			transformRotation,

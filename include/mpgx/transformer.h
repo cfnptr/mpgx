@@ -9,16 +9,11 @@ typedef enum ROTATION_TYPE
 {
 	SPIN_ROTATION_TYPE,
 	ORBIT_ROTATION_TYPE,
-	ROTATION_TYPE_COUNT = ORBIT_ROTATION_TYPE + 1,
+	ROTATION_TYPE_COUNT,
 } ROTATION_TYPE;
 
-// TODO: move renderer draw to the transfromer update
-// also interface
-
 Transformer* createTransformer();
-
-void destroyTransformer(
-	Transformer* transformer);
+void destroyTransformer(Transformer* transformer);
 
 Transform* createTransform(
 	Transformer* transformer,
@@ -26,9 +21,9 @@ Transform* createTransform(
 	Vector3F scale,
 	Quaternion rotation,
 	uint8_t rotationType,
-	Transform* parent);
-void destroyTransform(
-	Transform* transform);
+	Transform* parent,
+	bool update);
+void destroyTransform(Transform* transform);
 
 Transformer* getTransformTransformer(
 	const Transform* transform);
@@ -63,8 +58,14 @@ void setTransformParent(
 	Transform* transform,
 	Transform* parent);
 
+bool getTransformUpdate(
+	const Transform* transform);
+void setTransformUpdate(
+	Transform* transform,
+	bool update);
+
 Matrix4F getTransformModel(
 	const Transform* transform);
 
-void executeTransformer(
+void updateTransformer(
 	Transformer* transformer);

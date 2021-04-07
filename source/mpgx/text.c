@@ -107,8 +107,7 @@ Font* createFontFromFile(
 	font->face = face;
 	return font;
 }
-void destroyFont(
-	Font* font)
+void destroyFont(Font* font)
 {
 	if (font == NULL)
 		return;
@@ -807,8 +806,7 @@ Text* createText(
 	text->constant = constant;
 	return text;
 }
-void destroyText(
-	Text* text)
+void destroyText(Text* text)
 {
 	if (text == NULL)
 		return;

@@ -19,6 +19,7 @@ struct Transform
 	uint8_t rotationType;
 	Matrix4F model;
 	Transform* parent;
+	bool update;
 };
 
 Transformer* createTransformer()
@@ -43,9 +44,7 @@ Transformer* createTransformer()
 	transformer->transformCount = 0;
 	return transformer;
 }
-
-void destroyTransformer(
-	Transformer* transformer)
+void destroyTransformer(Transformer* transformer)
 {
 	if (transformer == NULL)
 		return;
@@ -68,7 +67,8 @@ Transform* createTransform(
 	Vector3F scale,
 	Quaternion rotation,
 	uint8_t rotationType,
-	Transform* parent)
+	Transform* parent,
+	bool update)
 {
 	assert(transformer != NULL);
 	assert(rotationType < ROTATION_TYPE_COUNT);
@@ -78,8 +78,7 @@ Transform* createTransform(
 		assert(transformer == parent->transformer);
 #endif
 
-	Transform* transform = malloc(
-		sizeof(Transform));
+	Transform* transform = malloc(sizeof(Transform));
 
 	if (transform == NULL)
 		return NULL;
@@ -91,52 +90,54 @@ Transform* createTransform(
 	transform->rotationType = rotationType;
 	transform->model = identMat4F();
 	transform->parent = parent;
+	transform->update = update;
 
-	if (transformer->transformCount ==
-		transformer->transformCapacity)
+	struct Transform** transforms = transformer->transforms;
+	size_t transformCount = transformer->transformCount;
+	size_t transformCapacity = transformer->transformCapacity;
+
+	if (transformCount == transformCapacity)
 	{
-		size_t capacity =
-			transformer->transformCapacity * 2;
-		Transform** transforms = realloc(
-			transformer->transforms,
-			capacity * sizeof(Transform*));
+		transformCapacity *= 2;
+
+		transforms = realloc(
+			transforms,
+			transformCapacity * sizeof(Transform*));
 
 		if (transforms == NULL)
+		{
+			free(transform);
 			return NULL;
+		}
 
 		transformer->transforms = transforms;
-		transformer->transformCapacity = capacity;
+		transformer->transformCapacity = transformCapacity;
 	}
 
-	transformer->transforms[
-		transformer->transformCount] = transform;
+	transforms[transformCount] = transform;
 	transformer->transformCount++;
 	return transform;
 }
-void destroyTransform(
-	Transform* transform)
+void destroyTransform(Transform* transform)
 {
 	if (transform == NULL)
 		return;
 
-	Transformer* transformer =
-		transform->transformer;
-	size_t transformCount =
-		transformer->transformCount;
-	Transform** transforms =
-		transformer->transforms;
+	Transformer* transformer = transform->transformer;
+	Transform** transforms = transformer->transforms;
+	size_t transformCount = transformer->transformCount;
 
 	for (size_t i = 0; i < transformCount; i++)
 	{
-		if (transforms[i] == transform)
-		{
-			for (size_t j = i + 1; j < transformCount; j++)
-				transforms[j - 1] = transforms[j];
+		if (transforms[i] != transform)
+			continue;
 
-			free(transform);
-			transformer->transformCount--;
-			return;
-		}
+		for (size_t j = i + 1; j < transformCount; j++)
+			transforms[j - 1] = transforms[j];
+
+		free(transform);
+		transformer->transformCount--;
+		return;
 	}
 
 	abort();
@@ -227,6 +228,20 @@ void setTransformParent(
 	transform->parent = parent;
 }
 
+bool getTransformUpdate(
+	const Transform* transform)
+{
+	assert(transform != NULL);
+	return transform->update;
+}
+void setTransformUpdate(
+	Transform* transform,
+	bool update)
+{
+	assert(transform != NULL);
+	transform->update = update;
+}
+
 Matrix4F getTransformModel(
 	const Transform* transform)
 {
@@ -234,19 +249,21 @@ Matrix4F getTransformModel(
 	return transform->model;
 }
 
-void executeTransformer(
+void updateTransformer(
 	Transformer* transformer)
 {
 	assert(transformer != NULL);
 
-	size_t transformCount =
-		transformer->transformCount;
-	Transform** transforms =
-		transformer->transforms;
+	Transform** transforms = transformer->transforms;
+	size_t transformCount = transformer->transformCount;
 
 	for (size_t i = 0; i < transformCount; i++)
 	{
 		Transform* transform = transforms[i];
+
+		if (transform->update == false)
+			continue;
+
 		uint8_t rotationType = transform->rotationType;
 
 		Matrix4F model = identMat4F();
@@ -283,6 +300,10 @@ void executeTransformer(
 	for (size_t i = 0; i < transformCount; i++)
 	{
 		Transform* transform = transforms[i];
+
+		if (transform->update == false)
+			continue;
+
 		Transform* parent = transform->parent;
 
 		if (parent == NULL)

@@ -2564,12 +2564,32 @@ void destroyPipeline(Pipeline* pipeline)
 	abort();
 }
 
-Window* getPipelineWindow(const Pipeline* pipeline)
+Window* getPipelineWindow(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->window;
 }
-void* getPipelineHandle(const Pipeline* pipeline)
+DestroyPipeline getPipelineDestroyFunction(
+	const Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->destroyFunction;
+}
+BindPipelineCommand getPipelineBindFunction(
+	const Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->bindFunction;
+}
+SetUniformsCommand getPipelineSetUniformsFunction(
+	const Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->setUniformsFunction;
+}
+void* getPipelineHandle(
+	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->handle;

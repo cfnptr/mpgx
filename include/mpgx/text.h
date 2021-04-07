@@ -10,8 +10,7 @@ typedef struct Text Text;
 
 Font* createFontFromFile(
 	const void* filePath);
-void destroyFont(
-	Font* font);
+void destroyFont(Font* font);
 
 Text* createText(
 	Window* window,
@@ -19,8 +18,7 @@ Text* createText(
 	size_t fontSize,
 	const char* data,
 	bool constant);
-void destroyText(
-	Text* text);
+void destroyText(Text* text);
 
 Window* getTextWindow(
 	const Text* text);

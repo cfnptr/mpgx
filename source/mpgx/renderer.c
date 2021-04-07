@@ -9,6 +9,8 @@ struct Renderer
 	Transformer* transformer;
 	bool ascendingSort;
 	Transform* parent;
+	DestroyRender destroyFunction;
+	RenderCommand renderFunction;
 	Render** renders;
 	size_t renderCapacity;
 	size_t renderCount;
@@ -16,11 +18,8 @@ struct Renderer
 struct Render
 {
 	Renderer* renderer;
-	bool draw;
 	Transform* transform;
 	Render* parent;
-	DestroyRender destroyFunction;
-	RenderCommand renderFunction;
 	void* handle;
 };
 
@@ -28,8 +27,8 @@ static int ascendCompareRender(
 	const void* a,
 	const void* b)
 {
-	Render* render =
-		*(Render**)a;
+	Render* render = *(Render**)a;
+
 	Vector3F renderPosition = addVec3F(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
@@ -37,8 +36,8 @@ static int ascendCompareRender(
 		getTransformPosition(render->renderer->parent),
 		renderPosition);
 
-	render =
-		*(Render**)b;
+	render = *(Render**)b;
+
 	renderPosition = addVec3F(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
@@ -59,8 +58,8 @@ static int descendCompareRender(
 	const void* a,
 	const void* b)
 {
-	Render* render =
-		*(Render**)a;
+	Render* render = *(Render**)a;
+
 	Vector3F renderPosition = addVec3F(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
@@ -68,8 +67,8 @@ static int descendCompareRender(
 		getTransformPosition(render->renderer->parent),
 		renderPosition);
 
-	render =
-		*(Render**)b;
+	render = *(Render**)b;
+
 	renderPosition = addVec3F(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
@@ -91,24 +90,26 @@ Renderer* createRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSort,
-	Transform* parent)
+	Transform* parent,
+	DestroyRender destroyFunction,
+	RenderCommand renderFunction)
 {
 	assert(pipeline != NULL);
 	assert(transformer != NULL);
+	assert(destroyFunction != NULL);
+	assert(renderFunction != NULL);
 
 #ifndef NDEBUG
 	if (parent != NULL)
 		assert(getTransformTransformer(parent) == transformer);
 #endif
 
-	Renderer* renderer = malloc(
-		sizeof(Renderer));
+	Renderer* renderer = malloc(sizeof(Renderer));
 
 	if (renderer == NULL)
 		return NULL;
 
-	Render** renders = malloc(
-		sizeof(Render*));
+	Render** renders = malloc(sizeof(Render*));
 
 	if (renders == NULL)
 	{
@@ -120,26 +121,26 @@ Renderer* createRenderer(
 	renderer->transformer = transformer;
 	renderer->ascendingSort = ascendingSort;
 	renderer->parent = parent;
+	renderer->destroyFunction = destroyFunction;
+	renderer->renderFunction = renderFunction;
 	renderer->renders = renders;
 	renderer->renderCapacity = 1;
 	renderer->renderCount = 0;
 	return renderer;
 }
-void destroyRenderer(
-	Renderer* renderer)
+void destroyRenderer(Renderer* renderer)
 {
 	if (renderer == NULL)
 		return;
 
-	size_t renderCount =
-		renderer->renderCount;
-	Render** renders =
-		renderer->renders;
+	Render** renders = renderer->renders;
+	size_t renderCount = renderer->renderCount;
+	DestroyRender destroyFunction = renderer->destroyFunction;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
 		Render* render = renders[i];
-		render->destroyFunction(render->handle);
+		destroyFunction(render->handle);
 		free(render);
 	}
 
@@ -159,11 +160,23 @@ Transformer* getRendererTransformer(
 	assert(renderer != NULL);
 	return renderer->transformer;
 }
-Transform* getRendererTransform(
+Transform* getRendererParent(
 	const Renderer* renderer)
 {
 	assert(renderer != NULL);
 	return renderer->parent;
+}
+DestroyRender getRendererDestroyFunction(
+	const Renderer* renderer)
+{
+	assert(renderer != NULL);
+	return renderer->destroyFunction;
+}
+RenderCommand getRendererRenderFunction(
+	const Renderer* renderer)
+{
+	assert(renderer != NULL);
+	return renderer->renderFunction;
 }
 
 bool getRendererSorting(
@@ -180,16 +193,14 @@ void setRendererSorting(
 	renderer->ascendingSort = ascendingSorting;
 }
 
-void executeRenderer(
+void updateRenderer(
 	Renderer* renderer,
 	Camera camera)
 {
 	assert(renderer != NULL);
 
-	size_t renderCount =
-		renderer->renderCount;
-	Render** renders =
-		renderer->renders;
+	Render** renders = renderer->renders;
+	size_t renderCount = renderer->renderCount;
 
 	if (renderCount == 0)
 		return;
@@ -281,21 +292,23 @@ void executeRenderer(
 		proj,
 		view);
 
+	RenderCommand renderFunction =
+		renderer->renderFunction;
+
 	bindPipelineCommand(pipeline);
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
 		Render* render = renders[i];
 
-		if (render->draw == false)
+		if (getTransformUpdate(render->transform) == false)
 			continue;
 
-		Render* parent =
-			render->parent;
+		Render* parent = render->parent;
 
 		while (parent != NULL)
 		{
-			if (parent->draw == false)
+			if (getTransformUpdate(parent->transform) == false)
 				goto CONTINUE;
 
 			parent = parent->parent;
@@ -303,12 +316,11 @@ void executeRenderer(
 
 		Matrix4F model = getTransformModel(
 			render->transform);
-
 		Matrix4F mvp = dotMat4F(
 			viewProj,
 			model);
 
-		render->renderFunction(
+		renderFunction(
 			render,
 			pipeline,
 			&model,
@@ -324,28 +336,23 @@ void executeRenderer(
 
 Render* createRender(
 	Renderer* renderer,
-	bool draw,
 	Vector3F position,
 	Vector3F scale,
 	Quaternion rotation,
 	uint8_t rotationType,
 	Render* parent,
-	DestroyRender destroyFunction,
-	RenderCommand renderFunction,
+	bool update,
 	void* handle)
 {
 	assert(renderer != NULL);
 	assert(rotationType < ROTATION_TYPE_COUNT);
-	assert(destroyFunction != NULL);
-	assert(renderFunction != NULL);
 
 #ifndef NDEBUG
 	if (parent != NULL)
 		assert(renderer == parent->renderer);
 #endif
 
-	Render* render = malloc(
-		sizeof(Render));
+	Render* render = malloc(sizeof(Render));
 
 	if (render == NULL)
 		return NULL;
@@ -368,7 +375,8 @@ Render* createRender(
 		scale,
 		rotation,
 		rotationType,
-		transformParent);
+		transformParent,
+		update);
 
 	if (transform == NULL)
 	{
@@ -377,21 +385,21 @@ Render* createRender(
 	}
 
 	render->renderer = renderer;
-	render->draw = draw;
 	render->transform = transform;
 	render->parent = parent;
-	render->destroyFunction = destroyFunction;
-	render->renderFunction = renderFunction;
 	render->handle = handle;
 
-	if (renderer->renderCount ==
-		renderer->renderCapacity)
+	Render** renders = renderer->renders;
+	size_t renderCount = renderer->renderCount;
+	size_t renderCapacity = renderer->renderCapacity;
+
+	if (renderCount == renderCapacity)
 	{
-		size_t capacity =
-			renderer->renderCapacity * 2;
-		Render** renders = realloc(
-			renderer->renders,
-			capacity * sizeof(Render*));
+		renderCapacity *= 2;
+
+		renders = realloc(
+			renders,
+			renderCapacity * sizeof(Render*));
 
 		if (renders == NULL)
 		{
@@ -401,77 +409,55 @@ Render* createRender(
 		}
 
 		renderer->renders = renders;
-		renderer->renderCapacity = capacity;
+		renderer->renderCapacity = renderCapacity;
 	}
 
-	renderer->renders[
-		renderer->renderCount] = render;
+	renders[renderCount] = render;
 	renderer->renderCount++;
 	return render;
 }
-void destroyRender(
-	Render* render)
+void destroyRender(Render* render)
 {
 	if (render == NULL)
 		return;
 
-	Renderer* renderer =
-		render->renderer;
-	size_t renderCount =
-		renderer->renderCount;
-	Render** renders =
-		renderer->renders;
+	Renderer* renderer = render->renderer;
+	Render** renders = renderer->renders;
+	size_t renderCount = renderer->renderCount;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
-		if (renders[i] == render)
-		{
-			for (size_t j = i + 1; j < renderCount; j++)
-				renders[j - 1] = renders[j];
+		if (renders[i] != render)
+			continue;
 
-			render->destroyFunction(render->handle);
-			destroyTransform(render->transform);
-			free(render);
+		for (size_t j = i + 1; j < renderCount; j++)
+			renders[j - 1] = renders[j];
 
-			renderer->renderCount--;
-			return;
-		}
+		renderer->destroyFunction(render->handle);
+		destroyTransform(render->transform);
+		free(render);
+
+		renderer->renderCount--;
+		return;
 	}
 
 	abort();
 }
 
-Renderer* getRenderRenderer(
-	const Render* render)
+Renderer* getRenderRenderer(const Render* render)
 {
 	assert(render != NULL);
 	return render->renderer;
 }
-Transform* getRenderTransform(
-	const Render* render)
+Transform* getRenderTransform(const Render* render)
 {
 	assert(render != NULL);
 	return render->transform;
 }
-void* getRenderHandle(
-	const Render* render)
+void* getRenderHandle(const Render* render)
 {
 	assert(render != NULL);
 	return render->handle;
-}
-
-bool getRenderDraw(
-	const Render* render)
-{
-	assert(render != NULL);
-	return render->draw;
-}
-void setRenderDraw(
-	Render* render,
-	bool value)
-{
-	assert(render != NULL);
-	render->draw = value;
 }
 
 Vector3F getRenderPosition(
@@ -559,4 +545,23 @@ void setRenderParent(
 			render->transform,
 			NULL);
 	}
+}
+
+bool getRenderUpdate(
+	const Render* render)
+{
+	assert(render != NULL);
+
+	return getTransformUpdate(
+		render->transform);
+}
+void setRenderUpdate(
+	Render* render,
+	bool update)
+{
+	assert(render != NULL);
+
+	return setTransformUpdate(
+		render->transform,
+		update);
 }

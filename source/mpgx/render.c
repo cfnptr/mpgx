@@ -47,14 +47,31 @@ static void renderColorCommand(
 		colorRender->mesh,
 		pipeline);
 }
+Renderer* createColorRenderer(
+	Pipeline* pipeline,
+	Transformer* transformer,
+	bool ascendingSorting,
+	Transform* parent)
+{
+	assert(pipeline != NULL);
+	assert(transformer != NULL);
+
+	return createRenderer(
+		pipeline,
+		transformer,
+		ascendingSorting,
+		parent,
+		destroyColorRender,
+		renderColorCommand);
+}
 Render* createColorRender(
 	Renderer* renderer,
-	bool draw,
 	Vector3F position,
 	Vector3F scale,
 	Quaternion rotation,
 	uint8_t rotationType,
 	Render* parent,
+	bool update,
 	Vector4F color,
 	Mesh* mesh)
 {
@@ -75,14 +92,12 @@ Render* createColorRender(
 
 	Render* render = createRender(
 		renderer,
-		draw,
 		position,
 		scale,
 		rotation,
 		rotationType,
 		parent,
-		destroyColorRender,
-		renderColorCommand,
+	 	update,
 		colorRender);
 
 	if (render == NULL)
@@ -159,14 +174,31 @@ static void renderSpriteCommand(
 		spriteRender->mesh,
 		pipeline);
 }
+Renderer* createSpriteRenderer(
+	Pipeline* pipeline,
+	Transformer* transformer,
+	bool ascendingSorting,
+	Transform* parent)
+{
+	assert(pipeline != NULL);
+	assert(transformer != NULL);
+
+	return createRenderer(
+		pipeline,
+		transformer,
+		ascendingSorting,
+		parent,
+		destroySpriteRender,
+		renderSpriteCommand);
+}
 Render* createSpriteRender(
 	Renderer* renderer,
-	bool draw,
 	Vector3F position,
 	Vector3F scale,
 	Quaternion rotation,
 	uint8_t rotationType,
 	Render* parent,
+	bool update,
 	Vector4F color,
 	Mesh* mesh)
 {
@@ -187,14 +219,12 @@ Render* createSpriteRender(
 
 	Render* render = createRender(
 		renderer,
-		draw,
 		position,
 		scale,
 		rotation,
 		rotationType,
 		parent,
-		destroySpriteRender,
-		renderSpriteCommand,
+		update,
 		spriteRender);
 
 	if (render == NULL)
@@ -273,14 +303,31 @@ static void renderDiffuseCommand(
 		diffuseRender->mesh,
 		pipeline);
 }
+Renderer* createDiffuseRenderer(
+	Pipeline* pipeline,
+	Transformer* transformer,
+	bool ascendingSorting,
+	Transform* parent)
+{
+	assert(pipeline != NULL);
+	assert(transformer != NULL);
+
+	return createRenderer(
+		pipeline,
+		transformer,
+		ascendingSorting,
+		parent,
+		destroyDiffuseRender,
+		renderDiffuseCommand);
+}
 Render* createDiffuseRender(
 	Renderer* renderer,
-	bool draw,
 	Vector3F position,
 	Vector3F scale,
 	Quaternion rotation,
 	uint8_t rotationType,
 	Render* parent,
+	bool update,
 	Mesh* mesh)
 {
 	assert(renderer != NULL);
@@ -299,14 +346,12 @@ Render* createDiffuseRender(
 
 	Render* render = createRender(
 		renderer,
-		draw,
 		position,
 		scale,
 		rotation,
 		rotationType,
 		parent,
-		destroyDiffuseRender,
-		renderDiffuseCommand,
+	 	update,
 		diffuseRender);
 
 	if (render == NULL)
@@ -365,14 +410,31 @@ static void renderTextCommand(
 		textRender->text,
 		pipeline);
 }
+Renderer* createTextRenderer(
+	Pipeline* pipeline,
+	Transformer* transformer,
+	bool ascendingSorting,
+	Transform* parent)
+{
+	assert(pipeline != NULL);
+	assert(transformer != NULL);
+
+	return createRenderer(
+		pipeline,
+		transformer,
+		ascendingSorting,
+		parent,
+		destroyTextRender,
+		renderTextCommand);
+}
 Render* createTextRender(
 	Renderer* renderer,
-	bool draw,
 	Vector3F position,
 	Vector3F scale,
 	Quaternion rotation,
 	uint8_t rotationType,
 	Render* parent,
+	bool update,
 	Vector4F color,
 	Text* text)
 {
@@ -393,14 +455,12 @@ Render* createTextRender(
 
 	Render* render = createRender(
 		renderer,
-		draw,
 		position,
 		scale,
 		rotation,
 	 	rotationType,
 		parent,
-		destroyTextRender,
-		renderTextCommand,
+	 	update,
 		textRender);
 
 	if (render == NULL)

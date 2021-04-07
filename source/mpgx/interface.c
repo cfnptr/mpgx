@@ -60,17 +60,13 @@ Interface* createInterface(
 	interface->lastElement = NULL;
 	return interface;
 }
-
-void destroyInterface(
-	Interface* interface)
+void destroyInterface(Interface* interface)
 {
 	if (interface == NULL)
 		return;
 
-	size_t elementCount =
-		interface->elementCount;
-	InterfaceElement** elements =
-		interface->elements;
+	InterfaceElement** elements = interface->elements;
+	size_t elementCount = interface->elementCount;
 
 	for (size_t i = 0; i < elementCount; i++)
 		free(elements[i]);
@@ -90,6 +86,20 @@ Transformer* getInterfaceTransformer(
 {
 	assert(interface != NULL);
 	return interface->transformer;
+}
+
+float getInterfaceScale(
+	const Interface* interface)
+{
+	assert(interface != NULL);
+	return interface->scale;
+}
+void setInterfaceScale(
+	Interface* interface,
+	float scale)
+{
+	assert(interface != NULL);
+	interface->scale = scale;
 }
 
 inline static Vector3F calcTransformPosition(
@@ -182,22 +192,15 @@ inline static void updateElementPositions(
 			transformPosition);
 	}
 }
-Camera executeInterface(
-	Interface* interface)
+Camera updateInterface(Interface* interface)
 {
 	assert(interface != NULL);
 
-	size_t elementCount =
-		interface->elementCount;
-	InterfaceElement** elements =
-		interface->elements;
-
-	Window* window =
-		interface->window;
-	float scale =
-		interface->scale;
-	Vector2I windowSize =
-		getWindowSize(window);
+	InterfaceElement** elements = interface->elements;
+	size_t elementCount = interface->elementCount;
+	Window* window = interface->window;
+	float scale = interface->scale;
+	Vector2I windowSize = getWindowSize(window);
 
 	Vector2F size;
 	size.x = (float)windowSize.x / scale;
@@ -222,8 +225,7 @@ Camera executeInterface(
 	if (focused == false)
 		return camera;
 
-	Vector2F cursor =
-		getWindowCursorPosition(window);
+	Vector2F cursor = getWindowCursorPosition(window);
 
 	Vector2F cursorPosition = vec2F(
 		(cursor.x / scale) - halfWidth,
@@ -320,6 +322,7 @@ InterfaceElement* createInterfaceElement(
 	Vector3F position,
 	Box2F bounds,
 	InterfaceElement* parent,
+	bool update,
 	DestroyInterfaceElement destroyFunction,
 	OnInterfaceElementEvent onEnterFunction,
 	OnInterfaceElementEvent onExitFunction,
@@ -332,10 +335,7 @@ InterfaceElement* createInterfaceElement(
 
 #ifndef NDEBUG
 	if (parent != NULL)
-	{
-		assert(interface ==
-			parent->interface);
-	}
+		assert(interface == parent->interface);
 #endif
 
 	InterfaceElement* element = malloc(
@@ -362,7 +362,8 @@ InterfaceElement* createInterfaceElement(
 		oneVec3F(),
 		oneQuat(),
 		SPIN_ROTATION_TYPE,
-		transformParent);
+		transformParent,
+		update);
 
 	if (transform == NULL)
 	{
@@ -382,14 +383,17 @@ InterfaceElement* createInterfaceElement(
 	element->onStayFunction = onStayFunction;
 	element->handle = handle;
 
-	if (interface->elementCount ==
-		interface->elementCapacity)
+	InterfaceElement** elements = interface->elements;
+	size_t elementCount = interface->elementCount;
+	size_t elementCapacity = interface->elementCapacity;
+
+	if (elementCount == elementCapacity)
 	{
-		size_t capacity =
-			interface->elementCapacity * 2;
-		InterfaceElement** elements = realloc(
-			interface->elements,
-			capacity * sizeof(InterfaceElement*));
+		elementCapacity *= 2;
+
+		elements = realloc(
+			elements,
+			elementCapacity * sizeof(InterfaceElement*));
 
 		if (elements == NULL)
 		{
@@ -399,11 +403,10 @@ InterfaceElement* createInterfaceElement(
 		}
 
 		interface->elements = elements;
-		interface->elementCapacity = capacity;
+		interface->elementCapacity = elementCapacity;
 	}
 
-	interface->elements[
-		interface->elementCount] = element;
+	elements[elementCount] = element;
 	interface->elementCount++;
 	return element;
 }
@@ -413,27 +416,24 @@ void destroyInterfaceElement(
 	if (element == NULL)
 		return;
 
-	Interface* interface =
-		element->interface;
-	size_t elementCount =
-		interface->elementCount;
-	InterfaceElement** elements =
-		interface->elements;
+	Interface* interface = element->interface;
+	InterfaceElement** elements = interface->elements;
+	size_t elementCount = interface->elementCount;
 
 	for (size_t i = 0; i < elementCount; i++)
 	{
-		if (elements[i] == element)
-		{
-			for (size_t j = i + 1; j < elementCount; j++)
-				elements[j - 1] = elements[j];
+		if (elements[i] != element)
+			continue;
 
-			element->destroyFunction(element->handle);
-			destroyTransform(element->transform);
-			free(element);
+		for (size_t j = i + 1; j < elementCount; j++)
+			elements[j - 1] = elements[j];
 
-			interface->elementCount--;
-			return;
-		}
+		element->destroyFunction(element->handle);
+		destroyTransform(element->transform);
+		free(element);
+
+		interface->elementCount--;
+		return;
 	}
 
 	abort();
@@ -450,6 +450,30 @@ Transform* getInterfaceElementTransform(
 {
 	assert(element != NULL);
 	return element->transform;
+}
+DestroyInterfaceElement getInterfaceElementDestroyFunction(
+	const InterfaceElement* element)
+{
+	assert(element != NULL);
+	return element->destroyFunction;
+}
+OnInterfaceElementEvent getInterfaceElementOnEnterFunction(
+	const InterfaceElement* element)
+{
+	assert(element != NULL);
+	return element->onEnterFunction;
+}
+OnInterfaceElementEvent getInterfaceElementOnExitFunction(
+	const InterfaceElement* element)
+{
+	assert(element != NULL);
+	return element->onExitFunction;
+}
+OnInterfaceElementEvent getInterfaceElementOnStayFunction(
+	const InterfaceElement* element)
+{
+	assert(element != NULL);
+	return element->onStayFunction;
 }
 void* getInterfaceElementHandle(
 	const InterfaceElement* element)
@@ -528,4 +552,23 @@ void setInterfaceElementParent(
 			element->transform,
 			NULL);
 	}
+}
+
+bool getInterfaceElementUpdate(
+	const InterfaceElement* element)
+{
+	assert(element != NULL);
+
+	return getTransformUpdate(
+		element->transform);
+}
+void setInterfaceElementUpdate(
+	InterfaceElement* element,
+	bool update)
+{
+	assert(element != NULL);
+
+	setTransformUpdate(
+		element->transform,
+		update);
 }

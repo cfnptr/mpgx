@@ -667,7 +667,7 @@ inline static DiffusePipeline* createGlDiffusePipeline(
 	}
 
 	Vector3F lightDirection = normVec3F(
-		vec3F(1.0f, 2.0f, 3.0f));
+		vec3F(1.0f, 3.0f, 6.0f));
 
 	pipeline->gl.vertexShader = vertexShader;
 	pipeline->gl.fragmentShader = fragmentShader;

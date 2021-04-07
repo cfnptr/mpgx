@@ -8,11 +8,7 @@
 #define DEFAULT_WINDOW_WIDTH 800
 #define DEFAULT_WINDOW_HEIGHT 600
 
-// TODO:
-// Add other enumerations
-
-// TODO: add enumerators count, and check out of bound in the functions
-// TODO: optimize array objects reallocations in window and other classes
+// TODO: Add other enumerations
 
 typedef enum KEYBOARD_KEY
 {
@@ -307,7 +303,6 @@ bool getWindowMouseButton(
 	const Window* window,
 	int button);
 
-
 Vector2I getWindowSize(
 	const Window* window);
 void setWindowSize(
@@ -483,8 +478,16 @@ Pipeline* createPipeline(
 	void* handle);
 void destroyPipeline(Pipeline* pipeline);
 
-Window* getPipelineWindow(const Pipeline* pipeline);
-void* getPipelineHandle(const Pipeline* pipeline);
+Window* getPipelineWindow(
+	const Pipeline* pipeline);
+DestroyPipeline getPipelineDestroyFunction(
+	const Pipeline* pipeline);
+BindPipelineCommand getPipelineBindFunction(
+	const Pipeline* pipeline);
+SetUniformsCommand getPipelineSetUniformsFunction(
+	const Pipeline* pipeline);
+void* getPipelineHandle(
+	const Pipeline* pipeline);
 
 uint8_t getPipelineDrawMode(
 	const Pipeline* pipeline);

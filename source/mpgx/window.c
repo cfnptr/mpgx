@@ -268,6 +268,7 @@ Window* createWindow(
 	UpdateWindow updateFunction,
 	void* updateArgument)
 {
+	assert(api < GRAPHICS_API_COUNT);
 	assert(width != 0);
 	assert(height != 0);
 	assert(title != NULL);
@@ -768,6 +769,7 @@ void setWindowCursorMode(
 	uint8_t cursorMode)
 {
 	assert(window != NULL);
+	assert(cursorMode < CURSOR_MODE_COUNT);
 
 	int value;
 
@@ -1031,6 +1033,7 @@ Buffer* createBuffer(
 	bool constant)
 {
 	assert(window != NULL);
+	assert(type < BUFFER_TYPE_COUNT);
 	assert(size != 0);
 	assert(window->recording == false);
 
@@ -1276,6 +1279,7 @@ Mesh* createMesh(
 	Buffer* indexBuffer)
 {
 	assert(window != NULL);
+	assert(drawIndex < DRAW_INDEX_COUNT);
 	assert(vertexBuffer != NULL);
 	assert(indexBuffer != NULL);
 	assert(window == vertexBuffer->vk.window);
@@ -1523,6 +1527,7 @@ void setMeshIndexBuffer(
 	Buffer* indexBuffer)
 {
 	assert(mesh != NULL);
+	assert(drawIndex < DRAW_INDEX_COUNT);
 	assert(indexCount != 0);
 	assert(indexBuffer != NULL);
 	assert(mesh->vk.window == indexBuffer->vk.window);
@@ -1575,6 +1580,7 @@ void setMeshBuffers(
 	Buffer* indexBuffer)
 {
 	assert(mesh != NULL);
+	assert(drawIndex < DRAW_INDEX_COUNT);
 	assert(indexCount != 0);
 	assert(vertexBuffer != NULL);
 	assert(indexBuffer != NULL);
@@ -1836,6 +1842,8 @@ Image* createImage(
 	bool useMipmapping)
 {
 	assert(window != NULL);
+	assert(type < IMAGE_TYPE_COUNT);
+	assert(format < IMAGE_FORMAT_COUNT);
 	assert(width != 0);
 	assert(height != 0);
 	assert(depth != 0);
@@ -2263,6 +2271,7 @@ Shader* createShader(
 	size_t size)
 {
 	assert(window != NULL);
+	assert(type < SHADER_TYPE_COUNT);
 	assert(code != NULL);
 	assert(window->recording == false);
 
@@ -2479,6 +2488,7 @@ Pipeline* createPipeline(
 	void* handle)
 {
 	assert(window != NULL);
+	assert(drawMode < DRAW_MODE_COUNT);
 	assert(destroyFunction != NULL);
 	assert(bindFunction != NULL);
 	assert(setUniformsFunction != NULL);
@@ -2559,15 +2569,25 @@ Window* getPipelineWindow(const Pipeline* pipeline)
 	assert(pipeline != NULL);
 	return pipeline->window;
 }
-uint8_t getPipelineDrawMode(const Pipeline* pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->drawMode;
-}
 void* getPipelineHandle(const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->handle;
+}
+
+uint8_t getPipelineDrawMode(
+	const Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->drawMode;
+}
+void setPipelineDrawMode(
+	Pipeline* pipeline,
+	uint8_t drawMode)
+{
+	assert(pipeline != NULL);
+	assert(drawMode < DRAW_MODE_COUNT);
+	pipeline->drawMode = drawMode;
 }
 
 void bindPipelineCommand(Pipeline* pipeline)

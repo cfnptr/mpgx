@@ -327,6 +327,7 @@ InterfaceElement* createInterfaceElement(
 	void* handle)
 {
 	assert(interface != NULL);
+	assert(anchor < INTERFACE_ANCHOR_COUNT);
 	assert(destroyFunction != NULL);
 
 #ifndef NDEBUG

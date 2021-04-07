@@ -13,7 +13,6 @@ void destroyFreeCamera(
 Window* getFreeCameraWindow(
 	FreeCamera* freeCamera);
 
-
 Transform* getFreeCameraTransform(
 	FreeCamera* freeCamera);
 void setFreeCameraTransform(

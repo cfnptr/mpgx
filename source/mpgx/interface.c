@@ -162,10 +162,12 @@ inline static void updateElementPositions(
 	InterfaceElement** elements,
 	size_t elementCount)
 {
+	// TODO: check for update flag
+
 	for (size_t i = 0; i < elementCount; i++)
 	{
-		InterfaceElement* element =
-			elements[i];
+		InterfaceElement* element = elements[i];
+
 		Vector3F transformPosition = calcTransformPosition(
 			halfWidth,
 			halfHeight,
@@ -195,6 +197,8 @@ inline static void updateElementPositions(
 Camera updateInterface(Interface* interface)
 {
 	assert(interface != NULL);
+
+	// TODO: check for update flag
 
 	InterfaceElement** elements = interface->elements;
 	size_t elementCount = interface->elementCount;
@@ -241,8 +245,7 @@ Camera updateInterface(Interface* interface)
 
 	for (size_t i = 0; i < elementCount; i++)
 	{
-		InterfaceElement* element =
-			elements[i];
+		InterfaceElement* element = elements[i];
 
 		Vector3F position = getTransformPosition(
 			element->transform);

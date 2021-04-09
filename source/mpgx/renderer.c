@@ -310,7 +310,6 @@ void updateRenderer(
 		{
 			if (getTransformUpdate(parent->transform) == false)
 				goto CONTINUE;
-
 			parent = parent->parent;
 		}
 

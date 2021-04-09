@@ -20,6 +20,8 @@ typedef enum INTERFACE_ANCHOR
 	INTERFACE_ANCHOR_COUNT,
 } INTERFACE_ANCHOR;
 
+// TODO: add default button element, input box, etc..
+
 typedef struct Interface Interface;
 typedef struct InterfaceElement InterfaceElement;
 

@@ -264,6 +264,15 @@ void updateTransformer(
 		if (transform->update == false)
 			continue;
 
+		Transform* parent = transform->parent;
+
+		while (parent != NULL)
+		{
+			if (parent->update == false)
+				goto CONTINUE_1;
+			parent = parent->parent;
+		}
+
 		uint8_t rotationType = transform->rotationType;
 
 		Matrix4F model = identMat4F();
@@ -295,6 +304,9 @@ void updateTransformer(
 			model,
 			transform->scale);
 		transform->model = model;
+
+	CONTINUE_1:
+		continue;
 	}
 
 	for (size_t i = 0; i < transformCount; i++)
@@ -305,14 +317,13 @@ void updateTransformer(
 			continue;
 
 		Transform* parent = transform->parent;
-
-		if (parent == NULL)
-			continue;
-
 		Matrix4F model = transform->model;
 
 		while (parent != NULL)
 		{
+			if (parent->update == false)
+				goto CONTINUE_2;
+
 			model = dotMat4F(
 				parent->model, // TODO: check if correct
 				model);
@@ -320,5 +331,8 @@ void updateTransformer(
 		}
 
 		transform->model = model;
+
+	CONTINUE_2:
+		continue;
 	}
 }

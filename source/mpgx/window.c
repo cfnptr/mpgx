@@ -1752,7 +1752,7 @@ inline static Image* createGlImage(
 		abort();
 	}
 
-	GLenum glFormat;
+	GLint glFormat;
 
 	switch (format)
 	{

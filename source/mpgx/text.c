@@ -187,7 +187,7 @@ inline static uint32_t* createTextUniChars(
 		uniCharCount * sizeof(uint32_t));
 
 	if (uniChars == NULL)
-		return false;
+		return NULL;
 
 	for (size_t i = 0, j = 0; i < dataLength; j++)
 	{
@@ -223,7 +223,7 @@ inline static uint32_t* createTextUniChars(
 		else
 		{
 			free(uniChars);
-			return false;
+			return NULL;
 		}
 	}
 
@@ -313,7 +313,8 @@ inline static bool createTextPixels(
 	}
 
 	float newLineAdvance =
-		(face->size->metrics.height / 64.0f) / fontSize;
+		((float)face->size->metrics.height / 64.0f) /
+		(float)fontSize;
 
 	if (textPixelLength < pixelLength)
 		textPixelLength = pixelLength;
@@ -348,15 +349,15 @@ inline static bool createTextPixels(
 
 		size_t glyphWidth = glyphSlot->bitmap.width;
 		size_t glyphHeight = glyphSlot->bitmap.rows;
-		glyph.posX = (float)glyphSlot->bitmap_left / fontSize;
-		glyph.posY = ((float)glyphSlot->bitmap_top - glyphHeight) / fontSize;
-		glyph.posZ = glyph.posX + (float)glyphWidth / fontSize;
-		glyph.posW = glyph.posY + (float)glyphHeight / fontSize;
-		glyph.advance = (glyphSlot->advance.x / 64.0f) / fontSize;
-		glyph.texCoordU = (float)pixelPosX / textPixelLength;
-		glyph.texCoordV = (float)pixelPosY / textPixelLength;
-		glyph.texCoordS = glyph.texCoordU + (float)glyphWidth / textPixelLength;
-		glyph.texCoordT = glyph.texCoordV + (float)glyphHeight / textPixelLength;
+		glyph.posX = (float)glyphSlot->bitmap_left / (float)fontSize;
+		glyph.posY = ((float)glyphSlot->bitmap_top - (float)glyphHeight) / (float)fontSize;
+		glyph.posZ = glyph.posX + (float)glyphWidth / (float)fontSize;
+		glyph.posW = glyph.posY + (float)glyphHeight /(float) fontSize;
+		glyph.advance = ((float)glyphSlot->advance.x / 64.0f) / (float)fontSize;
+		glyph.texCoordU = (float)pixelPosX / (float)textPixelLength;
+		glyph.texCoordV = (float)pixelPosY / (float)textPixelLength;
+		glyph.texCoordS = glyph.texCoordU + (float)glyphWidth / (float)textPixelLength;
+		glyph.texCoordT = glyph.texCoordV + (float)glyphHeight / (float)textPixelLength;
 
 		glyphs[i] = glyph;
 
@@ -862,7 +863,8 @@ bool getTextUnicodeCharAdvance(
 	size_t fontSize = text->fontSize;
 
 	float newLineAdvance =
-		(face->size->metrics.height / 64.0f) / fontSize;
+		((float)face->size->metrics.height / 64.0f) /
+		(float)fontSize;
 
 	Vector2F advance = zeroVec2F();
 
@@ -928,7 +930,8 @@ bool getTextUnicodeCharAdvance(
 		if (result != 0)
 			return false;
 
-		advance.x += (face->glyph->advance.x / 64.0f) / fontSize;
+		advance.x += ((float)face->glyph->advance.x / 64.0f) /
+			(float)fontSize;
 	}
 
 	*_advance = advance;
@@ -1771,7 +1774,7 @@ Pipeline* createTextPipeline(
 	assert(getShaderWindow(vertexShader) == window);
 	assert(getShaderWindow(fragmentShader) == window);
 
-	uint8_t api = getWindowGraphicsAPI(window);;
+	uint8_t api = getWindowGraphicsAPI(window);
 
 	TextPipeline* handle;
 	DestroyPipeline destroyFunction;

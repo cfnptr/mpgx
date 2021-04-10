@@ -51,16 +51,18 @@ Renderer* createColorRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSorting,
-	Transform* parent)
+	Transform* transform)
 {
 	assert(pipeline != NULL);
 	assert(transformer != NULL);
+	assert(transform != NULL);
+	assert(getTransformTransformer(transform) == transformer);
 
 	return createRenderer(
 		pipeline,
 		transformer,
 		ascendingSorting,
-		parent,
+		transform,
 		destroyColorRender,
 		renderColorCommand);
 }
@@ -178,16 +180,18 @@ Renderer* createSpriteRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSorting,
-	Transform* parent)
+	Transform* transform)
 {
 	assert(pipeline != NULL);
 	assert(transformer != NULL);
+	assert(transform != NULL);
+	assert(getTransformTransformer(transform) == transformer);
 
 	return createRenderer(
 		pipeline,
 		transformer,
 		ascendingSorting,
-		parent,
+		transform,
 		destroySpriteRender,
 		renderSpriteCommand);
 }
@@ -307,16 +311,18 @@ Renderer* createDiffuseRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSorting,
-	Transform* parent)
+	Transform* transform)
 {
 	assert(pipeline != NULL);
 	assert(transformer != NULL);
+	assert(transform != NULL);
+	assert(getTransformTransformer(transform) == transformer);
 
 	return createRenderer(
 		pipeline,
 		transformer,
 		ascendingSorting,
-		parent,
+		transform,
 		destroyDiffuseRender,
 		renderDiffuseCommand);
 }
@@ -414,16 +420,18 @@ Renderer* createTextRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSorting,
-	Transform* parent)
+	Transform* transform)
 {
 	assert(pipeline != NULL);
 	assert(transformer != NULL);
+	assert(transform != NULL);
+	assert(getTransformTransformer(transform) == transformer);
 
 	return createRenderer(
 		pipeline,
 		transformer,
 		ascendingSorting,
-		parent,
+		transform,
 		destroyTextRender,
 		renderTextCommand);
 }

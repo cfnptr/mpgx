@@ -24,7 +24,7 @@ Renderer* createRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSorting,
-	Transform* parent,
+	Transform* transform,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction);
 void destroyRenderer(Renderer* renderer);
@@ -33,7 +33,7 @@ Pipeline* getRendererPipeline(
 	const Renderer* renderer);
 Transformer* getRendererTransformer(
 	const Renderer* renderer);
-Transform* getRendererParent(
+Transform* getRendererTransform(
 	const Renderer* renderer);
 DestroyRender getRendererDestroyFunction(
 	const Renderer* renderer);

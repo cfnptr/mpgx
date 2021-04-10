@@ -8,7 +8,7 @@ struct Renderer
 	Pipeline* pipeline;
 	Transformer* transformer;
 	bool ascendingSort;
-	Transform* parent;
+	Transform* transform;
 	DestroyRender destroyFunction;
 	RenderCommand renderFunction;
 	Render** renders;
@@ -33,7 +33,7 @@ static int ascendCompareRender(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceA = distPowVec3F(
-		getTransformPosition(render->renderer->parent),
+		getTransformPosition(render->renderer->transform),
 		renderPosition);
 
 	render = *(Render**)b;
@@ -42,7 +42,7 @@ static int ascendCompareRender(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceB = distPowVec3F(
-		getTransformPosition(render->renderer->parent),
+		getTransformPosition(render->renderer->transform),
 		renderPosition);
 
 	if (distanceA < distanceB)
@@ -64,7 +64,7 @@ static int descendCompareRender(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceA = distPowVec3F(
-		getTransformPosition(render->renderer->parent),
+		getTransformPosition(render->renderer->transform),
 		renderPosition);
 
 	render = *(Render**)b;
@@ -73,7 +73,7 @@ static int descendCompareRender(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceB = distPowVec3F(
-		getTransformPosition(render->renderer->parent),
+		getTransformPosition(render->renderer->transform),
 		renderPosition);
 
 	if (distanceA > distanceB)
@@ -90,19 +90,16 @@ Renderer* createRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSort,
-	Transform* parent,
+	Transform* transform,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction)
 {
 	assert(pipeline != NULL);
 	assert(transformer != NULL);
+	assert(transform != NULL);
 	assert(destroyFunction != NULL);
 	assert(renderFunction != NULL);
-
-#ifndef NDEBUG
-	if (parent != NULL)
-		assert(getTransformTransformer(parent) == transformer);
-#endif
+	assert(getTransformTransformer(transform) == transformer);
 
 	Renderer* renderer = malloc(sizeof(Renderer));
 
@@ -120,7 +117,7 @@ Renderer* createRenderer(
 	renderer->pipeline = pipeline;
 	renderer->transformer = transformer;
 	renderer->ascendingSort = ascendingSort;
-	renderer->parent = parent;
+	renderer->transform = transform;
 	renderer->destroyFunction = destroyFunction;
 	renderer->renderFunction = renderFunction;
 	renderer->renders = renders;
@@ -160,11 +157,11 @@ Transformer* getRendererTransformer(
 	assert(renderer != NULL);
 	return renderer->transformer;
 }
-Transform* getRendererParent(
+Transform* getRendererTransform(
 	const Renderer* renderer)
 {
 	assert(renderer != NULL);
-	return renderer->parent;
+	return renderer->transform;
 }
 DestroyRender getRendererDestroyFunction(
 	const Renderer* renderer)
@@ -287,7 +284,7 @@ void updateRenderer(
 	}
 
 	Matrix4F view = getTransformModel(
-		renderer->parent);
+		renderer->transform);
 	Matrix4F viewProj = dotMat4F(
 		proj,
 		view);

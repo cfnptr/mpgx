@@ -5,7 +5,7 @@ Renderer* createColorRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSorting,
-	Transform* parent);
+	Transform* transform);
 Render* createColorRender(
 	Renderer* renderer,
 	Vector3F position,
@@ -33,7 +33,7 @@ Renderer* createSpriteRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSorting,
-	Transform* parent);
+	Transform* transform);
 Render* createSpriteRender(
 	Renderer* renderer,
 	Vector3F position,
@@ -61,7 +61,7 @@ Renderer* createDiffuseRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSorting,
-	Transform* parent);
+	Transform* transform);
 Render* createDiffuseRender(
 	Renderer* renderer,
 	Vector3F position,
@@ -82,7 +82,7 @@ Renderer* createTextRenderer(
 	Pipeline* pipeline,
 	Transformer* transformer,
 	bool ascendingSorting,
-	Transform* parent);
+	Transform* transform);
 Render* createTextRender(
 	Renderer* renderer,
 	Vector3F position,

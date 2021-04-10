@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
 
-if(${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
+if (${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
 	message(FATAL_ERROR "Prevented in-tree build")
-endif()
+endif ()
 
 project(mpgx 
-	VERSION 1.0.0
+	VERSION 0.1.0
 	DESCRIPTION "Multi-platform graphics library"
 	HOMEPAGE_URL "https://github.com/cfnptr/mpgx"
 	LANGUAGES C)
@@ -37,9 +37,9 @@ if (Vulkan_FOUND)
 
 	list(APPEND MPGX_LINK_LIBRARIES
 		Vulkan::Vulkan)
-else()
+else ()
 	set(MPGX_VULKAN_SUPPORT 0)
-endif()
+endif ()
 
 configure_file(
 	cmake/defines.h.in

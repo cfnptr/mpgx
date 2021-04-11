@@ -21,19 +21,16 @@ typedef void(*RenderCommand)(
 // TODO: frustum culling
 
 Renderer* createRenderer(
-	Pipeline* pipeline,
-	Transformer* transformer,
-	bool ascendingSorting,
 	Transform* transform,
+	Pipeline* pipeline,
+	bool ascendingSorting,
 	DestroyRender destroyFunction,
 	RenderCommand renderFunction);
 void destroyRenderer(Renderer* renderer);
 
-Pipeline* getRendererPipeline(
-	const Renderer* renderer);
-Transformer* getRendererTransformer(
-	const Renderer* renderer);
 Transform* getRendererTransform(
+	const Renderer* renderer);
+Pipeline* getRendererPipeline(
 	const Renderer* renderer);
 DestroyRender getRendererDestroyFunction(
 	const Renderer* renderer);
@@ -52,45 +49,10 @@ void updateRenderer(
 
 Render* createRender(
 	Renderer* renderer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
-	uint8_t rotationType,
-	Render* parent,
-	bool update,
+	Transform* transform,
 	void* handle);
 void destroyRender(Render* render);
 
 Renderer* getRenderRenderer(const Render* render);
 Transform* getRenderTransform(const Render* render);
 void* getRenderHandle(const Render* render);
-
-Vector3F getRenderPosition(
-	const Render* render);
-void setRenderPosition(
-	Render* render,
-	Vector3F position);
-
-Vector3F getRenderScale(
-	const Render* render);
-void setRenderScale(
-	Render* render,
-	Vector3F scale);
-
-Quaternion getRenderRotation(
-	const Render* render);
-void setRenderRotation(
-	Render* render,
-	Quaternion rotation);
-
-Render* getRenderParent(
-	const Render* render);
-void setRenderParent(
-	Render* render,
-	Render* parent);
-
-bool getRenderUpdate(
-	const Render* render);
-void setRenderUpdate(
-	Render* render,
-	bool update);

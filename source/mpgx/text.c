@@ -812,15 +812,11 @@ void destroyText(Text* text)
 	if (text == NULL)
 		return;
 
-	Buffer* vertexBuffer;
-	Buffer* indexBuffer;
+	Mesh* mesh = text->mesh;
+	Buffer* vertexBuffer = getMeshVertexBuffer(mesh);
+	Buffer* indexBuffer = getMeshIndexBuffer(mesh);
 
-	getMeshBuffers(
-		text->mesh,
-		&vertexBuffer,
-		&indexBuffer);
-
-	destroyMesh(text->mesh);
+	destroyMesh(mesh);
 	destroyBuffer(indexBuffer);
 	destroyBuffer(vertexBuffer);
 
@@ -1236,23 +1232,21 @@ bool bakeText(
 			}
 			else
 			{
-				Buffer* _vertexBuffer;
-				Buffer* _indexBuffer;
-
-				getMeshBuffers(
-					text->mesh,
-					&_vertexBuffer,
-					&_indexBuffer);
+				Mesh* mesh = text->mesh;
+				Buffer* _vertexBuffer = getMeshVertexBuffer(mesh);
+				Buffer* _indexBuffer = getMeshIndexBuffer(mesh);
 
 				destroyBuffer(_vertexBuffer);
 				destroyBuffer(_indexBuffer);
 
-				setMeshBuffers(
-					text->mesh,
+				setMeshVertexBuffer(
+					mesh,
+					vertexBuffer);
+				setMeshIndexBuffer(
+					mesh,
 					UINT32_DRAW_INDEX,
 					uniCharCount * 6,
 					0,
-					vertexBuffer,
 					indexBuffer);
 			}
 
@@ -1335,12 +1329,11 @@ bool bakeText(
 				return false;
 			}
 
-			getMeshBuffers(
-				text->mesh,
-				&vertexBuffer,
-				&indexBuffer);
+			Mesh* _mesh = text->mesh;
+			vertexBuffer = getMeshVertexBuffer(_mesh);
+			indexBuffer = getMeshIndexBuffer(_mesh);
 
-			destroyMesh(text->mesh);
+			destroyMesh(_mesh);
 			destroyBuffer(vertexBuffer);
 			destroyBuffer(indexBuffer);
 
@@ -1527,12 +1520,11 @@ bool bakeText(
 				return false;
 			}
 
-			getMeshBuffers(
-				text->mesh,
-				&vertexBuffer,
-				&indexBuffer);
+			Mesh* _mesh = text->mesh;
+			vertexBuffer = getMeshVertexBuffer(_mesh);
+			indexBuffer = getMeshIndexBuffer(_mesh);
 
-			destroyMesh(text->mesh);
+			destroyMesh(_mesh);
 			destroyBuffer(vertexBuffer);
 			destroyBuffer(indexBuffer);
 

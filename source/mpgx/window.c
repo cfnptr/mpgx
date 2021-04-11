@@ -1559,63 +1559,6 @@ void setMeshIndexBuffer(
 	mesh->vk.indexBuffer = indexBuffer;
 }
 
-void getMeshBuffers(
-	const Mesh* mesh,
-	Buffer** vertexBuffer,
-	Buffer** indexBuffer)
-{
-	assert(mesh != NULL);
-	assert(vertexBuffer != NULL);
-	assert(indexBuffer != NULL);
-
-	*vertexBuffer = mesh->vk.vertexBuffer;
-	*indexBuffer = mesh->vk.indexBuffer;
-}
-void setMeshBuffers(
-	Mesh* mesh,
-	uint8_t drawIndex,
-	size_t indexCount,
-	size_t indexOffset,
-	Buffer* vertexBuffer,
-	Buffer* indexBuffer)
-{
-	assert(mesh != NULL);
-	assert(drawIndex < DRAW_INDEX_COUNT);
-	assert(indexCount != 0);
-	assert(vertexBuffer != NULL);
-	assert(indexBuffer != NULL);
-	assert(mesh->vk.window == vertexBuffer->vk.window);
-	assert(mesh->vk.window == indexBuffer->vk.window);
-	assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
-	assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
-	assert(mesh->vk.window->recording == false);
-
-#ifndef NDEBUG
-	if (drawIndex == UINT16_DRAW_INDEX)
-	{
-		assert(indexCount * sizeof(uint16_t) +
-			indexOffset * sizeof(uint16_t) <=
-			indexBuffer->vk.size);
-	}
-	else if (drawIndex == UINT32_DRAW_INDEX)
-	{
-		assert(indexCount * sizeof(uint32_t) +
-			indexOffset * sizeof(uint32_t) <=
-			indexBuffer->vk.size);
-	}
-	else
-	{
-		abort();
-	}
-#endif
-
-	mesh->vk.drawIndex = drawIndex;
-	mesh->vk.indexCount = indexCount;
-	mesh->vk.indexOffset = indexOffset;
-	mesh->vk.vertexBuffer = vertexBuffer;
-	mesh->vk.indexBuffer = indexBuffer;
-}
-
 inline static void drawGlMeshCommand(
 	Mesh* mesh,
 	Pipeline* pipeline)
@@ -2379,8 +2322,7 @@ Shader* createShaderFromFile(
 		return NULL;
 	}
 
-	char* code = malloc(
-		(fileSize + 1) * sizeof(char));
+	char* code = malloc(fileSize + 1);
 
 	size_t readSize = fread(
 		code,

@@ -9,6 +9,7 @@
 #define DEFAULT_WINDOW_HEIGHT 720
 
 // TODO: Add other enumerations
+// TODO: rename function typedefs to the onFunction
 
 typedef enum KEYBOARD_KEY
 {
@@ -404,18 +405,6 @@ void setMeshIndexBuffer(
 	uint8_t drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
-	Buffer* indexBuffer);
-
-void getMeshBuffers(
-	const Mesh* mesh,
-	Buffer** vertexBuffer,
-	Buffer** indexBuffer);
-void setMeshBuffers(
-	Mesh* mesh,
-	uint8_t drawIndex,
-	size_t indexCount,
-	size_t indexOffset,
-	Buffer* vertexBuffer,
 	Buffer* indexBuffer);
 
 void drawMeshCommand(

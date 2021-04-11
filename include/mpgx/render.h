@@ -2,18 +2,12 @@
 #include "mpgx/renderer.h"
 
 Renderer* createColorRenderer(
+	Transform* transform,
 	Pipeline* pipeline,
-	Transformer* transformer,
-	bool ascendingSorting,
-	Transform* transform);
+	bool ascendingSorting);
 Render* createColorRender(
 	Renderer* renderer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
-	uint8_t rotationType,
-	Render* parent,
-	bool update,
+	Transform* transform,
 	Vector4F color,
 	Mesh* mesh);
 
@@ -30,18 +24,12 @@ void setColorRenderColor(
 	Vector4F color);
 
 Renderer* createSpriteRenderer(
+	Transform* transform,
 	Pipeline* pipeline,
-	Transformer* transformer,
-	bool ascendingSorting,
-	Transform* transform);
+	bool ascendingSorting);
 Render* createSpriteRender(
 	Renderer* renderer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
-	uint8_t rotationType,
-	Render* parent,
-	bool update,
+	Transform* transform,
 	Vector4F color,
 	Mesh* mesh);
 
@@ -58,18 +46,12 @@ void setSpriteRenderMesh(
 	Mesh* mesh);
 
 Renderer* createDiffuseRenderer(
+	Transform* transform,
 	Pipeline* pipeline,
-	Transformer* transformer,
-	bool ascendingSorting,
-	Transform* transform);
+	bool ascendingSorting);
 Render* createDiffuseRender(
 	Renderer* renderer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
-	uint8_t rotationType,
-	Render* parent,
-	bool update,
+	Transform* transform,
 	Mesh* mesh);
 
 Mesh* getDiffuseRenderMesh(
@@ -79,18 +61,12 @@ void setDiffuseRenderMesh(
 	Mesh* mesh);
 
 Renderer* createTextRenderer(
+	Transform* transform,
 	Pipeline* pipeline,
-	Transformer* transformer,
-	bool ascendingSorting,
-	Transform* transform);
+	bool ascendingSorting);
 Render* createTextRender(
 	Renderer* renderer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
-	uint8_t rotationType,
-	Render* parent,
-	bool update,
+	Transform* transform,
 	Vector4F color,
 	Text* text);
 

@@ -48,40 +48,36 @@ static void renderColorCommand(
 		pipeline);
 }
 Renderer* createColorRenderer(
+	Transform* transform,
 	Pipeline* pipeline,
-	Transformer* transformer,
-	bool ascendingSorting,
-	Transform* transform)
+	bool ascendingSorting)
 {
-	assert(pipeline != NULL);
-	assert(transformer != NULL);
 	assert(transform != NULL);
-	assert(getTransformTransformer(transform) == transformer);
+	assert(pipeline != NULL);
 
 	return createRenderer(
-		pipeline,
-		transformer,
-		ascendingSorting,
 		transform,
+		pipeline,
+		ascendingSorting,
 		destroyColorRender,
 		renderColorCommand);
 }
 Render* createColorRender(
 	Renderer* renderer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
-	uint8_t rotationType,
-	Render* parent,
-	bool update,
+	Transform* transform,
 	Vector4F color,
 	Mesh* mesh)
 {
 	assert(renderer != NULL);
+	assert(transform != NULL);
 	assert(mesh != NULL);
 
+	assert(getTransformTransformer(
+		getRendererTransform(renderer)) ==
+		getTransformTransformer(transform));
 	assert(getPipelineWindow(
-		getRendererPipeline(renderer)) == getMeshWindow(mesh));
+		getRendererPipeline(renderer)) ==
+		getMeshWindow(mesh));
 
 	ColorRender* colorRender = malloc(
 		sizeof(ColorRender));
@@ -94,12 +90,7 @@ Render* createColorRender(
 
 	Render* render = createRender(
 		renderer,
-		position,
-		scale,
-		rotation,
-		rotationType,
-		parent,
-	 	update,
+		transform,
 		colorRender);
 
 	if (render == NULL)
@@ -177,40 +168,36 @@ static void renderSpriteCommand(
 		pipeline);
 }
 Renderer* createSpriteRenderer(
+	Transform* transform,
 	Pipeline* pipeline,
-	Transformer* transformer,
-	bool ascendingSorting,
-	Transform* transform)
+	bool ascendingSorting)
 {
-	assert(pipeline != NULL);
-	assert(transformer != NULL);
 	assert(transform != NULL);
-	assert(getTransformTransformer(transform) == transformer);
+	assert(pipeline != NULL);
 
 	return createRenderer(
-		pipeline,
-		transformer,
-		ascendingSorting,
 		transform,
+		pipeline,
+		ascendingSorting,
 		destroySpriteRender,
 		renderSpriteCommand);
 }
 Render* createSpriteRender(
 	Renderer* renderer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
-	uint8_t rotationType,
-	Render* parent,
-	bool update,
+	Transform* transform,
 	Vector4F color,
 	Mesh* mesh)
 {
 	assert(renderer != NULL);
+	assert(transform != NULL);
 	assert(mesh != NULL);
 
+	assert(getTransformTransformer(
+		getRendererTransform(renderer)) ==
+		getTransformTransformer(transform));
 	assert(getPipelineWindow(
-		getRendererPipeline(renderer)) == getMeshWindow(mesh));
+		getRendererPipeline(renderer)) ==
+		getMeshWindow(mesh));
 
 	SpriteRender* spriteRender = malloc(
 		sizeof(SpriteRender));
@@ -223,12 +210,7 @@ Render* createSpriteRender(
 
 	Render* render = createRender(
 		renderer,
-		position,
-		scale,
-		rotation,
-		rotationType,
-		parent,
-		update,
+		transform,
 		spriteRender);
 
 	if (render == NULL)
@@ -308,39 +290,35 @@ static void renderDiffuseCommand(
 		pipeline);
 }
 Renderer* createDiffuseRenderer(
+	Transform* transform,
 	Pipeline* pipeline,
-	Transformer* transformer,
-	bool ascendingSorting,
-	Transform* transform)
+	bool ascendingSorting)
 {
-	assert(pipeline != NULL);
-	assert(transformer != NULL);
 	assert(transform != NULL);
-	assert(getTransformTransformer(transform) == transformer);
+	assert(pipeline != NULL);
 
 	return createRenderer(
-		pipeline,
-		transformer,
-		ascendingSorting,
 		transform,
+		pipeline,
+		ascendingSorting,
 		destroyDiffuseRender,
 		renderDiffuseCommand);
 }
 Render* createDiffuseRender(
 	Renderer* renderer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
-	uint8_t rotationType,
-	Render* parent,
-	bool update,
+	Transform* transform,
 	Mesh* mesh)
 {
 	assert(renderer != NULL);
+	assert(transform != NULL);
 	assert(mesh != NULL);
 
+	assert(getTransformTransformer(
+		getRendererTransform(renderer)) ==
+		getTransformTransformer(transform));
 	assert(getPipelineWindow(
-		getRendererPipeline(renderer)) == getMeshWindow(mesh));
+		getRendererPipeline(renderer)) ==
+		getMeshWindow(mesh));
 
 	DiffuseRender* diffuseRender = malloc(
 		sizeof(DiffuseRender));
@@ -352,12 +330,7 @@ Render* createDiffuseRender(
 
 	Render* render = createRender(
 		renderer,
-		position,
-		scale,
-		rotation,
-		rotationType,
-		parent,
-	 	update,
+		transform,
 		diffuseRender);
 
 	if (render == NULL)
@@ -417,40 +390,36 @@ static void renderTextCommand(
 		pipeline);
 }
 Renderer* createTextRenderer(
+	Transform* transform,
 	Pipeline* pipeline,
-	Transformer* transformer,
-	bool ascendingSorting,
-	Transform* transform)
+	bool ascendingSorting)
 {
-	assert(pipeline != NULL);
-	assert(transformer != NULL);
 	assert(transform != NULL);
-	assert(getTransformTransformer(transform) == transformer);
+	assert(pipeline != NULL);
 
 	return createRenderer(
-		pipeline,
-		transformer,
-		ascendingSorting,
 		transform,
+		pipeline,
+		ascendingSorting,
 		destroyTextRender,
 		renderTextCommand);
 }
 Render* createTextRender(
 	Renderer* renderer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
-	uint8_t rotationType,
-	Render* parent,
-	bool update,
+	Transform* transform,
 	Vector4F color,
 	Text* text)
 {
 	assert(renderer != NULL);
+	assert(transform != NULL);
 	assert(text != NULL);
 
+	assert(getTransformTransformer(
+		getRendererTransform(renderer)) ==
+		getTransformTransformer(transform));
 	assert(getPipelineWindow(
-		getRendererPipeline(renderer)) == getTextWindow(text));
+		getRendererPipeline(renderer)) ==
+		getTextWindow(text));
 
 	TextRender* textRender = malloc(
 		sizeof(TextRender));
@@ -463,12 +432,7 @@ Render* createTextRender(
 
 	Render* render = createRender(
 		renderer,
-		position,
-		scale,
-		rotation,
-	 	rotationType,
-		parent,
-	 	update,
+		transform,
 		textRender);
 
 	if (render == NULL)

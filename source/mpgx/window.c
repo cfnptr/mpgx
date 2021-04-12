@@ -2189,7 +2189,20 @@ inline static Shader* createGlShader(
 				&length,
 				infoLog);
 
-			printf("%s\n", infoLog);
+			const char* typeString;
+
+			if (type == VERTEX_SHADER_TYPE)
+				typeString = "vertex";
+			else if (type == FRAGMENT_SHADER_TYPE)
+				typeString = "fragment";
+			else if (type == COMPUTE_SHADER_TYPE)
+				typeString = "compute";
+			else
+				abort();
+
+			printf("Failed to compile %s shader:\n%s",
+				typeString,
+				infoLog);
 		}
 #endif
 

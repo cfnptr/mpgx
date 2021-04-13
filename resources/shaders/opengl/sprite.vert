@@ -1,5 +1,5 @@
-layout(location = 0) in highp vec2 v_Position;
-uniform highp mat4 u_MVP;
+layout(location = 0) in vec2 v_Position;
+uniform mat4 u_MVP;
 
 void main()
 {

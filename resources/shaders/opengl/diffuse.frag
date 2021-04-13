@@ -1,12 +1,12 @@
-in highp vec3 f_Normal;
-out highp vec4 o_Color;
+in vec3 f_Normal;
+out vec4 o_Color;
 
 layout(std140) uniform FragmentBufferObject
 {
-    highp vec4 objectColor;
-    highp vec4 ambientColor;
-    highp vec4 lightColor;
-    highp vec4 lightDirection;
+    vec4 objectColor;
+    vec4 ambientColor;
+    vec4 lightColor;
+    vec4 lightDirection;
 } fbo;
 
 float getDiffuse(vec3 normal, vec3 direction)

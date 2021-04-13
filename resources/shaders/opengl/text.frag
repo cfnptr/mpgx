@@ -1,7 +1,7 @@
-in highp vec2 f_TexCoord;
-out highp vec4 o_Color;
+in vec2 f_TexCoord;
+out vec4 o_Color;
 
-uniform highp vec4 u_Color;
+uniform vec4 u_Color;
 uniform sampler2D u_Image;
 
 void main()

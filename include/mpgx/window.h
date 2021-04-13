@@ -368,6 +368,7 @@ void setBufferData(
 	size_t size,
 	size_t offset);
 
+// TODO: bind GL mesh buffers only once at set
 Mesh* createMesh(
 	Window* window,
 	uint8_t drawIndex,
@@ -392,6 +393,7 @@ void setMeshIndexOffset(
 	Mesh* mesh,
 	size_t indexOffset);
 
+// TODO: bind GL mesh buffers only once at set
 Buffer* getMeshVertexBuffer(
 	const Mesh* mesh);
 void setMeshVertexBuffer(

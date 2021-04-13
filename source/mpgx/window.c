@@ -7,7 +7,9 @@
 #include <stdio.h>
 
 #define OPENGL_SHADER_HEADER \
-"#version 330 core\n\n#define highp \n#define mediump \n#define lowp \n"
+"#version 330 core\n"
+// TODO: possibly set default precision
+// or detect supported precisions
 #define OPENGL_ES_SHADER_HEADER \
 "#version 300 es\n"
 

@@ -1,8 +1,8 @@
-layout(location = 0) in highp vec2 v_Position;
-layout(location = 1) in highp vec2 v_TexCoord;
+layout(location = 0) in vec2 v_Position;
+layout(location = 1) in vec2 v_TexCoord;
 
-out highp vec2 f_TexCoord;
-uniform highp mat4 u_MVP;
+out vec2 f_TexCoord;
+uniform mat4 u_MVP;
 
 void main()
 {

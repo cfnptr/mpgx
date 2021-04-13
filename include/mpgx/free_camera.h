@@ -6,7 +6,9 @@ typedef struct FreeCamera FreeCamera;
 
 FreeCamera* createFreeCamera(
 	Window* window,
-	Transform* transform);
+	Transform* transform,
+	float moveSpeed,
+	float viewSpeed);
 void destroyFreeCamera(FreeCamera* freeCamera);
 
 Window* getFreeCameraWindow(FreeCamera* freeCamera);

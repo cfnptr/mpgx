@@ -16,7 +16,9 @@ struct FreeCamera
 
 FreeCamera* createFreeCamera(
 	Window* window,
-	Transform* transform)
+	Transform* transform,
+	float moveSpeed,
+	float viewSpeed)
 {
 	assert(window != NULL);
 	assert(transform != NULL);
@@ -32,8 +34,8 @@ FreeCamera* createFreeCamera(
 	freeCamera->rotation = zeroVec2F();
 	freeCamera->lastCursorPosition =
 		getWindowCursorPosition(window);
-	freeCamera->moveSpeed = 2.0f;
-	freeCamera->viewSpeed = 1.0f;
+	freeCamera->moveSpeed = moveSpeed;
+	freeCamera->viewSpeed = viewSpeed;
 	return freeCamera;
 }
 void destroyFreeCamera(
@@ -110,15 +112,15 @@ void updateFreeCamera(FreeCamera* freeCamera)
 		Transform* transform = freeCamera->transform;
 		Vector2F rotation = freeCamera->rotation;
 		Vector2F lastCursorPosition = freeCamera->lastCursorPosition;
-		float moveSpeed = freeCamera->moveSpeed;
-		float viewSpeed = freeCamera->viewSpeed;
+		float moveSpeed = freeCamera->moveSpeed * 2.0f;
+		float viewSpeed = freeCamera->viewSpeed / 200.0f;
 		Vector2F cursorPosition = getWindowCursorPosition(window);
 
 		if (lastCursorPosition.x == 0 && lastCursorPosition.y == 0)
 			lastCursorPosition = cursorPosition;
 
-		rotation.x += (cursorPosition.x - lastCursorPosition.x) * (viewSpeed / 200.0f);
-		rotation.y += (cursorPosition.y - lastCursorPosition.y) * (viewSpeed / 200.0f);
+		rotation.x += (cursorPosition.x - lastCursorPosition.x) * viewSpeed;
+		rotation.y += (cursorPosition.y - lastCursorPosition.y) * viewSpeed;
 
 		if (rotation.y > degToRadF(89.9f))
 			rotation.y = degToRadF(89.9f);

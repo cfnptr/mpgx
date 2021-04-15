@@ -7,9 +7,9 @@
 typedef struct Renderer Renderer;
 typedef struct Render Render;
 
-typedef void(*DestroyRender)(
+typedef void(*OnRenderDestroy)(
 	void* render);
-typedef void(*RenderCommand)(
+typedef void(*OnRenderDraw)(
 	Render* render,
 	Pipeline* pipeline,
 	const Matrix4F* model,
@@ -24,17 +24,17 @@ Renderer* createRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
 	bool ascendingSorting,
-	DestroyRender destroyFunction,
-	RenderCommand renderFunction);
+	OnRenderDestroy onDestroy,
+	OnRenderDraw onDraw);
 void destroyRenderer(Renderer* renderer);
 
 Transform* getRendererTransform(
 	const Renderer* renderer);
 Pipeline* getRendererPipeline(
 	const Renderer* renderer);
-DestroyRender getRendererDestroyFunction(
+OnRenderDestroy getRendererOnDestroy(
 	const Renderer* renderer);
-RenderCommand getRendererRenderFunction(
+OnRenderDraw getRendererOnDraw(
 	const Renderer* renderer);
 
 bool getRendererSorting(

@@ -11,10 +11,10 @@ struct InterfaceElement
 	Vector3F position;
 	Box2F bounds;
 	InterfaceElement* parent;
-	DestroyInterfaceElement destroyFunction;
-	OnInterfaceElementEvent onEnterFunction;
-	OnInterfaceElementEvent onExitFunction;
-	OnInterfaceElementEvent onStayFunction;
+	OnInterfaceElementDestroy onDestroy;
+	OnInterfaceElementEvent onEnter;
+	OnInterfaceElementEvent onExit;
+	OnInterfaceElementEvent onStay;
 	void* handle;
 };
 struct Interface
@@ -69,7 +69,11 @@ void destroyInterface(Interface* interface)
 	size_t elementCount = interface->elementCount;
 
 	for (size_t i = 0; i < elementCount; i++)
-		free(elements[i]);
+	{
+		InterfaceElement* element = elements[i];
+		element->onDestroy(element->handle);
+		free(element);
+	}
 
 	free(elements);
 	free(interface);
@@ -283,8 +287,8 @@ Camera updateInterface(Interface* interface)
 	{
 		if (newElement != NULL)
 		{
-			if (newElement->onEnterFunction != NULL)
-				newElement->onEnterFunction(newElement);
+			if (newElement->onEnter != NULL)
+				newElement->onEnter(newElement);
 			interface->lastElement = newElement;
 		}
 	}
@@ -292,21 +296,21 @@ Camera updateInterface(Interface* interface)
 	{
 		if (lastElement != newElement)
 		{
-			if (lastElement->onExitFunction != NULL)
-				lastElement->onExitFunction(lastElement);
+			if (lastElement->onExit != NULL)
+				lastElement->onExit(lastElement);
 
 			if (newElement != NULL &&
-				newElement->onEnterFunction != NULL)
+				newElement->onEnter != NULL)
 			{
-				newElement->onEnterFunction(newElement);
+				newElement->onEnter(newElement);
 			}
 
 			interface->lastElement = newElement;
 		}
 		else
 		{
-			if (lastElement->onStayFunction != NULL)
-				lastElement->onStayFunction(lastElement);
+			if (lastElement->onStay != NULL)
+				lastElement->onStay(lastElement);
 		}
 	}
 
@@ -326,15 +330,15 @@ InterfaceElement* createInterfaceElement(
 	Box2F bounds,
 	InterfaceElement* parent,
 	bool update,
-	DestroyInterfaceElement destroyFunction,
-	OnInterfaceElementEvent onEnterFunction,
-	OnInterfaceElementEvent onExitFunction,
-	OnInterfaceElementEvent onStayFunction,
+	OnInterfaceElementDestroy onDestroy,
+	OnInterfaceElementEvent onEnter,
+	OnInterfaceElementEvent onExit,
+	OnInterfaceElementEvent onStay,
 	void* handle)
 {
 	assert(interface != NULL);
 	assert(anchor < INTERFACE_ANCHOR_COUNT);
-	assert(destroyFunction != NULL);
+	assert(onDestroy != NULL);
 
 #ifndef NDEBUG
 	if (parent != NULL)
@@ -380,10 +384,10 @@ InterfaceElement* createInterfaceElement(
 	element->position = position;
 	element->bounds = bounds;
 	element->parent = parent;
-	element->destroyFunction = destroyFunction;
-	element->onEnterFunction = onEnterFunction;
-	element->onExitFunction = onExitFunction;
-	element->onStayFunction = onStayFunction;
+	element->onDestroy = onDestroy;
+	element->onEnter = onEnter;
+	element->onExit = onExit;
+	element->onStay = onStay;
 	element->handle = handle;
 
 	InterfaceElement** elements = interface->elements;
@@ -431,7 +435,7 @@ void destroyInterfaceElement(
 		for (size_t j = i + 1; j < elementCount; j++)
 			elements[j - 1] = elements[j];
 
-		element->destroyFunction(element->handle);
+		element->onDestroy(element->handle);
 		destroyTransform(element->transform);
 		free(element);
 
@@ -454,29 +458,29 @@ Transform* getInterfaceElementTransform(
 	assert(element != NULL);
 	return element->transform;
 }
-DestroyInterfaceElement getInterfaceElementDestroyFunction(
+OnInterfaceElementDestroy getInterfaceElementOnDestroy(
 	const InterfaceElement* element)
 {
 	assert(element != NULL);
-	return element->destroyFunction;
+	return element->onDestroy;
 }
-OnInterfaceElementEvent getInterfaceElementOnEnterFunction(
+OnInterfaceElementEvent getInterfaceElementOnEnter(
 	const InterfaceElement* element)
 {
 	assert(element != NULL);
-	return element->onEnterFunction;
+	return element->onEnter;
 }
-OnInterfaceElementEvent getInterfaceElementOnExitFunction(
+OnInterfaceElementEvent getInterfaceElementOnExit(
 	const InterfaceElement* element)
 {
 	assert(element != NULL);
-	return element->onExitFunction;
+	return element->onExit;
 }
-OnInterfaceElementEvent getInterfaceElementOnStayFunction(
+OnInterfaceElementEvent getInterfaceElementOnStay(
 	const InterfaceElement* element)
 {
 	assert(element != NULL);
-	return element->onStayFunction;
+	return element->onStay;
 }
 void* getInterfaceElementHandle(
 	const InterfaceElement* element)

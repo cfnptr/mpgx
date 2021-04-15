@@ -8,8 +8,8 @@ struct Renderer
 	Transform* transform;
 	Pipeline* pipeline;
 	bool ascendingSort;
-	DestroyRender destroyFunction;
-	RenderCommand renderFunction;
+	OnRenderDestroy onDestroy;
+	OnRenderDraw onDraw;
 	Render** renders;
 	size_t renderCapacity;
 	size_t renderCount;
@@ -88,13 +88,13 @@ Renderer* createRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
 	bool ascendingSort,
-	DestroyRender destroyFunction,
-	RenderCommand renderFunction)
+	OnRenderDestroy onDestroy,
+	OnRenderDraw onDraw)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
-	assert(destroyFunction != NULL);
-	assert(renderFunction != NULL);
+	assert(onDestroy != NULL);
+	assert(onDraw != NULL);
 
 	Renderer* renderer = malloc(sizeof(Renderer));
 
@@ -112,8 +112,8 @@ Renderer* createRenderer(
 	renderer->transform = transform;
 	renderer->pipeline = pipeline;
 	renderer->ascendingSort = ascendingSort;
-	renderer->destroyFunction = destroyFunction;
-	renderer->renderFunction = renderFunction;
+	renderer->onDestroy = onDestroy;
+	renderer->onDraw = onDraw;
 	renderer->renders = renders;
 	renderer->renderCapacity = 1;
 	renderer->renderCount = 0;
@@ -126,12 +126,12 @@ void destroyRenderer(Renderer* renderer)
 
 	Render** renders = renderer->renders;
 	size_t renderCount = renderer->renderCount;
-	DestroyRender destroyFunction = renderer->destroyFunction;
+	OnRenderDestroy onDestroy = renderer->onDestroy;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
 		Render* render = renders[i];
-		destroyFunction(render->handle);
+		onDestroy(render->handle);
 		free(render);
 	}
 
@@ -151,17 +151,17 @@ Pipeline* getRendererPipeline(
 	assert(renderer != NULL);
 	return renderer->pipeline;
 }
-DestroyRender getRendererDestroyFunction(
+OnRenderDestroy getRendererOnDestroy(
 	const Renderer* renderer)
 {
 	assert(renderer != NULL);
-	return renderer->destroyFunction;
+	return renderer->onDestroy;
 }
-RenderCommand getRendererRenderFunction(
+OnRenderDraw getRendererOnDraw(
 	const Renderer* renderer)
 {
 	assert(renderer != NULL);
-	return renderer->renderFunction;
+	return renderer->onDraw;
 }
 
 bool getRendererSorting(
@@ -277,10 +277,10 @@ void updateRenderer(
 		proj,
 		view);
 
-	RenderCommand renderFunction =
-		renderer->renderFunction;
+	OnRenderDraw onDraw =
+		renderer->onDraw;
 
-	bindPipelineCommand(pipeline);
+	bindPipeline(pipeline);
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
@@ -305,7 +305,7 @@ void updateRenderer(
 			viewProj,
 			model);
 
-		renderFunction(
+		onDraw(
 			render,
 			pipeline,
 			&model,
@@ -374,6 +374,7 @@ void destroyRender(Render* render)
 	Renderer* renderer = render->renderer;
 	Render** renders = renderer->renders;
 	size_t renderCount = renderer->renderCount;
+	OnRenderDestroy onDestroy = renderer->onDestroy;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
@@ -383,7 +384,7 @@ void destroyRender(Render* render)
 		for (size_t j = i + 1; j < renderCount; j++)
 			renders[j - 1] = renders[j];
 
-		renderer->destroyFunction(render->handle);
+		onDestroy(render->handle);
 		free(render);
 
 		renderer->renderCount--;

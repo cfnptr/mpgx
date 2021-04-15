@@ -21,11 +21,11 @@ typedef struct TextRender
 	Text* text;
 } TextRender;
 
-static void destroyColorRender(void* render)
+static void onColorRenderDestroy(void* render)
 {
 	free(render);
 }
-static void renderColorCommand(
+static void onColorRenderDraw(
 	Render* render,
 	Pipeline* pipeline,
 	const Matrix4F* model,
@@ -43,7 +43,7 @@ static void renderColorCommand(
 	setColorPipelineColor(
 		pipeline,
 		colorRender->color);
-	drawMeshCommand(
+	drawMesh(
 		colorRender->mesh,
 		pipeline);
 }
@@ -59,8 +59,8 @@ Renderer* createColorRenderer(
 		transform,
 		pipeline,
 		ascendingSorting,
-		destroyColorRender,
-		renderColorCommand);
+		onColorRenderDestroy,
+		onColorRenderDraw);
 }
 Render* createColorRender(
 	Renderer* renderer,
@@ -140,12 +140,12 @@ void setColorRenderColor(
 	colorRender->color = color;
 }
 
-static void destroySpriteRender(
+static void onSpriteRenderDestroy(
 	void* render)
 {
 	free(render);
 }
-static void renderSpriteCommand(
+static void onSpriteRenderDraw(
 	Render* render,
 	Pipeline* pipeline,
 	const Matrix4F* model,
@@ -163,7 +163,7 @@ static void renderSpriteCommand(
 	setSpritePipelineColor(
 		pipeline,
 		spriteRender->color);
-	drawMeshCommand(
+	drawMesh(
 		spriteRender->mesh,
 		pipeline);
 }
@@ -179,8 +179,8 @@ Renderer* createSpriteRenderer(
 		transform,
 		pipeline,
 		ascendingSorting,
-		destroySpriteRender,
-		renderSpriteCommand);
+		onSpriteRenderDestroy,
+		onSpriteRenderDraw);
 }
 Render* createSpriteRender(
 	Renderer* renderer,
@@ -260,12 +260,12 @@ void setSpriteRenderMesh(
 	spriteRender->mesh = mesh;
 }
 
-static void destroyDiffuseRender(
+static void onDiffuseRenderDestroy(
 	void* render)
 {
 	free(render);
 }
-static void renderDiffuseCommand(
+static void onDiffuseRenderDraw(
 	Render* render,
 	Pipeline* pipeline,
 	const Matrix4F* model,
@@ -285,7 +285,7 @@ static void renderDiffuseCommand(
 	setDiffusePipelineNormal(
 		pipeline,
 		normal);
-	drawMeshCommand(
+	drawMesh(
 		diffuseRender->mesh,
 		pipeline);
 }
@@ -301,8 +301,8 @@ Renderer* createDiffuseRenderer(
 		transform,
 		pipeline,
 		ascendingSorting,
-		destroyDiffuseRender,
-		renderDiffuseCommand);
+		onDiffuseRenderDestroy,
+		onDiffuseRenderDraw);
 }
 Render* createDiffuseRender(
 	Renderer* renderer,
@@ -362,12 +362,12 @@ void setDiffuseRenderMesh(
 	diffuseRender->mesh = mesh;
 }
 
-static void destroyTextRender(
+static void onTextRenderDestroy(
 	void* render)
 {
 	free(render);
 }
-static void renderTextCommand(
+static void onTextRenderDraw(
 	Render* render,
 	Pipeline* pipeline,
 	const Matrix4F* model,
@@ -385,7 +385,7 @@ static void renderTextCommand(
 	setTextPipelineColor(
 		pipeline,
 		textRender->color);
-	drawTextCommand(
+	drawText(
 		textRender->text,
 		pipeline);
 }
@@ -401,8 +401,8 @@ Renderer* createTextRenderer(
 		transform,
 		pipeline,
 		ascendingSorting,
-		destroyTextRender,
-		renderTextCommand);
+		onTextRenderDestroy,
+		onTextRenderDraw);
 }
 Render* createTextRender(
 	Renderer* renderer,

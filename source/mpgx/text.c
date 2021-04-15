@@ -1541,7 +1541,7 @@ bool bakeText(
 
 	return true;
 }
-void drawTextCommand(
+void drawText(
 	Text* text,
 	Pipeline* pipeline)
 {
@@ -1554,12 +1554,12 @@ void drawTextCommand(
 
 	textPipeline->vk.image =
 		text->image;
-	drawMeshCommand(
+	drawMesh(
 		text->mesh,
 		pipeline);
 }
 
-inline static TextPipeline* createGlTextPipeline(
+inline static TextPipeline* onGlTextPipelineCreate(
 	Window* window,
 	Shader* vertexShader,
 	Shader* fragmentShader)
@@ -1642,7 +1642,7 @@ inline static TextPipeline* createGlTextPipeline(
 	pipeline->gl.imageLocation = imageLocation;
 	return pipeline;
 }
-static void destroyGlTextPipeline(
+static void onGlTextPipelineDestroy(
 	Window* window,
 	void* pipeline)
 {
@@ -1657,7 +1657,7 @@ static void destroyGlTextPipeline(
 
 	free(textPipeline);
 }
-static void bindGlTextPipelineCommand(
+static void onGlTextPipelineBind(
 	Pipeline* pipeline)
 {
 	TextPipeline* textPipeline =
@@ -1711,7 +1711,7 @@ static void bindGlTextPipelineCommand(
 
 	assertOpenGL();
 }
-static void setGlTextUniformsCommand(
+static void onGlTextUniformsSet(
 	Pipeline* pipeline)
 {
 	TextPipeline* textPipeline =
@@ -1764,21 +1764,21 @@ Pipeline* createTextPipeline(
 	uint8_t api = getWindowGraphicsAPI(window);
 
 	TextPipeline* handle;
-	DestroyPipeline destroyFunction;
-	BindPipelineCommand bindFunction;
-	SetUniformsCommand setUniformsFunction;
+	OnPipelineDestroy onDestroy;
+	OnPipelineBind onBind;
+	OnPipelineUniformsSet onUniformsSet;
 
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		handle = createGlTextPipeline(
+		handle = onGlTextPipelineCreate(
 			window,
 			vertexShader,
 			fragmentShader);
 
-		destroyFunction = destroyGlTextPipeline;
-		bindFunction = bindGlTextPipelineCommand;
-		setUniformsFunction = setGlTextUniformsCommand;
+		onDestroy = onGlTextPipelineDestroy;
+		onBind = onGlTextPipelineBind;
+		onUniformsSet = onGlTextUniformsSet;
 	}
 	else
 	{
@@ -1791,14 +1791,14 @@ Pipeline* createTextPipeline(
 	Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
-		destroyFunction,
-		bindFunction,
-		setUniformsFunction,
+		onDestroy,
+		onBind,
+		onUniformsSet,
 		handle);
 
 	if (pipeline == NULL)
 	{
-		destroyFunction(
+		onDestroy(
 			window,
 			handle);
 		return NULL;

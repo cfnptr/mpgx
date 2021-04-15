@@ -9,7 +9,6 @@
 #define DEFAULT_WINDOW_HEIGHT 720
 
 // TODO: Add other enumerations
-// TODO: rename function typedefs to the onFunction
 
 typedef enum KEYBOARD_KEY
 {
@@ -258,14 +257,15 @@ typedef struct Pipeline Pipeline;
 //union Query
 //union Sampler?
 
-typedef void(*UpdateWindow)(void* argument);
+typedef void(*OnWindowUpdate)(
+	void* argument);
 
-typedef void(*DestroyPipeline)(
+typedef void(*OnPipelineDestroy)(
 	Window* window,
 	void* pipeline);
-typedef void(*BindPipelineCommand)(
+typedef void(*OnPipelineBind)(
 	Pipeline* pipeline);
-typedef void(*SetUniformsCommand)(
+typedef void(*OnPipelineUniformsSet)(
 	Pipeline* pipeline);
 
 bool initializeGraphics();
@@ -279,17 +279,19 @@ Window* createWindow(
 	size_t width,
 	size_t height,
 	const char* title,
-	UpdateWindow updateFunction,
+	OnWindowUpdate onUpdate,
 	void* updateArgument);
 Window* createAnyWindow(
 	size_t width,
 	size_t height,
 	const char* title,
-	UpdateWindow updateFunction,
+	OnWindowUpdate onUpdate,
 	void* updateArgument);
 void destroyWindow(Window* window);
 
 uint8_t getWindowGraphicsAPI(const Window* window);
+OnWindowUpdate getWindowOnUpdate(const Window* window);
+void* getWindowUpdateArgument(const Window* window);
 size_t getWindowMaxImageSize(const Window* window);
 double getWindowUpdateTime(const Window* window);
 double getWindowDeltaTime(const Window* window);
@@ -345,8 +347,8 @@ void requestWindowAttention(Window* window);
 void makeWindowContextCurrent(Window* window);
 void updateWindow(Window* window);
 
-void beginCommandRecord(Window* window);
-void endCommandRecord(Window* window);
+void beginWindowRender(Window* window);
+void endWindowRender(Window* window);
 
 Buffer* createBuffer(
 	Window* window,
@@ -407,7 +409,7 @@ void setMeshIndexBuffer(
 	size_t indexOffset,
 	Buffer* indexBuffer);
 
-void drawMeshCommand(
+void drawMesh(
 	Mesh* mesh,
 	Pipeline* pipeline);
 
@@ -466,19 +468,19 @@ const void* getShaderHandle(const Shader* shader);
 Pipeline* createPipeline(
 	Window* window,
 	uint8_t drawMode,
-	DestroyPipeline destroyFunction,
-	BindPipelineCommand bindFunction,
-	SetUniformsCommand setUniformsFunction,
+	OnPipelineDestroy onDestroy,
+	OnPipelineBind onBind,
+	OnPipelineUniformsSet onUniformsSet,
 	void* handle);
 void destroyPipeline(Pipeline* pipeline);
 
 Window* getPipelineWindow(
 	const Pipeline* pipeline);
-DestroyPipeline getPipelineDestroyFunction(
+OnPipelineDestroy getPipelineOnDestroy(
 	const Pipeline* pipeline);
-BindPipelineCommand getPipelineBindFunction(
+OnPipelineBind getPipelineOnBind(
 	const Pipeline* pipeline);
-SetUniformsCommand getPipelineSetUniformsFunction(
+OnPipelineUniformsSet getPipelineOnUniformsSet(
 	const Pipeline* pipeline);
 void* getPipelineHandle(
 	const Pipeline* pipeline);
@@ -489,4 +491,4 @@ void setPipelineDrawMode(
 	Pipeline* pipeline,
 	uint8_t drawMode);
 
-void bindPipelineCommand(Pipeline* pipeline);
+void bindPipeline(Pipeline* pipeline);

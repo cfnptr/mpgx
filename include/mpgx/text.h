@@ -58,7 +58,7 @@ bool setTextData(
 bool bakeText(
 	Text* text,
 	bool reuse);
-void drawTextCommand(
+void drawText(
 	Text* text,
 	Pipeline* pipeline);
 

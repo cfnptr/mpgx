@@ -25,7 +25,7 @@ typedef enum INTERFACE_ANCHOR
 typedef struct Interface Interface;
 typedef struct InterfaceElement InterfaceElement;
 
-typedef void(*DestroyInterfaceElement)(
+typedef void(*OnInterfaceElementDestroy)(
 	void* element);
 typedef void(*OnInterfaceElementEvent)(
 	InterfaceElement* element);
@@ -56,10 +56,10 @@ InterfaceElement* createInterfaceElement(
 	Box2F bounds,
 	InterfaceElement* parent,
 	bool update,
-	DestroyInterfaceElement destroyFunction,
-	OnInterfaceElementEvent onEnterFunction,
-	OnInterfaceElementEvent onExitFunction,
-	OnInterfaceElementEvent onStayFunction,
+	OnInterfaceElementDestroy onDestroy,
+	OnInterfaceElementEvent onEnter,
+	OnInterfaceElementEvent onExit,
+	OnInterfaceElementEvent onStay,
 	void* handle);
 void destroyInterfaceElement(
 	InterfaceElement* element);
@@ -68,13 +68,13 @@ Interface* getInterfaceElementInterface(
 	const InterfaceElement* element);
 Transform* getInterfaceElementTransform(
 	const InterfaceElement* element);
-DestroyInterfaceElement getInterfaceElementDestroyFunction(
+OnInterfaceElementDestroy getInterfaceElementOnDestroy(
 	const InterfaceElement* element);
-OnInterfaceElementEvent getInterfaceElementOnEnterFunction(
+OnInterfaceElementEvent getInterfaceElementOnEnter(
 	const InterfaceElement* element);
-OnInterfaceElementEvent getInterfaceElementOnExitFunction(
+OnInterfaceElementEvent getInterfaceElementOnExit(
 	const InterfaceElement* element);
-OnInterfaceElementEvent getInterfaceElementOnStayFunction(
+OnInterfaceElementEvent getInterfaceElementOnStay(
 	const InterfaceElement* element);
 void* getInterfaceElementHandle(
 	const InterfaceElement* element);

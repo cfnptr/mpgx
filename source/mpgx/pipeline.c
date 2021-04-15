@@ -82,7 +82,7 @@ typedef union DiffusePipeline
 	GlDiffusePipeline gl;
 } DiffusePipeline;
 
-inline static ColorPipeline* createGlColorPipeline(
+inline static ColorPipeline* onGlColorPipelineCreate(
 	Window* window,
 	Shader* vertexShader,
 	Shader* fragmentShader)
@@ -149,7 +149,7 @@ inline static ColorPipeline* createGlColorPipeline(
 	pipeline->gl.colorLocation = colorLocation;
 	return pipeline;
 }
-static void destroyGlColorPipeline(
+static void onGlColorPipelineDestroy(
 	Window* window,
 	void* pipeline)
 {
@@ -164,7 +164,7 @@ static void destroyGlColorPipeline(
 
 	free(colorPipeline);
 }
-static void bindGlColorPipeline(
+static void onGlColorPipelineBind(
 	Pipeline* pipeline)
 {
 	ColorPipeline* colorPipeline =
@@ -183,7 +183,7 @@ static void bindGlColorPipeline(
 
 	assertOpenGL();
 }
-static void setGlColorPipelineUniforms(
+static void onGlColorPipelineUniformsSet(
 	Pipeline* pipeline)
 {
 	ColorPipeline* colorPipeline =
@@ -228,21 +228,21 @@ Pipeline* createColorPipeline(
 	uint8_t api = getWindowGraphicsAPI(window);
 
 	ColorPipeline* handle;
-	DestroyPipeline destroyFunction;
-	BindPipelineCommand bindFunction;
-	SetUniformsCommand setUniformsFunction;
+	OnPipelineDestroy onDestroy;
+	OnPipelineBind onBind;
+	OnPipelineUniformsSet onUniformsSet;
 
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		handle = createGlColorPipeline(
+		handle = onGlColorPipelineCreate(
 			window,
 			vertexShader,
 			fragmentShader);
 
-		destroyFunction = destroyGlColorPipeline;
-		bindFunction = bindGlColorPipeline;
-		setUniformsFunction = setGlColorPipelineUniforms;
+		onDestroy = onGlColorPipelineDestroy;
+		onBind = onGlColorPipelineBind;
+		onUniformsSet = onGlColorPipelineUniformsSet;
 	}
 	else
 	{
@@ -255,14 +255,14 @@ Pipeline* createColorPipeline(
 	Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
-		destroyFunction,
-		bindFunction,
-		setUniformsFunction,
+		onDestroy,
+		onBind,
+		onUniformsSet,
 		handle);
 
 	if (pipeline == NULL)
 	{
-		destroyFunction(
+		onDestroy(
 			window,
 			handle);
 		return NULL;
@@ -324,7 +324,7 @@ void setColorPipelineColor(
 	colorPipeline->vk.color = color;
 }
 
-inline static SpritePipeline* createGlSpritePipeline(
+inline static SpritePipeline* onGlSpritePipelineCreate(
 	Window* window,
 	Shader* vertexShader,
 	Shader* fragmentShader)
@@ -392,7 +392,7 @@ inline static SpritePipeline* createGlSpritePipeline(
 	pipeline->gl.colorLocation = colorLocation;
 	return pipeline;
 }
-static void destroyGlSpritePipeline(
+static void onGlSpritePipelineDestroy(
 	Window* window,
 	void* pipeline)
 {
@@ -407,7 +407,7 @@ static void destroyGlSpritePipeline(
 
 	free(spritePipeline);
 }
-static void bindGlSpritePipeline(
+static void onGlSpritePipelineBind(
 	Pipeline* pipeline)
 {
 	SpritePipeline* spritePipeline =
@@ -430,7 +430,7 @@ static void bindGlSpritePipeline(
 
 	assertOpenGL();
 }
-static void setGlSpritePipelineUniforms(
+static void onGlSpritePipelineUniformsSet(
 	Pipeline* pipeline)
 {
 	SpritePipeline* spritePipeline =
@@ -475,21 +475,21 @@ Pipeline* createSpritePipeline(
 	uint8_t api = getWindowGraphicsAPI(window);
 
 	SpritePipeline* handle;
-	DestroyPipeline destroyFunction;
-	BindPipelineCommand bindFunction;
-	SetUniformsCommand setUniformsFunction;
+	OnPipelineDestroy onDestroy;
+	OnPipelineBind onBind;
+	OnPipelineUniformsSet onUniformsSet;
 
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		handle = createGlSpritePipeline(
+		handle = onGlSpritePipelineCreate(
 			window,
 			vertexShader,
 			fragmentShader);
 
-		destroyFunction = destroyGlSpritePipeline;
-		bindFunction = bindGlSpritePipeline;
-		setUniformsFunction = setGlSpritePipelineUniforms;
+		onDestroy = onGlSpritePipelineDestroy;
+		onBind = onGlSpritePipelineBind;
+		onUniformsSet = onGlSpritePipelineUniformsSet;
 	}
 	else
 	{
@@ -502,14 +502,14 @@ Pipeline* createSpritePipeline(
 	Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
-		destroyFunction,
-		bindFunction,
-		setUniformsFunction,
+		onDestroy,
+		onBind,
+		onUniformsSet,
 		handle);
 
 	if (pipeline == NULL)
 	{
-		destroyFunction(
+		onDestroy(
 			window,
 			handle);
 		return NULL;
@@ -571,7 +571,7 @@ void setSpritePipelineColor(
 	colorPipeline->vk.color = color;
 }
 
-inline static DiffusePipeline* createGlDiffusePipeline(
+inline static DiffusePipeline* onGlDiffusePipelineCreate(
 	Window* window,
 	Shader* vertexShader,
 	Shader* fragmentShader)
@@ -686,7 +686,7 @@ inline static DiffusePipeline* createGlDiffusePipeline(
 	pipeline->gl.uniformBuffer = uniformBuffer;
 	return pipeline;
 }
-static void destroyGlDiffusePipeline(
+static void onGlDiffusePipelineDestroy(
 	Window* window,
 	void* pipeline)
 {
@@ -701,7 +701,7 @@ static void destroyGlDiffusePipeline(
 
 	free(diffusePipeline);
 }
-static void bindGlDiffusePipeline(
+static void onGlDiffusePipelineBind(
 	Pipeline* pipeline)
 {
 	DiffusePipeline* diffusePipeline =
@@ -736,7 +736,7 @@ static void bindGlDiffusePipeline(
 		sizeof(DiffuseUniformBuffer),
 		0);
 }
-static void setGlDiffusePipelineUniforms(
+static void onGlDiffusePipelineUniformsSet(
 	Pipeline* pipeline)
 {
 	DiffusePipeline* diffusePipeline =
@@ -790,21 +790,21 @@ Pipeline* createDiffusePipeline(
 	uint8_t api = getWindowGraphicsAPI(window);
 
 	DiffusePipeline* handle;
-	DestroyPipeline destroyFunction;
-	BindPipelineCommand bindFunction;
-	SetUniformsCommand setUniformsFunction;
+	OnPipelineDestroy onDestroy;
+	OnPipelineBind onBind;
+	OnPipelineUniformsSet onUniformsSet;
 
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		handle = createGlDiffusePipeline(
+		handle = onGlDiffusePipelineCreate(
 			window,
 			vertexShader,
 			fragmentShader);
 
-		destroyFunction = destroyGlDiffusePipeline;
-		bindFunction = bindGlDiffusePipeline;
-		setUniformsFunction = setGlDiffusePipelineUniforms;
+		onDestroy = onGlDiffusePipelineDestroy;
+		onBind = onGlDiffusePipelineBind;
+		onUniformsSet = onGlDiffusePipelineUniformsSet;
 	}
 	else
 	{
@@ -817,14 +817,14 @@ Pipeline* createDiffusePipeline(
 	Pipeline* pipeline = createPipeline(
 		window,
 		drawMode,
-		destroyFunction,
-		bindFunction,
-		setUniformsFunction,
+		onDestroy,
+		onBind,
+		onUniformsSet,
 		handle);
 
 	if (pipeline == NULL)
 	{
-		destroyFunction(
+		onDestroy(
 			window,
 			handle);
 		return NULL;

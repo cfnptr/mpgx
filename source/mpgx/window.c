@@ -124,9 +124,9 @@ struct Pipeline
 {
 	Window* window;
 	uint8_t drawMode;
-	DestroyPipeline destroyFunction;
-	BindPipelineCommand bindFunction;
-	SetUniformsCommand setUniformsFunction;
+	OnPipelineDestroy onDestroy;
+	OnPipelineBind onBind;
+	OnPipelineUniformsSet onUniformsSet;
 	void* handle;
 };
 
@@ -134,7 +134,7 @@ struct Window
 {
 	uint8_t api;
 	size_t maxImageSize;
-	UpdateWindow updateFunction;
+	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
 	Buffer** buffers;
@@ -270,14 +270,14 @@ Window* createWindow(
 	size_t width,
 	size_t height,
 	const char* title,
-	UpdateWindow updateFunction,
+	OnWindowUpdate onUpdate,
 	void* updateArgument)
 {
 	assert(api < GRAPHICS_API_COUNT);
 	assert(width != 0);
 	assert(height != 0);
 	assert(title != NULL);
-	assert(updateFunction != NULL);
+	assert(onUpdate != NULL);
 	assert(graphicsInitialized == true);
 
 	Window* window = malloc(sizeof(Window));
@@ -476,7 +476,7 @@ Window* createWindow(
 	}
 
 	window->api = api;
-	window->updateFunction = updateFunction;
+	window->onUpdate = onUpdate;
 	window->updateArgument = updateArgument;
 	window->handle = handle;
 	window->buffers = buffers;
@@ -506,7 +506,7 @@ Window* createAnyWindow(
 	size_t width,
 	size_t height,
 	const char* title,
-	UpdateWindow updateFunction,
+	OnWindowUpdate updateFunction,
 	void* updateArgument)
 {
 	assert(width != 0);
@@ -578,7 +578,7 @@ void destroyWindow(Window* window)
 		{
 			Pipeline* pipeline = pipelines[i];
 
-			pipeline->destroyFunction(
+			pipeline->onDestroy(
 				window,
 				pipeline->handle);
 		}
@@ -613,6 +613,16 @@ uint8_t getWindowGraphicsAPI(const Window* window)
 {
 	assert(window != NULL);
 	return window->api;
+}
+OnWindowUpdate getWindowOnUpdate(const Window* window)
+{
+	assert(window != NULL);
+	return window->onUpdate;
+}
+void* getWindowUpdateArgument(const Window* window)
+{
+	assert(window != NULL);
+	return window->updateArgument;
 }
 size_t getWindowMaxImageSize(const Window* window)
 {
@@ -883,6 +893,8 @@ void updateWindow(Window* window)
 	assert(window->recording == false);
 
 	GLFWwindow* handle = window->handle;
+	OnWindowUpdate onUpdate = window->onUpdate;
+	void* updateArgument = window->updateArgument;
 
 	// TODO: add vsync off/on option
 
@@ -893,11 +905,11 @@ void updateWindow(Window* window)
 		double time = glfwGetTime();
 		window->deltaTime = time - window->updateTime;
 		window->updateTime = time;
-		window->updateFunction(window->updateArgument);
+		onUpdate(updateArgument);
 	}
 }
 
-inline static void beginGlCommandRecord(Window* window)
+inline static void beginGlWindowRender(Window* window)
 {
 	int width, height;
 
@@ -914,7 +926,7 @@ inline static void beginGlCommandRecord(Window* window)
 		GL_DEPTH_BUFFER_BIT |
 		GL_STENCIL_BUFFER_BIT);
 }
-void beginCommandRecord(Window* window)
+void beginWindowRender(Window* window)
 {
 	assert(window != NULL);
 	assert(window->recording == false);
@@ -928,7 +940,7 @@ void beginCommandRecord(Window* window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		beginGlCommandRecord(window);
+		beginGlWindowRender(window);
 	}
 	else
 	{
@@ -938,11 +950,11 @@ void beginCommandRecord(Window* window)
 	window->recording = true;
 }
 
-inline static void endGlCommandRecord(Window* window)
+inline static void endGlWindowRender(Window* window)
 {
 	glfwSwapBuffers(window->handle);
 }
-void endCommandRecord(Window* window)
+void endWindowRender(Window* window)
 {
 	assert(window != NULL);
 	assert(window->recording == true);
@@ -956,7 +968,7 @@ void endCommandRecord(Window* window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		endGlCommandRecord(window);
+		endGlWindowRender(window);
 	}
 	else
 	{
@@ -1564,7 +1576,7 @@ void setMeshIndexBuffer(
 	mesh->vk.indexBuffer = indexBuffer;
 }
 
-inline static void drawGlMeshCommand(
+inline static void drawGlMesh(
 	Mesh* mesh,
 	Pipeline* pipeline)
 {
@@ -1581,7 +1593,7 @@ inline static void drawGlMeshCommand(
 		indexBuffer->gl.handle);
 	assertOpenGL();
 
-	pipeline->setUniformsFunction(pipeline);
+	pipeline->onUniformsSet(pipeline);
 
 	GLenum glDrawMode;
 
@@ -1640,7 +1652,7 @@ inline static void drawGlMeshCommand(
 
 	assertOpenGL();
 }
-void drawMeshCommand(
+void drawMesh(
 	Mesh* mesh,
 	Pipeline* pipeline)
 {
@@ -1658,7 +1670,7 @@ void drawMeshCommand(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		drawGlMeshCommand(
+		drawGlMesh(
 			mesh,
 			pipeline);
 	}
@@ -2483,16 +2495,16 @@ const void* getShaderHandle(const Shader* shader)
 Pipeline* createPipeline(
 	Window* window,
 	uint8_t drawMode,
-	DestroyPipeline destroyFunction,
-	BindPipelineCommand bindFunction,
-	SetUniformsCommand setUniformsFunction,
+	OnPipelineDestroy onDestroy,
+	OnPipelineBind onBind,
+	OnPipelineUniformsSet onUniformsSet,
 	void* handle)
 {
 	assert(window != NULL);
 	assert(drawMode < DRAW_MODE_COUNT);
-	assert(destroyFunction != NULL);
-	assert(bindFunction != NULL);
-	assert(setUniformsFunction != NULL);
+	assert(onDestroy != NULL);
+	assert(onBind != NULL);
+	assert(onUniformsSet != NULL);
 	assert(handle != NULL);
 	assert(window->recording == false);
 
@@ -2503,9 +2515,9 @@ Pipeline* createPipeline(
 
 	pipeline->window = window;
 	pipeline->drawMode = drawMode;
-	pipeline->destroyFunction = destroyFunction;
-	pipeline->bindFunction = bindFunction;
-	pipeline->setUniformsFunction = setUniformsFunction;
+	pipeline->onDestroy = onDestroy;
+	pipeline->onBind = onBind;
+	pipeline->onUniformsSet = onUniformsSet;
 	pipeline->handle = handle;
 
 	if (window->pipelineCount == window->pipelineCapacity)
@@ -2518,7 +2530,7 @@ Pipeline* createPipeline(
 
 		if (pipelines == NULL)
 		{
-			destroyFunction(
+			onDestroy(
 				window,
 				handle);
 
@@ -2553,7 +2565,7 @@ void destroyPipeline(Pipeline* pipeline)
 		for (size_t j = i + 1; j < pipelineCount; j++)
 			pipelines[j - 1] = pipelines[j];
 
-		pipeline->destroyFunction(
+		pipeline->onDestroy(
 			window,
 			pipeline->handle);
 		free(pipeline);
@@ -2571,23 +2583,23 @@ Window* getPipelineWindow(
 	assert(pipeline != NULL);
 	return pipeline->window;
 }
-DestroyPipeline getPipelineDestroyFunction(
+OnPipelineDestroy getPipelineOnDestroy(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->destroyFunction;
+	return pipeline->onDestroy;
 }
-BindPipelineCommand getPipelineBindFunction(
+OnPipelineBind getPipelineOnBind(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->bindFunction;
+	return pipeline->onBind;
 }
-SetUniformsCommand getPipelineSetUniformsFunction(
+OnPipelineUniformsSet getPipelineOnUniformsSet(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->setUniformsFunction;
+	return pipeline->onUniformsSet;
 }
 void* getPipelineHandle(
 	const Pipeline* pipeline)
@@ -2611,9 +2623,9 @@ void setPipelineDrawMode(
 	pipeline->drawMode = drawMode;
 }
 
-void bindPipelineCommand(Pipeline* pipeline)
+void bindPipeline(Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
 	assert(pipeline->window->recording == true);
-	pipeline->bindFunction(pipeline);
+	pipeline->onBind(pipeline);
 }

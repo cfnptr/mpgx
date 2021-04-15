@@ -608,7 +608,6 @@ inline static DiffusePipeline* createGlDiffusePipeline(
 #ifndef NDEBUG
 		printf("Failed to get 'u_MVP' location\n");
 #endif
-
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;

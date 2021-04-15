@@ -419,7 +419,12 @@ Image* createImage(
 	size_t height,
 	size_t depth,
 	const void* pixels,
-	bool useMipmap);
+	bool useMipmapping);
+Image* createImageFromFile(
+	Window* window,
+	uint8_t format,
+	bool useMipmapping,
+	const char* filePath);
 void destroyImage(Image* image);
 
 void setImageData(

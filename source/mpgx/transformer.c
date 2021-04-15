@@ -325,7 +325,7 @@ void updateTransformer(
 				goto CONTINUE_2;
 
 			model = dotMat4F(
-				parent->model, // TODO: check if correct
+				parent->model,
 				model);
 			parent = parent->parent;
 		}

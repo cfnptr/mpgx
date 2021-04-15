@@ -13,5 +13,7 @@
 
 ## Third-party
 * [cmmt](https://github.com/cfnptr/cmmt) (BSD-3-Clause License)
-* [glfw](https://github.com/glfw/glfw/) (Zlib License)
 * [freetype](https://www.freetype.org/) (FreeType License)
+* [glad](https://github.com/Dav1dde/glad) (MIT License)
+* [glfw](https://github.com/glfw/glfw/) (Zlib License)
+* [stb_image](https://github.com/nothings/stb) (MIT License)

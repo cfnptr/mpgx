@@ -4,6 +4,9 @@
 #include "ft2build.h"
 #include FT_FREETYPE_H
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
 #include <stdio.h>
 
 #define OPENGL_SHADER_HEADER \
@@ -1869,6 +1872,47 @@ Image* createImage(
 
 	images[imageCount] = image;
 	window->imageCount++;
+	return image;
+}
+Image* createImageFromFile(
+	Window* window,
+	uint8_t format,
+	bool useMipmapping,
+	const char* filePath)
+{
+	assert(window != NULL);
+	assert(filePath != NULL);
+	assert(window->recording == false);
+
+	if (format != R8G8B8A8_UNORM_IMAGE_FORMAT &&
+		format != R8G8B8A8_SRGB_IMAGE_FORMAT)
+	{
+		return NULL;
+	}
+
+	int width, height, components;
+
+	stbi_uc* pixels = stbi_load(
+		filePath,
+		&width,
+		&height,
+		&components,
+		4);
+
+	if (pixels == NULL || components != 4)
+		return NULL;
+
+	Image* image = createImage(
+		window,
+		IMAGE_2D_TYPE,
+		format,
+		width,
+		height,
+		1,
+		pixels,
+		useMipmapping);
+
+	stbi_image_free(pixels);
 	return image;
 }
 void destroyImage(Image* image)

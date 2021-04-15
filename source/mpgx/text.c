@@ -1596,7 +1596,6 @@ inline static TextPipeline* createGlTextPipeline(
 #ifndef NDEBUG
 		printf("Failed to get 'u_MVP' location\n");
 #endif
-
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
@@ -1611,7 +1610,6 @@ inline static TextPipeline* createGlTextPipeline(
 #ifndef NDEBUG
 		printf("Failed to get 'u_Color' location\n");
 #endif
-
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
@@ -1626,7 +1624,6 @@ inline static TextPipeline* createGlTextPipeline(
 #ifndef NDEBUG
 		printf("Failed to get 'u_Image' location\n");
 #endif
-
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
@@ -1681,18 +1678,8 @@ static void bindGlTextPipelineCommand(
 		GL_SRC_ALPHA,
 		GL_ONE_MINUS_SRC_ALPHA);
 
-	assertOpenGL();
-}
-static void setGlTextUniformsCommand(
-	Pipeline* pipeline)
-{
-	TextPipeline* textPipeline =
-		getPipelineHandle(pipeline);
-
-	Image* image =
-		textPipeline->gl.image;
 	GLuint glImage = *(const GLuint*)
-		getImageHandle(image);
+		getImageHandle(textPipeline->gl.image);
 
 	glActiveTexture(GL_TEXTURE0);
 
@@ -1721,6 +1708,14 @@ static void setGlTextUniformsCommand(
 	glUniform1i(
 		textPipeline->gl.imageLocation,
 		0);
+
+	assertOpenGL();
+}
+static void setGlTextUniformsCommand(
+	Pipeline* pipeline)
+{
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
 
 	glUniformMatrix4fv(
 		textPipeline->gl.mvpLocation,

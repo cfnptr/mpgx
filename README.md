@@ -12,9 +12,9 @@
 * Ubuntu: sudo apt install xorg-dev
 
 ## Cloning
-* git clone https://github.com/cfnptr/mpgx
-* cd mpgx
-* git submodule update --init --recursive
+1. git clone https://github.com/cfnptr/mpgx
+2. cd mpgx
+3. git submodule update --init --recursive
 
 ## Third-party
 * [cmmt](https://github.com/cfnptr/cmmt) (BSD-3-Clause License)

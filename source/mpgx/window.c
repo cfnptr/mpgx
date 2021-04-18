@@ -1796,7 +1796,6 @@ inline static Image* createGlImage(
 	glGenTextures(
 		GL_ONE,
 		&handle);
-
 	glBindTexture(
 		glType,
 		handle);
@@ -1838,6 +1837,15 @@ inline static Image* createGlImage(
 					mipSize.x / 2,
 					mipSize.y / 2);
 			}
+
+			glTexParameteri(
+				GL_TEXTURE_2D,
+				GL_TEXTURE_BASE_LEVEL,
+				0);
+			glTexParameteri(
+				GL_TEXTURE_2D,
+				GL_TEXTURE_MAX_LEVEL,
+				levelCount - 1);
 		}
 	}
 	else
@@ -1880,6 +1888,15 @@ inline static Image* createGlImage(
 					mipSize.y / 2,
 					mipSize.z / 2);
 			}
+
+			glTexParameteri(
+				GL_TEXTURE_2D,
+				GL_TEXTURE_BASE_LEVEL,
+				0);
+			glTexParameteri(
+				GL_TEXTURE_2D,
+				GL_TEXTURE_MAX_LEVEL,
+				levelCount - 1);
 		}
 	}
 

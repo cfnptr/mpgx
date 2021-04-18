@@ -102,6 +102,9 @@ void updateFreeCamera(FreeCamera* freeCamera)
 
 	Window* window = freeCamera->window;
 
+	if (isWindowFocused(window) == false)
+		return;
+
 	if (getWindowMouseButton(window, RIGHT_MOUSE_BUTTON))
 	{
 		setWindowCursorMode(

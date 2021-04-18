@@ -454,23 +454,11 @@ const void* getImageHandle(const Image* image);
 inline static uint8_t getImageLevelCount(
 	Vec3U imageSize)
 {
-	uint32_t size;
+#define max(a, b) ((a) > (b) ? (a) : (b))
 
-	if (imageSize.x > imageSize.y &&
-		imageSize.x > imageSize.z)
-	{
-		size = imageSize.x;
-	}
-	else if (imageSize.y > imageSize.x &&
-		imageSize.y > imageSize.z)
-	{
-		size = imageSize.y;
-	}
-	else
-	{
-		size = imageSize.z;
-	}
-
+	uint32_t size = max(
+		max(imageSize.x, imageSize.y),
+		imageSize.z);
 	return (uint8_t)floorf(log2f((float)size)) + 1;
 }
 

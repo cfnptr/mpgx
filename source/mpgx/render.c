@@ -65,6 +65,7 @@ Renderer* createColorRenderer(
 Render* createColorRender(
 	Renderer* renderer,
 	Transform* transform,
+	Box3F bounding,
 	Vec4F color,
 	Mesh* mesh)
 {
@@ -91,6 +92,7 @@ Render* createColorRender(
 	Render* render = createRender(
 		renderer,
 		transform,
+		bounding,
 		colorRender);
 
 	if (render == NULL)
@@ -185,6 +187,7 @@ Renderer* createSpriteRenderer(
 Render* createSpriteRender(
 	Renderer* renderer,
 	Transform* transform,
+	Box3F bounding,
 	Vec4F color,
 	Mesh* mesh)
 {
@@ -211,6 +214,7 @@ Render* createSpriteRender(
 	Render* render = createRender(
 		renderer,
 		transform,
+		bounding,
 		spriteRender);
 
 	if (render == NULL)
@@ -307,6 +311,7 @@ Renderer* createDiffuseRenderer(
 Render* createDiffuseRender(
 	Renderer* renderer,
 	Transform* transform,
+	Box3F bounding,
 	Mesh* mesh)
 {
 	assert(renderer != NULL);
@@ -331,6 +336,7 @@ Render* createDiffuseRender(
 	Render* render = createRender(
 		renderer,
 		transform,
+		bounding,
 		diffuseRender);
 
 	if (render == NULL)
@@ -407,6 +413,7 @@ Renderer* createTextRenderer(
 Render* createTextRender(
 	Renderer* renderer,
 	Transform* transform,
+	Box3F bounding,
 	Vec4F color,
 	Text* text)
 {
@@ -433,6 +440,7 @@ Render* createTextRender(
 	Render* render = createRender(
 		renderer,
 		transform,
+		bounding,
 		textRender);
 
 	if (render == NULL)

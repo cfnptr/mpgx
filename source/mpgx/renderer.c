@@ -7,6 +7,7 @@ struct Render
 {
 	Renderer* renderer;
 	Transform* transform;
+	Box3F bounding;
 	void* handle;
 };
 typedef struct RenderData
@@ -27,57 +28,6 @@ struct Renderer
 	size_t renderCapacity;
 	size_t renderCount;
 };
-
-static int ascendCompareRender(
-	const void* a,
-	const void* b)
-{
-	const RenderData* data = (RenderData*)a;
-
-	float distanceA = distPowVec3F(
-		data->rendererPosition,
-		data->renderPosition);
-
-	data = (RenderData*)b;
-
-	float distanceB = distPowVec3F(
-		data->rendererPosition,
-		data->renderPosition);
-
-	if (distanceA < distanceB)
-		return -1;
-	if (distanceA == distanceB)
-		return 0;
-	if (distanceA > distanceB)
-		return 1;
-
-	abort();
-}
-static int descendCompareRender(
-	const void* a,
-	const void* b)
-{
-	const RenderData* data = (RenderData*)a;
-
-	float distanceA = distPowVec3F(
-		data->rendererPosition,
-		data->renderPosition);
-
-	data = (RenderData*)b;
-
-	float distanceB = distPowVec3F(
-		data->rendererPosition,
-		data->renderPosition);
-
-	if (distanceA > distanceB)
-		return -1;
-	if (distanceA == distanceB)
-		return 0;
-	if (distanceA < distanceB)
-		return 1;
-
-	abort();
-}
 
 Renderer* createRenderer(
 	Transform* transform,
@@ -185,11 +135,157 @@ void setRendererSorting(
 	renderer->ascendingSort = ascendingSorting;
 }
 
+static int ascendCompareRender(
+	const void* a,
+	const void* b)
+{
+	const RenderData* data = (RenderData*)a;
+
+	float distanceA = distPowVec3F(
+		data->rendererPosition,
+		data->renderPosition);
+
+	data = (RenderData*)b;
+
+	float distanceB = distPowVec3F(
+		data->rendererPosition,
+		data->renderPosition);
+
+	if (distanceA < distanceB)
+		return -1;
+	if (distanceA == distanceB)
+		return 0;
+	if (distanceA > distanceB)
+		return 1;
+
+	abort();
+}
+static int descendCompareRender(
+	const void* a,
+	const void* b)
+{
+	const RenderData* data = (RenderData*)a;
+
+	float distanceA = distPowVec3F(
+		data->rendererPosition,
+		data->renderPosition);
+
+	data = (RenderData*)b;
+
+	float distanceB = distPowVec3F(
+		data->rendererPosition,
+		data->renderPosition);
+
+	if (distanceA > distanceB)
+		return -1;
+	if (distanceA == distanceB)
+		return 0;
+	if (distanceA < distanceB)
+		return 1;
+
+	abort();
+}
+
 void updateRenderer(
 	Renderer* renderer,
 	Camera camera)
 {
 	assert(renderer != NULL);
+
+	Pipeline* pipeline = renderer->pipeline;
+	Mat4F view = getTransformModel(renderer->transform);
+
+	uint8_t graphicsAPI = getWindowGraphicsAPI(
+		getPipelineWindow(pipeline));
+
+	Mat4F proj;
+	Mat4F viewProj;
+	Plane3F planes[6];
+
+	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
+	{
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
+		{
+			proj = vkPerspectiveMat4F(
+				camera.perspective.fieldOfView,
+				camera.perspective.aspectRatio,
+				camera.perspective.nearClipPlane,
+				camera.perspective.farClipPlane);
+			viewProj = dotMat4F(
+				proj,
+				view);
+			vkFrustumPlanes(
+				viewProj,
+				planes,
+				false);
+		}
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		{
+			proj = glPerspectiveMat4F(
+				camera.perspective.fieldOfView,
+				camera.perspective.aspectRatio,
+				camera.perspective.nearClipPlane,
+				camera.perspective.farClipPlane);
+			viewProj = dotMat4F(
+				proj,
+				view);
+			glFrustumPlanes(
+				viewProj,
+				planes,
+				false);
+		}
+		else
+		{
+			abort();
+		}
+	}
+	else if (camera.orthographic.type == ORTHOGRAPHIC_CAMERA_TYPE)
+	{
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
+		{
+			proj = vkOrthographicMat4F(
+				camera.orthographic.leftFrustum,
+				camera.orthographic.rightFrustum,
+				camera.orthographic.bottomFrustum,
+				camera.orthographic.topFrustum,
+				camera.orthographic.nearClipPlane,
+				camera.orthographic.farClipPlane);
+			viewProj = dotMat4F(
+				proj,
+				view);
+			vkFrustumPlanes(
+				viewProj,
+				planes,
+				false);
+		}
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		{
+			proj = glOrthographicMat4F(
+				camera.orthographic.leftFrustum,
+				camera.orthographic.rightFrustum,
+				camera.orthographic.bottomFrustum,
+				camera.orthographic.topFrustum,
+				camera.orthographic.nearClipPlane,
+				camera.orthographic.farClipPlane);
+			viewProj = dotMat4F(
+				proj,
+				view);
+			glFrustumPlanes(
+				viewProj,
+				planes,
+				false);
+		}
+		else
+		{
+			abort();
+		}
+	}
+	else
+	{
+		abort();
+	}
 
 	Render** renders = renderer->renders;
 	RenderData* renderData = renderer->renderData;
@@ -217,11 +313,23 @@ void updateRenderer(
 			parent = getTransformParent(parent);
 		}
 
+		Vec3F renderPosition = getTranslationMat4F(
+			getTransformModel(transform));
+		Box3F renderBounding = getRenderBounding(render);
+
+		renderBounding.minimum = addVec3F(
+			renderBounding.minimum,
+			renderPosition);
+		renderBounding.maximum = addVec3F(
+			renderBounding.maximum,
+			renderPosition);
+
+		if (isBoxInFrustum(planes, renderBounding) == false)
+			continue;
+
 		RenderData data;
 		data.rendererPosition = rendererPosition;
-		data.renderPosition = addVec3F(
-			getTransformPosition(transform),
-			getTranslationMat4F(getTransformModel(transform)));
+		data.renderPosition = renderPosition;
 		data.render = render;
 		renderData[renderDataCount++] = data;
 
@@ -249,78 +357,7 @@ void updateRenderer(
 			descendCompareRender);
 	}
 
-	Pipeline* pipeline =
-		renderer->pipeline;
-	uint8_t graphicsAPI = getWindowGraphicsAPI(
-		getPipelineWindow(pipeline));
-
-	Mat4F proj;
-
-	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
-	{
-		if (graphicsAPI == VULKAN_GRAPHICS_API)
-		{
-			proj = createVkPerspectiveMat4F(
-				camera.perspective.fieldOfView,
-				camera.perspective.aspectRatio,
-				camera.perspective.nearClipPlane,
-				camera.perspective.farClipPlane);
-		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
-		{
-			proj = createGlPerspectiveMat4F(
-				camera.perspective.fieldOfView,
-				camera.perspective.aspectRatio,
-				camera.perspective.nearClipPlane,
-				camera.perspective.farClipPlane);
-		}
-		else
-		{
-			abort();
-		}
-	}
-	else if (camera.orthographic.type == ORTHOGRAPHIC_CAMERA_TYPE)
-	{
-		if (graphicsAPI == VULKAN_GRAPHICS_API)
-		{
-			proj = createVkOrthographicMat4F(
-				camera.orthographic.leftFrustum,
-				camera.orthographic.rightFrustum,
-				camera.orthographic.bottomFrustum,
-				camera.orthographic.topFrustum,
-				camera.orthographic.nearClipPlane,
-				camera.orthographic.farClipPlane);
-		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
-		{
-			proj = createGlOrthographicMat4F(
-				camera.orthographic.leftFrustum,
-				camera.orthographic.rightFrustum,
-				camera.orthographic.bottomFrustum,
-				camera.orthographic.topFrustum,
-				camera.orthographic.nearClipPlane,
-				camera.orthographic.farClipPlane);
-		}
-		else
-		{
-			abort();
-		}
-	}
-	else
-	{
-		abort();
-	}
-
-	Mat4F view = getTransformModel(
-		renderer->transform);
-	Mat4F viewProj = dotMat4F(
-		proj,
-		view);
-
-	OnRenderDraw onDraw =
-		renderer->onDraw;
+	OnRenderDraw onDraw = renderer->onDraw;
 
 	bindPipeline(pipeline);
 
@@ -348,6 +385,7 @@ void updateRenderer(
 Render* createRender(
 	Renderer* renderer,
 	Transform* transform,
+	Box3F bounding,
 	void* handle)
 {
 	assert(renderer != NULL);
@@ -363,6 +401,7 @@ Render* createRender(
 
 	render->renderer = renderer;
 	render->transform = transform;
+	render->bounding = bounding;
 	render->handle = handle;
 
 	Render** renders = renderer->renders;
@@ -443,6 +482,21 @@ Transform* getRenderTransform(const Render* render)
 	assert(render != NULL);
 	return render->transform;
 }
+
+Box3F getRenderBounding(
+	const Render* render)
+{
+	assert(render != NULL);
+	return render->bounding;
+}
+void setRenderBounding(
+	Render* render,
+	Box3F bounding)
+{
+	assert(render != NULL);
+	render->bounding = bounding;
+}
+
 void* getRenderHandle(const Render* render)
 {
 	assert(render != NULL);

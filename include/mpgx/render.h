@@ -8,6 +8,7 @@ Renderer* createColorRenderer(
 Render* createColorRender(
 	Renderer* renderer,
 	Transform* transform,
+	Box3F bounding,
 	Vec4F color,
 	Mesh* mesh);
 
@@ -30,6 +31,7 @@ Renderer* createSpriteRenderer(
 Render* createSpriteRender(
 	Renderer* renderer,
 	Transform* transform,
+	Box3F bounding,
 	Vec4F color,
 	Mesh* mesh);
 
@@ -52,6 +54,7 @@ Renderer* createDiffuseRenderer(
 Render* createDiffuseRender(
 	Renderer* renderer,
 	Transform* transform,
+	Box3F bounding,
 	Mesh* mesh);
 
 Mesh* getDiffuseRenderMesh(
@@ -67,6 +70,7 @@ Renderer* createTextRenderer(
 Render* createTextRender(
 	Renderer* renderer,
 	Transform* transform,
+	Box3F bounding,
 	Vec4F color,
 	Text* text);
 

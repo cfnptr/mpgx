@@ -18,9 +18,6 @@ typedef void(*OnRenderDraw)(
 	const Mat4F* viewProj,
 	const Mat4F* mvp);
 
-// TODO: frustum culling
-// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
-
 Renderer* createRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
@@ -51,9 +48,17 @@ void updateRenderer(
 Render* createRender(
 	Renderer* renderer,
 	Transform* transform,
+	Box3F bounding,
 	void* handle);
 void destroyRender(Render* render);
 
 Renderer* getRenderRenderer(const Render* render);
 Transform* getRenderTransform(const Render* render);
+
+Box3F getRenderBounding(
+	const Render* render);
+void setRenderBounding(
+	Render* render,
+	Box3F bounding);
+
 void* getRenderHandle(const Render* render);

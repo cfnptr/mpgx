@@ -217,7 +217,7 @@ Camera updateInterface(Interface* interface)
 	float halfWidth = size.x / 2.0f;
 	float halfHeight = size.y / 2.0f;
 
-	Camera camera = createOrthographicCamera(
+	Camera camera = orthographicCamera(
 		-halfWidth,
 		halfWidth,
 		-halfHeight,

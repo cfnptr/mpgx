@@ -1690,9 +1690,9 @@ ImageData* createImageDataFromFile(
 	if (imageData == NULL)
 		return NULL;
 
-	int width, height, channelCount;
-
 	stbi_set_flip_vertically_on_load(true);
+
+	int width, height, channelCount;
 
 	stbi_uc* pixels = stbi_load(
 		filePath,

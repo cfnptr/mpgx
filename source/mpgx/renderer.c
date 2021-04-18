@@ -3,6 +3,18 @@
 #include <assert.h>
 #include <string.h>
 
+struct Render
+{
+	Renderer* renderer;
+	Transform* transform;
+	void* handle;
+};
+typedef struct RenderData
+{
+	Vec3F rendererPosition;
+	Vec3F renderPosition;
+	Render* render;
+} RenderData;
 struct Renderer
 {
 	Transform* transform;
@@ -11,40 +23,26 @@ struct Renderer
 	OnRenderDestroy onDestroy;
 	OnRenderDraw onDraw;
 	Render** renders;
+	RenderData* renderData;
 	size_t renderCapacity;
 	size_t renderCount;
 };
-struct Render
-{
-	Renderer* renderer;
-	Transform* transform;
-	void* handle;
-};
-
-// TODO: create draw list, add in it visible renders and sort
-// recreate only when recreates main renders list
 
 static int ascendCompareRender(
 	const void* a,
 	const void* b)
 {
-	Render* render = *(Render**)a;
+	const RenderData* data = (RenderData*)a;
 
-	Vec3F renderPosition = addVec3F(
-		getTransformPosition(render->transform),
-		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceA = distPowVec3F(
-		getTransformPosition(render->renderer->transform),
-		renderPosition);
+		data->rendererPosition,
+		data->renderPosition);
 
-	render = *(Render**)b;
+	data = (RenderData*)b;
 
-	renderPosition = addVec3F(
-		getTransformPosition(render->transform),
-		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceB = distPowVec3F(
-		getTransformPosition(render->renderer->transform),
-		renderPosition);
+		data->rendererPosition,
+		data->renderPosition);
 
 	if (distanceA < distanceB)
 		return -1;
@@ -59,23 +57,17 @@ static int descendCompareRender(
 	const void* a,
 	const void* b)
 {
-	Render* render = *(Render**)a;
+	const RenderData* data = (RenderData*)a;
 
-	Vec3F renderPosition = addVec3F(
-		getTransformPosition(render->transform),
-		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceA = distPowVec3F(
-		getTransformPosition(render->renderer->transform),
-		renderPosition);
+		data->rendererPosition,
+		data->renderPosition);
 
-	render = *(Render**)b;
+	data = (RenderData*)b;
 
-	renderPosition = addVec3F(
-		getTransformPosition(render->transform),
-		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceB = distPowVec3F(
-		getTransformPosition(render->renderer->transform),
-		renderPosition);
+		data->rendererPosition,
+		data->renderPosition);
 
 	if (distanceA > distanceB)
 		return -1;
@@ -112,12 +104,22 @@ Renderer* createRenderer(
 		return NULL;
 	}
 
+	RenderData* renderData = malloc(sizeof(RenderData));
+
+	if (renderData == NULL)
+	{
+		free(renders);
+		free(renderer);
+		return NULL;
+	}
+
 	renderer->transform = transform;
 	renderer->pipeline = pipeline;
 	renderer->ascendingSort = ascendingSort;
 	renderer->onDestroy = onDestroy;
 	renderer->onDraw = onDraw;
 	renderer->renders = renders;
+	renderer->renderData = renderData;
 	renderer->renderCapacity = 1;
 	renderer->renderCount = 0;
 	return renderer;
@@ -126,6 +128,8 @@ void destroyRenderer(Renderer* renderer)
 {
 	if (renderer == NULL)
 		return;
+
+	free(renderer->renderData);
 
 	Render** renders = renderer->renders;
 	size_t renderCount = renderer->renderCount;
@@ -188,25 +192,60 @@ void updateRenderer(
 	assert(renderer != NULL);
 
 	Render** renders = renderer->renders;
+	RenderData* renderData = renderer->renderData;
 	size_t renderCount = renderer->renderCount;
 
-	if (renderCount == 0)
+	Vec3F rendererPosition = getTransformPosition(
+		renderer->transform);
+
+	size_t renderDataCount = 0;
+
+	for (size_t i = 0; i < renderCount; i++)
+	{
+		Render* render = renders[i];
+		Transform* transform = render->transform;
+
+		if (getTransformUpdate(transform) == false)
+			continue;
+
+		Transform* parent = getTransformParent(transform);
+
+		while (parent != NULL)
+		{
+			if (getTransformUpdate(parent) == false)
+				goto CONTINUE;
+			parent = getTransformParent(parent);
+		}
+
+		RenderData data;
+		data.rendererPosition = rendererPosition;
+		data.renderPosition = addVec3F(
+			getTransformPosition(transform),
+			getTranslationMat4F(getTransformModel(transform)));
+		data.render = render;
+		renderData[renderDataCount++] = data;
+
+	CONTINUE:
+		continue;
+	}
+
+	if (renderDataCount == 0)
 		return;
 
 	if (renderer->ascendingSort == true)
 	{
 		qsort(
-			renders,
-			renderCount,
-			sizeof(Render*),
+			renderData,
+			renderDataCount,
+			sizeof(RenderData),
 			ascendCompareRender);
 	}
 	else
 	{
 		qsort(
-			renders,
-			renderCount,
-			sizeof(Render*),
+			renderData,
+			renderDataCount,
+			sizeof(RenderData),
 			descendCompareRender);
 	}
 
@@ -285,22 +324,9 @@ void updateRenderer(
 
 	bindPipeline(pipeline);
 
-	for (size_t i = 0; i < renderCount; i++)
+	for (size_t i = 0; i < renderDataCount; i++)
 	{
-		Render* render = renders[i];
-
-		if (getTransformUpdate(render->transform) == false)
-			continue;
-
-		Transform* parent = getTransformParent(
-			render->transform);
-
-		while (parent != NULL)
-		{
-			if (getTransformUpdate(parent) == false)
-				goto CONTINUE;
-			parent = getTransformParent(parent);
-		}
+		Render* render = renderData[i].render;
 
 		Mat4F model = getTransformModel(
 			render->transform);
@@ -316,9 +342,6 @@ void updateRenderer(
 			&proj,
 			&viewProj,
 			&mvp);
-
-	CONTINUE:
-		continue;
 	}
 }
 
@@ -362,6 +385,19 @@ Render* createRender(
 		}
 
 		renderer->renders = renders;
+
+		RenderData* renderData = realloc(
+			renderer->renderData,
+			renderCapacity * sizeof(RenderData));
+
+		if (renderData == NULL)
+		{
+			destroyTransform(transform);
+			free(render);
+			return NULL;
+		}
+
+		renderer->renderData = renderData;
 		renderer->renderCapacity = renderCapacity;
 	}
 

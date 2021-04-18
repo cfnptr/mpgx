@@ -52,7 +52,7 @@ Camera updateInterface(Interface* interface);
 InterfaceElement* createInterfaceElement(
 	Interface* interface,
 	uint8_t anchor,
-	Vector3F position,
+	Vec3F position,
 	Box2F bounds,
 	InterfaceElement* parent,
 	bool update,
@@ -85,11 +85,11 @@ void setInterfaceElementAnchor(
 	InterfaceElement* element,
 	uint8_t anchor);
 
-Vector3F getInterfaceElementPosition(
+Vec3F getInterfaceElementPosition(
 	const InterfaceElement* element);
 void setInterfaceElementPosition(
 	InterfaceElement* element,
-	Vector3F position);
+	Vec3F position);
 
 Box2F getInterfaceElementBounds(
 	const InterfaceElement* element);

@@ -70,10 +70,7 @@ typedef struct VkImage_
 	Window* window;
 	uint8_t type;
 	uint8_t format;
-	size_t width;
-	size_t height;
-	size_t depth;
-	bool useMipmapping;
+	Vec3U size;
 	// TODO:
 } VkImage_;
 typedef struct GlImage
@@ -81,10 +78,7 @@ typedef struct GlImage
 	Window* window;
 	uint8_t type;
 	uint8_t format;
-	size_t width;
-	size_t height;
-	size_t depth;
-	bool useMipmapping;
+	Vec3U size;
 	GLenum glType;
 	GLenum dataType;
 	GLenum dataFormat;
@@ -130,10 +124,17 @@ struct Pipeline
 	void* handle;
 };
 
+struct ImageData
+{
+	uint8_t* pixels;
+	Vec2U size;
+	uint8_t channelCount;
+};
+
 struct Window
 {
 	uint8_t api;
-	size_t maxImageSize;
+	uint32_t maxImageSize;
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
@@ -267,15 +268,14 @@ void* getFtLibrary()
 
 Window* createWindow(
 	uint8_t api,
-	size_t width,
-	size_t height,
+	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument)
 {
 	assert(api < GRAPHICS_API_COUNT);
-	assert(width != 0);
-	assert(height != 0);
+	assert(size.x > 0);
+	assert(size.y > 0);
 	assert(title != NULL);
 	assert(onUpdate != NULL);
 	assert(graphicsInitialized == true);
@@ -359,8 +359,8 @@ Window* createWindow(
 	}
 
 	GLFWwindow* handle = glfwCreateWindow(
-		(int)width,
-		(int)height,
+		(int)size.x,
+		(int)size.y,
 		title,
 		NULL,
 		NULL);
@@ -403,7 +403,7 @@ Window* createWindow(
 			&maxImageSize);
 		assertOpenGL();
 
-		window->maxImageSize = (size_t)maxImageSize;
+		window->maxImageSize = maxImageSize;
 	}
 
 	Buffer** buffers = malloc(sizeof(Buffer*));
@@ -503,22 +503,20 @@ Window* createWindow(
 	return window;
 }
 Window* createAnyWindow(
-	size_t width,
-	size_t height,
+	Vec2U size,
 	const char* title,
 	OnWindowUpdate updateFunction,
 	void* updateArgument)
 {
-	assert(width != 0);
-	assert(height != 0);
+	assert(size.x > 0);
+	assert(size.y > 0);
 	assert(title != NULL);
 	assert(updateFunction != NULL);
 	assert(graphicsInitialized == true);
 
 	Window* window = createWindow(
 		VULKAN_GRAPHICS_API,
-		width,
-		height,
+		size,
 		title,
 		updateFunction,
 		updateArgument);
@@ -528,8 +526,7 @@ Window* createAnyWindow(
 
 	window = createWindow(
 		OPENGL_GRAPHICS_API,
-		width,
-		height,
+		size,
 		title,
 		updateFunction,
 		updateArgument);
@@ -539,8 +536,7 @@ Window* createAnyWindow(
 
 	window = createWindow(
 		OPENGL_ES_GRAPHICS_API,
-		width,
-		height,
+		size,
 		title,
 		updateFunction,
 		updateArgument);
@@ -624,7 +620,7 @@ void* getWindowUpdateArgument(const Window* window)
 	assert(window != NULL);
 	return window->updateArgument;
 }
-size_t getWindowMaxImageSize(const Window* window)
+uint32_t getWindowMaxImageSize(const Window* window)
 {
 	assert(window != NULL);
 	return window->maxImageSize;
@@ -639,11 +635,11 @@ double getWindowDeltaTime(const Window* window)
 	assert(window != NULL);
 	return window->deltaTime;
 }
-Vector2F getWindowContentScale(const Window* window)
+Vec2F getWindowContentScale(const Window* window)
 {
 	assert(window != NULL);
 
-	Vector2F scale;
+	Vec2F scale;
 
 	glfwGetWindowContentScale(
 		window->handle,
@@ -652,18 +648,18 @@ Vector2F getWindowContentScale(const Window* window)
 
 	return scale;
 }
-Vector2I getWindowFramebufferSize(const Window* window)
+Vec2U getWindowFramebufferSize(const Window* window)
 {
 	assert(window != NULL);
 
-	Vector2I size;
+	int width, height;
 
 	glfwGetFramebufferSize(
 		window->handle,
-		&size.x,
-		&size.y);
+		&width,
+		&height);
 
-	return size;
+	return vec2U(width, height);
 }
 const char* getWindowClipboard(const Window* window)
 {
@@ -692,38 +688,38 @@ bool getWindowMouseButton(
 		button) == GLFW_PRESS;
 }
 
-Vector2I getWindowSize(
+Vec2U getWindowSize(
 	const Window* window)
 {
 	assert(window != NULL);
 
-	Vector2I size;
+	int width, height;
 
 	glfwGetWindowSize(
 		window->handle,
-		&size.x,
-		&size.y);
+		&width,
+		&height);
 
-	return size;
+	return vec2U(width, height);
 }
 void setWindowSize(
 	Window* window,
-	Vector2I size)
+	Vec2U size)
 {
 	assert(window != NULL);
 
 	glfwSetWindowSize(
 		window->handle,
-		size.x,
-		size.y);
+		(int)size.x,
+		(int)size.y);
 }
 
-Vector2I getWindowPosition(
+Vec2I getWindowPosition(
 	const Window* window)
 {
 	assert(window != NULL);
 
-	Vector2I position;
+	Vec2I position;
 
 	glfwGetWindowPos(
 		window->handle,
@@ -734,7 +730,7 @@ Vector2I getWindowPosition(
 }
 void setWindowPosition(
 	Window* window,
-	Vector2I position)
+	Vec2I position)
 {
 	assert(window != NULL);
 
@@ -744,7 +740,7 @@ void setWindowPosition(
 		position.y);
 }
 
-Vector2F getWindowCursorPosition(
+Vec2F getWindowCursorPosition(
 	const Window* window)
 {
 	assert(window != NULL);
@@ -760,7 +756,7 @@ Vector2F getWindowCursorPosition(
 }
 void setWindowCursorPosition(
 	Window* window,
-	Vector2F position)
+	Vec2F position)
 {
 	assert(window != NULL);
 
@@ -1652,6 +1648,7 @@ inline static void drawGlMesh(
 
 	assertOpenGL();
 }
+
 void drawMesh(
 	Mesh* mesh,
 	Pipeline* pipeline)
@@ -1680,15 +1677,75 @@ void drawMesh(
 	}
 }
 
+ImageData* createImageDataFromFile(
+	const char* filePath,
+	uint8_t _channelCount)
+{
+	assert(filePath != NULL);
+	assert(_channelCount <= 4);
+
+	ImageData* imageData = malloc(
+		sizeof(ImageData));
+
+	if (imageData == NULL)
+		return NULL;
+
+	int width, height, channelCount;
+
+	stbi_uc* pixels = stbi_load(
+		filePath,
+		&width,
+		&height,
+		&channelCount,
+		_channelCount);
+
+	if (pixels == NULL)
+	{
+		free(imageData);
+		return NULL;
+	}
+
+	imageData->pixels = pixels;
+	imageData->size = vec2U(width, height);
+	imageData->channelCount = channelCount;
+	return imageData;
+}
+void destroyImageData(
+	ImageData* imageData)
+{
+	if (imageData == NULL)
+		return;
+
+	stbi_image_free(imageData->pixels);
+	free(imageData);
+}
+
+const uint8_t* getImageDataPixels(
+	const ImageData* imageData)
+{
+	assert(imageData != NULL);
+	return imageData->pixels;
+}
+Vec2U getImageDataSize(
+	const ImageData* imageData)
+{
+	assert(imageData != NULL);
+	return imageData->size;
+}
+uint8_t getImageDataChannelCount(
+	const ImageData* imageData)
+{
+	assert(imageData != NULL);
+	return imageData->channelCount;
+}
+
 inline static Image* createGlImage(
 	Window* window,
 	uint8_t type,
 	uint8_t format,
-	size_t width,
-	size_t height,
-	size_t depth,
-	const void* pixels,
-	bool useMipmapping)
+	Vec3U size,
+	const void** data,
+	uint8_t levelCount)
 {
 	Image* image = malloc(sizeof(Image));
 
@@ -1746,44 +1803,92 @@ inline static Image* createGlImage(
 
 	if (type == IMAGE_2D_TYPE)
 	{
-		glTexImage2D(
-			glType,
-			0,
-			glFormat,
-			(GLsizei)width,
-			(GLsizei)height,
-			0,
-			dataFormat,
-			dataType,
-			pixels);
+		if (levelCount == 0)
+		{
+			glTexImage2D(
+				glType,
+				0,
+				glFormat,
+				(GLsizei)size.x,
+				(GLsizei)size.y,
+				0,
+				dataFormat,
+				dataType,
+				data[0]);
+			glGenerateMipmap(glType);
+		}
+		else
+		{
+			Vec2U mipSize = vec2U(size.x, size.y);
+
+			for (uint8_t i = 0; i < levelCount; i++)
+			{
+				glTexImage2D(
+					glType,
+					(GLint)i,
+					glFormat,
+					(GLsizei)mipSize.x,
+					(GLsizei)mipSize.y,
+					0,
+					dataFormat,
+					dataType,
+					data[i]);
+
+				mipSize = vec2U(
+					mipSize.x / 2,
+					mipSize.y / 2);
+			}
+		}
 	}
 	else
 	{
-		glTexImage3D(
-			glType,
-			0,
-			glFormat,
-			(GLsizei)width,
-			(GLsizei)height,
-			(GLsizei)depth,
-			0,
-			dataFormat,
-			dataType,
-			pixels);
-	}
+		if (levelCount == 0)
+		{
+			glTexImage3D(
+				glType,
+				0,
+				glFormat,
+				(GLsizei)size.x,
+				(GLsizei)size.y,
+				(GLsizei)size.z,
+				0,
+				dataFormat,
+				dataType,
+				data[0]);
+			glGenerateMipmap(glType);
+		}
+		else
+		{
+			Vec3U mipSize = size;
 
-	if (useMipmapping == true)
-		glGenerateMipmap(glType);
+			for (uint8_t i = 0; i < levelCount; i++)
+			{
+				glTexImage3D(
+					glType,
+					(GLint)i,
+					glFormat,
+					(GLsizei)mipSize.x,
+					(GLsizei)mipSize.y,
+					(GLsizei)mipSize.z,
+					0,
+					dataFormat,
+					dataType,
+					data[i]);
+
+				mipSize = vec3U(
+					mipSize.x / 2,
+					mipSize.y / 2,
+					mipSize.z / 2);
+			}
+		}
+	}
 
 	assertOpenGL();
 
 	image->gl.window = window;
 	image->gl.type = type;
 	image->gl.format = format;
-	image->gl.width = width;
-	image->gl.height = height;
-	image->gl.depth = depth;
-	image->gl.useMipmapping = useMipmapping;
+	image->gl.size = size;
 	image->gl.handle = handle;
 	image->gl.glType = glType;
 	image->gl.dataType = dataType;
@@ -1795,25 +1900,26 @@ Image* createImage(
 	Window* window,
 	uint8_t type,
 	uint8_t format,
-	size_t width,
-	size_t height,
-	size_t depth,
-	const void* pixels,
-	bool useMipmapping)
+	Vec3U size,
+	const void** data,
+	uint8_t levelCount)
 {
 	assert(window != NULL);
 	assert(type < IMAGE_TYPE_COUNT);
 	assert(format < IMAGE_FORMAT_COUNT);
-	assert(width != 0);
-	assert(height != 0);
-	assert(depth != 0);
+	assert(size.x > 0);
+	assert(size.y > 0);
+	assert(size.z > 0);
+	assert(data != NULL);
+	assert(levelCount >= 0);
+	assert(levelCount <= getImageLevelCount(size));
 	assert(window->recording == false);
 
-	size_t maxImageSize = window->maxImageSize;
+	uint32_t maxImageSize = window->maxImageSize;
 
-	if (width > maxImageSize ||
-		height > maxImageSize ||
-		depth > maxImageSize)
+	if (size.x > maxImageSize ||
+		size.y > maxImageSize ||
+		size.z > maxImageSize)
 	{
 		return NULL;
 	}
@@ -1833,11 +1939,9 @@ Image* createImage(
 			window,
 			type,
 			format,
-			width,
-			height,
-			depth,
-			pixels,
-			useMipmapping);
+			size,
+			data,
+			levelCount);
 	}
 	else
 	{
@@ -1889,8 +1993,8 @@ Image* createImage(
 Image* createImageFromFile(
 	Window* window,
 	uint8_t format,
-	bool useMipmapping,
-	const char* filePath)
+	const char* filePath,
+	bool generateMipmap)
 {
 	assert(window != NULL);
 	assert(filePath != NULL);
@@ -1918,11 +2022,9 @@ Image* createImageFromFile(
 		window,
 		IMAGE_2D_TYPE,
 		format,
-		width,
-		height,
-		1,
-		pixels,
-		useMipmapping);
+		vec3U(width, height, 1),
+		(const void**)&pixels,
+		generateMipmap ? 0 : 1);
 
 	stbi_image_free(pixels);
 	return image;
@@ -1972,13 +2074,8 @@ void destroyImage(Image* image)
 inline static void setGlImageData(
 	Image* image,
 	const void* data,
-	size_t width,
-	size_t height,
-	size_t depth,
-	size_t widthOffset,
-	size_t heightOffset,
-	size_t depthOffset,
-	size_t mipmapLevel)
+	Vec3U size,
+	Vec3U offset)
 {
 	glfwMakeContextCurrent(
 		image->gl.window->handle);
@@ -1993,11 +2090,11 @@ inline static void setGlImageData(
 	{
 		glTexSubImage2D(
 			image->gl.glType,
-			(GLint)mipmapLevel,
-			(GLint)widthOffset,
-			(GLint)heightOffset,
-			(GLsizei)width,
-			(GLsizei)height,
+			0,
+			(GLint)offset.x,
+			(GLint)offset.y,
+			(GLsizei)size.x,
+			(GLsizei)size.y,
 			image->gl.dataFormat,
 			image->gl.dataType,
 			data);
@@ -2006,13 +2103,13 @@ inline static void setGlImageData(
 	{
 		glTexSubImage3D(
 			image->gl.glType,
-			(GLint)mipmapLevel,
-			(GLint)widthOffset,
-			(GLint)heightOffset,
-			(GLint)depthOffset,
-			(GLsizei)width,
-			(GLsizei)height,
-			(GLsizei)depth,
+			0,
+			(GLint)offset.x,
+			(GLint)offset.y,
+			(GLint)offset.z,
+			(GLsizei)size.x,
+			(GLsizei)size.y,
+			(GLsizei)size.z,
 			image->gl.dataFormat,
 			image->gl.dataType,
 			data);
@@ -2027,21 +2124,16 @@ inline static void setGlImageData(
 void setImageData(
 	Image* image,
 	const void* data,
-	size_t width,
-	size_t height,
-	size_t depth,
-	size_t widthOffset,
-	size_t heightOffset,
-	size_t depthOffset,
-	size_t mipmapLevel)
+	Vec3U size,
+	Vec3U offset)
 {
 	assert(image != NULL);
-	assert(width != 0);
-	assert(height != 0);
-	assert(depth != 0);
-	assert(width + widthOffset <= image->vk.width);
-	assert(height + heightOffset <= image->vk.width);
-	assert(depth + depthOffset <= image->vk.width);
+	assert(size.x > 0);
+	assert(size.y > 0);
+	assert(size.z > 0);
+	assert(size.x + offset.x <= image->vk.size.x);
+	assert(size.y + offset.y <= image->vk.size.y);
+	assert(size.z + offset.z <= image->vk.size.z);
 	assert(image->vk.window->recording == false);
 
 	// TODO: check for static image in Vulkan API
@@ -2058,49 +2150,8 @@ void setImageData(
 		setGlImageData(
 			image,
 			data,
-			width,
-			height,
-			depth,
-			widthOffset,
-			heightOffset,
-			depthOffset,
-			mipmapLevel);
-	}
-	else
-	{
-		abort();
-	}
-}
-
-inline static void generateGlMipmaps(Image* image)
-{
-	glfwMakeContextCurrent(
-		image->gl.window->handle);
-
-	glBindTexture(
-		image->gl.glType,
-		image->gl.handle);
-	glGenerateMipmap(
-		image->gl.glType);
-
-	assertOpenGL();
-}
-void generateMipmaps(Image* image)
-{
-	assert(image != NULL);
-	assert(image->vk.useMipmapping == true);
-	assert(image->vk.window->recording == false);
-
-	uint8_t api = image->vk.window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-		abort();
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		generateGlMipmaps(image);
+			size,
+			offset);
 	}
 	else
 	{
@@ -2123,25 +2174,10 @@ uint8_t getImageFormat(const Image* image)
 	assert(image != NULL);
 	return image->vk.format;
 }
-size_t getImageWidth(const Image* image)
+Vec3U getImageSize(const Image* image)
 {
 	assert(image != NULL);
-	return image->vk.width;
-}
-size_t getImageHeight(const Image* image)
-{
-	assert(image != NULL);
-	return image->vk.height;
-}
-size_t getImageDepth(const Image* image)
-{
-	assert(image != NULL);
-	return image->vk.depth;
-}
-bool isImageUseMipmapping(const Image* image)
-{
-	assert(image != NULL);
-	return image->vk.useMipmapping;
+	return image->vk.size;
 }
 const void* getImageHandle(const Image* image)
 {

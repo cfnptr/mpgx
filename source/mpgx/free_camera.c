@@ -8,8 +8,8 @@ struct FreeCamera
 {
 	Window* window;
 	Transform* transform;
-	Vector2F rotation;
-	Vector2F lastCursorPosition;
+	Vec2F rotation;
+	Vec2F lastCursorPosition;
 	float moveSpeed;
 	float viewSpeed;
 };
@@ -110,11 +110,11 @@ void updateFreeCamera(FreeCamera* freeCamera)
 
 		float deltaTime = (float)getWindowDeltaTime(window);
 		Transform* transform = freeCamera->transform;
-		Vector2F rotation = freeCamera->rotation;
-		Vector2F lastCursorPosition = freeCamera->lastCursorPosition;
+		Vec2F rotation = freeCamera->rotation;
+		Vec2F lastCursorPosition = freeCamera->lastCursorPosition;
 		float moveSpeed = freeCamera->moveSpeed * 2.0f;
 		float viewSpeed = freeCamera->viewSpeed / 200.0f;
-		Vector2F cursorPosition = getWindowCursorPosition(window);
+		Vec2F cursorPosition = getWindowCursorPosition(window);
 
 		if (lastCursorPosition.x == 0 && lastCursorPosition.y == 0)
 			lastCursorPosition = cursorPosition;
@@ -130,7 +130,7 @@ void updateFreeCamera(FreeCamera* freeCamera)
 		freeCamera->rotation = rotation;
 		freeCamera->lastCursorPosition = cursorPosition;
 
-		Quaternion transformRotation = eulerQuat(vec3F(
+		Quat transformRotation = eulerQuat(vec3F(
 			rotation.y,
 			rotation.x,
 			0.0f));
@@ -138,7 +138,7 @@ void updateFreeCamera(FreeCamera* freeCamera)
 			transform,
 			transformRotation);
 
-		Vector3F translation = zeroVec3F();
+		Vec3F translation = zeroVec3F();
 
 		if (getWindowKeyboardKey(window, A_KEYBOARD_KEY))
 			translation.x = RIGHT_AXIS_VALUE * deltaTime * moveSpeed;
@@ -157,7 +157,7 @@ void updateFreeCamera(FreeCamera* freeCamera)
 			transformRotation,
 			translation);
 
-		Vector3F transformPosition =
+		Vec3F transformPosition =
 			getTransformPosition(transform);
 		transformPosition = addVec3F(
 			transformPosition,

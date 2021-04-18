@@ -21,13 +21,16 @@ struct Render
 	void* handle;
 };
 
+// TODO: create draw list, add in it visible renders and sort
+// recreate only when recreates main renders list
+
 static int ascendCompareRender(
 	const void* a,
 	const void* b)
 {
 	Render* render = *(Render**)a;
 
-	Vector3F renderPosition = addVec3F(
+	Vec3F renderPosition = addVec3F(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceA = distPowVec3F(
@@ -58,7 +61,7 @@ static int descendCompareRender(
 {
 	Render* render = *(Render**)a;
 
-	Vector3F renderPosition = addVec3F(
+	Vec3F renderPosition = addVec3F(
 		getTransformPosition(render->transform),
 		getTranslationMat4F(getTransformModel(render->transform)));
 	float distanceA = distPowVec3F(
@@ -212,7 +215,7 @@ void updateRenderer(
 	uint8_t graphicsAPI = getWindowGraphicsAPI(
 		getPipelineWindow(pipeline));
 
-	Matrix4F proj;
+	Mat4F proj;
 
 	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
 	{
@@ -271,9 +274,9 @@ void updateRenderer(
 		abort();
 	}
 
-	Matrix4F view = getTransformModel(
+	Mat4F view = getTransformModel(
 		renderer->transform);
-	Matrix4F viewProj = dotMat4F(
+	Mat4F viewProj = dotMat4F(
 		proj,
 		view);
 
@@ -299,9 +302,9 @@ void updateRenderer(
 			parent = getTransformParent(parent);
 		}
 
-		Matrix4F model = getTransformModel(
+		Mat4F model = getTransformModel(
 			render->transform);
-		Matrix4F mvp = dotMat4F(
+		Mat4F mvp = dotMat4F(
 			viewProj,
 			model);
 

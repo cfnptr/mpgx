@@ -15,7 +15,7 @@ void destroyFont(Font* font);
 Text* createText(
 	Window* window,
 	Font* font,
-	size_t fontSize,
+	uint32_t fontSize,
 	const char* data,
 	bool constant);
 void destroyText(Text* text);
@@ -29,7 +29,7 @@ size_t getTextUnicodeCharCount(
 bool getTextUnicodeCharAdvance(
 	const Text* text,
 	size_t index,
-	Vector2F* advance);
+	Vec2F* advance);
 
 Font* getTextFont(
 	const Text* text);
@@ -37,11 +37,11 @@ void setTextFont(
 	Text* text,
 	Font* font);
 
-size_t getTextFontSize(
+uint32_t getTextFontSize(
 	const Text* text);
 void setTextFontSize(
 	Text* text,
-	size_t fontSize);
+	uint32_t fontSize);
 
 const char* getTextData(
 	const Text* text);
@@ -73,14 +73,14 @@ Shader* getTextPipelineVertexShader(
 Shader* getTextPipelineFragmentShader(
 	const Pipeline* pipeline);
 
-Vector4F getTextPipelineColor(
+Vec4F getTextPipelineColor(
 	const Pipeline* pipeline);
 void setTextPipelineColor(
 	Pipeline* pipeline,
-	Vector4F color);
+	Vec4F color);
 
-Matrix4F getTextPipelineMVP(
+Mat4F getTextPipelineMVP(
 	const Pipeline* pipeline);
 void setTextPipelineMVP(
 	Pipeline* pipeline,
-	Matrix4F mvp);
+	Mat4F mvp);

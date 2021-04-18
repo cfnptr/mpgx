@@ -16,7 +16,7 @@ struct Text
 {
 	Window* window;
 	Font* font;
-	size_t fontSize;
+	uint32_t fontSize;
 	char* data;
 	size_t dataSize;
 	size_t uniCharCount;
@@ -44,8 +44,8 @@ typedef struct VkTextPipeline
 	Shader* vertexShader;
 	Shader* fragmentShader;
 	Image* image;
-	Matrix4F mvp;
-	Vector4F color;
+	Mat4F mvp;
+	Vec4F color;
 	// TODO:
 } VkTextPipeline;
 typedef struct GlTextPipeline
@@ -53,8 +53,8 @@ typedef struct GlTextPipeline
 	Shader* vertexShader;
 	Shader* fragmentShader;
 	Image* image;
-	Matrix4F mvp;
-	Vector4F color;
+	Mat4F mvp;
+	Vec4F color;
 	GLenum handle;
 	GLint mvpLocation;
 	GLint colorLocation;
@@ -279,21 +279,18 @@ inline static bool createTextGlyphs(
 }
 inline static bool createTextPixels(
 	FT_Face face,
-	size_t fontSize,
+	uint32_t fontSize,
 	Glyph* glyphs,
 	size_t glyphCount,
-	size_t textPixelLength,
+	uint32_t textPixelLength,
 	float* _newLineAdvance,
 	uint8_t** _pixels,
 	size_t* _pixelCount,
-	size_t* _pixelLength)
+	uint32_t* _pixelLength)
 {
-	size_t glyphLength = (size_t)sqrtf(
-		(float)glyphCount) + 1;
-	size_t pixelLength =
-		glyphLength * fontSize;
-	size_t pixelCount =
-		pixelLength * pixelLength;
+	uint32_t glyphLength = (uint32_t)sqrtf((float)glyphCount) + 1;
+	uint32_t pixelLength = glyphLength * fontSize;
+	size_t pixelCount = pixelLength * pixelLength;
 
 	uint8_t* pixels = malloc(
 		pixelCount * 4 * sizeof(uint8_t));
@@ -352,7 +349,7 @@ inline static bool createTextPixels(
 		glyph.posX = (float)glyphSlot->bitmap_left / (float)fontSize;
 		glyph.posY = ((float)glyphSlot->bitmap_top - (float)glyphHeight) / (float)fontSize;
 		glyph.posZ = glyph.posX + (float)glyphWidth / (float)fontSize;
-		glyph.posW = glyph.posY + (float)glyphHeight /(float) fontSize;
+		glyph.posW = glyph.posY + (float)glyphHeight /(float)fontSize;
 		glyph.advance = ((float)glyphSlot->advance.x / 64.0f) / (float)fontSize;
 		glyph.texCoordU = (float)pixelPosX / (float)textPixelLength;
 		glyph.texCoordV = (float)pixelPosY / (float)textPixelLength;
@@ -496,7 +493,7 @@ inline static bool createTextIndices(
 Text* createText(
 	Window* window,
 	Font* font,
-	size_t fontSize,
+	uint32_t fontSize,
 	const char* _data,
 	bool constant)
 {
@@ -506,16 +503,15 @@ Text* createText(
 
 	assert(window != NULL);
 	assert(font != NULL);
+	assert(fontSize > 0);
 	assert(_data != NULL);
 
-	Text* text = malloc(
-		sizeof(Text));
+	Text* text = malloc(sizeof(Text));
 
 	if (text == NULL)
 		return NULL;
 
-	size_t dataLength =
-		strlen(_data);
+	size_t dataLength = strlen(_data);
 
 	size_t uniCharCount = getTextUniCharCount(
 		_data,
@@ -536,15 +532,15 @@ Text* createText(
 
 		data[0] = '\0';
 
+		void* pixels = NULL;
+
 		Image* image = createImage(
 			window,
 			IMAGE_2D_TYPE,
 			R8G8B8A8_UNORM_IMAGE_FORMAT,
-			fontSize,
-			fontSize,
-			1,
-			NULL,
-			false);
+			vec3U(fontSize, fontSize, 1),
+			(const void**)&pixels,
+			1);
 
 		if (image == NULL)
 		{
@@ -637,10 +633,8 @@ Text* createText(
 			return NULL;
 		}
 
-		size_t dataSize =
-			dataLength + 1;
-		char* data = malloc(
-			dataSize * sizeof(char));
+		size_t dataSize = dataLength + 1;
+		char* data = malloc(dataSize * sizeof(char));
 
 		if (data == NULL)
 		{
@@ -658,7 +652,7 @@ Text* createText(
 		float newLineAdvance;
 		uint8_t* pixels;
 		size_t pixelCount;
-		size_t pixelLength;
+		uint32_t pixelLength;
 
 		result = createTextPixels(
 			font->face,
@@ -684,11 +678,9 @@ Text* createText(
 			window,
 			IMAGE_2D_TYPE,
 			R8G8B8A8_UNORM_IMAGE_FORMAT,
-			pixelLength,
-			pixelLength,
-			1,
-			pixels,
-			false);
+			vec3U(pixelLength, pixelLength, 1),
+			(const void**)&pixels,
+			1);
 
 		free(pixels);
 
@@ -848,7 +840,7 @@ size_t getTextUnicodeCharCount(
 bool getTextUnicodeCharAdvance(
 	const Text* text,
 	size_t index,
-	Vector2F* _advance)
+	Vec2F* _advance)
 {
 	assert(text != NULL);
 	assert(index < text->uniCharCount);
@@ -856,13 +848,13 @@ bool getTextUnicodeCharAdvance(
 
 	const char* data = text->data;
 	FT_Face face = text->font->face;
-	size_t fontSize = text->fontSize;
+	uint32_t fontSize = text->fontSize;
 
 	float newLineAdvance =
 		((float)face->size->metrics.height / 64.0f) /
 		(float)fontSize;
 
-	Vector2F advance = zeroVec2F();
+	Vec2F advance = zeroVec2F();
 
 	for (size_t i = 0, j = 0; j <= index; j++)
 	{
@@ -950,7 +942,7 @@ void setTextFont(
 	text->font = font;
 }
 
-size_t getTextFontSize(
+uint32_t getTextFontSize(
 	const Text* text)
 {
 	assert(text != NULL);
@@ -958,7 +950,7 @@ size_t getTextFontSize(
 }
 void setTextFontSize(
 	Text* text,
-	size_t fontSize)
+	uint32_t fontSize)
 {
 	assert(text != NULL);
 	assert(text->constant == false);
@@ -1062,13 +1054,13 @@ bool bakeText(
 				return false;
 			}
 
-			size_t textPixelLength =
-				getImageWidth(text->image);
+			uint32_t textPixelLength =
+				getImageSize(text->image).x;
 
 			float newLineAdvance;
 			uint8_t* pixels;
 			size_t pixelCount;
-			size_t pixelLength;
+			uint32_t pixelLength;
 
 			result = createTextPixels(
 				text->font->face,
@@ -1096,11 +1088,9 @@ bool bakeText(
 					window,
 					IMAGE_2D_TYPE,
 					R8G8B8A8_UNORM_IMAGE_FORMAT,
-					pixelLength,
-					pixelLength,
-					1,
-					pixels,
-					false);
+					vec3U(pixelLength, pixelLength, 1),
+					(const void**)&pixels,
+					1);
 
 				free(pixels);
 				pixels = NULL;
@@ -1198,13 +1188,8 @@ bool bakeText(
 				setImageData(
 					text->image,
 					pixels,
-					pixelLength,
-					pixelLength,
-					1,
-					0,
-					0,
-					0,
-					0);
+					vec3U(pixelLength, pixelLength, 1),
+					zeroVec3U());
 
 				free(pixels);
 			}
@@ -1267,15 +1252,15 @@ bool bakeText(
 
 			data[0] = '\0';
 
+			void* pixels = NULL;
+
 			Image* image = createImage(
 				window,
 				IMAGE_2D_TYPE,
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
-				text->fontSize,
-				text->fontSize,
-				1,
-				NULL,
-				false);
+				vec3U(text->fontSize, text->fontSize, 1),
+				(const void**)&pixels,
+				1);
 
 			if (image == NULL)
 			{
@@ -1391,7 +1376,7 @@ bool bakeText(
 			float newLineAdvance;
 			uint8_t* pixels;
 			size_t pixelCount;
-			size_t pixelLength;
+			uint32_t pixelLength;
 
 			result = createTextPixels(
 				text->font->face,
@@ -1416,11 +1401,9 @@ bool bakeText(
 				window,
 				IMAGE_2D_TYPE,
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
-				pixelLength,
-				pixelLength,
-				1,
-				pixels,
-				false);
+				vec3U(pixelLength, pixelLength, 1),
+				(const void**)&pixels,
+				1);
 
 			free(pixels);
 
@@ -1735,15 +1718,15 @@ static void onGlTextUniformsSet(
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(Vector2F) * 2,
+		sizeof(Vec2F) * 2,
 		0);
 	glVertexAttribPointer(
 		1,
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(Vector2F) * 2,
-		(const void*)sizeof(Vector2F));
+		sizeof(Vec2F) * 2,
+		(const void*)sizeof(Vec2F));
 
 	assertOpenGL();
 }
@@ -1824,7 +1807,7 @@ Shader* getTextPipelineFragmentShader(
 	return textPipeline->vk.fragmentShader;
 }
 
-Vector4F getTextPipelineColor(
+Vec4F getTextPipelineColor(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
@@ -1834,7 +1817,7 @@ Vector4F getTextPipelineColor(
 }
 void setTextPipelineColor(
 	Pipeline* pipeline,
-	Vector4F color)
+	Vec4F color)
 {
 	assert(pipeline != NULL);
 	TextPipeline* textPipeline =
@@ -1842,7 +1825,7 @@ void setTextPipelineColor(
 	textPipeline->vk.color = color;
 }
 
-Matrix4F getTextPipelineMVP(
+Mat4F getTextPipelineMVP(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
@@ -1852,7 +1835,7 @@ Matrix4F getTextPipelineMVP(
 }
 void setTextPipelineMVP(
 	Pipeline* pipeline,
-	Matrix4F mvp)
+	Mat4F mvp)
 {
 	assert(pipeline != NULL);
 	TextPipeline* textPipeline =

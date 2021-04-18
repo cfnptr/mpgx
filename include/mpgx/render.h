@@ -8,7 +8,7 @@ Renderer* createColorRenderer(
 Render* createColorRender(
 	Renderer* renderer,
 	Transform* transform,
-	Vector4F color,
+	Vec4F color,
 	Mesh* mesh);
 
 Mesh* getColorRenderMesh(
@@ -17,11 +17,11 @@ void setColorRenderMesh(
 	Render* render,
 	Mesh* mesh);
 
-Vector4F getColorRenderColor(
+Vec4F getColorRenderColor(
 	const Render* render);
 void setColorRenderColor(
 	Render* render,
-	Vector4F color);
+	Vec4F color);
 
 Renderer* createSpriteRenderer(
 	Transform* transform,
@@ -30,14 +30,14 @@ Renderer* createSpriteRenderer(
 Render* createSpriteRender(
 	Renderer* renderer,
 	Transform* transform,
-	Vector4F color,
+	Vec4F color,
 	Mesh* mesh);
 
-Vector4F getSpriteRenderColor(
+Vec4F getSpriteRenderColor(
 	const Render* render);
 void setSpriteRenderColor(
 	Render* render,
-	Vector4F color);
+	Vec4F color);
 
 Mesh* getSpriteRenderMesh(
 	const Render* render);
@@ -67,14 +67,14 @@ Renderer* createTextRenderer(
 Render* createTextRender(
 	Renderer* renderer,
 	Transform* transform,
-	Vector4F color,
+	Vec4F color,
 	Text* text);
 
-Vector4F getTextRenderColor(
+Vec4F getTextRenderColor(
 	const Render* render);
 void setTextRenderColor(
 	Render* render,
-	Vector4F color);
+	Vec4F color);
 
 Text* getTextRenderText(
 	const Render* render);

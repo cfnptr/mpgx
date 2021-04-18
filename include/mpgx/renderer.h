@@ -12,13 +12,14 @@ typedef void(*OnRenderDestroy)(
 typedef void(*OnRenderDraw)(
 	Render* render,
 	Pipeline* pipeline,
-	const Matrix4F* model,
-	const Matrix4F* view,
-	const Matrix4F* proj,
-	const Matrix4F* viewProj,
-	const Matrix4F* mvp);
+	const Mat4F* model,
+	const Mat4F* view,
+	const Mat4F* proj,
+	const Mat4F* viewProj,
+	const Mat4F* mvp);
 
 // TODO: frustum culling
+// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
 
 Renderer* createRenderer(
 	Transform* transform,

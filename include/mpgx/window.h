@@ -256,6 +256,7 @@ typedef struct Pipeline Pipeline;
 // TODO:
 //union Query
 //union Sampler?
+typedef struct ImageData ImageData;
 
 typedef void(*OnWindowUpdate)(
 	void* argument);
@@ -276,14 +277,12 @@ void* getFtLibrary();
 
 Window* createWindow(
 	uint8_t api,
-	size_t width,
-	size_t height,
+	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument);
 Window* createAnyWindow(
-	size_t width,
-	size_t height,
+	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument);
@@ -292,11 +291,11 @@ void destroyWindow(Window* window);
 uint8_t getWindowGraphicsAPI(const Window* window);
 OnWindowUpdate getWindowOnUpdate(const Window* window);
 void* getWindowUpdateArgument(const Window* window);
-size_t getWindowMaxImageSize(const Window* window);
+uint32_t getWindowMaxImageSize(const Window* window);
 double getWindowUpdateTime(const Window* window);
 double getWindowDeltaTime(const Window* window);
-Vector2F getWindowContentScale(const Window* window);
-Vector2I getWindowFramebufferSize(const Window* window);
+Vec2F getWindowContentScale(const Window* window);
+Vec2U getWindowFramebufferSize(const Window* window);
 const char* getWindowClipboard(const Window* window);
 
 bool getWindowKeyboardKey(
@@ -306,23 +305,23 @@ bool getWindowMouseButton(
 	const Window* window,
 	int button);
 
-Vector2I getWindowSize(
+Vec2U getWindowSize(
 	const Window* window);
 void setWindowSize(
 	Window* window,
-	Vector2I size);
+	Vec2U size);
 
-Vector2I getWindowPosition(
+Vec2I getWindowPosition(
 	const Window* window);
 void setWindowPosition(
 	Window* window,
-	Vector2I position);
+	Vec2I position);
 
-Vector2F getWindowCursorPosition(
+Vec2F getWindowCursorPosition(
 	const Window* window);
 void setWindowCursorPosition(
 	Window* window,
-	Vector2F position);
+	Vec2F position);
 
 uint8_t getWindowCursorMode(
 	const Window* window);
@@ -413,42 +412,67 @@ void drawMesh(
 	Mesh* mesh,
 	Pipeline* pipeline);
 
+ImageData* createImageDataFromFile(
+	const char* filePath,
+	uint8_t channelCount);
+void destroyImageData(
+	ImageData* imageData);
+
+const uint8_t* getImageDataPixels(
+	const ImageData* imageData);
+Vec2U getImageDataSize(
+	const ImageData* imageData);
+uint8_t getImageDataChannelCount(
+	const ImageData* imageData);
+
 Image* createImage(
 	Window* window,
 	uint8_t type,
 	uint8_t format,
-	size_t width,
-	size_t height,
-	size_t depth,
-	const void* pixels,
-	bool useMipmapping);
+	Vec3U size,
+	const void** data,
+	uint8_t levelCount);
 Image* createImageFromFile(
 	Window* window,
 	uint8_t format,
-	bool useMipmapping,
-	const char* filePath);
+	const char* filePath,
+	bool generateMipmap);
 void destroyImage(Image* image);
 
 void setImageData(
 	Image* image,
 	const void* data,
-	size_t width,
-	size_t height,
-	size_t depth,
-	size_t widthOffset,
-	size_t heightOffset,
-	size_t depthOffset,
-	size_t mipmapLevel);
-void generateMipmaps(Image* image);
+	Vec3U size,
+	Vec3U offset);
 
 Window* getImageWindow(const Image* image);
 uint8_t getImageType(const Image* image);
 uint8_t getImageFormat(const Image* image);
-size_t getImageWidth(const Image* image);
-size_t getImageHeight(const Image* image);
-size_t getImageDepth(const Image* image);
-bool isImageUseMipmapping(const Image* image);
+Vec3U getImageSize(const Image* image);
 const void* getImageHandle(const Image* image);
+
+inline static uint8_t getImageLevelCount(
+	Vec3U imageSize)
+{
+	uint32_t size;
+
+	if (imageSize.x > imageSize.y &&
+		imageSize.x > imageSize.z)
+	{
+		size = imageSize.x;
+	}
+	else if (imageSize.y > imageSize.x &&
+		imageSize.y > imageSize.z)
+	{
+		size = imageSize.y;
+	}
+	else
+	{
+		size = imageSize.z;
+	}
+
+	return (uint8_t)floorf(log2f((float)size)) + 1;
+}
 
 Shader* createShader(
 	Window* window,

@@ -13,11 +13,11 @@ struct Transformer
 struct Transform
 {
 	Transformer* transformer;
-	Vector3F position;
-	Vector3F scale;
-	Quaternion rotation;
+	Vec3F position;
+	Vec3F scale;
+	Quat rotation;
 	uint8_t rotationType;
-	Matrix4F model;
+	Mat4F model;
 	Transform* parent;
 	bool update;
 };
@@ -63,9 +63,9 @@ void destroyTransformer(Transformer* transformer)
 
 Transform* createTransform(
 	Transformer* transformer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
+	Vec3F position,
+	Vec3F scale,
+	Quat rotation,
 	uint8_t rotationType,
 	Transform* parent,
 	bool update)
@@ -150,7 +150,7 @@ Transformer* getTransformTransformer(
 	return transform->transformer;
 }
 
-Vector3F getTransformPosition(
+Vec3F getTransformPosition(
 	const Transform* transform)
 {
 	assert(transform != NULL);
@@ -158,13 +158,13 @@ Vector3F getTransformPosition(
 }
 void setTransformPosition(
 	Transform* transform,
-	Vector3F position)
+	Vec3F position)
 {
 	assert(transform != NULL);
 	transform->position = position;
 }
 
-Vector3F getTransformScale(
+Vec3F getTransformScale(
 	const Transform* transform)
 {
 	assert(transform != NULL);
@@ -172,13 +172,13 @@ Vector3F getTransformScale(
 }
 void setTransformScale(
 	Transform* transform,
-	Vector3F scale)
+	Vec3F scale)
 {
 	assert(transform != NULL);
 	transform->scale = scale;
 }
 
-Quaternion getTransformRotation(
+Quat getTransformRotation(
 	const Transform* transform)
 {
 	assert(transform != NULL);
@@ -186,7 +186,7 @@ Quaternion getTransformRotation(
 }
 void setTransformRotation(
 	Transform* transform,
-	Quaternion rotation)
+	Quat rotation)
 {
 	assert(transform != NULL);
 	transform->rotation = rotation;
@@ -242,7 +242,7 @@ void setTransformUpdate(
 	transform->update = update;
 }
 
-Matrix4F getTransformModel(
+Mat4F getTransformModel(
 	const Transform* transform)
 {
 	assert(transform != NULL);
@@ -275,7 +275,7 @@ void updateTransformer(
 
 		uint8_t rotationType = transform->rotationType;
 
-		Matrix4F model = identMat4F();
+		Mat4F model = identMat4F();
 
 		if (rotationType == SPIN_ROTATION_TYPE)
 		{
@@ -317,7 +317,7 @@ void updateTransformer(
 			continue;
 
 		Transform* parent = transform->parent;
-		Matrix4F model = transform->model;
+		Mat4F model = transform->model;
 
 		while (parent != NULL)
 		{

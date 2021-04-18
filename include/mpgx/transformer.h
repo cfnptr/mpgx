@@ -17,9 +17,9 @@ void destroyTransformer(Transformer* transformer);
 
 Transform* createTransform(
 	Transformer* transformer,
-	Vector3F position,
-	Vector3F scale,
-	Quaternion rotation,
+	Vec3F position,
+	Vec3F scale,
+	Quat rotation,
 	uint8_t rotationType,
 	Transform* parent,
 	bool update);
@@ -28,23 +28,23 @@ void destroyTransform(Transform* transform);
 Transformer* getTransformTransformer(
 	const Transform* transform);
 
-Vector3F getTransformPosition(
+Vec3F getTransformPosition(
 	const Transform* transform);
 void setTransformPosition(
 	Transform* transform,
-	Vector3F position);
+	Vec3F position);
 
-Vector3F getTransformScale(
+Vec3F getTransformScale(
 	const Transform* transform);
 void setTransformScale(
 	Transform* transform,
-	Vector3F scale);
+	Vec3F scale);
 
-Quaternion getTransformRotation(
+Quat getTransformRotation(
 	const Transform* transform);
 void setTransformRotation(
 	Transform* transform,
-	Quaternion rotation);
+	Quat rotation);
 
 uint8_t getTransformRotationType(
 	const Transform* transform);
@@ -64,7 +64,7 @@ void setTransformUpdate(
 	Transform* transform,
 	bool update);
 
-Matrix4F getTransformModel(
+Mat4F getTransformModel(
 	const Transform* transform);
 
 void updateTransformer(

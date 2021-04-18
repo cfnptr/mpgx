@@ -69,7 +69,7 @@ inline static Camera createOrthographicCamera(
 	return camera;
 }
 
-inline static Matrix4F createVkPerspectiveMat4F(
+inline static Mat4F createVkPerspectiveMat4F(
 	float fieldOfView,
 	float aspectRatio,
 	float nearClipPlane,
@@ -77,7 +77,7 @@ inline static Matrix4F createVkPerspectiveMat4F(
 {
 	float tanHalfFov = tanf(fieldOfView / 2.0f);
 
-	Matrix4F matrix;
+	Mat4F matrix;
 	matrix.m00 = 1.0f / (aspectRatio * tanHalfFov);
 	matrix.m01 = 0.0f;
 	matrix.m02 = 0.0f;
@@ -99,7 +99,7 @@ inline static Matrix4F createVkPerspectiveMat4F(
 	matrix.m33 = 0.0f;
 	return matrix;
 }
-inline static Matrix4F createGlPerspectiveMat4F(
+inline static Mat4F createGlPerspectiveMat4F(
 	float fieldOfView,
 	float aspectRatio,
 	float nearClipPlane,
@@ -107,7 +107,7 @@ inline static Matrix4F createGlPerspectiveMat4F(
 {
 	float tanHalfFov = tanf(fieldOfView / 2.0f);
 
-	Matrix4F matrix;
+	Mat4F matrix;
 	matrix.m00 = 1.0f / (aspectRatio * tanHalfFov);
 	matrix.m01 = 0.0f;
 	matrix.m02 = 0.0f;
@@ -130,7 +130,7 @@ inline static Matrix4F createGlPerspectiveMat4F(
 	return matrix;
 }
 
-inline static Matrix4F createVkOrthographicMat4F(
+inline static Mat4F createVkOrthographicMat4F(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,
@@ -138,7 +138,7 @@ inline static Matrix4F createVkOrthographicMat4F(
 	float nearClipPlane,
 	float farClipPlane)
 {
-	Matrix4F matrix;
+	Mat4F matrix;
 	matrix.m00 = 2.0f / (rightFrustum - leftFrustum);
 	matrix.m01 = 0.0f;
 	matrix.m02 = 0.0f;
@@ -160,7 +160,7 @@ inline static Matrix4F createVkOrthographicMat4F(
 	matrix.m33 = 1.0f;
 	return matrix;
 }
-inline static Matrix4F createGlOrthographicMat4F(
+inline static Mat4F createGlOrthographicMat4F(
 	float leftFrustum,
 	float rightFrustum,
 	float bottomFrustum,
@@ -168,7 +168,7 @@ inline static Matrix4F createGlOrthographicMat4F(
 	float nearClipPlane,
 	float farClipPlane)
 {
-	Matrix4F matrix;
+	Mat4F matrix;
 	matrix.m00 = 2.0f / (rightFrustum - leftFrustum);
 	matrix.m01 = 0.0f;
 	matrix.m02 = 0.0f;

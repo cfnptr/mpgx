@@ -3,12 +3,12 @@
 
 typedef struct ColorRender
 {
-	Vector4F color;
+	Vec4F color;
 	Mesh* mesh;
 } ColorRender;
 typedef struct SpriteRender
 {
-	Vector4F color;
+	Vec4F color;
 	Mesh* mesh;
 } SpriteRender;
 typedef struct DiffuseRender
@@ -17,7 +17,7 @@ typedef struct DiffuseRender
 } DiffuseRender;
 typedef struct TextRender
 {
-	Vector4F color;
+	Vec4F color;
 	Text* text;
 } TextRender;
 
@@ -28,11 +28,11 @@ static void onColorRenderDestroy(void* render)
 static void onColorRenderDraw(
 	Render* render,
 	Pipeline* pipeline,
-	const Matrix4F* model,
-	const Matrix4F* view,
-	const Matrix4F* proj,
-	const Matrix4F* viewProj,
-	const Matrix4F* mvp)
+	const Mat4F* model,
+	const Mat4F* view,
+	const Mat4F* proj,
+	const Mat4F* viewProj,
+	const Mat4F* mvp)
 {
 	ColorRender* colorRender =
 		getRenderHandle(render);
@@ -65,7 +65,7 @@ Renderer* createColorRenderer(
 Render* createColorRender(
 	Renderer* renderer,
 	Transform* transform,
-	Vector4F color,
+	Vec4F color,
 	Mesh* mesh)
 {
 	assert(renderer != NULL);
@@ -122,7 +122,7 @@ void setColorRenderMesh(
 	colorRender->mesh = mesh;
 }
 
-Vector4F getColorRenderColor(
+Vec4F getColorRenderColor(
 	const Render* render)
 {
 	assert(render != NULL);
@@ -132,7 +132,7 @@ Vector4F getColorRenderColor(
 }
 void setColorRenderColor(
 	Render* render,
-	Vector4F color)
+	Vec4F color)
 {
 	assert(render != NULL);
 	ColorRender* colorRender =
@@ -148,11 +148,11 @@ static void onSpriteRenderDestroy(
 static void onSpriteRenderDraw(
 	Render* render,
 	Pipeline* pipeline,
-	const Matrix4F* model,
-	const Matrix4F* view,
-	const Matrix4F* proj,
-	const Matrix4F* viewProj,
-	const Matrix4F* mvp)
+	const Mat4F* model,
+	const Mat4F* view,
+	const Mat4F* proj,
+	const Mat4F* viewProj,
+	const Mat4F* mvp)
 {
 	SpriteRender* spriteRender =
 		getRenderHandle(render);
@@ -185,7 +185,7 @@ Renderer* createSpriteRenderer(
 Render* createSpriteRender(
 	Renderer* renderer,
 	Transform* transform,
-	Vector4F color,
+	Vec4F color,
 	Mesh* mesh)
 {
 	assert(renderer != NULL);
@@ -222,7 +222,7 @@ Render* createSpriteRender(
 	return render;
 }
 
-Vector4F getSpriteRenderColor(
+Vec4F getSpriteRenderColor(
 	const Render* render)
 {
 	assert(render != NULL);
@@ -232,7 +232,7 @@ Vector4F getSpriteRenderColor(
 }
 void setSpriteRenderColor(
 	Render* render,
-	Vector4F color)
+	Vec4F color)
 {
 	assert(render != NULL);
 	SpriteRender* spriteRender =
@@ -268,15 +268,15 @@ static void onDiffuseRenderDestroy(
 static void onDiffuseRenderDraw(
 	Render* render,
 	Pipeline* pipeline,
-	const Matrix4F* model,
-	const Matrix4F* view,
-	const Matrix4F* proj,
-	const Matrix4F* viewProj,
-	const Matrix4F* mvp)
+	const Mat4F* model,
+	const Mat4F* view,
+	const Mat4F* proj,
+	const Mat4F* viewProj,
+	const Mat4F* mvp)
 {
 	DiffuseRender* diffuseRender =
 		getRenderHandle(render);
-	Matrix4F normal = invMat4F(
+	Mat4F normal = invMat4F(
 		transposeMat4F(*model));
 
 	setDiffusePipelineMVP(
@@ -370,11 +370,11 @@ static void onTextRenderDestroy(
 static void onTextRenderDraw(
 	Render* render,
 	Pipeline* pipeline,
-	const Matrix4F* model,
-	const Matrix4F* view,
-	const Matrix4F* proj,
-	const Matrix4F* viewProj,
-	const Matrix4F* mvp)
+	const Mat4F* model,
+	const Mat4F* view,
+	const Mat4F* proj,
+	const Mat4F* viewProj,
+	const Mat4F* mvp)
 {
 	TextRender* textRender =
 		getRenderHandle(render);
@@ -407,7 +407,7 @@ Renderer* createTextRenderer(
 Render* createTextRender(
 	Renderer* renderer,
 	Transform* transform,
-	Vector4F color,
+	Vec4F color,
 	Text* text)
 {
 	assert(renderer != NULL);
@@ -444,7 +444,7 @@ Render* createTextRender(
 	return render;
 }
 
-Vector4F getTextRenderColor(
+Vec4F getTextRenderColor(
 	const Render* render)
 {
 	assert(render != NULL);
@@ -454,7 +454,7 @@ Vector4F getTextRenderColor(
 }
 void setTextRenderColor(
 	Render* render,
-	Vector4F color)
+	Vec4F color)
 {
 	assert(render != NULL);
 	TextRender* textRender =

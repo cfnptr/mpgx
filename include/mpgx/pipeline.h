@@ -158,17 +158,17 @@ Shader* getColorPipelineVertexShader(
 Shader* getColorPipelineFragmentShader(
 	const Pipeline* pipeline);
 
-Matrix4F getColorPipelineMVP(
+Mat4F getColorPipelineMVP(
 	const Pipeline* pipeline);
 void setColorPipelineMVP(
 	Pipeline* pipeline,
-	Matrix4F mvp);
+	Mat4F mvp);
 
-Vector4F getColorPipelineColor(
+Vec4F getColorPipelineColor(
 	const Pipeline* pipeline);
 void setColorPipelineColor(
 	Pipeline* pipeline,
-	Vector4F color);
+	Vec4F color);
 
 Pipeline* createSpritePipeline(
 	Window* window,
@@ -181,17 +181,17 @@ Shader* getSpritePipelineVertexShader(
 Shader* getSpritePipelineFragmentShader(
 	const Pipeline* pipeline);
 
-Matrix4F getSpritePipelineMVP(
+Mat4F getSpritePipelineMVP(
 	const Pipeline* pipeline);
 void setSpritePipelineMVP(
 	Pipeline* pipeline,
-	Matrix4F mvp);
+	Mat4F mvp);
 
-Vector4F getSpritePipelineColor(
+Vec4F getSpritePipelineColor(
 	const Pipeline* pipeline);
 void setSpritePipelineColor(
 	Pipeline* pipeline,
-	Vector4F color);
+	Vec4F color);
 
 Pipeline* createDiffusePipeline(
 	Window* window,
@@ -204,38 +204,38 @@ Shader* getDiffusePipelineVertexShader(
 Shader* getDiffusePipelineFragmentShader(
 	const Pipeline* pipeline);
 
-Matrix4F getDiffusePipelineMVP(
+Mat4F getDiffusePipelineMVP(
 	const Pipeline* pipeline);
 void setDiffusePipelineMVP(
 	Pipeline* pipeline,
-	Matrix4F mvp);
+	Mat4F mvp);
 
-Matrix4F getDiffusePipelineNormal(
+Mat4F getDiffusePipelineNormal(
 	const Pipeline* pipeline);
 void setDiffusePipelineNormal(
 	Pipeline* pipeline,
-	Matrix4F normal);
+	Mat4F normal);
 
-Vector4F getDiffusePipelineObjectColor(
+Vec4F getDiffusePipelineObjectColor(
 	const Pipeline* pipeline);
 void setDiffusePipelineObjectColor(
 	Pipeline* pipeline,
-	Vector4F objectColor);
+	Vec4F objectColor);
 
-Vector4F getDiffusePipelineAmbientColor(
+Vec4F getDiffusePipelineAmbientColor(
 	const Pipeline* pipeline);
 void setDiffusePipelineAmbientColor(
 	Pipeline* pipeline,
-	Vector4F ambientColor);
+	Vec4F ambientColor);
 
-Vector4F getDiffusePipelineLightColor(
+Vec4F getDiffusePipelineLightColor(
 	const Pipeline* pipeline);
 void setDiffusePipelineLightColor(
 	Pipeline* pipeline,
-	Vector4F lightColor);
+	Vec4F lightColor);
 
-Vector3F getDiffusePipelineLightDirection(
+Vec3F getDiffusePipelineLightDirection(
 	const Pipeline* pipeline);
 void setDiffusePipelineLightDirection(
 	Pipeline* pipeline,
-	Vector3F lightDirection);
+	Vec3F lightDirection);

@@ -8,7 +8,7 @@ struct InterfaceElement
 	Interface* interface;
 	Transform* transform;
 	uint8_t anchor;
-	Vector3F position;
+	Vec3F position;
 	Box2F bounds;
 	InterfaceElement* parent;
 	OnInterfaceElementDestroy onDestroy;
@@ -106,11 +106,11 @@ void setInterfaceScale(
 	interface->scale = scale;
 }
 
-inline static Vector3F calcTransformPosition(
+inline static Vec3F calcTransformPosition(
 	float halfWidth,
 	float halfHeight,
 	uint8_t anchor,
-	Vector3F position)
+	Vec3F position)
 {
 	switch (anchor)
 	{
@@ -172,7 +172,7 @@ inline static void updateElementPositions(
 	{
 		InterfaceElement* element = elements[i];
 
-		Vector3F transformPosition = calcTransformPosition(
+		Vec3F transformPosition = calcTransformPosition(
 			halfWidth,
 			halfHeight,
 			element->anchor,
@@ -182,7 +182,7 @@ inline static void updateElementPositions(
 
 		while (parent != NULL)
 		{
-			Vector3F parentPosition = calcTransformPosition(
+			Vec3F parentPosition = calcTransformPosition(
 				halfWidth,
 				halfHeight,
 				parent->anchor,
@@ -208,9 +208,9 @@ Camera updateInterface(Interface* interface)
 	size_t elementCount = interface->elementCount;
 	Window* window = interface->window;
 	float scale = interface->scale;
-	Vector2I windowSize = getWindowSize(window);
+	Vec2U windowSize = getWindowSize(window);
 
-	Vector2F size;
+	Vec2F size;
 	size.x = (float)windowSize.x / scale;
 	size.y = (float)windowSize.y / scale;
 
@@ -233,9 +233,9 @@ Camera updateInterface(Interface* interface)
 	if (focused == false)
 		return camera;
 
-	Vector2F cursor = getWindowCursorPosition(window);
+	Vec2F cursor = getWindowCursorPosition(window);
 
-	Vector2F cursorPosition = vec2F(
+	Vec2F cursorPosition = vec2F(
 		(cursor.x / scale) - halfWidth,
 		(size.y - (cursor.y / scale)) - halfHeight);
 
@@ -251,7 +251,7 @@ Camera updateInterface(Interface* interface)
 	{
 		InterfaceElement* element = elements[i];
 
-		Vector3F position = getTransformPosition(
+		Vec3F position = getTransformPosition(
 			element->transform);
 		Box2F bounds =
 			element->bounds;
@@ -326,7 +326,7 @@ Camera updateInterface(Interface* interface)
 InterfaceElement* createInterfaceElement(
 	Interface* interface,
 	uint8_t anchor,
-	Vector3F position,
+	Vec3F position,
 	Box2F bounds,
 	InterfaceElement* parent,
 	bool update,
@@ -503,7 +503,7 @@ void setInterfaceElementAnchor(
 	element->anchor = anchor;
 }
 
-Vector3F getInterfaceElementPosition(
+Vec3F getInterfaceElementPosition(
 	const InterfaceElement* element)
 {
 	assert(element != NULL);
@@ -511,7 +511,7 @@ Vector3F getInterfaceElementPosition(
 }
 void setInterfaceElementPosition(
 	InterfaceElement* element,
-	Vector3F position)
+	Vec3F position)
 {
 	assert(element != NULL);
 	element->position = position;

@@ -271,7 +271,8 @@ Window* createWindow(
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
-	void* updateArgument)
+	void* updateArgument,
+	bool visible)
 {
 	assert(api < GRAPHICS_API_COUNT);
 	assert(size.x > 0);
@@ -286,6 +287,10 @@ Window* createWindow(
 		return NULL;
 
 	glfwDefaultWindowHints();
+
+	glfwWindowHint(
+		GLFW_VISIBLE,
+		visible ? GLFW_TRUE : GLFW_FALSE);
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -506,7 +511,8 @@ Window* createAnyWindow(
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate updateFunction,
-	void* updateArgument)
+	void* updateArgument,
+	bool visible)
 {
 	assert(size.x > 0);
 	assert(size.y > 0);
@@ -519,7 +525,8 @@ Window* createAnyWindow(
 		size,
 		title,
 		updateFunction,
-		updateArgument);
+		updateArgument,
+		visible);
 
 	if (window != NULL)
 		return window;
@@ -529,7 +536,8 @@ Window* createAnyWindow(
 		size,
 		title,
 		updateFunction,
-		updateArgument);
+		updateArgument,
+		visible);
 
 	if (window != NULL)
 		return window;
@@ -539,7 +547,8 @@ Window* createAnyWindow(
 		size,
 		title,
 		updateFunction,
-		updateArgument);
+		updateArgument,
+		visible);
 
 	return window;
 }

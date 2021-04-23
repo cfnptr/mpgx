@@ -41,7 +41,7 @@ void setRendererSorting(
 	Renderer* renderer,
 	bool ascendingSorting);
 
-void updateRenderer(
+void drawRenderer(
 	Renderer* renderer,
 	Camera camera);
 

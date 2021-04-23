@@ -186,7 +186,7 @@ static int descendCompareRender(
 	abort();
 }
 
-void updateRenderer(
+void drawRenderer(
 	Renderer* renderer,
 	Camera camera)
 {

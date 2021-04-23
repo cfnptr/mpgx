@@ -20,25 +20,20 @@ typedef enum INTERFACE_ANCHOR
 	INTERFACE_ANCHOR_COUNT,
 } INTERFACE_ANCHOR;
 
-// TODO: add default button element, input box, etc..
-
 typedef struct Interface Interface;
 typedef struct InterfaceElement InterfaceElement;
 
 typedef void(*OnInterfaceElementDestroy)(
-	void* element);
+	void* handle);
 typedef void(*OnInterfaceElementEvent)(
 	InterfaceElement* element);
 
 Interface* createInterface(
 	Window* window,
-	Transformer* transformer,
 	float scale);
 void destroyInterface(Interface* interface);
 
 Window* getInterfaceWindow(
-	const Interface* interface);
-Transformer* getInterfaceTransformer(
 	const Interface* interface);
 
 float getInterfaceScale(
@@ -47,15 +42,18 @@ void setInterfaceScale(
 	Interface* interface,
 	float scale);
 
-Camera updateInterface(Interface* interface);
+Camera createInterfaceCamera(
+	const Interface* interface);
+
+void preUpdateInterface(Interface* interface);
+void updateInterface(Interface* interface);
 
 InterfaceElement* createInterfaceElement(
 	Interface* interface,
 	uint8_t anchor,
 	Vec3F position,
 	Box2F bounds,
-	InterfaceElement* parent,
-	bool update,
+	Transform* transform,
 	OnInterfaceElementDestroy onDestroy,
 	OnInterfaceElementEvent onEnter,
 	OnInterfaceElementEvent onExit,
@@ -96,15 +94,3 @@ Box2F getInterfaceElementBounds(
 void setInterfaceElementBounds(
 	InterfaceElement* element,
 	Box2F bounds);
-
-InterfaceElement* getInterfaceElementParent(
-	const InterfaceElement* element);
-void setInterfaceElementParent(
-	InterfaceElement* element,
-	InterfaceElement* parent);
-
-bool getInterfaceElementUpdate(
-	const InterfaceElement* element);
-void setInterfaceElementUpdate(
-	InterfaceElement* element,
-	bool update);

@@ -254,6 +254,7 @@ Pipeline* createColorPipeline(
 
 	Pipeline* pipeline = createPipeline(
 		window,
+		"Color",
 		drawMode,
 		onDestroy,
 		onBind,
@@ -277,7 +278,7 @@ Shader* getColorPipelineVertexShader(
 	assert(pipeline != NULL);
 	ColorPipeline* colorPipeline =
 		getPipelineHandle(pipeline);
-	return colorPipeline->gl.vertexShader;
+	return colorPipeline->vk.vertexShader;
 }
 Shader* getColorPipelineFragmentShader(
 	const Pipeline* pipeline)
@@ -501,6 +502,7 @@ Pipeline* createSpritePipeline(
 
 	Pipeline* pipeline = createPipeline(
 		window,
+		"Sprite",
 		drawMode,
 		onDestroy,
 		onBind,
@@ -524,7 +526,7 @@ Shader* getSpritePipelineVertexShader(
 	assert(pipeline != NULL);
 	SpritePipeline* spritePipeline =
 		getPipelineHandle(pipeline);
-	return spritePipeline->gl.vertexShader;
+	return spritePipeline->vk.vertexShader;
 }
 Shader* getSpritePipelineFragmentShader(
 	const Pipeline* pipeline)
@@ -532,7 +534,7 @@ Shader* getSpritePipelineFragmentShader(
 	assert(pipeline != NULL);
 	SpritePipeline* spritePipeline =
 		getPipelineHandle(pipeline);
-	return spritePipeline->gl.fragmentShader;
+	return spritePipeline->vk.fragmentShader;
 }
 
 Mat4F getSpritePipelineMVP(
@@ -541,7 +543,7 @@ Mat4F getSpritePipelineMVP(
 	assert(pipeline != NULL);
 	SpritePipeline* spritePipeline =
 		getPipelineHandle(pipeline);
-	return spritePipeline->gl.mvp;
+	return spritePipeline->vk.mvp;
 }
 void setSpritePipelineMVP(
 	Pipeline* pipeline,
@@ -550,7 +552,7 @@ void setSpritePipelineMVP(
 	assert(pipeline != NULL);
 	SpritePipeline* colorPipeline =
 		getPipelineHandle(pipeline);
-	colorPipeline->gl.mvp = mvp;
+	colorPipeline->vk.mvp = mvp;
 }
 
 Vec4F getSpritePipelineColor(
@@ -816,6 +818,7 @@ Pipeline* createDiffusePipeline(
 
 	Pipeline* pipeline = createPipeline(
 		window,
+		"Diffuse",
 		drawMode,
 		onDestroy,
 		onBind,
@@ -958,6 +961,7 @@ void setDiffusePipelineLightDirection(
 	Vec3F lightDirection)
 {
 	assert(pipeline != NULL);
+
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 

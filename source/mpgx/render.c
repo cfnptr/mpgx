@@ -1,6 +1,8 @@
 #include "mpgx/render.h"
 #include "mpgx/pipeline.h"
 
+#include <string.h>
+
 typedef struct ColorRender
 {
 	Vec4F color;
@@ -55,6 +57,10 @@ Renderer* createColorRenderer(
 	assert(transform != NULL);
 	assert(pipeline != NULL);
 
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Color") == 0);
+
 	return createRenderer(
 		transform,
 		pipeline,
@@ -79,6 +85,10 @@ Render* createColorRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) ==
 		getMeshWindow(mesh));
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(renderer)),
+		"Color") == 0);
 
 	ColorRender* colorRender = malloc(
 		sizeof(ColorRender));
@@ -108,6 +118,13 @@ Mesh* getColorRenderMesh(
 	const Render* render)
 {
 	assert(render != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Color") == 0);
+
 	ColorRender* colorRender =
 		getRenderHandle(render);
 	return colorRender->mesh;
@@ -119,6 +136,12 @@ void setColorRenderMesh(
 	assert(render != NULL);
 	assert(mesh != NULL);
 
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Color") == 0);
+
 	ColorRender* colorRender =
 		getRenderHandle(render);
 	colorRender->mesh = mesh;
@@ -128,6 +151,13 @@ Vec4F getColorRenderColor(
 	const Render* render)
 {
 	assert(render != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Color") == 0);
+
 	ColorRender* colorRender =
 		getRenderHandle(render);
 	return colorRender->color;
@@ -137,6 +167,13 @@ void setColorRenderColor(
 	Vec4F color)
 {
 	assert(render != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Color") == 0);
+
 	ColorRender* colorRender =
 		getRenderHandle(render);
 	colorRender->color = color;
@@ -177,6 +214,10 @@ Renderer* createSpriteRenderer(
 	assert(transform != NULL);
 	assert(pipeline != NULL);
 
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Sprite") == 0);
+
 	return createRenderer(
 		transform,
 		pipeline,
@@ -201,6 +242,10 @@ Render* createSpriteRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) ==
 		getMeshWindow(mesh));
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(renderer)),
+		"Sprite") == 0);
 
 	SpriteRender* spriteRender = malloc(
 		sizeof(SpriteRender));
@@ -230,6 +275,13 @@ Vec4F getSpriteRenderColor(
 	const Render* render)
 {
 	assert(render != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Sprite") == 0);
+
 	SpriteRender* spriteRender =
 		getRenderHandle(render);
 	return spriteRender->color;
@@ -239,6 +291,13 @@ void setSpriteRenderColor(
 	Vec4F color)
 {
 	assert(render != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Sprite") == 0);
+
 	SpriteRender* spriteRender =
 		getRenderHandle(render);
 	spriteRender->color = color;
@@ -248,6 +307,13 @@ Mesh* getSpriteRenderMesh(
 	const Render* render)
 {
 	assert(render != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Sprite") == 0);
+
 	SpriteRender* spriteRender =
 		getRenderHandle(render);
 	return spriteRender->mesh;
@@ -258,6 +324,12 @@ void setSpriteRenderMesh(
 {
 	assert(render != NULL);
 	assert(mesh != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Sprite") == 0);
 
 	SpriteRender* spriteRender =
 		getRenderHandle(render);
@@ -301,6 +373,10 @@ Renderer* createDiffuseRenderer(
 	assert(transform != NULL);
 	assert(pipeline != NULL);
 
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
+
 	return createRenderer(
 		transform,
 		pipeline,
@@ -324,6 +400,10 @@ Render* createDiffuseRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) ==
 		getMeshWindow(mesh));
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(renderer)),
+		"Diffuse") == 0);
 
 	DiffuseRender* diffuseRender = malloc(
 		sizeof(DiffuseRender));
@@ -352,6 +432,13 @@ Mesh* getDiffuseRenderMesh(
 	const Render* render)
 {
 	assert(render != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Diffuse") == 0);
+
 	DiffuseRender* diffuseRender =
 		getRenderHandle(render);
 	return diffuseRender->mesh;
@@ -362,6 +449,12 @@ void setDiffuseRenderMesh(
 {
 	assert(render != NULL);
 	assert(mesh != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Diffuse") == 0);
 
 	DiffuseRender* diffuseRender =
 		getRenderHandle(render);
@@ -403,6 +496,10 @@ Renderer* createTextRenderer(
 	assert(transform != NULL);
 	assert(pipeline != NULL);
 
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Text") == 0);
+
 	return createRenderer(
 		transform,
 		pipeline,
@@ -427,6 +524,10 @@ Render* createTextRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) ==
 		getTextWindow(text));
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(renderer)),
+		"Text") == 0);
 
 	TextRender* textRender = malloc(
 		sizeof(TextRender));
@@ -456,6 +557,13 @@ Vec4F getTextRenderColor(
 	const Render* render)
 {
 	assert(render != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Text") == 0);
+
 	TextRender* textRender =
 		getRenderHandle(render);
 	return textRender->color;
@@ -465,6 +573,13 @@ void setTextRenderColor(
 	Vec4F color)
 {
 	assert(render != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Text") == 0);
+
 	TextRender* textRender =
 		getRenderHandle(render);
 	textRender->color = color;
@@ -474,6 +589,13 @@ Text* getTextRenderText(
 	const Render* render)
 {
 	assert(render != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Text") == 0);
+
 	TextRender* textRender =
 		getRenderHandle(render);
 	return textRender->text;
@@ -484,6 +606,12 @@ void setTextRenderText(
 {
 	assert(render != NULL);
 	assert(text != NULL);
+
+	assert(strcmp(
+		getPipelineName(
+		getRendererPipeline(
+		getRenderRenderer(render))),
+		"Text") == 0);
 
 	TextRender* textRender =
 		getRenderHandle(render);

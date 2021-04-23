@@ -1773,6 +1773,7 @@ Pipeline* createTextPipeline(
 
 	Pipeline* pipeline = createPipeline(
 		window,
+		"Text",
 		drawMode,
 		onDestroy,
 		onBind,

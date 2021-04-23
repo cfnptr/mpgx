@@ -16,18 +16,33 @@ struct FreeCamera
 
 FreeCamera* createFreeCamera(
 	Window* window,
-	Transform* transform,
+	Transformer* transformer,
 	float moveSpeed,
 	float viewSpeed)
 {
 	assert(window != NULL);
-	assert(transform != NULL);
+	assert(transformer != NULL);
 
 	FreeCamera* freeCamera = malloc(
 		sizeof(FreeCamera));
 
 	if (freeCamera == NULL)
 		return NULL;
+
+	Transform* transform = createTransform(
+		transformer,
+		zeroVec3F(),
+		oneVec3F(),
+		oneQuat(),
+		ORBIT_ROTATION_TYPE,
+		NULL,
+		true);
+
+	if (transform == NULL)
+	{
+		free(freeCamera);
+		return NULL;
+	}
 
 	freeCamera->window = window;
 	freeCamera->transform = transform;
@@ -44,6 +59,7 @@ void destroyFreeCamera(
 	if (freeCamera == NULL)
 		return;
 
+	destroyTransform(freeCamera->transform);
 	free(freeCamera);
 }
 

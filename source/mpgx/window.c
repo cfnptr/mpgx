@@ -9,6 +9,10 @@
 
 #include <stdio.h>
 
+#ifndef max
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
 #define OPENGL_SHADER_HEADER \
 "#version 330 core\n"
 // TODO: possibly set default precision
@@ -117,6 +121,7 @@ union Shader
 struct Pipeline
 {
 	Window* window;
+	const char* name;
 	uint8_t drawMode;
 	OnPipelineDestroy onDestroy;
 	OnPipelineBind onBind;
@@ -2228,6 +2233,14 @@ const void* getImageHandle(const Image* image)
 	}
 }
 
+uint8_t getImageLevelCount(Vec3U imageSize)
+{
+	uint32_t size = max(
+		max(imageSize.x, imageSize.y),
+		imageSize.z);
+	return (uint8_t)floorf(log2f((float)size)) + 1;
+}
+
 inline static Shader* createGlShader(
 	Window* window,
 	uint8_t type,
@@ -2558,6 +2571,7 @@ const void* getShaderHandle(const Shader* shader)
 
 Pipeline* createPipeline(
 	Window* window,
+	const char* name,
 	uint8_t drawMode,
 	OnPipelineDestroy onDestroy,
 	OnPipelineBind onBind,
@@ -2565,6 +2579,7 @@ Pipeline* createPipeline(
 	void* handle)
 {
 	assert(window != NULL);
+	assert(name != NULL);
 	assert(drawMode < DRAW_MODE_COUNT);
 	assert(onDestroy != NULL);
 	assert(onBind != NULL);
@@ -2578,6 +2593,7 @@ Pipeline* createPipeline(
 		return NULL;
 
 	pipeline->window = window;
+	pipeline->name = name;
 	pipeline->drawMode = drawMode;
 	pipeline->onDestroy = onDestroy;
 	pipeline->onBind = onBind;
@@ -2646,6 +2662,12 @@ Window* getPipelineWindow(
 {
 	assert(pipeline != NULL);
 	return pipeline->window;
+}
+const char* getPipelineName(
+	const Pipeline* pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->name;
 }
 OnPipelineDestroy getPipelineOnDestroy(
 	const Pipeline* pipeline)

@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <string.h>
 
+// TODO: sorting is not working
+
 struct Render
 {
 	Renderer* renderer;
@@ -291,8 +293,8 @@ void drawRenderer(
 	RenderData* renderData = renderer->renderData;
 	size_t renderCount = renderer->renderCount;
 
-	Vec3F rendererPosition = getTransformPosition(
-		renderer->transform);
+	Vec3F rendererPosition = negVec3F(
+		getTransformPosition(renderer->transform));
 
 	size_t renderDataCount = 0;
 

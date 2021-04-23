@@ -452,17 +452,7 @@ uint8_t getImageType(const Image* image);
 uint8_t getImageFormat(const Image* image);
 Vec3U getImageSize(const Image* image);
 const void* getImageHandle(const Image* image);
-
-inline static uint8_t getImageLevelCount(
-	Vec3U imageSize)
-{
-#define max(a, b) ((a) > (b) ? (a) : (b))
-
-	uint32_t size = max(
-		max(imageSize.x, imageSize.y),
-		imageSize.z);
-	return (uint8_t)floorf(log2f((float)size)) + 1;
-}
+uint8_t getImageLevelCount(Vec3U imageSize);
 
 Shader* createShader(
 	Window* window,
@@ -481,6 +471,7 @@ const void* getShaderHandle(const Shader* shader);
 
 Pipeline* createPipeline(
 	Window* window,
+	const char* name,
 	uint8_t drawMode,
 	OnPipelineDestroy onDestroy,
 	OnPipelineBind onBind,
@@ -489,6 +480,8 @@ Pipeline* createPipeline(
 void destroyPipeline(Pipeline* pipeline);
 
 Window* getPipelineWindow(
+	const Pipeline* pipeline);
+const char* getPipelineName(
 	const Pipeline* pipeline);
 OnPipelineDestroy getPipelineOnDestroy(
 	const Pipeline* pipeline);

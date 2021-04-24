@@ -313,14 +313,14 @@ void drawRenderer(
 		Render* render = renders[i];
 		Transform* transform = render->transform;
 
-		if (getTransformUpdate(transform) == false)
+		if (isTransformActive(transform) == false)
 			continue;
 
 		Transform* parent = getTransformParent(transform);
 
 		while (parent != NULL)
 		{
-			if (getTransformUpdate(parent) == false)
+			if (isTransformActive(parent) == false)
 				goto CONTINUE;
 			parent = getTransformParent(parent);
 		}

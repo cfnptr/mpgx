@@ -19,7 +19,7 @@ struct Transform
 	uint8_t rotationType;
 	Mat4F model;
 	Transform* parent;
-	bool update;
+	bool isActive;
 };
 
 Transformer* createTransformer()
@@ -68,7 +68,7 @@ Transform* createTransform(
 	Quat rotation,
 	uint8_t rotationType,
 	Transform* parent,
-	bool update)
+	bool isActive)
 {
 	assert(transformer != NULL);
 	assert(rotationType < ROTATION_TYPE_COUNT);
@@ -90,7 +90,7 @@ Transform* createTransform(
 	transform->rotationType = rotationType;
 	transform->model = identMat4F();
 	transform->parent = parent;
-	transform->update = update;
+	transform->isActive = isActive;
 
 	struct Transform** transforms = transformer->transforms;
 	size_t transformCount = transformer->transformCount;
@@ -228,18 +228,18 @@ void setTransformParent(
 	transform->parent = parent;
 }
 
-bool getTransformUpdate(
+bool isTransformActive(
 	const Transform* transform)
 {
 	assert(transform != NULL);
-	return transform->update;
+	return transform->isActive;
 }
-void setTransformUpdate(
+void setTransformActive(
 	Transform* transform,
-	bool update)
+	bool isActive)
 {
 	assert(transform != NULL);
-	transform->update = update;
+	transform->isActive = isActive;
 }
 
 Mat4F getTransformModel(
@@ -261,14 +261,14 @@ void updateTransformer(
 	{
 		Transform* transform = transforms[i];
 
-		if (transform->update == false)
+		if (transform->isActive == false)
 			continue;
 
 		Transform* parent = transform->parent;
 
 		while (parent != NULL)
 		{
-			if (parent->update == false)
+			if (parent->isActive == false)
 				goto CONTINUE_1;
 			parent = parent->parent;
 		}
@@ -313,7 +313,7 @@ void updateTransformer(
 	{
 		Transform* transform = transforms[i];
 
-		if (transform->update == false)
+		if (transform->isActive == false)
 			continue;
 
 		Transform* parent = transform->parent;
@@ -321,7 +321,7 @@ void updateTransformer(
 
 		while (parent != NULL)
 		{
-			if (parent->update == false)
+			if (parent->isActive == false)
 				goto CONTINUE_2;
 
 			model = dotMat4F(

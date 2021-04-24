@@ -32,8 +32,7 @@ Interface* createInterface(
 {
 	assert(window != NULL);
 
-	Interface* interface = malloc(
-		sizeof(Interface));
+	Interface* interface = malloc(sizeof(Interface));
 
 	if (interface == NULL)
 		return NULL;
@@ -191,14 +190,14 @@ void preUpdateInterface(Interface* interface)
 		InterfaceElement* element = elements[i];
 		Transform* transform = element->transform;
 
-		if (getTransformUpdate(transform) == false)
+		if (isTransformActive(transform) == false)
 			continue;
 
 		Transform* parent = getTransformParent(transform);
 
 		while (parent != NULL)
 		{
-			if (getTransformUpdate(parent) == false)
+			if (isTransformActive(parent) == false)
 				goto CONTINUE;
 			parent = getTransformParent(parent);
 		}
@@ -249,14 +248,14 @@ void updateInterface(Interface* interface)
 		InterfaceElement* element = elements[i];
 		Transform* transform = element->transform;
 
-		if (getTransformUpdate(transform) == false)
+		if (isTransformActive(transform) == false)
 			continue;
 
 		Transform* parent = getTransformParent(transform);
 
 		while (parent != NULL)
 		{
-			if (getTransformUpdate(parent) == false)
+			if (isTransformActive(parent) == false)
 				goto CONTINUE;
 			parent = getTransformParent(parent);
 		}

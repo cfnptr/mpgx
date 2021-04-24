@@ -115,13 +115,12 @@ void setFreeCameraViewSpeed(
 void updateFreeCamera(FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
-
 	Window* window = freeCamera->window;
 
 	if (isWindowFocused(window) == false)
 		return;
 
-	if (getWindowMouseButton(window, RIGHT_MOUSE_BUTTON))
+	if (getWindowMouseButton(window, RIGHT_MOUSE_BUTTON) == true)
 	{
 		setWindowCursorMode(
 			window,

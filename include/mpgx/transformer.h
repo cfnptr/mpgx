@@ -22,7 +22,7 @@ Transform* createTransform(
 	Quat rotation,
 	uint8_t rotationType,
 	Transform* parent,
-	bool update);
+	bool isActive);
 void destroyTransform(Transform* transform);
 
 Transformer* getTransformTransformer(
@@ -58,11 +58,11 @@ void setTransformParent(
 	Transform* transform,
 	Transform* parent);
 
-bool getTransformUpdate(
+bool isTransformActive(
 	const Transform* transform);
-void setTransformUpdate(
+void setTransformActive(
 	Transform* transform,
-	bool update);
+	bool isActive);
 
 Mat4F getTransformModel(
 	const Transform* transform);

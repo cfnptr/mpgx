@@ -23,7 +23,7 @@ Text* createText(
 	Font* font,
 	uint32_t fontSize,
 	const char* data,
-	bool constant);
+	bool isConstant);
 void destroyText(Text* text);
 
 Window* getTextWindow(const Text* text);

@@ -25,7 +25,7 @@ typedef struct VkBuffer_
 	Window* window;
 	uint8_t type;
 	size_t size;
-	bool constant;
+	bool isConstant;
 	// TODO:
 } VkBuffer_;
 typedef struct GlBuffer
@@ -33,7 +33,7 @@ typedef struct GlBuffer
 	Window* window;
 	uint8_t type;
 	size_t size;
-	bool constant;
+	bool isConstant;
 	GLenum glType;
 	GLuint handle;
 } GlBuffer;
@@ -163,7 +163,7 @@ struct Window
 	size_t pipelineCount;
 	double updateTime;
 	double deltaTime;
-	bool recording;
+	bool isRecording;
 };
 
 static bool graphicsInitialized = false;
@@ -509,7 +509,7 @@ Window* createWindow(
 	window->pipelineCount = 0;
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
-	window->recording = false;
+	window->isRecording = false;
 	return window;
 }
 Window* createAnyWindow(
@@ -900,7 +900,7 @@ void makeWindowContextCurrent(Window* window)
 void updateWindow(Window* window)
 {
 	assert(window != NULL);
-	assert(window->recording == false);
+	assert(window->isRecording == false);
 
 	GLFWwindow* handle = window->handle;
 	OnWindowUpdate onUpdate = window->onUpdate;
@@ -939,7 +939,7 @@ inline static void beginGlWindowRender(Window* window)
 void beginWindowRender(Window* window)
 {
 	assert(window != NULL);
-	assert(window->recording == false);
+	assert(window->isRecording == false);
 
 	uint8_t api = window->api;
 
@@ -957,7 +957,7 @@ void beginWindowRender(Window* window)
 		abort();
 	}
 
-	window->recording = true;
+	window->isRecording = true;
 }
 
 inline static void endGlWindowRender(Window* window)
@@ -967,7 +967,7 @@ inline static void endGlWindowRender(Window* window)
 void endWindowRender(Window* window)
 {
 	assert(window != NULL);
-	assert(window->recording == true);
+	assert(window->isRecording == true);
 
 	uint8_t api = window->api;
 
@@ -985,7 +985,7 @@ void endWindowRender(Window* window)
 		abort();
 	}
 
-	window->recording = false;
+	window->isRecording = false;
 }
 
 inline static Buffer* createGlBuffer(
@@ -993,7 +993,7 @@ inline static Buffer* createGlBuffer(
 	uint8_t type,
 	const void* data,
 	size_t size,
-	bool constant)
+	bool isConstant)
 {
 	Buffer* buffer = malloc(sizeof(Buffer));
 
@@ -1028,7 +1028,7 @@ inline static Buffer* createGlBuffer(
 		GL_ONE,
 		&handle);
 
-	GLenum usage = constant ?
+	GLenum usage = isConstant ?
 		GL_STATIC_DRAW :
 		GL_DYNAMIC_DRAW;
 
@@ -1046,7 +1046,7 @@ inline static Buffer* createGlBuffer(
 	buffer->gl.window = window;
 	buffer->gl.type = type;
 	buffer->gl.size = size;
-	buffer->gl.constant = constant;
+	buffer->gl.isConstant = isConstant;
 	buffer->gl.handle = handle;
 	buffer->gl.glType = glType;
 	buffer->gl.handle = handle;
@@ -1057,12 +1057,12 @@ Buffer* createBuffer(
 	uint8_t type,
 	const void* data,
 	size_t size,
-	bool constant)
+	bool isConstant)
 {
 	assert(window != NULL);
 	assert(type < BUFFER_TYPE_COUNT);
 	assert(size != 0);
-	assert(window->recording == false);
+	assert(window->isRecording == false);
 
 	uint8_t api = window->api;
 
@@ -1080,7 +1080,7 @@ Buffer* createBuffer(
 			type,
 			data,
 			size,
-			constant);
+			isConstant);
 	}
 	else
 	{
@@ -1134,7 +1134,7 @@ void destroyBuffer(Buffer* buffer)
 	if (buffer == NULL)
 		return;
 
-	assert(buffer->vk.window->recording == false);
+	assert(buffer->vk.window->isRecording == false);
 
 	Window* window = buffer->vk.window;
 	Buffer** buffers = window->buffers;
@@ -1189,7 +1189,7 @@ size_t getBufferSize(const Buffer* buffer)
 bool isBufferConstant(const Buffer* buffer)
 {
 	assert(buffer != NULL);
-	return buffer->vk.constant;
+	return buffer->vk.isConstant;
 }
 const void* getBufferHandle(const Buffer* buffer)
 {
@@ -1241,7 +1241,7 @@ void setBufferData(
 	assert(buffer != NULL);
 	assert(data != NULL);
 	assert(size != 0);
-	assert(buffer->vk.constant == false);
+	assert(buffer->vk.isConstant == false);
 	assert(size + offset <= buffer->vk.size);
 
 	uint8_t api = buffer->vk.window->api;
@@ -1313,7 +1313,7 @@ Mesh* createMesh(
 	assert(window == indexBuffer->vk.window);
 	assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
 	assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
-	assert(window->recording == false);
+	assert(window->isRecording == false);
 
 #ifndef NDEBUG
 	if (drawIndex == UINT16_DRAW_INDEX)
@@ -1405,7 +1405,7 @@ void destroyMesh(Mesh* mesh)
 	if (mesh == NULL)
 		return;
 
-	assert(mesh->vk.window->recording == false);
+	assert(mesh->vk.window->isRecording == false);
 
 	Window* window = mesh->vk.window;
 	Mesh** meshes = window->meshes;
@@ -1463,7 +1463,7 @@ void setMeshIndexCount(
 	size_t indexCount)
 {
 	assert(mesh != NULL);
-	assert(mesh->vk.window->recording == false);
+	assert(mesh->vk.window->isRecording == false);
 
 #ifndef NDEBUG
 	if (mesh->vk.drawIndex == UINT16_DRAW_INDEX)
@@ -1498,7 +1498,7 @@ void setMeshIndexOffset(
 	size_t indexOffset)
 {
 	assert(mesh != NULL);
-	assert(mesh->vk.window->recording == false);
+	assert(mesh->vk.window->isRecording == false);
 
 #ifndef NDEBUG
 	if (mesh->vk.drawIndex == UINT16_DRAW_INDEX)
@@ -1536,7 +1536,7 @@ void setMeshVertexBuffer(
 	assert(vertexBuffer != NULL);
 	assert(mesh->vk.window == vertexBuffer->vk.window);
 	assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
-	assert(mesh->vk.window->recording == false);
+	assert(mesh->vk.window->isRecording == false);
 	mesh->vk.vertexBuffer = vertexBuffer;
 }
 
@@ -1559,7 +1559,7 @@ void setMeshIndexBuffer(
 	assert(indexBuffer != NULL);
 	assert(mesh->vk.window == indexBuffer->vk.window);
 	assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
-	assert(mesh->vk.window->recording == false);
+	assert(mesh->vk.window->isRecording == false);
 
 #ifndef NDEBUG
 	if (drawIndex == UINT16_DRAW_INDEX)
@@ -1670,7 +1670,7 @@ void drawMesh(
 	assert(mesh != NULL);
 	assert(pipeline != NULL);
 	assert(mesh->vk.window == pipeline->window);
-	assert(mesh->vk.window->recording == true);
+	assert(mesh->vk.window->isRecording == true);
 
 	uint8_t api = pipeline->window->api;
 
@@ -1946,7 +1946,7 @@ Image* createImage(
 	assert(data != NULL);
 	assert(levelCount >= 0);
 	assert(levelCount <= getImageLevelCount(size));
-	assert(window->recording == false);
+	assert(window->isRecording == false);
 
 	uint32_t maxImageSize = window->maxImageSize;
 
@@ -2031,7 +2031,7 @@ Image* createImageFromFile(
 {
 	assert(window != NULL);
 	assert(filePath != NULL);
-	assert(window->recording == false);
+	assert(window->isRecording == false);
 
 	if (format != R8G8B8A8_UNORM_IMAGE_FORMAT &&
 		format != R8G8B8A8_SRGB_IMAGE_FORMAT)
@@ -2067,7 +2067,7 @@ void destroyImage(Image* image)
 	if (image == NULL)
 		return;
 
-	assert(image->vk.window->recording == false);
+	assert(image->vk.window->isRecording == false);
 
 	Window* window = image->vk.window;
 	Image** images = window->images;
@@ -2167,7 +2167,7 @@ void setImageData(
 	assert(size.x + offset.x <= image->vk.size.x);
 	assert(size.y + offset.y <= image->vk.size.y);
 	assert(size.z + offset.z <= image->vk.size.z);
-	assert(image->vk.window->recording == false);
+	assert(image->vk.window->isRecording == false);
 
 	// TODO: check for static image in Vulkan API
 
@@ -2364,7 +2364,7 @@ Shader* createShader(
 	assert(window != NULL);
 	assert(type < SHADER_TYPE_COUNT);
 	assert(code != NULL);
-	assert(window->recording == false);
+	assert(window->isRecording == false);
 
 	uint8_t api = window->api;
 
@@ -2501,7 +2501,7 @@ void destroyShader(Shader* shader)
 	if (shader == NULL)
 		return;
 
-	assert(shader->vk.window->recording == false);
+	assert(shader->vk.window->isRecording == false);
 
 	Window* window = shader->vk.window;
 	Shader** shaders = window->shaders;
@@ -2585,7 +2585,7 @@ Pipeline* createPipeline(
 	assert(onBind != NULL);
 	assert(onUniformsSet != NULL);
 	assert(handle != NULL);
-	assert(window->recording == false);
+	assert(window->isRecording == false);
 
 	Pipeline* pipeline = malloc(sizeof(Pipeline));
 
@@ -2631,7 +2631,7 @@ void destroyPipeline(Pipeline* pipeline)
 	if (pipeline == NULL)
 		return;
 
-	assert(pipeline->window->recording == false);
+	assert(pipeline->window->isRecording == false);
 
 	Window* window = pipeline->window;
 	Pipeline** pipelines = window->pipelines;
@@ -2712,6 +2712,6 @@ void setPipelineDrawMode(
 void bindPipeline(Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
-	assert(pipeline->window->recording == true);
+	assert(pipeline->window->isRecording == true);
 	pipeline->onBind(pipeline);
 }

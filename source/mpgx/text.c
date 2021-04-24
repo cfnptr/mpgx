@@ -21,7 +21,7 @@ struct Text
 	uint32_t fontSize;
 	char* data;
 	size_t dataSize;
-	bool constant;
+	bool isConstant;
 	Image* image;
 	Mesh* mesh;
 	Vec2F textSize;
@@ -492,7 +492,7 @@ Text* createText(
 	Font* font,
 	uint32_t fontSize,
 	const char* _data,
-	bool constant)
+	bool isConstant)
 {
 	// TODO:
 	// Bind different descriptor sets
@@ -551,7 +551,7 @@ Text* createText(
 			VERTEX_BUFFER_TYPE,
 			NULL,
 			16,
-			constant);
+			isConstant);
 
 		if (vertexBuffer == NULL)
 		{
@@ -566,7 +566,7 @@ Text* createText(
 			INDEX_BUFFER_TYPE,
 			NULL,
 			6,
-			constant);
+			isConstant);
 
 		if (indexBuffer == NULL)
 		{
@@ -721,7 +721,7 @@ Text* createText(
 			VERTEX_BUFFER_TYPE,
 			vertices,
 			vertexCount * sizeof(float),
-			constant);
+			isConstant);
 
 		free(vertices);
 
@@ -755,7 +755,7 @@ Text* createText(
 			INDEX_BUFFER_TYPE,
 			indices,
 			indexCount * sizeof(uint32_t),
-			constant);
+			isConstant);
 
 		free(indices);
 
@@ -797,7 +797,7 @@ Text* createText(
 	text->window = window;
 	text->font = font;
 	text->fontSize = fontSize;
-	text->constant = constant;
+	text->isConstant = isConstant;
 	return text;
 }
 void destroyText(Text* text)
@@ -827,7 +827,7 @@ Window* getTextWindow(const Text* text)
 bool isTextConstant(const Text* text)
 {
 	assert(text != NULL);
-	return text->constant;
+	return text->isConstant;
 }
 Vec2F getTextSize(const Text* text)
 {
@@ -942,7 +942,7 @@ void setTextFont(
 {
 	assert(text != NULL);
 	assert(font != NULL);
-	assert(text->constant == false);
+	assert(text->isConstant == false);
 	text->font = font;
 }
 
@@ -957,7 +957,7 @@ void setTextFontSize(
 	uint32_t fontSize)
 {
 	assert(text != NULL);
-	assert(text->constant == false);
+	assert(text->isConstant == false);
 	text->fontSize = fontSize;
 }
 
@@ -973,7 +973,7 @@ bool setTextData(
 {
 	assert(text != NULL);
 	assert(_data != NULL);
-	assert(text->constant == false);
+	assert(text->isConstant == false);
 
 	size_t dataSize =
 		strlen(_data) + 1;
@@ -1011,7 +1011,7 @@ bool bakeText(
 	bool reuse)
 {
 	assert(text != NULL);
-	assert(text->constant == false);
+	assert(text->isConstant == false);
 
 	Window* window =
 		text->window;
@@ -1145,7 +1145,7 @@ bool bakeText(
 					VERTEX_BUFFER_TYPE,
 					vertices,
 					vertexCount * sizeof(float),
-					text->constant);
+					text->isConstant);
 
 				free(vertices);
 
@@ -1177,7 +1177,7 @@ bool bakeText(
 					INDEX_BUFFER_TYPE,
 					indices,
 					indexCount * sizeof(uint32_t),
-					text->constant);
+					text->isConstant);
 
 				free(indices);
 
@@ -1281,7 +1281,7 @@ bool bakeText(
 				VERTEX_BUFFER_TYPE,
 				NULL,
 				16,
-				text->constant);
+				text->isConstant);
 
 			if (vertexBuffer == NULL)
 			{
@@ -1295,7 +1295,7 @@ bool bakeText(
 				INDEX_BUFFER_TYPE,
 				NULL,
 				6,
-				text->constant);
+				text->isConstant);
 
 			if (indexBuffer == NULL)
 			{
@@ -1453,7 +1453,7 @@ bool bakeText(
 				VERTEX_BUFFER_TYPE,
 				vertices,
 				vertexCount * sizeof(float),
-				text->constant);
+				text->isConstant);
 
 			free(vertices);
 
@@ -1485,7 +1485,7 @@ bool bakeText(
 				INDEX_BUFFER_TYPE,
 				indices,
 				indexCount * sizeof(uint32_t),
-				text->constant);
+				text->isConstant);
 
 			free(indices);
 

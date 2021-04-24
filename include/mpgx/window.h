@@ -356,7 +356,7 @@ Buffer* createBuffer(
 	uint8_t type,
 	const void* data,
 	size_t size,
-	bool constant);
+	bool isConstant);
 void destroyBuffer(Buffer* buffer);
 
 Window* getBufferWindow(const Buffer* buffer);

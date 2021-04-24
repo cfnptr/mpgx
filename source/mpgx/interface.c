@@ -229,18 +229,18 @@ void updateInterface(Interface* interface)
 		return;
 	}
 
-	float scale = interface->scale;
+	float interfaceScale = interface->scale;
 	Vec2U windowSize = getWindowSize(window);
 	Vec2F cursor = getWindowCursorPosition(window);
 
 	Vec2F size = vec2F(
-		(float)windowSize.x / scale,
-		(float)windowSize.y / scale);
+		(float)windowSize.x / interfaceScale,
+		(float)windowSize.y / interfaceScale);
 	Vec2F halfSize = divValVec2F(size,2.0f);
 
 	Vec2F cursorPosition = vec2F(
-		(cursor.x / scale) - halfSize.x,
-		(size.y - (cursor.y / scale)) - halfSize.y);
+		(cursor.x / interfaceScale) - halfSize.x,
+		(size.y - (cursor.y / interfaceScale)) - halfSize.y);
 
 	InterfaceElement* newElement = NULL;
 
@@ -261,16 +261,24 @@ void updateInterface(Interface* interface)
 			parent = getTransformParent(parent);
 		}
 
-		Vec3F position = getTranslationMat4F(
-			getTransformModel(transform));
+		Mat4F model = getTransformModel(transform);
+		Vec3F position = getTranslationMat4F(model);
+		Vec3F scale = getScaleMat4F(model);
 
 		Box2F bounds = element->bounds;
-		bounds.minimum = addVec2F(
-			bounds.minimum,
-			vec2F(position.x, position.y));
-		bounds.maximum = addVec2F(
-			bounds.maximum,
-			vec2F(position.x, position.y));
+
+		bounds.minimum = vec2F(
+			bounds.minimum.x * scale.x,
+			bounds.minimum.y * scale.y);
+		bounds.minimum = vec2F(
+			bounds.minimum.x + position.x,
+			bounds.minimum.y + position.y);
+		bounds.maximum = vec2F(
+			bounds.maximum.x * scale.x,
+			bounds.maximum.y * scale.y);
+		bounds.maximum = vec2F(
+			bounds.maximum.x + position.x,
+			bounds.maximum.y + position.y);
 
 		bool colliding = isPointInBox2F(
 			bounds,
@@ -408,7 +416,6 @@ void destroyInterfaceElement(
 			elements[j - 1] = elements[j];
 
 		element->onDestroy(element->handle);
-		destroyTransform(element->transform);
 		free(element);
 
 		interface->elementCount--;

@@ -315,13 +315,20 @@ void drawRenderer(
 			parent = getTransformParent(parent);
 		}
 
-		Vec3F renderPosition = getTranslationMat4F(
-			getTransformModel(transform));
+		Mat4F model = getTransformModel(transform);
+		Vec3F renderPosition = getTranslationMat4F(model);
+		Vec3F renderScale = getScaleMat4F(model);
 		Box3F renderBounding = getRenderBounding(render);
 
+		renderBounding.minimum = mulVec3F(
+			renderBounding.minimum,
+			renderScale);
 		renderBounding.minimum = addVec3F(
 			renderBounding.minimum,
 			renderPosition);
+		renderBounding.maximum = mulVec3F(
+			renderBounding.maximum,
+			renderScale);
 		renderBounding.maximum = addVec3F(
 			renderBounding.maximum,
 			renderPosition);

@@ -12,12 +12,12 @@ struct Render
 	Box3F bounding;
 	void* handle;
 };
-typedef struct RenderData
+typedef struct RenderElement
 {
 	Vec3F rendererPosition;
 	Vec3F renderPosition;
 	Render* render;
-} RenderData;
+} RenderElement;
 struct Renderer
 {
 	Transform* transform;
@@ -26,7 +26,7 @@ struct Renderer
 	OnRenderDestroy onDestroy;
 	OnRenderDraw onDraw;
 	Render** renders;
-	RenderData* renderData;
+	RenderElement* renderElements;
 	size_t renderCapacity;
 	size_t renderCount;
 };
@@ -56,9 +56,10 @@ Renderer* createRenderer(
 		return NULL;
 	}
 
-	RenderData* renderData = malloc(sizeof(RenderData));
+	RenderElement* renderElements = malloc(
+		sizeof(RenderElement));
 
-	if (renderData == NULL)
+	if (renderElements == NULL)
 	{
 		free(renders);
 		free(renderer);
@@ -71,7 +72,7 @@ Renderer* createRenderer(
 	renderer->onDestroy = onDestroy;
 	renderer->onDraw = onDraw;
 	renderer->renders = renders;
-	renderer->renderData = renderData;
+	renderer->renderElements = renderElements;
 	renderer->renderCapacity = 1;
 	renderer->renderCount = 0;
 	return renderer;
@@ -81,7 +82,7 @@ void destroyRenderer(Renderer* renderer)
 	if (renderer == NULL)
 		return;
 
-	free(renderer->renderData);
+	free(renderer->renderElements);
 
 	Render** renders = renderer->renders;
 	size_t renderCount = renderer->renderCount;
@@ -141,13 +142,13 @@ static int ascendCompareRender(
 	const void* a,
 	const void* b)
 {
-	const RenderData* data = (RenderData*)a;
+	const RenderElement* data = (RenderElement*)a;
 
 	float distanceA = distPowVec3F(
 		data->rendererPosition,
 		data->renderPosition);
 
-	data = (RenderData*)b;
+	data = (RenderElement*)b;
 
 	float distanceB = distPowVec3F(
 		data->rendererPosition,
@@ -166,13 +167,13 @@ static int descendCompareRender(
 	const void* a,
 	const void* b)
 {
-	const RenderData* data = (RenderData*)a;
+	const RenderElement* data = (RenderElement*)a;
 
 	float distanceA = distPowVec3F(
 		data->rendererPosition,
 		data->renderPosition);
 
-	data = (RenderData*)b;
+	data = (RenderElement*)b;
 
 	float distanceB = distPowVec3F(
 		data->rendererPosition,
@@ -188,21 +189,19 @@ static int descendCompareRender(
 	abort();
 }
 
-void drawRenderer(
-	Renderer* renderer,
-	Camera camera)
+void createRenderData(
+	const Window* window,
+	Mat4F view,
+	Camera camera,
+	RenderData* data)
 {
-	assert(renderer != NULL);
+	assert(window != NULL);
+	assert(data != NULL);
 
-	Pipeline* pipeline = renderer->pipeline;
-	Mat4F view = getTransformModel(renderer->transform);
-
-	uint8_t graphicsAPI = getWindowGraphicsAPI(
-		getPipelineWindow(pipeline));
+	uint8_t graphicsAPI = getWindowGraphicsAPI(window);
 
 	Mat4F proj;
 	Mat4F viewProj;
-	Plane3F planes[6];
 
 	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
 	{
@@ -218,7 +217,7 @@ void drawRenderer(
 				view);
 			vkFrustumPlanes(
 				viewProj,
-				planes,
+				data->planes,
 				false);
 		}
 		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
@@ -234,7 +233,7 @@ void drawRenderer(
 				view);
 			glFrustumPlanes(
 				viewProj,
-				planes,
+				data->planes,
 				false);
 		}
 		else
@@ -258,7 +257,7 @@ void drawRenderer(
 				view);
 			vkFrustumPlanes(
 				viewProj,
-				planes,
+				data->planes,
 				false);
 		}
 		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
@@ -276,7 +275,7 @@ void drawRenderer(
 				view);
 			glFrustumPlanes(
 				viewProj,
-				planes,
+				data->planes,
 				false);
 		}
 		else
@@ -289,14 +288,25 @@ void drawRenderer(
 		abort();
 	}
 
+	data->view = view;
+	data->proj = proj;
+	data->viewProj = viewProj;
+}
+void drawRenderer(
+	Renderer* renderer,
+	const RenderData* data)
+{
+	assert(renderer != NULL);
+
 	Render** renders = renderer->renders;
-	RenderData* renderData = renderer->renderData;
+	RenderElement* renderElements = renderer->renderElements;
 	size_t renderCount = renderer->renderCount;
 
 	Vec3F rendererPosition = negVec3F(
 		getTransformPosition(renderer->transform));
+	const Plane3F* planes = data->planes;
 
-	size_t renderDataCount = 0;
+	size_t renderElementCount = 0;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
@@ -336,43 +346,47 @@ void drawRenderer(
 		if (isBoxInFrustum(planes, renderBounding) == false)
 			continue;
 
-		RenderData data;
-		data.rendererPosition = rendererPosition;
-		data.renderPosition = renderPosition;
-		data.render = render;
-		renderData[renderDataCount++] = data;
+		RenderElement element;
+		element.rendererPosition = rendererPosition;
+		element.renderPosition = renderPosition;
+		element.render = render;
+		renderElements[renderElementCount++] = element;
 
 	CONTINUE:
 		continue;
 	}
 
-	if (renderDataCount == 0)
+	if (renderElementCount == 0)
 		return;
 
 	if (renderer->ascendingSort == true)
 	{
 		qsort(
-			renderData,
-			renderDataCount,
-			sizeof(RenderData),
+			renderElements,
+			renderElementCount,
+			sizeof(RenderElement),
 			ascendCompareRender);
 	}
 	else
 	{
 		qsort(
-			renderData,
-			renderDataCount,
-			sizeof(RenderData),
+			renderElements,
+			renderElementCount,
+			sizeof(RenderElement),
 			descendCompareRender);
 	}
 
+	Mat4F view = data->view;
+	Mat4F proj = data->proj;
+	Mat4F viewProj = data->viewProj;
+	Pipeline* pipeline = renderer->pipeline;
 	OnRenderDraw onDraw = renderer->onDraw;
 
 	bindPipeline(pipeline);
 
-	for (size_t i = 0; i < renderDataCount; i++)
+	for (size_t i = 0; i < renderElementCount; i++)
 	{
-		Render* render = renderData[i].render;
+		Render* render = renderElements[i].render;
 
 		Mat4F model = getTransformModel(
 			render->transform);
@@ -434,18 +448,18 @@ Render* createRender(
 
 		renderer->renders = renders;
 
-		RenderData* renderData = realloc(
-			renderer->renderData,
-			renderCapacity * sizeof(RenderData));
+		RenderElement* renderElements = realloc(
+			renderer->renderElements,
+			renderCapacity * sizeof(RenderElement));
 
-		if (renderData == NULL)
+		if (renderElements == NULL)
 		{
 			destroyTransform(transform);
 			free(render);
 			return NULL;
 		}
 
-		renderer->renderData = renderData;
+		renderer->renderElements = renderElements;
 		renderer->renderCapacity = renderCapacity;
 	}
 

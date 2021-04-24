@@ -7,6 +7,14 @@
 typedef struct Renderer Renderer;
 typedef struct Render Render;
 
+typedef struct RenderData
+{
+	Mat4F view;
+	Mat4F proj;
+	Mat4F viewProj;
+	Plane3F planes[6];
+} RenderData;
+
 typedef void(*OnRenderDestroy)(
 	void* render);
 typedef void(*OnRenderDraw)(
@@ -41,9 +49,14 @@ void setRendererSorting(
 	Renderer* renderer,
 	bool ascendingSorting);
 
+void createRenderData(
+	const Window* window,
+	Mat4F view,
+	Camera camera,
+	RenderData* data);
 void drawRenderer(
 	Renderer* renderer,
-	Camera camera);
+	const RenderData* data);
 
 Render* createRender(
 	Renderer* renderer,

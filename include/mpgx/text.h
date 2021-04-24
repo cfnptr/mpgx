@@ -8,6 +8,12 @@ typedef struct Text Text;
 // TODO: add font loading from the memory
 // TODO: add tab symbol handling
 
+// TODO: add monochrome text support
+// FT_LOAD_MONOCHROME
+
+// TODO: add text coloring
+// Pass color data to the vertex buffer
+
 Font* createFontFromFile(
 	const void* filePath);
 void destroyFont(Font* font);
@@ -20,10 +26,10 @@ Text* createText(
 	bool constant);
 void destroyText(Text* text);
 
-Window* getTextWindow(
-	const Text* text);
-bool isTextConstant(
-	const Text* text);
+Window* getTextWindow(const Text* text);
+bool isTextConstant(const Text* text);
+Vec2F getTextSize(const Text* text);
+
 size_t getTextUnicodeCharCount(
 	const Text* text);
 bool getTextUnicodeCharAdvance(
@@ -48,12 +54,6 @@ const char* getTextData(
 bool setTextData(
 	Text* text,
 	const char* data);
-
-// TODO: add monochrome text support
-// FT_LOAD_MONOCHROME
-
-// TODO: add text coloring
-// Pass color data to the vertex buffer
 
 bool bakeText(
 	Text* text,

@@ -21,24 +21,19 @@ struct Text
 	uint32_t fontSize;
 	char* data;
 	size_t dataSize;
-	size_t uniCharCount;
 	bool constant;
 	Image* image;
 	Mesh* mesh;
+	Vec2F textSize;
+	size_t uniCharCount;
 };
 
 typedef struct Glyph
 {
 	uint32_t uniChar;
-	float posX;
-	float posY;
-	float posZ;
-	float posW;
+	Vec4F position;
+	Vec4F texCoords;
 	float advance;
-	float texCoordU;
-	float texCoordV;
-	float texCoordS;
-	float texCoordT;
 } Glyph;
 
 typedef struct VkTextPipeline
@@ -348,15 +343,16 @@ inline static bool createTextPixels(
 
 		size_t glyphWidth = glyphSlot->bitmap.width;
 		size_t glyphHeight = glyphSlot->bitmap.rows;
-		glyph.posX = (float)glyphSlot->bitmap_left / (float)fontSize;
-		glyph.posY = ((float)glyphSlot->bitmap_top - (float)glyphHeight) / (float)fontSize;
-		glyph.posZ = glyph.posX + (float)glyphWidth / (float)fontSize;
-		glyph.posW = glyph.posY + (float)glyphHeight /(float)fontSize;
+
+		glyph.position.x = (float)glyphSlot->bitmap_left / (float)fontSize;
+		glyph.position.y = ((float)glyphSlot->bitmap_top - (float)glyphHeight) / (float)fontSize;
+		glyph.position.z = glyph.position.x + (float)glyphWidth / (float)fontSize;
+		glyph.position.w = glyph.position.y + (float)glyphHeight /(float)fontSize;
+		glyph.texCoords.x = (float)pixelPosX / (float)textPixelLength;
+		glyph.texCoords.y = (float)pixelPosY / (float)textPixelLength;
+		glyph.texCoords.z = glyph.texCoords.x + (float)glyphWidth / (float)textPixelLength;
+		glyph.texCoords.w = glyph.texCoords.y + (float)glyphHeight / (float)textPixelLength;
 		glyph.advance = ((float)glyphSlot->advance.x / 64.0f) / (float)fontSize;
-		glyph.texCoordU = (float)pixelPosX / (float)textPixelLength;
-		glyph.texCoordV = (float)pixelPosY / (float)textPixelLength;
-		glyph.texCoordS = glyph.texCoordU + (float)glyphWidth / (float)textPixelLength;
-		glyph.texCoordT = glyph.texCoordV + (float)glyphHeight / (float)textPixelLength;
 
 		glyphs[i] = glyph;
 
@@ -390,7 +386,8 @@ inline static bool createTextVertices(
 	size_t glyphCount,
 	float newLineAdvance,
 	float** _vertices,
-	size_t* _vertexCount)
+	size_t* _vertexCount,
+	Vec2F* _textSize)
 {
 	size_t vertexCount =
 		uniCharCount * 16;
@@ -401,8 +398,7 @@ inline static bool createTextVertices(
 		return false;
 
 	size_t vertexIndex = 0;
-	float vertexGlyphPosX = 0.0f;
-	float vertexGlyphPosY = 0.0f;
+	Vec2F textSize = zeroVec2F();
 
 	for (size_t i = 0; i < uniCharCount; i++)
 	{
@@ -410,8 +406,8 @@ inline static bool createTextVertices(
 
 		if (uniChar == '\n')
 		{
-			vertexGlyphPosY -= newLineAdvance;
-			vertexGlyphPosX = 0.0f;
+			textSize.y -= newLineAdvance;
+			textSize.x = 0.0f;
 			continue;
 		}
 
@@ -431,38 +427,37 @@ inline static bool createTextVertices(
 			return false;
 		}
 
-		float glyphPosX = vertexGlyphPosX + glyph->posX;
-		float glyphPosY = vertexGlyphPosY + glyph->posY;
-		float glyphPosZ = vertexGlyphPosX + glyph->posZ;
-		float glyphPosW = vertexGlyphPosY + glyph->posW;
-		float texCoordU = glyph->texCoordU;
-		float texCoordV = glyph->texCoordV;
-		float texCoordS = glyph->texCoordS;
-		float texCoordT = glyph->texCoordT;
+		Vec4F position = vec4F(
+			textSize.x + glyph->position.x,
+			textSize.y + glyph->position.y,
+			textSize.x + glyph->position.z,
+			textSize.y + glyph->position.w);
+		Vec4F texCoords = glyph->texCoords;
 
-		vertices[vertexIndex + 0] = glyphPosX;
-		vertices[vertexIndex + 1] = glyphPosY;
-		vertices[vertexIndex + 2] = texCoordU;
-		vertices[vertexIndex + 3] = texCoordT;
-		vertices[vertexIndex + 4] = glyphPosX;
-		vertices[vertexIndex + 5] = glyphPosW;
-		vertices[vertexIndex + 6] = texCoordU;
-		vertices[vertexIndex + 7] = texCoordV;
-		vertices[vertexIndex + 8] = glyphPosZ;
-		vertices[vertexIndex + 9] = glyphPosW;
-		vertices[vertexIndex + 10] = texCoordS;
-		vertices[vertexIndex + 11] = texCoordV;
-		vertices[vertexIndex + 12] = glyphPosZ;
-		vertices[vertexIndex + 13] = glyphPosY;
-		vertices[vertexIndex + 14] = texCoordS;
-		vertices[vertexIndex + 15] = texCoordT;
+		vertices[vertexIndex + 0] = position.x;
+		vertices[vertexIndex + 1] = position.y;
+		vertices[vertexIndex + 2] = texCoords.x;
+		vertices[vertexIndex + 3] = texCoords.w;
+		vertices[vertexIndex + 4] = position.x;
+		vertices[vertexIndex + 5] = position.w;
+		vertices[vertexIndex + 6] = texCoords.x;
+		vertices[vertexIndex + 7] = texCoords.y;
+		vertices[vertexIndex + 8] = position.z;
+		vertices[vertexIndex + 9] = position.w;
+		vertices[vertexIndex + 10] = texCoords.z;
+		vertices[vertexIndex + 11] = texCoords.y;
+		vertices[vertexIndex + 12] = position.z;
+		vertices[vertexIndex + 13] = position.y;
+		vertices[vertexIndex + 14] = texCoords.z;
+		vertices[vertexIndex + 15] = texCoords.w;
 
 		vertexIndex += 16;
-		vertexGlyphPosX += glyph->advance;
+		textSize.x += glyph->advance;
 	}
 
 	*_vertices = vertices;
 	*_vertexCount = vertexCount;
+	*_textSize = textSize;
 	return true;
 }
 inline static bool createTextIndices(
@@ -602,9 +597,10 @@ Text* createText(
 
 		text->data = data;
 		text->dataSize = 1;
-		text->uniCharCount = 0;
 		text->image = image;
 		text->mesh = mesh;
+		text->textSize = zeroVec2F();
+		text->uniCharCount = 0;
 	}
 	else
 	{
@@ -697,6 +693,7 @@ Text* createText(
 
 		float* vertices;
 		size_t vertexCount;
+		Vec2F textSize;
 
 		result = createTextVertices(
 			uniChars,
@@ -705,7 +702,8 @@ Text* createText(
 			glyphCount,
 			newLineAdvance,
 			&vertices,
-			&vertexCount);
+			&vertexCount,
+			&textSize);
 
 		free(glyphs);
 		free(uniChars);
@@ -790,9 +788,10 @@ Text* createText(
 
 		text->data = data;
 		text->dataSize = dataSize;
-		text->uniCharCount = uniCharCount;
 		text->image = image;
 		text->mesh = mesh;
+		text->textSize = textSize;
+		text->uniCharCount = uniCharCount;
 	}
 
 	text->window = window;
@@ -820,17 +819,20 @@ void destroyText(Text* text)
 	free(text);
 }
 
-Window* getTextWindow(
-	const Text* text)
+Window* getTextWindow(const Text* text)
 {
 	assert(text != NULL);
 	return text->window;
 }
-bool isTextConstant(
-	const Text* text)
+bool isTextConstant(const Text* text)
 {
 	assert(text != NULL);
 	return text->constant;
+}
+Vec2F getTextSize(const Text* text)
+{
+	assert(text != NULL);
+	return text->textSize;
 }
 
 size_t getTextUnicodeCharCount(
@@ -1029,6 +1031,7 @@ bool bakeText(
 			setMeshIndexCount(
 				text->mesh,
 				0);
+			text->textSize = zeroVec2F();
 			text->uniCharCount = 0;
 		}
 		else
@@ -1107,6 +1110,7 @@ bool bakeText(
 
 			float* vertices;
 			size_t vertexCount;
+			Vec2F textSize;
 
 			result = createTextVertices(
 				uniChars,
@@ -1115,7 +1119,8 @@ bool bakeText(
 				glyphCount,
 				newLineAdvance,
 				&vertices,
-				&vertexCount);
+				&vertexCount,
+				&textSize);
 
 			free(glyphs);
 			free(uniChars);
@@ -1237,6 +1242,7 @@ bool bakeText(
 					indexBuffer);
 			}
 
+			text->textSize = textSize;
 			text->uniCharCount = uniCharCount;
 		}
 	}
@@ -1329,9 +1335,10 @@ bool bakeText(
 
 			text->data = data;
 			text->dataSize = 1;
-			text->uniCharCount = 0;
 			text->image = image;
 			text->mesh = mesh;
+			text->textSize = zeroVec2F();
+			text->uniCharCount = 0;
 		}
 		else
 		{
@@ -1419,6 +1426,7 @@ bool bakeText(
 
 			float* vertices;
 			size_t vertexCount;
+			Vec2F textSize;
 
 			result = createTextVertices(
 				uniChars,
@@ -1427,7 +1435,8 @@ bool bakeText(
 				glyphCount,
 				newLineAdvance,
 				&vertices,
-				&vertexCount);
+				&vertexCount,
+				&textSize);
 
 			free(glyphs);
 			free(uniChars);
@@ -1518,9 +1527,10 @@ bool bakeText(
 
 			text->data = data;
 			text->dataSize = dataSize;
-			text->uniCharCount = uniCharCount;
 			text->image = image;
 			text->mesh = mesh;
+			text->textSize = textSize;
+			text->uniCharCount = uniCharCount;
 		}
 	}
 
@@ -1706,6 +1716,8 @@ static void onGlTextUniformsSet(
 
 	GLuint glImage = *(const GLuint*)
 		getImageHandle(textPipeline->gl.image);
+
+	// TODO: use sampler
 
 	glActiveTexture(GL_TEXTURE0);
 

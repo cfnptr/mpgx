@@ -7,6 +7,8 @@
 #include <wchar.h>
 #include <assert.h>
 
+// TODO: make better look
+
 struct Font
 {
 	FT_Face face;
@@ -1530,7 +1532,12 @@ void drawText(
 {
 	assert(text != NULL);
 	assert(pipeline != NULL);
-	assert(text->window == getPipelineWindow(pipeline));
+
+	assert(text->window ==
+		getPipelineWindow(pipeline));
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Text") == 0);
 
 	TextPipeline* textPipeline =
 		getPipelineHandle(pipeline);
@@ -1661,37 +1668,6 @@ static void onGlTextPipelineBind(
 		GL_SRC_ALPHA,
 		GL_ONE_MINUS_SRC_ALPHA);
 
-	GLuint glImage = *(const GLuint*)
-		getImageHandle(textPipeline->gl.image);
-
-	glActiveTexture(GL_TEXTURE0);
-
-	glBindTexture(
-		GL_TEXTURE_2D,
-		glImage);
-
-	glTexParameteri(
-		GL_TEXTURE_2D,
-		GL_TEXTURE_WRAP_S,
-		GL_REPEAT);
-	glTexParameteri(
-		GL_TEXTURE_2D,
-		GL_TEXTURE_WRAP_T,
-		GL_REPEAT);
-
-	glTexParameteri(
-		GL_TEXTURE_2D,
-		GL_TEXTURE_MIN_FILTER,
-		GL_NEAREST);
-	glTexParameteri(
-		GL_TEXTURE_2D,
-		GL_TEXTURE_MAG_FILTER,
-		GL_NEAREST);
-
-	glUniform1i(
-		textPipeline->gl.imageLocation,
-		0);
-
 	assertOpenGL();
 }
 static void onGlTextUniformsSet(
@@ -1727,6 +1703,37 @@ static void onGlTextUniformsSet(
 		GL_FALSE,
 		sizeof(Vec2F) * 2,
 		(const void*)sizeof(Vec2F));
+
+	GLuint glImage = *(const GLuint*)
+		getImageHandle(textPipeline->gl.image);
+
+	glActiveTexture(GL_TEXTURE0);
+
+	glBindTexture(
+		GL_TEXTURE_2D,
+		glImage);
+
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_WRAP_S,
+		GL_REPEAT);
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_WRAP_T,
+		GL_REPEAT);
+
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_MIN_FILTER,
+		GL_NEAREST);
+	glTexParameteri(
+		GL_TEXTURE_2D,
+		GL_TEXTURE_MAG_FILTER,
+		GL_NEAREST);
+
+	glUniform1i(
+		textPipeline->gl.imageLocation,
+		0);
 
 	assertOpenGL();
 }
@@ -1795,6 +1802,9 @@ Shader* getTextPipelineVertexShader(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Text") == 0);
 	TextPipeline* textPipeline =
 		getPipelineHandle(pipeline);
 	return textPipeline->vk.vertexShader;
@@ -1803,6 +1813,9 @@ Shader* getTextPipelineFragmentShader(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Text") == 0);
 	TextPipeline* textPipeline =
 		getPipelineHandle(pipeline);
 	return textPipeline->vk.fragmentShader;
@@ -1812,6 +1825,9 @@ Vec4F getTextPipelineColor(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Text") == 0);
 	TextPipeline* textPipeline =
 		getPipelineHandle(pipeline);
 	return textPipeline->vk.color;
@@ -1821,6 +1837,9 @@ void setTextPipelineColor(
 	Vec4F color)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Text") == 0);
 	TextPipeline* textPipeline =
 		getPipelineHandle(pipeline);
 	textPipeline->vk.color = color;
@@ -1830,6 +1849,9 @@ Mat4F getTextPipelineMVP(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Text") == 0);
 	TextPipeline* textPipeline =
 		getPipelineHandle(pipeline);
 	return textPipeline->vk.mvp;
@@ -1839,6 +1861,9 @@ void setTextPipelineMVP(
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Text") == 0);
 	TextPipeline* textPipeline =
 		getPipelineHandle(pipeline);
 	textPipeline->vk.mvp = mvp;

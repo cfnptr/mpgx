@@ -1,4 +1,5 @@
 #include "mpgx/pipeline.h"
+#include <string.h>
 
 typedef struct VkColorPipeline
 {
@@ -276,6 +277,9 @@ Shader* getColorPipelineVertexShader(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Color") == 0);
 	ColorPipeline* colorPipeline =
 		getPipelineHandle(pipeline);
 	return colorPipeline->vk.vertexShader;
@@ -284,6 +288,9 @@ Shader* getColorPipelineFragmentShader(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Color") == 0);
 	ColorPipeline* colorPipeline =
 		getPipelineHandle(pipeline);
 	return colorPipeline->vk.fragmentShader;
@@ -293,6 +300,9 @@ Mat4F getColorPipelineMVP(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Color") == 0);
 	ColorPipeline* colorPipeline =
 		getPipelineHandle(pipeline);
 	return colorPipeline->vk.mvp;
@@ -302,6 +312,9 @@ void setColorPipelineMVP(
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Color") == 0);
 	ColorPipeline* colorPipeline =
 		getPipelineHandle(pipeline);
 	colorPipeline->vk.mvp = mvp;
@@ -311,6 +324,9 @@ Vec4F getColorPipelineColor(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Color") == 0);
 	ColorPipeline* colorPipeline =
 		getPipelineHandle(pipeline);
 	return colorPipeline->vk.color;
@@ -320,6 +336,9 @@ void setColorPipelineColor(
 	Vec4F color)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Color") == 0);
 	ColorPipeline* colorPipeline =
 		getPipelineHandle(pipeline);
 	colorPipeline->vk.color = color;
@@ -524,6 +543,9 @@ Shader* getSpritePipelineVertexShader(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Sprite") == 0);
 	SpritePipeline* spritePipeline =
 		getPipelineHandle(pipeline);
 	return spritePipeline->vk.vertexShader;
@@ -532,6 +554,9 @@ Shader* getSpritePipelineFragmentShader(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Sprite") == 0);
 	SpritePipeline* spritePipeline =
 		getPipelineHandle(pipeline);
 	return spritePipeline->vk.fragmentShader;
@@ -541,6 +566,9 @@ Mat4F getSpritePipelineMVP(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Sprite") == 0);
 	SpritePipeline* spritePipeline =
 		getPipelineHandle(pipeline);
 	return spritePipeline->vk.mvp;
@@ -550,6 +578,9 @@ void setSpritePipelineMVP(
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Sprite") == 0);
 	SpritePipeline* colorPipeline =
 		getPipelineHandle(pipeline);
 	colorPipeline->vk.mvp = mvp;
@@ -559,6 +590,9 @@ Vec4F getSpritePipelineColor(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Sprite") == 0);
 	SpritePipeline* colorPipeline =
 		getPipelineHandle(pipeline);
 	return colorPipeline->vk.color;
@@ -568,6 +602,9 @@ void setSpritePipelineColor(
 	Vec4F color)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Sprite") == 0);
 	SpritePipeline* colorPipeline =
 		getPipelineHandle(pipeline);
 	colorPipeline->vk.color = color;
@@ -840,6 +877,9 @@ Shader* getDiffusePipelineVertexShader(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	return diffusePipeline->vk.vertexShader;
@@ -848,6 +888,9 @@ Shader* getDiffusePipelineFragmentShader(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	return diffusePipeline->vk.fragmentShader;
@@ -857,6 +900,9 @@ Mat4F getDiffusePipelineMVP(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	return diffusePipeline->vk.mvp;
@@ -866,6 +912,9 @@ void setDiffusePipelineMVP(
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	diffusePipeline->vk.mvp = mvp;
@@ -875,6 +924,9 @@ Mat4F getDiffusePipelineNormal(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	return diffusePipeline->vk.normal;
@@ -884,6 +936,9 @@ void setDiffusePipelineNormal(
 	Mat4F normal)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	diffusePipeline->vk.normal = normal;
@@ -893,6 +948,9 @@ Vec4F getDiffusePipelineObjectColor(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	return diffusePipeline->vk.fbo.objectColor;
@@ -902,6 +960,9 @@ void setDiffusePipelineObjectColor(
 	Vec4F objectColor)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	diffusePipeline->vk.fbo.objectColor = objectColor;
@@ -911,6 +972,9 @@ Vec4F getDiffusePipelineAmbientColor(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	return diffusePipeline->vk.fbo.ambientColor;
@@ -920,6 +984,9 @@ void setDiffusePipelineAmbientColor(
 	Vec4F ambientColor)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	diffusePipeline->vk.fbo.ambientColor = ambientColor;
@@ -929,6 +996,9 @@ Vec4F getDiffusePipelineLightColor(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	return diffusePipeline->vk.fbo.lightColor;
@@ -938,6 +1008,9 @@ void setDiffusePipelineLightColor(
 	Vec4F lightColor)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	diffusePipeline->vk.fbo.lightColor = lightColor;
@@ -947,6 +1020,9 @@ Vec3F getDiffusePipelineLightDirection(
 	const Pipeline* pipeline)
 {
 	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
 	Vec4F lightDirection =
@@ -961,10 +1037,11 @@ void setDiffusePipelineLightDirection(
 	Vec3F lightDirection)
 {
 	assert(pipeline != NULL);
-
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
-
 	diffusePipeline->vk.fbo.lightDirection = vec4F(
 		lightDirection.x,
 		lightDirection.y,

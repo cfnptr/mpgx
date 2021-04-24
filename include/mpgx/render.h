@@ -4,7 +4,7 @@
 Renderer* createColorRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
-	bool ascendingSorting);
+	uint8_t sortingType);
 Render* createColorRender(
 	Renderer* renderer,
 	Transform* transform,
@@ -27,7 +27,7 @@ void setColorRenderColor(
 Renderer* createSpriteRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
-	bool ascendingSorting);
+	uint8_t sortingType);
 Render* createSpriteRender(
 	Renderer* renderer,
 	Transform* transform,
@@ -50,7 +50,7 @@ void setSpriteRenderMesh(
 Renderer* createDiffuseRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
-	bool ascendingSorting);
+	uint8_t sortingType);
 Render* createDiffuseRender(
 	Renderer* renderer,
 	Transform* transform,
@@ -66,7 +66,7 @@ void setDiffuseRenderMesh(
 Renderer* createTextRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
-	bool ascendingSorting);
+	uint8_t sortingType);
 Render* createTextRender(
 	Renderer* renderer,
 	Transform* transform,

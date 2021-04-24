@@ -52,10 +52,11 @@ static void onColorRenderDraw(
 Renderer* createColorRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
-	bool ascendingSorting)
+	uint8_t sortingType)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
+	assert(sortingType < RENDER_SORTING_COUNT);
 
 	assert(strcmp(
 		getPipelineName(pipeline),
@@ -64,7 +65,7 @@ Renderer* createColorRenderer(
 	return createRenderer(
 		transform,
 		pipeline,
-		ascendingSorting,
+		sortingType,
 		onColorRenderDestroy,
 		onColorRenderDraw);
 }
@@ -209,10 +210,11 @@ static void onSpriteRenderDraw(
 Renderer* createSpriteRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
-	bool ascendingSorting)
+	uint8_t sortingType)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
+	assert(sortingType < RENDER_SORTING_COUNT);
 
 	assert(strcmp(
 		getPipelineName(pipeline),
@@ -221,7 +223,7 @@ Renderer* createSpriteRenderer(
 	return createRenderer(
 		transform,
 		pipeline,
-		ascendingSorting,
+		sortingType,
 		onSpriteRenderDestroy,
 		onSpriteRenderDraw);
 }
@@ -368,10 +370,11 @@ static void onDiffuseRenderDraw(
 Renderer* createDiffuseRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
-	bool ascendingSorting)
+	uint8_t sortingType)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
+	assert(sortingType < RENDER_SORTING_COUNT);
 
 	assert(strcmp(
 		getPipelineName(pipeline),
@@ -380,7 +383,7 @@ Renderer* createDiffuseRenderer(
 	return createRenderer(
 		transform,
 		pipeline,
-		ascendingSorting,
+		sortingType,
 		onDiffuseRenderDestroy,
 		onDiffuseRenderDraw);
 }
@@ -491,10 +494,11 @@ static void onTextRenderDraw(
 Renderer* createTextRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
-	bool ascendingSorting)
+	uint8_t sortingType)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
+	assert(sortingType < RENDER_SORTING_COUNT);
 
 	assert(strcmp(
 		getPipelineName(pipeline),
@@ -503,7 +507,7 @@ Renderer* createTextRenderer(
 	return createRenderer(
 		transform,
 		pipeline,
-		ascendingSorting,
+		sortingType,
 		onTextRenderDestroy,
 		onTextRenderDraw);
 }

@@ -7,6 +7,14 @@
 typedef struct Renderer Renderer;
 typedef struct Render Render;
 
+typedef enum RenderSorting
+{
+	NO_RENDER_SORTING,
+	ASCENDING_RENDER_SORTING,
+	DESCENDING_RENDER_SORTING,
+	RENDER_SORTING_COUNT,
+} RenderSorting;
+
 typedef struct RenderData
 {
 	Mat4F view;
@@ -29,7 +37,7 @@ typedef void(*OnRenderDraw)(
 Renderer* createRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
-	bool ascendingSorting,
+	uint8_t sortingType,
 	OnRenderDestroy onDestroy,
 	OnRenderDraw onDraw);
 void destroyRenderer(Renderer* renderer);
@@ -43,11 +51,11 @@ OnRenderDestroy getRendererOnDestroy(
 OnRenderDraw getRendererOnDraw(
 	const Renderer* renderer);
 
-bool getRendererSorting(
+uint8_t getRendererSortingType(
 	const Renderer* renderer);
-void setRendererSorting(
+void setRendererSortingType(
 	Renderer* renderer,
-	bool ascendingSorting);
+	uint8_t sortingType);
 
 void createRenderData(
 	const Window* window,

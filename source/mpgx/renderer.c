@@ -3,8 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-// TODO: sorting is not working
-
 struct Render
 {
 	Renderer* renderer;
@@ -22,7 +20,7 @@ struct Renderer
 {
 	Transform* transform;
 	Pipeline* pipeline;
-	bool ascendingSort;
+	uint8_t sortingType;
 	OnRenderDestroy onDestroy;
 	OnRenderDraw onDraw;
 	Render** renders;
@@ -34,12 +32,13 @@ struct Renderer
 Renderer* createRenderer(
 	Transform* transform,
 	Pipeline* pipeline,
-	bool ascendingSort,
+	uint8_t sortingType,
 	OnRenderDestroy onDestroy,
 	OnRenderDraw onDraw)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
+	assert(sortingType < RENDER_SORTING_COUNT);
 	assert(onDestroy != NULL);
 	assert(onDraw != NULL);
 
@@ -68,7 +67,7 @@ Renderer* createRenderer(
 
 	renderer->transform = transform;
 	renderer->pipeline = pipeline;
-	renderer->ascendingSort = ascendingSort;
+	renderer->sortingType = sortingType;
 	renderer->onDestroy = onDestroy;
 	renderer->onDraw = onDraw;
 	renderer->renders = renders;
@@ -124,21 +123,22 @@ OnRenderDraw getRendererOnDraw(
 	return renderer->onDraw;
 }
 
-bool getRendererSorting(
+uint8_t getRendererSorting(
 	const Renderer* renderer)
 {
 	assert(renderer != NULL);
-	return renderer->ascendingSort;
+	return renderer->sortingType;
 }
 void setRendererSorting(
 	Renderer* renderer,
-	bool ascendingSorting)
+	uint8_t sortingType)
 {
 	assert(renderer != NULL);
-	renderer->ascendingSort = ascendingSorting;
+	assert(sortingType < RENDER_SORTING_COUNT);
+	renderer->sortingType = sortingType;
 }
 
-static int ascendCompareRender(
+static int ascendingRenderCompare(
 	const void* a,
 	const void* b)
 {
@@ -163,7 +163,7 @@ static int ascendCompareRender(
 
 	abort();
 }
-static int descendCompareRender(
+static int descendingRenderCompare(
 	const void* a,
 	const void* b)
 {
@@ -359,21 +359,23 @@ void drawRenderer(
 	if (renderElementCount == 0)
 		return;
 
-	if (renderer->ascendingSort == true)
+	uint8_t sortingType = renderer->sortingType;
+
+	if (sortingType == ASCENDING_RENDER_SORTING)
 	{
 		qsort(
 			renderElements,
 			renderElementCount,
 			sizeof(RenderElement),
-			ascendCompareRender);
+			ascendingRenderCompare);
 	}
-	else
+	else if (sortingType == DESCENDING_RENDER_SORTING)
 	{
 		qsort(
 			renderElements,
 			renderElementCount,
 			sizeof(RenderElement),
-			descendCompareRender);
+			descendingRenderCompare);
 	}
 
 	Mat4F view = data->view;

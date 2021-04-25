@@ -462,7 +462,7 @@ inline static bool createTextVertices(
 	if (textSize.x < vertexOffset.x)
 		textSize.x = vertexOffset.x;
 
-	textSize.y = -vertexOffset.y + newLineAdvance;
+	textSize.y = (-vertexOffset.y + newLineAdvance) / 2.0f;
 
 	*_vertices = vertices;
 	*_vertexCount = vertexCount;
@@ -860,15 +860,15 @@ Vec2F getTextOffset(
 	case CENTER_INTERFACE_ANCHOR:
 		return vec2F(
 			-offset.x / 2.0f,
-			-offset.y / 4.0f);
+			-offset.y / 2.0f);
 	case LEFT_INTERFACE_ANCHOR:
 		return vec2F(
 			0.0f,
-			-offset.y / 4.0f);
+			-offset.y / 2.0f);
 	case RIGHT_INTERFACE_ANCHOR:
 		return vec2F(
 			-offset.x,
-			-offset.y / 4.0f);
+			-offset.y / 2.0f);
 	case BOTTOM_INTERFACE_ANCHOR:
 		return vec2F(
 			-offset.x / 2.0f,

@@ -462,10 +462,7 @@ inline static bool createTextVertices(
 	if (textSize.x < vertexOffset.x)
 		textSize.x = vertexOffset.x;
 
-	// TODO: possibly remove 2.0f division
-	// due to the different font line advance
-
-	textSize.y = (-vertexOffset.y + newLineAdvance) / 2.0f;
+	textSize.y = -vertexOffset.y;
 
 	*_vertices = vertices;
 	*_vertexCount = vertexCount;
@@ -863,15 +860,15 @@ Vec2F getTextOffset(
 	case CENTER_INTERFACE_ANCHOR:
 		return vec2F(
 			-offset.x / 2.0f,
-			-offset.y / 2.0f);
+			offset.y / 2.0f);
 	case LEFT_INTERFACE_ANCHOR:
 		return vec2F(
 			0.0f,
-			-offset.y / 2.0f);
+			offset.y / 2.0f);
 	case RIGHT_INTERFACE_ANCHOR:
 		return vec2F(
 			-offset.x,
-			-offset.y / 2.0f);
+			offset.y / 2.0f);
 	case BOTTOM_INTERFACE_ANCHOR:
 		return vec2F(
 			-offset.x / 2.0f,
@@ -879,7 +876,7 @@ Vec2F getTextOffset(
 	case TOP_INTERFACE_ANCHOR:
 		return vec2F(
 			-offset.x / 2.0f,
-			-offset.y);
+			offset.y);
 	case LEFT_BOTTOM_INTERFACE_ANCHOR:
 		return vec2F(
 			0.0f,
@@ -887,7 +884,7 @@ Vec2F getTextOffset(
 	case LEFT_TOP_INTERFACE_ANCHOR:
 		return vec2F(
 			0.0f,
-			-offset.y);
+			offset.y);
 	case RIGHT_BOTTOM_INTERFACE_ANCHOR:
 		return vec2F(
 			-offset.x,
@@ -895,7 +892,7 @@ Vec2F getTextOffset(
 	case RIGHT_TOP_INTERFACE_ANCHOR:
 		return vec2F(
 			-offset.x,
-			-offset.y);
+			offset.y);
 	}
 }
 size_t getTextUnicodeCharCount(

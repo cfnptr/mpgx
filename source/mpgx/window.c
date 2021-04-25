@@ -2338,6 +2338,7 @@ inline static Shader* createGlShader(
 			printf("Failed to compile %s shader:\n%s",
 				typeString,
 				infoLog);
+			free(infoLog);
 		}
 #endif
 

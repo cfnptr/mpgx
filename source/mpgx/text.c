@@ -462,6 +462,9 @@ inline static bool createTextVertices(
 	if (textSize.x < vertexOffset.x)
 		textSize.x = vertexOffset.x;
 
+	// TODO: possibly remove 2.0f division
+	// due to the different font line advance
+
 	textSize.y = (-vertexOffset.y + newLineAdvance) / 2.0f;
 
 	*_vertices = vertices;

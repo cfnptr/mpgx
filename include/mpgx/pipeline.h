@@ -89,9 +89,9 @@ inline static GLuint createGlPipeline(
 				infoLog);
 
 			printf("%s\n", infoLog);
+			free(infoLog);
 		}
 #endif
-
 		assertOpenGL();
 
 		glDeleteProgram(program);

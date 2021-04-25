@@ -1,5 +1,6 @@
 #pragma once
-#include "mpgx/window.h"
+#include "mpgx/interface.h"
+
 #include <stdbool.h>
 
 typedef struct Font Font;
@@ -30,6 +31,9 @@ Window* getTextWindow(const Text* text);
 bool isTextConstant(const Text* text);
 Vec2F getTextSize(const Text* text);
 
+Vec2F getTextOffset(
+	const Text* text,
+	uint8_t anchor);
 size_t getTextUnicodeCharCount(
 	const Text* text);
 bool getTextUnicodeCharAdvance(

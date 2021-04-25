@@ -115,59 +115,6 @@ Camera createInterfaceCamera(
 		1.0f);
 }
 
-inline static Vec3F calcTransformPosition(
-	Vec2F halfSize,
-	Vec3F position,
-	uint8_t anchor)
-{
-	switch (anchor)
-	{
-	default:
-		abort();
-	case CENTER_INTERFACE_ANCHOR:
-		return position;
-	case LEFT_INTERFACE_ANCHOR:
-		return vec3F(
-			position.x - halfSize.x,
-			position.y,
-			position.z);
-	case RIGHT_INTERFACE_ANCHOR:
-		return vec3F(
-			position.x + halfSize.x,
-			position.y,
-			position.z);
-	case BOTTOM_INTERFACE_ANCHOR:
-		return vec3F(
-			position.x,
-			position.y - halfSize.y,
-			position.z);
-	case TOP_INTERFACE_ANCHOR:
-		return vec3F(
-			position.x,
-			position.y + halfSize.y,
-			position.z);
-	case LEFT_BOTTOM_INTERFACE_ANCHOR:
-		return vec3F(
-			position.x - halfSize.x,
-			position.y - halfSize.y,
-			position.z);
-	case LEFT_TOP_INTERFACE_ANCHOR:
-		return vec3F(
-			position.x - halfSize.x,
-			position.y + halfSize.y,
-			position.z);
-	case RIGHT_BOTTOM_INTERFACE_ANCHOR:
-		return vec3F(
-			position.x + halfSize.x,
-			position.y - halfSize.y,
-			position.z);
-	case RIGHT_TOP_INTERFACE_ANCHOR:
-		return vec3F(
-			position.x + halfSize.x,
-			position.y + halfSize.y,
-			position.z);
-	}
-}
 void preUpdateInterface(Interface* interface)
 {
 	assert(interface != NULL);
@@ -202,10 +149,64 @@ void preUpdateInterface(Interface* interface)
 			parent = getTransformParent(parent);
 		}
 
-		Vec3F position = calcTransformPosition(
-			halfSize,
-			element->position,
-			element->anchor);
+		Vec3F position = element->position;
+
+		switch (element->anchor)
+		{
+		default:
+			abort();
+		case CENTER_INTERFACE_ANCHOR:
+			break;
+		case LEFT_INTERFACE_ANCHOR:
+			position = vec3F(
+				position.x - halfSize.x,
+				position.y,
+				position.z);
+			break;
+		case RIGHT_INTERFACE_ANCHOR:
+			position = vec3F(
+				position.x + halfSize.x,
+				position.y,
+				position.z);
+			break;
+		case BOTTOM_INTERFACE_ANCHOR:
+			position = vec3F(
+				position.x,
+				position.y - halfSize.y,
+				position.z);
+			break;
+		case TOP_INTERFACE_ANCHOR:
+			position = vec3F(
+				position.x,
+				position.y + halfSize.y,
+				position.z);
+			break;
+		case LEFT_BOTTOM_INTERFACE_ANCHOR:
+			position = vec3F(
+				position.x - halfSize.x,
+				position.y - halfSize.y,
+				position.z);
+			break;
+		case LEFT_TOP_INTERFACE_ANCHOR:
+			position = vec3F(
+				position.x - halfSize.x,
+				position.y + halfSize.y,
+				position.z);
+			break;
+		case RIGHT_BOTTOM_INTERFACE_ANCHOR:
+			position = vec3F(
+				position.x + halfSize.x,
+				position.y - halfSize.y,
+				position.z);
+			break;
+		case RIGHT_TOP_INTERFACE_ANCHOR:
+			position = vec3F(
+				position.x + halfSize.x,
+				position.y + halfSize.y,
+				position.z);
+			break;
+		}
+
 		setTransformPosition(
 			transform,
 			position);

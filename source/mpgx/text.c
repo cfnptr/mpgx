@@ -393,12 +393,13 @@ inline static bool createTextVertices(
 		uniCharCount * 16;
 	float* vertices = malloc(
 		vertexCount * sizeof(float));
+	Vec2F textSize = zeroVec2F();
 
 	if (vertices == NULL)
 		return false;
 
 	size_t vertexIndex = 0;
-	Vec2F textSize = zeroVec2F();
+	Vec2F vertexOffset = zeroVec2F();
 
 	for (size_t i = 0; i < uniCharCount; i++)
 	{
@@ -406,8 +407,11 @@ inline static bool createTextVertices(
 
 		if (uniChar == '\n')
 		{
-			textSize.y -= newLineAdvance;
-			textSize.x = 0.0f;
+			if (textSize.x < vertexOffset.x)
+				textSize.x = vertexOffset.x;
+
+			vertexOffset.y -= newLineAdvance;
+			vertexOffset.x = 0.0f;
 			continue;
 		}
 
@@ -428,10 +432,10 @@ inline static bool createTextVertices(
 		}
 
 		Vec4F position = vec4F(
-			textSize.x + glyph->position.x,
-			textSize.y + glyph->position.y,
-			textSize.x + glyph->position.z,
-			textSize.y + glyph->position.w);
+			vertexOffset.x + glyph->position.x,
+			vertexOffset.y + glyph->position.y,
+			vertexOffset.x + glyph->position.z,
+			vertexOffset.y + glyph->position.w);
 		Vec4F texCoords = glyph->texCoords;
 
 		vertices[vertexIndex + 0] = position.x;
@@ -452,8 +456,13 @@ inline static bool createTextVertices(
 		vertices[vertexIndex + 15] = texCoords.w;
 
 		vertexIndex += 16;
-		textSize.x += glyph->advance;
+		vertexOffset.x += glyph->advance;
 	}
+
+	if (textSize.x < vertexOffset.x)
+		textSize.x = vertexOffset.x;
+
+	textSize.y = -vertexOffset.y + newLineAdvance;
 
 	*_vertices = vertices;
 	*_vertexCount = vertexCount;
@@ -835,6 +844,57 @@ Vec2F getTextSize(const Text* text)
 	return text->textSize;
 }
 
+Vec2F getTextOffset(
+	const Text* text,
+	uint8_t anchor)
+{
+	assert(text != NULL);
+	assert(anchor < INTERFACE_ANCHOR_COUNT);
+
+	Vec2F offset = text->textSize;
+
+	switch (anchor)
+	{
+	default:
+		abort();
+	case CENTER_INTERFACE_ANCHOR:
+		return vec2F(
+			-offset.x / 2.0f,
+			-offset.y / 4.0f);
+	case LEFT_INTERFACE_ANCHOR:
+		return vec2F(
+			0.0f,
+			-offset.y / 4.0f);
+	case RIGHT_INTERFACE_ANCHOR:
+		return vec2F(
+			-offset.x,
+			-offset.y / 4.0f);
+	case BOTTOM_INTERFACE_ANCHOR:
+		return vec2F(
+			-offset.x / 2.0f,
+			0.0f);
+	case TOP_INTERFACE_ANCHOR:
+		return vec2F(
+			-offset.x / 2.0f,
+			-offset.y);
+	case LEFT_BOTTOM_INTERFACE_ANCHOR:
+		return vec2F(
+			0.0f,
+			0.0f);
+	case LEFT_TOP_INTERFACE_ANCHOR:
+		return vec2F(
+			0.0f,
+			-offset.y);
+	case RIGHT_BOTTOM_INTERFACE_ANCHOR:
+		return vec2F(
+			-offset.x,
+			0.0f);
+	case RIGHT_TOP_INTERFACE_ANCHOR:
+		return vec2F(
+			-offset.x,
+			-offset.y);
+	}
+}
 size_t getTextUnicodeCharCount(
 	const Text* text)
 {
@@ -1013,10 +1073,8 @@ bool bakeText(
 	assert(text != NULL);
 	assert(text->isConstant == false);
 
-	Window* window =
-		text->window;
-	const char* _data =
-		text->data;
+	Window* window = text->window;
+	const char* _data = text->data;
 
 	size_t dataLength =
 		strlen(_data);

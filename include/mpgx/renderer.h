@@ -7,13 +7,13 @@
 typedef struct Renderer Renderer;
 typedef struct Render Render;
 
-typedef enum RenderSorting
+typedef enum RENDER_SORTING
 {
 	NO_RENDER_SORTING,
 	ASCENDING_RENDER_SORTING,
 	DESCENDING_RENDER_SORTING,
 	RENDER_SORTING_COUNT,
-} RenderSorting;
+} RENDER_SORTING;
 
 typedef struct RenderData
 {

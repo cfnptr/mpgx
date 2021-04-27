@@ -12,13 +12,19 @@ struct FreeCamera
 	Vec2F lastCursorPosition;
 	float moveSpeed;
 	float viewSpeed;
+	float fieldOfView;
+	float nearClipPlane;
+	float farClipPlane;
 };
 
 FreeCamera* createFreeCamera(
 	Window* window,
 	Transformer* transformer,
 	float moveSpeed,
-	float viewSpeed)
+	float viewSpeed,
+	float fieldOfView,
+	float nearClipPlane,
+	float farClipPlane)
 {
 	assert(window != NULL);
 	assert(transformer != NULL);
@@ -51,6 +57,9 @@ FreeCamera* createFreeCamera(
 		getWindowCursorPosition(window);
 	freeCamera->moveSpeed = moveSpeed;
 	freeCamera->viewSpeed = viewSpeed;
+	freeCamera->fieldOfView = fieldOfView;
+	freeCamera->nearClipPlane = nearClipPlane;
+	freeCamera->farClipPlane = farClipPlane;
 	return freeCamera;
 }
 void destroyFreeCamera(
@@ -110,6 +119,48 @@ void setFreeCameraViewSpeed(
 {
 	assert(freeCamera != NULL);
 	freeCamera->viewSpeed = viewSpeed;
+}
+
+float getFreeCameraFieldOfView(
+	FreeCamera* freeCamera)
+{
+	assert(freeCamera != NULL);
+	return freeCamera->fieldOfView;
+}
+void setFreeCameraFieldOfView(
+	FreeCamera* freeCamera,
+	float fieldOfView)
+{
+	assert(freeCamera != NULL);
+	freeCamera->fieldOfView = fieldOfView;
+}
+
+float getFreeCameraNearClipPlane(
+	FreeCamera* freeCamera)
+{
+	assert(freeCamera != NULL);
+	return freeCamera->nearClipPlane;
+}
+void setFreeCameraNearClipPlane(
+	FreeCamera* freeCamera,
+	float nearClipPlane)
+{
+	assert(freeCamera != NULL);
+	freeCamera->nearClipPlane = nearClipPlane;
+}
+
+float getFreeCameraFarClipPlane(
+	FreeCamera* freeCamera)
+{
+	assert(freeCamera != NULL);
+	return freeCamera->farClipPlane;
+}
+void setFreeCameraFarClipPlane(
+	FreeCamera* freeCamera,
+	float farClipPlane)
+{
+	assert(freeCamera != NULL);
+	freeCamera->farClipPlane = farClipPlane;
 }
 
 void updateFreeCamera(FreeCamera* freeCamera)
@@ -192,4 +243,16 @@ void updateFreeCamera(FreeCamera* freeCamera)
 		freeCamera->lastCursorPosition = zeroVec2F();
 	}
 }
+Camera getFreeCamera(FreeCamera* freeCamera)
+{
+	assert(freeCamera != NULL);
 
+	Vec2U framebufferSize = getWindowFramebufferSize(
+		freeCamera->window);
+
+	return perspectiveCamera(
+		freeCamera->fieldOfView,
+		(float)framebufferSize.x / (float)framebufferSize.y,
+		freeCamera->nearClipPlane,
+		freeCamera->farClipPlane);
+}

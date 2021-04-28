@@ -1,5 +1,5 @@
 #include "mpgx/window.h"
-#include "mpgx/pipeline.h"
+#include "mpgx/opengl.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
@@ -94,6 +94,21 @@ union Image
 	GlImage gl;
 };
 
+typedef struct VkSampler_
+{
+	Window* window;
+} VkSampler_;
+typedef struct GlSampler
+{
+	Window* window;
+	GLuint handle;
+} GlSampler;
+union Sampler
+{
+	VkSampler_ vk;
+	GlSampler gl;
+};
+
 union Framebuffer
 {
 	// TODO:
@@ -152,6 +167,9 @@ struct Window
 	Image** images;
 	size_t imageCapacity;
 	size_t imageCount;
+	Sampler** samplers;
+	size_t samplerCapacity;
+	size_t samplerCount;
 	Framebuffer** framebuffers;
 	size_t framebufferCapacity;
 	size_t framebufferCount;
@@ -207,6 +225,19 @@ inline static void destroyGlImage(
 	assertOpenGL();
 
 	free(image);
+}
+inline static void destroyGlSampler(
+	Sampler* sampler)
+{
+	glfwMakeContextCurrent(
+		sampler->gl.window->handle);
+
+	glDeleteSamplers(
+		GL_ONE,
+		&sampler->gl.handle);
+	assertOpenGL();
+
+	free(sampler);
 }
 inline static void destroyGlShader(
 	Shader* shader)
@@ -446,10 +477,23 @@ Window* createWindow(
 		return NULL;
 	}
 
+	Sampler** samplers = malloc(sizeof(Sampler*));
+
+	if (images == NULL)
+	{
+		free(images);
+		free(meshes);
+		free(buffers);
+		glfwDestroyWindow(handle);
+		free(window);
+		return NULL;
+	}
+
 	Framebuffer** framebuffers = malloc(sizeof(Framebuffer*));
 
 	if (images == NULL)
 	{
+		free(samplers);
 		free(images);
 		free(meshes);
 		free(buffers);
@@ -463,6 +507,7 @@ Window* createWindow(
 	if (shaders == NULL)
 	{
 		free(framebuffers);
+		free(samplers);
 		free(images);
 		free(meshes);
 		free(buffers);
@@ -477,6 +522,7 @@ Window* createWindow(
 	{
 		free(shaders);
 		free(framebuffers);
+		free(samplers);
 		free(images);
 		free(meshes);
 		free(buffers);
@@ -498,6 +544,9 @@ Window* createWindow(
 	window->images = images;
 	window->imageCapacity = 1;
 	window->imageCount = 0;
+	window->samplers = samplers;
+	window->samplerCapacity = 1;
+	window->samplerCount = 0;
 	window->framebuffers = framebuffers;
 	window->framebufferCapacity = 1;
 	window->framebufferCount = 0;
@@ -568,6 +617,8 @@ void destroyWindow(Window* window)
 	size_t shaderCount = window->shaderCount;
 	Framebuffer** framebuffers = window->framebuffers;
 	size_t framebufferCount = window->framebufferCount;
+	Sampler** samplers = window->samplers;
+	size_t samplerCount = window->samplerCount;
 	Image** images = window->images;
 	size_t imageCount = window->imageCount;
 	Mesh** meshes = window->meshes;
@@ -597,6 +648,8 @@ void destroyWindow(Window* window)
 			destroyGlShader(shaders[i]);
 		/*for (size_t i = 0; i < framebufferCount; i++)
 			destroyGlFramebuffer(framebuffers[i]);*/ // TODO:
+		for (size_t i = 0; i < samplerCount; i++)
+			destroyGlSampler(samplers[i]);
 		for (size_t i = 0; i < imageCount; i++)
 			destroyGlImage(images[i]);
 		for (size_t i = 0; i < meshCount; i++)
@@ -2081,7 +2134,7 @@ void destroyImage(Image* image)
 		for (size_t j = i + 1; j < imageCount; j++)
 			images[j - 1] = images[j];
 
-		uint8_t api = image->vk.window->api;
+		uint8_t api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -2239,6 +2292,236 @@ uint8_t getImageLevelCount(Vec3U imageSize)
 		max(imageSize.x, imageSize.y),
 		imageSize.z);
 	return (uint8_t)floorf(log2f((float)size)) + 1;
+}
+
+inline static Sampler* createGlSampler(
+	Window* window,
+	uint8_t minImageFilter,
+	uint8_t magImageFilter,
+	uint8_t minMipmapFilter,
+	uint8_t magMipmapFilter,
+	bool useMipmapping,
+	uint8_t imageWrapX,
+	uint8_t imageWrapY,
+	uint8_t imageWrapZ,
+	float minMipmapLod,
+	float maxMipmapLod)
+{
+	Sampler* sampler = malloc(sizeof(Sampler));
+
+	if (sampler == NULL)
+		return NULL;
+
+	glfwMakeContextCurrent(
+		window->handle);
+
+	GLuint handle = GL_ZERO;
+
+	glGenSamplers(
+		GL_ONE,
+		&handle);
+
+	glSamplerParameteri(
+		handle,
+		GL_TEXTURE_MIN_FILTER,
+		(GLint)getGlImageFilter(
+			minImageFilter,
+			minMipmapFilter,
+			useMipmapping));
+	glSamplerParameteri(
+		handle,
+		GL_TEXTURE_MAG_FILTER,
+		(GLint)getGlImageFilter(
+			magImageFilter,
+			magMipmapFilter,
+			false));
+
+	glSamplerParameteri(
+		handle,
+		GL_TEXTURE_WRAP_S,
+		(GLint)getGlImageWrap(imageWrapX));
+	glSamplerParameteri(
+		handle,
+		GL_TEXTURE_WRAP_T,
+		(GLint)getGlImageWrap(imageWrapY));
+	glSamplerParameteri(
+		handle,
+		GL_TEXTURE_WRAP_R,
+		(GLint)getGlImageWrap(imageWrapZ));
+
+	glSamplerParameterf(
+		handle,
+		GL_TEXTURE_MIN_LOD,
+		(GLfloat)minMipmapLod);
+	glSamplerParameterf(
+		handle,
+		GL_TEXTURE_MAX_LOD,
+		(GLfloat)maxMipmapLod);
+
+	// TODO: compare function
+
+	assertOpenGL();
+
+	sampler->gl.window = window;
+	sampler->gl.handle = handle;
+	return sampler;
+}
+Sampler* createSampler(
+	Window* window,
+	uint8_t minImageFilter,
+	uint8_t magImageFilter,
+	uint8_t minMipmapFilter,
+	uint8_t magMipmapFilter,
+	bool useMipmapping,
+	uint8_t imageWrapX,
+	uint8_t imageWrapY,
+	uint8_t imageWrapZ,
+	float minMipmapLod,
+	float maxMipmapLod)
+{
+	assert(window != NULL);
+	assert(minImageFilter < IMAGE_FILTER_COUNT);
+	assert(magImageFilter < IMAGE_FILTER_COUNT);
+	assert(minMipmapFilter < IMAGE_FILTER_COUNT);
+	assert(magMipmapFilter < IMAGE_FILTER_COUNT);
+	assert(imageWrapX < IMAGE_WRAP_COUNT);
+	assert(imageWrapY < IMAGE_WRAP_COUNT);
+	assert(imageWrapZ < IMAGE_WRAP_COUNT);
+	assert(window->isRecording == false);
+
+	uint8_t api = window->api;
+
+	Sampler* sampler;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		sampler = createGlSampler(
+			window,
+			minImageFilter,
+			magImageFilter,
+			minMipmapFilter,
+			magMipmapFilter,
+			useMipmapping,
+			imageWrapX,
+			imageWrapY,
+			imageWrapZ,
+			minMipmapLod,
+			maxMipmapLod);
+	}
+	else
+	{
+		abort();
+	}
+
+	if (sampler == NULL)
+		return NULL;
+
+	Sampler** samplers = window->samplers;
+	size_t samplerCount = window->samplerCount;
+	size_t samplerCapacity = window->samplerCapacity;
+
+	if (samplerCount == samplerCapacity)
+	{
+		samplerCapacity *= 2;
+
+		samplers = realloc(
+			samplers,
+			samplerCapacity * sizeof(Sampler*));
+
+		if (samplers == NULL)
+		{
+			if (api == VULKAN_GRAPHICS_API)
+			{
+				abort();
+			}
+			else if (api == OPENGL_GRAPHICS_API ||
+				api == OPENGL_ES_GRAPHICS_API)
+			{
+				destroyGlSampler(sampler);
+			}
+			else
+			{
+				abort();
+			}
+
+			return NULL;
+		}
+
+		window->samplers = samplers;
+		window->samplerCapacity = samplerCapacity;
+	}
+
+	samplers[samplerCount] = sampler;
+	window->samplerCount++;
+	return sampler;
+}
+void destroySampler(Sampler* sampler)
+{
+	if (sampler == NULL)
+		return;
+
+	assert(sampler->vk.window->isRecording == false);
+
+	Window* window = sampler->vk.window;
+	Sampler** samplers = window->samplers;
+	size_t samplerCount = window->samplerCount;
+
+	for (size_t i = 0; i < samplerCount; i++)
+	{
+		if (sampler != samplers[i])
+			continue;
+
+		for (size_t j = i + 1; j < samplerCount; j++)
+			samplers[j - 1] = samplers[j];
+
+		uint8_t api = window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
+		{
+			abort();
+		}
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
+		{
+			destroyGlSampler(sampler);
+		}
+		else
+		{
+			abort();
+		}
+
+		window->samplerCount--;
+		return;
+	}
+
+	abort();
+}
+
+const void* getSamplerHandle(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+
+	uint8_t api = sampler->vk.window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return &sampler->gl.handle;
+	}
+	else
+	{
+		abort();
+	}
 }
 
 inline static Shader* createGlShader(

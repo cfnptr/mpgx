@@ -1,4 +1,6 @@
 #include "mpgx/pipeline.h"
+#include "mpgx/opengl.h"
+
 #include <string.h>
 
 typedef struct VkColorPipeline

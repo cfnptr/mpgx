@@ -1,10 +1,10 @@
 #include "mpgx/text.h"
+#include "mpgx/opengl.h"
 #include "mpgx/pipeline.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
 
-#include <wchar.h>
 #include <assert.h>
 
 // TODO: make better look
@@ -56,6 +56,7 @@ typedef struct GlTextPipeline
 	GLint mvpLocation;
 	GLint colorLocation;
 	GLint imageLocation;
+	Sampler* sampler;
 } GlTextPipeline;
 typedef union TextPipeline
 {
@@ -1689,6 +1690,26 @@ inline static TextPipeline* onGlTextPipelineCreate(
 
 	assertOpenGL();
 
+	Sampler* sampler = createSampler(
+		window,
+		NEAREST_IMAGE_FILTER,
+		NEAREST_IMAGE_FILTER,
+		NEAREST_IMAGE_FILTER,
+		NEAREST_IMAGE_FILTER,
+		false,
+		REPEAT_IMAGE_WRAP,
+		REPEAT_IMAGE_WRAP,
+		REPEAT_IMAGE_WRAP,
+		-1000.0f,
+		1000.0f);
+
+	if (sampler == NULL)
+	{
+		glDeleteProgram(handle);
+		free(pipeline);
+		return NULL;
+	}
+
 	pipeline->gl.vertexShader = vertexShader;
 	pipeline->gl.fragmentShader = fragmentShader;
 	pipeline->gl.image = NULL;
@@ -1698,6 +1719,7 @@ inline static TextPipeline* onGlTextPipelineCreate(
 	pipeline->gl.mvpLocation = mvpLocation;
 	pipeline->gl.colorLocation = colorLocation;
 	pipeline->gl.imageLocation = imageLocation;
+	pipeline->gl.sampler = sampler;
 	return pipeline;
 }
 static void onGlTextPipelineDestroy(
@@ -1709,8 +1731,8 @@ static void onGlTextPipelineDestroy(
 
 	makeWindowContextCurrent(window);
 
-	glDeleteProgram(
-		textPipeline->gl.handle);
+	destroySampler(textPipeline->gl.sampler);
+	glDeleteProgram(textPipeline->gl.handle);
 	assertOpenGL();
 
 	free(textPipeline);
@@ -1774,33 +1796,19 @@ static void onGlTextUniformsSet(
 
 	GLuint glImage = *(const GLuint*)
 		getImageHandle(textPipeline->gl.image);
+	GLuint glSampler = *(const GLuint*)
+		getSamplerHandle(textPipeline->gl.sampler);
 
 	// TODO: use sampler
 
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
-		GL_TEXTURE_2D,
+		GL_TEXTURE_2D + 0,
 		glImage);
-
-	glTexParameteri(
-		GL_TEXTURE_2D,
-		GL_TEXTURE_WRAP_S,
-		GL_REPEAT);
-	glTexParameteri(
-		GL_TEXTURE_2D,
-		GL_TEXTURE_WRAP_T,
-		GL_REPEAT);
-
-	glTexParameteri(
-		GL_TEXTURE_2D,
-		GL_TEXTURE_MIN_FILTER,
-		GL_NEAREST);
-	glTexParameteri(
-		GL_TEXTURE_2D,
-		GL_TEXTURE_MAG_FILTER,
-		GL_NEAREST);
-
+	glBindSampler(
+		0,
+		glSampler);
 	glUniform1i(
 		textPipeline->gl.imageLocation,
 		0);

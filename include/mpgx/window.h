@@ -250,12 +250,12 @@ typedef struct Window Window;
 typedef union Buffer Buffer;
 typedef union Mesh Mesh;
 typedef union Image Image;
+typedef union Sampler Sampler;
 typedef union Framebuffer Framebuffer;
 typedef union Shader Shader;
 typedef struct Pipeline Pipeline;
 // TODO:
 //union Query
-//union Sampler?
 typedef struct ImageData ImageData;
 
 typedef void(*OnWindowUpdate)(
@@ -453,6 +453,24 @@ uint8_t getImageFormat(const Image* image);
 Vec3U getImageSize(const Image* image);
 const void* getImageHandle(const Image* image);
 uint8_t getImageLevelCount(Vec3U imageSize);
+
+// TODO: compare function
+Sampler* createSampler(
+	Window* window,
+	uint8_t minImageFilter,
+	uint8_t magImageFilter,
+	uint8_t minMipmapFilter,
+	uint8_t magMipmapFilter,
+	bool useMipmapping,
+	uint8_t imageWrapX,
+	uint8_t imageWrapY,
+	uint8_t imageWrapZ,
+	float minMipmapLod,
+	float maxMipmapLod);
+void destroySampler(Sampler* sampler);
+
+const void* getSamplerHandle(
+	const Sampler* sampler);
 
 Shader* createShader(
 	Window* window,

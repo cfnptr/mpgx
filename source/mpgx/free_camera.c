@@ -79,7 +79,7 @@ Window* getFreeCameraWindow(FreeCamera* freeCamera)
 }
 
 Transform* getFreeCameraTransform(
-	FreeCamera* freeCamera)
+	const FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->transform;
@@ -94,7 +94,7 @@ void setFreeCameraTransform(
 }
 
 float getFreeCameraMoveSpeed(
-	FreeCamera* freeCamera)
+	const FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->moveSpeed;
@@ -108,7 +108,7 @@ void setFreeCameraMoveSpeed(
 }
 
 float getFreeCameraViewSpeed(
-	FreeCamera* freeCamera)
+	const FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->viewSpeed;
@@ -122,7 +122,7 @@ void setFreeCameraViewSpeed(
 }
 
 float getFreeCameraFieldOfView(
-	FreeCamera* freeCamera)
+	const FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->fieldOfView;
@@ -136,7 +136,7 @@ void setFreeCameraFieldOfView(
 }
 
 float getFreeCameraNearClipPlane(
-	FreeCamera* freeCamera)
+	const FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->nearClipPlane;
@@ -150,7 +150,7 @@ void setFreeCameraNearClipPlane(
 }
 
 float getFreeCameraFarClipPlane(
-	FreeCamera* freeCamera)
+	const FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->farClipPlane;
@@ -243,7 +243,7 @@ void updateFreeCamera(FreeCamera* freeCamera)
 		freeCamera->lastCursorPosition = zeroVec2F();
 	}
 }
-Camera getFreeCamera(FreeCamera* freeCamera)
+Camera getFreeCamera(const FreeCamera* freeCamera)
 {
 	assert(freeCamera != NULL);
 

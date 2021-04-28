@@ -18,40 +18,40 @@ void destroyFreeCamera(FreeCamera* freeCamera);
 Window* getFreeCameraWindow(FreeCamera* freeCamera);
 
 Transform* getFreeCameraTransform(
-	FreeCamera* freeCamera);
+	const FreeCamera* freeCamera);
 void setFreeCameraTransform(
 	FreeCamera* freeCamera,
 	Transform* transform);
 
 float getFreeCameraMoveSpeed(
-	FreeCamera* freeCamera);
+	const FreeCamera* freeCamera);
 void setFreeCameraMoveSpeed(
 	FreeCamera* freeCamera,
 	float moveSpeed);
 
 float getFreeCameraViewSpeed(
-	FreeCamera* freeCamera);
+	const FreeCamera* freeCamera);
 void setFreeCameraViewSpeed(
 	FreeCamera* freeCamera,
 	float viewSpeed);
 
 float getFreeCameraFieldOfView(
-	FreeCamera* freeCamera);
+	const FreeCamera* freeCamera);
 void setFreeCameraFieldOfView(
 	FreeCamera* freeCamera,
 	float fieldOfView);
 
 float getFreeCameraNearClipPlane(
-	FreeCamera* freeCamera);
+	const FreeCamera* freeCamera);
 void setFreeCameraNearClipPlane(
 	FreeCamera* freeCamera,
 	float nearClipPlane);
 
 float getFreeCameraFarClipPlane(
-	FreeCamera* freeCamera);
+	const FreeCamera* freeCamera);
 void setFreeCameraFarClipPlane(
 	FreeCamera* freeCamera,
 	float farClipPlane);
 
 void updateFreeCamera(FreeCamera* freeCamera);
-Camera getFreeCamera(FreeCamera* freeCamera);
+Camera getFreeCamera(const FreeCamera* freeCamera);

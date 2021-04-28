@@ -12,17 +12,54 @@ Render* createColorRender(
 	Vec4F color,
 	Mesh* mesh);
 
+Vec4F getColorRenderColor(
+	const Render* render);
+void setColorRenderColor(
+	Render* render,
+	Vec4F color);
+
 Mesh* getColorRenderMesh(
 	const Render* render);
 void setColorRenderMesh(
 	Render* render,
 	Mesh* mesh);
 
-Vec4F getColorRenderColor(
+Renderer* createTexColRenderer(
+	Transform* transform,
+	Pipeline* pipeline,
+	uint8_t sortingType);
+Render* createTexColRender(
+	Renderer* renderer,
+	Transform* transform,
+	Box3F bounding,
+	Vec4F color,
+	Vec2F size,
+	Vec2F offset,
+	Mesh* mesh);
+
+Vec4F getTexColRenderColor(
 	const Render* render);
-void setColorRenderColor(
+void setTexColRenderColor(
 	Render* render,
 	Vec4F color);
+
+Vec2F getTexColRenderSize(
+	const Render* render);
+void setTexColRenderSize(
+	Render* render,
+	Vec2F size);
+
+Vec2F getTexColRenderOffset(
+	const Render* render);
+void setTexColRenderOffset(
+	Render* render,
+	Vec2F offset);
+
+Mesh* getTexColRenderMesh(
+	const Render* render);
+void setTexColRenderMesh(
+	Render* render,
+	Mesh* mesh);
 
 Renderer* createSpriteRenderer(
 	Transform* transform,
@@ -44,6 +81,43 @@ void setSpriteRenderColor(
 Mesh* getSpriteRenderMesh(
 	const Render* render);
 void setSpriteRenderMesh(
+	Render* render,
+	Mesh* mesh);
+
+Renderer* createTexSprRenderer(
+	Transform* transform,
+	Pipeline* pipeline,
+	uint8_t sortingType);
+Render* createTexSprRender(
+	Renderer* renderer,
+	Transform* transform,
+	Box3F bounding,
+	Vec4F color,
+	Vec2F size,
+	Vec2F offset,
+	Mesh* mesh);
+
+Vec4F getTexSprRenderColor(
+	const Render* render);
+void setTexSprRenderColor(
+	Render* render,
+	Vec4F color);
+
+Vec2F getTexSprRenderSize(
+	const Render* render);
+void setTexSprRenderSize(
+	Render* render,
+	Vec2F size);
+
+Vec2F getTexSprRenderOffset(
+	const Render* render);
+void setTexSprRenderOffset(
+	Render* render,
+	Vec2F offset);
+
+Mesh* getTexSprRenderMesh(
+	const Render* render);
+void setTexSprRenderMesh(
 	Render* render,
 	Mesh* mesh);
 

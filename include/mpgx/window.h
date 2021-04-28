@@ -8,8 +8,6 @@
 #define DEFAULT_WINDOW_WIDTH 1280
 #define DEFAULT_WINDOW_HEIGHT 720
 
-// TODO: Add other enumerations
-
 typedef enum KEYBOARD_KEY
 {
 	UNKNOWN_KEYBOARD_KEY = -1,
@@ -212,6 +210,19 @@ typedef enum IMAGE_WRAP
 	IMAGE_WRAP_COUNT,
 } IMAGE_WRAP;
 
+typedef enum IMAGE_COMPARE
+{
+	LESS_EQUAL_IMAGE_COMPARE,
+	GREATER_EQUAL_IMAGE_COMPARE,
+	LESS_IMAGE_COMPARE,
+	GREATER_IMAGE_COMPARE,
+	EQUAL_IMAGE_COMPARE,
+	NOT_EQUAL_IMAGE_COMPARE,
+	ALWAYS_IMAGE_COMPARE,
+	NEVER_IMAGE_COMPARE,
+	IMAGE_COMPARE_COUNT,
+} IMAGE_COMPARE;
+
 typedef enum SHADER_TYPE
 {
 	VERTEX_SHADER_TYPE,
@@ -232,20 +243,6 @@ typedef enum DRAW_MODE
 	DRAW_MODE_COUNT,
 } DRAW_MODE;
 
-typedef enum CULL_FACE
-{
-	BACK_ONLY_CULL_FACE,
-	FRONT_ONLY_CULL_FACE,
-	BACK_FRONT_CULL_FACE,
-	CULL_FACE_COUNT,
-} CULL_FACE;
-typedef enum FRONT_FACE
-{
-	CLOCKWISE_FRONT_FACE,
-	COUNTERCLOCKWISE_FRONT_FACE,
-	FRONT_FACE_COUNT,
-} FRONT_FACE;
-
 typedef struct Window Window;
 typedef union Buffer Buffer;
 typedef union Mesh Mesh;
@@ -254,8 +251,6 @@ typedef union Sampler Sampler;
 typedef union Framebuffer Framebuffer;
 typedef union Shader Shader;
 typedef struct Pipeline Pipeline;
-// TODO:
-//union Query
 typedef struct ImageData ImageData;
 
 typedef void(*OnWindowUpdate)(
@@ -454,21 +449,45 @@ Vec3U getImageSize(const Image* image);
 const void* getImageHandle(const Image* image);
 uint8_t getImageLevelCount(Vec3U imageSize);
 
-// TODO: compare function
 Sampler* createSampler(
 	Window* window,
 	uint8_t minImageFilter,
 	uint8_t magImageFilter,
 	uint8_t minMipmapFilter,
-	uint8_t magMipmapFilter,
 	bool useMipmapping,
 	uint8_t imageWrapX,
 	uint8_t imageWrapY,
 	uint8_t imageWrapZ,
+	uint8_t imageCompare,
+	bool useCompare,
 	float minMipmapLod,
 	float maxMipmapLod);
 void destroySampler(Sampler* sampler);
 
+Window* getSamplerWindow(
+	const Sampler* sampler);
+uint8_t getSamplerMinImageFilter(
+	const Sampler* sampler);
+uint8_t getSamplerMagImageFilter(
+	const Sampler* sampler);
+uint8_t getSamplerMinMipmapFilter(
+	const Sampler* sampler);
+bool isSamplerUseMipmapping(
+	const Sampler* sampler);
+uint8_t getSamplerImageWrapX(
+	const Sampler* sampler);
+uint8_t getSamplerImageWrapY(
+	const Sampler* sampler);
+uint8_t getSamplerImageWrapZ(
+	const Sampler* sampler);
+uint8_t getSamplerImageCompare(
+	const Sampler* sampler);
+bool isSamplerUseCompare(
+	const Sampler* sampler);
+float getSamplerMinMipmapLod(
+	const Sampler* sampler);
+float getSamplerMaxMipmapLod(
+	const Sampler* sampler);
 const void* getSamplerHandle(
 	const Sampler* sampler);
 

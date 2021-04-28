@@ -22,16 +22,22 @@ inline static void assertOpenGL()
 }
 
 inline static GLuint createGlPipeline(
+	Window* window,
 	Shader** _shaders,
 	size_t shaderCount)
 {
+	assert(window != NULL);
 	assert(_shaders != NULL);
 	assert(shaderCount != 0);
+
+	makeWindowContextCurrent(window);
 
 	GLuint program = glCreateProgram();
 
 	for (size_t i = 0; i < shaderCount; i++)
 	{
+		assert(getShaderWindow(_shaders[i]) == window);
+
 		GLuint handle = *(const GLuint*)
 			getShaderHandle(_shaders[i]);
 
@@ -97,8 +103,16 @@ inline static GLuint createGlPipeline(
 	}
 
 	assertOpenGL();
-
 	return program;
+}
+inline static void destroyGlPipeline(
+	Window* window,
+	GLuint pipeline)
+{
+	assert(window != NULL);
+	makeWindowContextCurrent(window);
+	glDeleteProgram(pipeline);
+	assertOpenGL();
 }
 
 inline static GLenum getGlImageFilter(
@@ -143,4 +157,26 @@ inline static GLenum getGlImageWrap(uint8_t wrap)
 		return GL_MIRRORED_REPEAT;
 	else
 		return GL_REPEAT;
+}
+inline static GLenum getGlImageCompare(uint8_t compare)
+{
+	switch (compare)
+	{
+	default:
+		return GL_LESS;
+	case LESS_EQUAL_IMAGE_COMPARE:
+		return GL_LEQUAL;
+	case GREATER_EQUAL_IMAGE_COMPARE:
+		return GL_GEQUAL;
+	case GREATER_IMAGE_COMPARE:
+		return GL_GREATER;
+	case EQUAL_IMAGE_COMPARE:
+		return GL_EQUAL;
+	case NOT_EQUAL_IMAGE_COMPARE:
+		return GL_NOTEQUAL;
+	case ALWAYS_IMAGE_COMPARE:
+		return GL_ALWAYS;
+	case NEVER_IMAGE_COMPARE:
+		return GL_NEVER;
+	}
 }

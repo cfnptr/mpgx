@@ -97,10 +97,33 @@ union Image
 typedef struct VkSampler_
 {
 	Window* window;
+	uint8_t minImageFilter;
+	uint8_t magImageFilter;
+	uint8_t minMipmapFilter;
+	uint8_t magMipmapFilter;
+	bool useMipmapping;
+	uint8_t imageWrapX;
+	uint8_t imageWrapY;
+	uint8_t imageWrapZ;
+	uint8_t imageCompare;
+	bool useCompare;
+	float minMipmapLod;
+	float maxMipmapLod;
 } VkSampler_;
 typedef struct GlSampler
 {
 	Window* window;
+	uint8_t minImageFilter;
+	uint8_t magImageFilter;
+	uint8_t minMipmapFilter;
+	bool useMipmapping;
+	uint8_t imageWrapX;
+	uint8_t imageWrapY;
+	uint8_t imageWrapZ;
+	uint8_t imageCompare;
+	bool useCompare;
+	float minMipmapLod;
+	float maxMipmapLod;
 	GLuint handle;
 } GlSampler;
 union Sampler
@@ -2299,11 +2322,12 @@ inline static Sampler* createGlSampler(
 	uint8_t minImageFilter,
 	uint8_t magImageFilter,
 	uint8_t minMipmapFilter,
-	uint8_t magMipmapFilter,
 	bool useMipmapping,
 	uint8_t imageWrapX,
 	uint8_t imageWrapY,
 	uint8_t imageWrapZ,
+	uint8_t imageCompare,
+	bool useCompare,
 	float minMipmapLod,
 	float maxMipmapLod)
 {
@@ -2333,7 +2357,7 @@ inline static Sampler* createGlSampler(
 		GL_TEXTURE_MAG_FILTER,
 		(GLint)getGlImageFilter(
 			magImageFilter,
-			magMipmapFilter,
+			magImageFilter,
 			false));
 
 	glSamplerParameteri(
@@ -2349,6 +2373,17 @@ inline static Sampler* createGlSampler(
 		GL_TEXTURE_WRAP_R,
 		(GLint)getGlImageWrap(imageWrapZ));
 
+	glSamplerParameteri(
+		handle,
+		GL_TEXTURE_COMPARE_MODE,
+		useCompare ?
+			GL_COMPARE_REF_TO_TEXTURE :
+			GL_NONE);
+	glSamplerParameteri(
+		handle,
+		GL_TEXTURE_COMPARE_FUNC,
+		(GLint)getGlImageCompare(imageCompare));
+
 	glSamplerParameterf(
 		handle,
 		GL_TEXTURE_MIN_LOD,
@@ -2358,11 +2393,20 @@ inline static Sampler* createGlSampler(
 		GL_TEXTURE_MAX_LOD,
 		(GLfloat)maxMipmapLod);
 
-	// TODO: compare function
-
 	assertOpenGL();
 
 	sampler->gl.window = window;
+	sampler->gl.minImageFilter = minImageFilter;
+	sampler->gl.magImageFilter = magImageFilter;
+	sampler->gl.minMipmapFilter = minMipmapFilter;
+	sampler->gl.useMipmapping = useMipmapping;
+	sampler->gl.imageWrapX = imageWrapX;
+	sampler->gl.imageWrapY = imageWrapY;
+	sampler->gl.imageWrapZ = imageWrapZ;
+	sampler->gl.imageCompare = imageCompare;
+	sampler->gl.useCompare = useCompare;
+	sampler->gl.minMipmapLod = minMipmapLod;
+	sampler->gl.maxMipmapLod = maxMipmapLod;
 	sampler->gl.handle = handle;
 	return sampler;
 }
@@ -2371,11 +2415,12 @@ Sampler* createSampler(
 	uint8_t minImageFilter,
 	uint8_t magImageFilter,
 	uint8_t minMipmapFilter,
-	uint8_t magMipmapFilter,
 	bool useMipmapping,
 	uint8_t imageWrapX,
 	uint8_t imageWrapY,
 	uint8_t imageWrapZ,
+	uint8_t imageCompare,
+	bool useCompare,
 	float minMipmapLod,
 	float maxMipmapLod)
 {
@@ -2383,10 +2428,10 @@ Sampler* createSampler(
 	assert(minImageFilter < IMAGE_FILTER_COUNT);
 	assert(magImageFilter < IMAGE_FILTER_COUNT);
 	assert(minMipmapFilter < IMAGE_FILTER_COUNT);
-	assert(magMipmapFilter < IMAGE_FILTER_COUNT);
 	assert(imageWrapX < IMAGE_WRAP_COUNT);
 	assert(imageWrapY < IMAGE_WRAP_COUNT);
 	assert(imageWrapZ < IMAGE_WRAP_COUNT);
+	assert(imageCompare < IMAGE_COMPARE_COUNT);
 	assert(window->isRecording == false);
 
 	uint8_t api = window->api;
@@ -2405,11 +2450,12 @@ Sampler* createSampler(
 			minImageFilter,
 			magImageFilter,
 			minMipmapFilter,
-			magMipmapFilter,
 			useMipmapping,
 			imageWrapX,
 			imageWrapY,
 			imageWrapZ,
+			imageCompare,
+			useCompare,
 			minMipmapLod,
 			maxMipmapLod);
 	}
@@ -2502,6 +2548,78 @@ void destroySampler(Sampler* sampler)
 	abort();
 }
 
+Window* getSamplerWindow(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.window;
+}
+uint8_t getSamplerMinImageFilter(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.minImageFilter;
+}
+uint8_t getSamplerMagImageFilter(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.magImageFilter;
+}
+uint8_t getSamplerMinMipmapFilter(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.minMipmapFilter;
+}
+bool isSamplerUseMipmapping(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.useMipmapping;
+}
+uint8_t getSamplerImageWrapX(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.imageWrapX;
+}
+uint8_t getSamplerImageWrapY(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.imageWrapY;
+}
+uint8_t getSamplerImageWrapZ(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.imageWrapZ;
+}
+uint8_t getSamplerImageCompare(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.imageCompare;
+}
+bool isSamplerUseCompare(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.useCompare;
+}
+float getSamplerMinMipmapLod(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.minMipmapLod;
+}
+float getSamplerMaxMipmapLod(
+	const Sampler* sampler)
+{
+	assert(sampler != NULL);
+	return sampler->vk.maxMipmapLod;
+}
 const void* getSamplerHandle(
 	const Sampler* sampler)
 {

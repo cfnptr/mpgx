@@ -22,7 +22,7 @@ struct Text
 	char* data;
 	size_t dataSize;
 	bool isConstant;
-	Image* image;
+	Image* texture;
 	Mesh* mesh;
 	Vec2F textSize;
 	size_t uniCharCount;
@@ -40,22 +40,21 @@ typedef struct VkTextPipeline
 {
 	Shader* vertexShader;
 	Shader* fragmentShader;
-	Image* image;
+	Image* texture;
 	Mat4F mvp;
 	Vec4F color;
-	// TODO:
 } VkTextPipeline;
 typedef struct GlTextPipeline
 {
 	Shader* vertexShader;
 	Shader* fragmentShader;
-	Image* image;
+	Image* texture;
 	Mat4F mvp;
 	Vec4F color;
-	GLenum handle;
+	GLuint handle;
 	GLint mvpLocation;
 	GLint colorLocation;
-	GLint imageLocation;
+	GLint textureLocation;
 	Sampler* sampler;
 } GlTextPipeline;
 typedef union TextPipeline
@@ -541,7 +540,7 @@ Text* createText(
 
 		void* pixels = NULL;
 
-		Image* image = createImage(
+		Image* texture = createImage(
 			window,
 			IMAGE_2D_TYPE,
 			R8G8B8A8_UNORM_IMAGE_FORMAT,
@@ -549,7 +548,7 @@ Text* createText(
 			(const void**)&pixels,
 			1);
 
-		if (image == NULL)
+		if (texture == NULL)
 		{
 			free(data);
 			free(text);
@@ -565,7 +564,7 @@ Text* createText(
 
 		if (vertexBuffer == NULL)
 		{
-			destroyImage(image);
+			destroyImage(texture);
 			free(data);
 			free(text);
 			return NULL;
@@ -581,7 +580,7 @@ Text* createText(
 		if (indexBuffer == NULL)
 		{
 			destroyBuffer(vertexBuffer);
-			destroyImage(image);
+			destroyImage(texture);
 			free(data);
 			free(text);
 			return NULL;
@@ -599,7 +598,7 @@ Text* createText(
 		{
 			destroyBuffer(indexBuffer);
 			destroyBuffer(vertexBuffer);
-			destroyImage(image);
+			destroyImage(texture);
 			free(data);
 			free(text);
 			return NULL;
@@ -607,7 +606,7 @@ Text* createText(
 
 		text->data = data;
 		text->dataSize = 1;
-		text->image = image;
+		text->texture = texture;
 		text->mesh = mesh;
 		text->textSize = zeroVec2F();
 		text->uniCharCount = 0;
@@ -682,7 +681,7 @@ Text* createText(
 			return NULL;
 		}
 
-		Image* image = createImage(
+		Image* texture = createImage(
 			window,
 			IMAGE_2D_TYPE,
 			R8G8B8A8_UNORM_IMAGE_FORMAT,
@@ -692,7 +691,7 @@ Text* createText(
 
 		free(pixels);
 
-		if (image == NULL)
+		if (texture == NULL)
 		{
 			free(data);
 			free(glyphs);
@@ -720,7 +719,7 @@ Text* createText(
 
 		if (result == false)
 		{
-			destroyImage(image);
+			destroyImage(texture);
 			free(data);
 			free(text);
 			return NULL;
@@ -737,7 +736,7 @@ Text* createText(
 
 		if (vertexBuffer == NULL)
 		{
-			destroyImage(image);
+			destroyImage(texture);
 			free(data);
 			free(text);
 			return NULL;
@@ -754,7 +753,7 @@ Text* createText(
 		if (result == false)
 		{
 			destroyBuffer(vertexBuffer);
-			destroyImage(image);
+			destroyImage(texture);
 			free(data);
 			free(text);
 			return NULL;
@@ -772,7 +771,7 @@ Text* createText(
 		if (indexBuffer == NULL)
 		{
 			destroyBuffer(vertexBuffer);
-			destroyImage(image);
+			destroyImage(texture);
 			free(data);
 			free(text);
 			return NULL;
@@ -790,7 +789,7 @@ Text* createText(
 		{
 			destroyBuffer(indexBuffer);
 			destroyBuffer(vertexBuffer);
-			destroyImage(image);
+			destroyImage(texture);
 			free(data);
 			free(text);
 			return NULL;
@@ -798,7 +797,7 @@ Text* createText(
 
 		text->data = data;
 		text->dataSize = dataSize;
-		text->image = image;
+		text->texture = texture;
 		text->mesh = mesh;
 		text->textSize = textSize;
 		text->uniCharCount = uniCharCount;
@@ -823,7 +822,7 @@ void destroyText(Text* text)
 	destroyBuffer(indexBuffer);
 	destroyBuffer(vertexBuffer);
 
-	destroyImage(text->image);
+	destroyImage(text->texture);
 	free(text->data);
 
 	free(text);
@@ -1119,7 +1118,7 @@ bool bakeText(
 			}
 
 			uint32_t textPixelLength =
-				getImageSize(text->image).x;
+				getImageSize(text->texture).x;
 
 			float newLineAdvance;
 			uint8_t* pixels;
@@ -1144,11 +1143,11 @@ bool bakeText(
 				return false;
 			}
 
-			Image* image = NULL;
+			Image* texture = NULL;
 
 			if (pixelLength > textPixelLength)
 			{
-				image = createImage(
+				texture = createImage(
 					window,
 					IMAGE_2D_TYPE,
 					R8G8B8A8_UNORM_IMAGE_FORMAT,
@@ -1159,7 +1158,7 @@ bool bakeText(
 				free(pixels);
 				pixels = NULL;
 
-				if (image == NULL)
+				if (texture == NULL)
 				{
 					free(glyphs);
 					free(uniChars);
@@ -1186,7 +1185,7 @@ bool bakeText(
 
 			if (result == false)
 			{
-				destroyImage(image);
+				destroyImage(texture);
 				free(pixels);
 				return false;
 			}
@@ -1210,7 +1209,7 @@ bool bakeText(
 
 				if (vertexBuffer == NULL)
 				{
-					destroyImage(image);
+					destroyImage(texture);
 					free(pixels);
 					return false;
 				}
@@ -1226,7 +1225,7 @@ bool bakeText(
 				if (result == false)
 				{
 					destroyBuffer(vertexBuffer);
-					destroyImage(image);
+					destroyImage(texture);
 					free(pixels);
 					return false;
 				}
@@ -1243,16 +1242,16 @@ bool bakeText(
 				if (indexBuffer == NULL)
 				{
 					destroyBuffer(vertexBuffer);
-					destroyImage(image);
+					destroyImage(texture);
 					free(pixels);
 					return false;
 				}
 			}
 
-			if (image == NULL)
+			if (texture == NULL)
 			{
 				setImageData(
-					text->image,
+					text->texture,
 					pixels,
 					vec3U(pixelLength, pixelLength, 1),
 					zeroVec3U());
@@ -1261,8 +1260,8 @@ bool bakeText(
 			}
 			else
 			{
-				destroyImage(text->image);
-				text->image = image;
+				destroyImage(text->texture);
+				text->texture = texture;
 			}
 
 			if (vertexBuffer == NULL)
@@ -1321,7 +1320,7 @@ bool bakeText(
 
 			void* pixels = NULL;
 
-			Image* image = createImage(
+			Image* texture = createImage(
 				window,
 				IMAGE_2D_TYPE,
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
@@ -1329,7 +1328,7 @@ bool bakeText(
 				(const void**)&pixels,
 				1);
 
-			if (image == NULL)
+			if (texture == NULL)
 			{
 				free(data);
 				return false;
@@ -1344,7 +1343,7 @@ bool bakeText(
 
 			if (vertexBuffer == NULL)
 			{
-				destroyImage(image);
+				destroyImage(texture);
 				free(data);
 				return false;
 			}
@@ -1359,7 +1358,7 @@ bool bakeText(
 			if (indexBuffer == NULL)
 			{
 				destroyBuffer(vertexBuffer);
-				destroyImage(image);
+				destroyImage(texture);
 				free(data);
 				return false;
 			}
@@ -1376,7 +1375,7 @@ bool bakeText(
 			{
 				destroyBuffer(indexBuffer);
 				destroyBuffer(vertexBuffer);
-				destroyImage(image);
+				destroyImage(texture);
 				free(data);
 				return false;
 			}
@@ -1389,12 +1388,12 @@ bool bakeText(
 			destroyBuffer(vertexBuffer);
 			destroyBuffer(indexBuffer);
 
-			destroyImage(text->image);
+			destroyImage(text->texture);
 			free(text->data);
 
 			text->data = data;
 			text->dataSize = 1;
-			text->image = image;
+			text->texture = texture;
 			text->mesh = mesh;
 			text->textSize = zeroVec2F();
 			text->uniCharCount = 0;
@@ -1465,7 +1464,7 @@ bool bakeText(
 				return false;
 			}
 
-			Image* image = createImage(
+			Image* texture = createImage(
 				window,
 				IMAGE_2D_TYPE,
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
@@ -1475,7 +1474,7 @@ bool bakeText(
 
 			free(pixels);
 
-			if (image == NULL)
+			if (texture == NULL)
 			{
 				free(data);
 				free(glyphs);
@@ -1502,7 +1501,7 @@ bool bakeText(
 
 			if (result == false)
 			{
-				destroyImage(image);
+				destroyImage(texture);
 				free(data);
 				return false;
 			}
@@ -1518,7 +1517,7 @@ bool bakeText(
 
 			if (vertexBuffer == NULL)
 			{
-				destroyImage(image);
+				destroyImage(texture);
 				free(data);
 				return false;
 			}
@@ -1534,7 +1533,7 @@ bool bakeText(
 			if (result == false)
 			{
 				destroyBuffer(vertexBuffer);
-				destroyImage(image);
+				destroyImage(texture);
 				free(data);
 				return false;
 			}
@@ -1551,7 +1550,7 @@ bool bakeText(
 			if (indexBuffer == NULL)
 			{
 				destroyBuffer(vertexBuffer);
-				destroyImage(image);
+				destroyImage(texture);
 				free(data);
 				return false;
 			}
@@ -1568,7 +1567,7 @@ bool bakeText(
 			{
 				destroyBuffer(indexBuffer);
 				destroyBuffer(vertexBuffer);
-				destroyImage(image);
+				destroyImage(texture);
 				free(data);
 				return false;
 			}
@@ -1581,12 +1580,12 @@ bool bakeText(
 			destroyBuffer(vertexBuffer);
 			destroyBuffer(indexBuffer);
 
-			destroyImage(text->image);
+			destroyImage(text->texture);
 			free(text->data);
 
 			text->data = data;
 			text->dataSize = dataSize;
-			text->image = image;
+			text->texture = texture;
 			text->mesh = mesh;
 			text->textSize = textSize;
 			text->uniCharCount = uniCharCount;
@@ -1611,8 +1610,8 @@ void drawText(
 	TextPipeline* textPipeline =
 		getPipelineHandle(pipeline);
 
-	textPipeline->vk.image =
-		text->image;
+	textPipeline->vk.texture =
+		text->texture;
 	drawMesh(
 		text->mesh,
 		pipeline);
@@ -1634,9 +1633,8 @@ inline static TextPipeline* onGlTextPipelineCreate(
 		fragmentShader,
 	};
 
-	makeWindowContextCurrent(window);
-
 	GLuint handle = createGlPipeline(
+		window,
 		shaders,
 		2);
 
@@ -1674,14 +1672,14 @@ inline static TextPipeline* onGlTextPipelineCreate(
 		return NULL;
 	}
 
-	GLint imageLocation = glGetUniformLocation(
+	GLint textureLocation = glGetUniformLocation(
 		handle,
-		"u_Image");
+		"u_Texture");
 
-	if (imageLocation == -1)
+	if (textureLocation == -1)
 	{
 #ifndef NDEBUG
-		printf("Failed to get 'u_Image' location\n");
+		printf("Failed to get 'u_Texture' location\n");
 #endif
 		glDeleteProgram(handle);
 		free(pipeline);
@@ -1695,11 +1693,12 @@ inline static TextPipeline* onGlTextPipelineCreate(
 		NEAREST_IMAGE_FILTER,
 		NEAREST_IMAGE_FILTER,
 		NEAREST_IMAGE_FILTER,
-		NEAREST_IMAGE_FILTER,
 		false,
 		REPEAT_IMAGE_WRAP,
 		REPEAT_IMAGE_WRAP,
 		REPEAT_IMAGE_WRAP,
+		NEVER_IMAGE_COMPARE,
+		false,
 		-1000.0f,
 		1000.0f);
 
@@ -1712,13 +1711,13 @@ inline static TextPipeline* onGlTextPipelineCreate(
 
 	pipeline->gl.vertexShader = vertexShader;
 	pipeline->gl.fragmentShader = fragmentShader;
-	pipeline->gl.image = NULL;
+	pipeline->gl.texture = NULL;
 	pipeline->gl.mvp = identMat4F();
 	pipeline->gl.color = valVec4F(1.0f);
 	pipeline->gl.handle = handle;
 	pipeline->gl.mvpLocation = mvpLocation;
 	pipeline->gl.colorLocation = colorLocation;
-	pipeline->gl.imageLocation = imageLocation;
+	pipeline->gl.textureLocation = textureLocation;
 	pipeline->gl.sampler = sampler;
 	return pipeline;
 }
@@ -1728,13 +1727,11 @@ static void onGlTextPipelineDestroy(
 {
 	TextPipeline* textPipeline =
 		(TextPipeline*)pipeline;
-
-	makeWindowContextCurrent(window);
-
-	destroySampler(textPipeline->gl.sampler);
-	glDeleteProgram(textPipeline->gl.handle);
-	assertOpenGL();
-
+	destroySampler(
+		textPipeline->gl.sampler);
+	destroyGlPipeline(
+		window,
+		textPipeline->gl.handle);
 	free(textPipeline);
 }
 static void onGlTextPipelineBind(
@@ -1794,23 +1791,21 @@ static void onGlTextUniformsSet(
 		sizeof(Vec2F) * 2,
 		(const void*)sizeof(Vec2F));
 
-	GLuint glImage = *(const GLuint*)
-		getImageHandle(textPipeline->gl.image);
+	GLuint glTexture = *(const GLuint*)
+		getImageHandle(textPipeline->gl.texture);
 	GLuint glSampler = *(const GLuint*)
 		getSamplerHandle(textPipeline->gl.sampler);
-
-	// TODO: use sampler
 
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D + 0,
-		glImage);
+		glTexture);
 	glBindSampler(
 		0,
 		glSampler);
 	glUniform1i(
-		textPipeline->gl.imageLocation,
+		textPipeline->gl.textureLocation,
 		0);
 
 	assertOpenGL();

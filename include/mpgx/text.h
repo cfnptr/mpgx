@@ -15,6 +15,8 @@ typedef struct Text Text;
 // TODO: add text coloring
 // Pass color data to the vertex buffer
 
+// TODO: add text fallback fonts
+
 Font* createFontFromFile(
 	const void* filePath);
 void destroyFont(Font* font);

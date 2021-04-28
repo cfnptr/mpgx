@@ -556,10 +556,10 @@ static void onGlTexColPipelineBind(
 	GLuint glSampler = *(const GLuint*)
 		getSamplerHandle(texColPipeline->gl.sampler);
 
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0 + 0);
 
 	glBindTexture(
-		GL_TEXTURE_2D + 0,
+		GL_TEXTURE_2D,
 		glTexture);
 	glBindSampler(
 		0,
@@ -1239,10 +1239,10 @@ static void onGlTexSprPipelineBind(
 	GLuint glSampler = *(const GLuint*)
 		getSamplerHandle(texSprPipeline->gl.sampler);
 
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0 + 0);
 
 	glBindTexture(
-		GL_TEXTURE_2D + 0,
+		GL_TEXTURE_2D,
 		glTexture);
 	glBindSampler(
 		0,

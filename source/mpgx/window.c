@@ -100,7 +100,6 @@ typedef struct VkSampler_
 	uint8_t minImageFilter;
 	uint8_t magImageFilter;
 	uint8_t minMipmapFilter;
-	uint8_t magMipmapFilter;
 	bool useMipmapping;
 	uint8_t imageWrapX;
 	uint8_t imageWrapY;
@@ -209,12 +208,13 @@ struct Window
 
 static bool graphicsInitialized = false;
 static FT_Library ftLibrary = NULL;
+static Window* currentWindow = NULL;
 
 inline static void destroyGlBuffer(
 	Buffer* buffer)
 {
-	glfwMakeContextCurrent(
-		buffer->gl.window->handle);
+	makeWindowContextCurrent(
+		buffer->gl.window);
 
 	glDeleteBuffers(
 		GL_ONE,
@@ -226,8 +226,8 @@ inline static void destroyGlBuffer(
 inline static void destroyGlMesh(
 	Mesh* mesh)
 {
-	glfwMakeContextCurrent(
-		mesh->gl.window->handle);
+	makeWindowContextCurrent(
+		mesh->gl.window);
 
 	glDeleteVertexArrays(
 		GL_ONE,
@@ -239,8 +239,8 @@ inline static void destroyGlMesh(
 inline static void destroyGlImage(
 	Image* image)
 {
-	glfwMakeContextCurrent(
-		image->gl.window->handle);
+	makeWindowContextCurrent(
+		image->gl.window);
 
 	glDeleteTextures(
 		GL_ONE,
@@ -252,8 +252,8 @@ inline static void destroyGlImage(
 inline static void destroyGlSampler(
 	Sampler* sampler)
 {
-	glfwMakeContextCurrent(
-		sampler->gl.window->handle);
+	makeWindowContextCurrent(
+		sampler->gl.window);
 
 	glDeleteSamplers(
 		GL_ONE,
@@ -265,8 +265,8 @@ inline static void destroyGlSampler(
 inline static void destroyGlShader(
 	Shader* shader)
 {
-	glfwMakeContextCurrent(
-		shader->gl.window->handle);
+	makeWindowContextCurrent(
+		shader->gl.window);
 
 	glDeleteShader(shader->gl.handle);
 	assertOpenGL();
@@ -582,6 +582,8 @@ Window* createWindow(
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
 	window->isRecording = false;
+
+	currentWindow = window;
 	return window;
 }
 Window* createAnyWindow(
@@ -969,9 +971,15 @@ void requestWindowAttention(Window* window)
 void makeWindowContextCurrent(Window* window)
 {
 	assert(window != NULL);
+
 	assert(window->api == OPENGL_GRAPHICS_API ||
 		window->api == OPENGL_ES_GRAPHICS_API);
-	glfwMakeContextCurrent(window->handle);
+
+	if (window != currentWindow)
+	{
+		glfwMakeContextCurrent(window->handle);
+		currentWindow = window;
+	}
 }
 void updateWindow(Window* window)
 {
@@ -1096,7 +1104,7 @@ inline static Buffer* createGlBuffer(
 		return NULL;
 	}
 
-	glfwMakeContextCurrent(window->handle);
+	makeWindowContextCurrent(window);
 
 	GLuint handle = GL_ZERO;
 
@@ -1294,8 +1302,8 @@ inline static void setGlBufferData(
 	size_t size,
 	size_t offset)
 {
-	glfwMakeContextCurrent(
-		buffer->gl.window->handle);
+	makeWindowContextCurrent(
+		buffer->gl.window);
 
 	glBindBuffer(
 		buffer->gl.glType,
@@ -1354,8 +1362,7 @@ inline static Mesh* createGlMesh(
 	if (mesh == NULL)
 		return NULL;
 
-	glfwMakeContextCurrent(
-		window->handle);
+	makeWindowContextCurrent(window);
 
 	GLuint handle = GL_ZERO;
 
@@ -1880,8 +1887,7 @@ inline static Image* createGlImage(
 		break;
 	}
 
-	glfwMakeContextCurrent(
-		window->handle);
+	makeWindowContextCurrent(window);
 
 	GLuint handle = GL_ZERO;
 
@@ -2186,8 +2192,8 @@ inline static void setGlImageData(
 	Vec3U size,
 	Vec3U offset)
 {
-	glfwMakeContextCurrent(
-		image->gl.window->handle);
+	makeWindowContextCurrent(
+		image->gl.window);
 
 	glBindTexture(
 		image->gl.glType,
@@ -2336,8 +2342,7 @@ inline static Sampler* createGlSampler(
 	if (sampler == NULL)
 		return NULL;
 
-	glfwMakeContextCurrent(
-		window->handle);
+	makeWindowContextCurrent(window);
 
 	GLuint handle = GL_ZERO;
 
@@ -2677,8 +2682,7 @@ inline static Shader* createGlShader(
 
 	sources[1] = (const char*)code;
 
-	glfwMakeContextCurrent(
-		window->handle);
+	makeWindowContextCurrent(window);
 
 	GLuint handle = glCreateShader(glType);
 

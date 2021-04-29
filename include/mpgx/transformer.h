@@ -7,6 +7,7 @@ typedef struct Transform Transform;
 
 typedef enum ROTATION_TYPE
 {
+	NO_ROTATION_TYPE,
 	SPIN_ROTATION_TYPE,
 	ORBIT_ROTATION_TYPE,
 	ROTATION_TYPE_COUNT,

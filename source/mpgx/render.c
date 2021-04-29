@@ -136,8 +136,8 @@ Vec4F getColorRenderColor(
 
 	assert(strcmp(
 		getPipelineName(
-			getRendererPipeline(
-				getRenderRenderer(render))),
+		getRendererPipeline(
+		getRenderRenderer(render))),
 		"Color") == 0);
 
 	ColorRender* colorRender =

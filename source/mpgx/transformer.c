@@ -297,7 +297,9 @@ void updateTransformer(
 		}
 		else
 		{
-			abort();
+			model = translateMat4F(
+				model,
+				transform->position);
 		}
 
 		model = scaleMat4F(

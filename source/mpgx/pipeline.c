@@ -1292,7 +1292,7 @@ static void onGlTexSprPipelineUniformsSet(
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(Vec2F),
+		sizeof(Vec2F) * 2,
 		(const void*)sizeof(Vec2F));
 
 	assertOpenGL();

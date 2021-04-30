@@ -210,113 +210,143 @@ inline static Plane3F normFrustumPlane(Plane3F plane)
 
 inline static void glFrustumPlanes(
 	Mat4F frustum,
-	Plane3F planes[6],
+	Plane3F* _leftPlane,
+	Plane3F* _rightPlane,
+	Plane3F* _bottomPlane,
+	Plane3F* _topPlane,
+	Plane3F* _backPlane,
+	Plane3F* _frontPlane,
 	bool normalize)
 {
-	assert(planes != NULL);
+	assert(_leftPlane != NULL);
+	assert(_rightPlane != NULL);
+	assert(_bottomPlane != NULL);
+	assert(_topPlane != NULL);
+	assert(_backPlane != NULL);
+	assert(_frontPlane != NULL);
 
-	Plane3F plane;
+	Plane3F leftPlane;
+	leftPlane.normal.x = frustum.m03 + frustum.m00;
+	leftPlane.normal.y = frustum.m13 + frustum.m10;
+	leftPlane.normal.z = frustum.m23 + frustum.m20;
+	leftPlane.distance = frustum.m33 + frustum.m30;
 
-	plane.normal.x = frustum.m03 + frustum.m00;
-	plane.normal.y = frustum.m13 + frustum.m10;
-	plane.normal.z = frustum.m23 + frustum.m20;
-	plane.distance = frustum.m33 + frustum.m30;
-	planes[0] = plane;
+	Plane3F rightPlane;
+	rightPlane.normal.x = frustum.m03 - frustum.m00;
+	rightPlane.normal.y = frustum.m13 - frustum.m10;
+	rightPlane.normal.z = frustum.m23 - frustum.m20;
+	rightPlane.distance = frustum.m33 - frustum.m30;
 
-	plane.normal.x = frustum.m03 - frustum.m00;
-	plane.normal.y = frustum.m13 - frustum.m10;
-	plane.normal.z = frustum.m23 - frustum.m20;
-	plane.distance = frustum.m33 - frustum.m30;
-	planes[1] = plane;
+	Plane3F bottomPlane;
+	bottomPlane.normal.x = frustum.m03 + frustum.m01;
+	bottomPlane.normal.y = frustum.m13 + frustum.m11;
+	bottomPlane.normal.z = frustum.m23 + frustum.m21;
+	bottomPlane.distance = frustum.m33 + frustum.m31;
 
-	plane.normal.x = frustum.m03 + frustum.m01;
-	plane.normal.y = frustum.m13 + frustum.m11;
-	plane.normal.z = frustum.m23 + frustum.m21;
-	plane.distance = frustum.m33 + frustum.m31;
-	planes[2] = plane;
+	Plane3F topPlane;
+	topPlane.normal.x = frustum.m03 - frustum.m01;
+	topPlane.normal.y = frustum.m13 - frustum.m11;
+	topPlane.normal.z = frustum.m23 - frustum.m21;
+	topPlane.distance = frustum.m33 - frustum.m31;
 
-	plane.normal.x = frustum.m03 - frustum.m01;
-	plane.normal.y = frustum.m13 - frustum.m11;
-	plane.normal.z = frustum.m23 - frustum.m21;
-	plane.distance = frustum.m33 - frustum.m31;
-	planes[3] = plane;
+	Plane3F backPlane;
+	backPlane.normal.x = frustum.m03 + frustum.m02;
+	backPlane.normal.y = frustum.m13 + frustum.m12;
+	backPlane.normal.z = frustum.m23 + frustum.m22;
+	backPlane.distance = frustum.m33 + frustum.m32;
 
-	plane.normal.x = frustum.m03 + frustum.m02;
-	plane.normal.y = frustum.m13 + frustum.m12;
-	plane.normal.z = frustum.m23 + frustum.m22;
-	plane.distance = frustum.m33 + frustum.m32;
-	planes[4] = plane;
-
-	plane.normal.x = frustum.m03 - frustum.m02;
-	plane.normal.y = frustum.m13 - frustum.m12;
-	plane.normal.z = frustum.m23 - frustum.m22;
-	plane.distance = frustum.m33 - frustum.m32;
-	planes[5] = plane;
+	Plane3F frontPlane;
+	frontPlane.normal.x = frustum.m03 - frustum.m02;
+	frontPlane.normal.y = frustum.m13 - frustum.m12;
+	frontPlane.normal.z = frustum.m23 - frustum.m22;
+	frontPlane.distance = frustum.m33 - frustum.m32;
 
 	if (normalize == true)
 	{
-		planes[0] = normFrustumPlane(planes[0]);
-		planes[1] = normFrustumPlane(planes[1]);
-		planes[2] = normFrustumPlane(planes[2]);
-		planes[3] = normFrustumPlane(planes[3]);
-		planes[4] = normFrustumPlane(planes[4]);
-		planes[5] = normFrustumPlane(planes[5]);
+		leftPlane = normFrustumPlane(leftPlane);
+		rightPlane = normFrustumPlane(rightPlane);
+		bottomPlane = normFrustumPlane(bottomPlane);
+		topPlane = normFrustumPlane(topPlane);
+		backPlane = normFrustumPlane(backPlane);
+		frontPlane = normFrustumPlane(frontPlane);
 	}
+
+	*_leftPlane = leftPlane;
+	*_rightPlane = rightPlane;
+	*_bottomPlane = bottomPlane;
+	*_topPlane = topPlane;
+	*_backPlane = backPlane;
+	*_frontPlane = frontPlane;
 }
 inline static void vkFrustumPlanes(
 	Mat4F frustum,
-	Plane3F planes[6],
+	Plane3F* _leftPlane,
+	Plane3F* _rightPlane,
+	Plane3F* _bottomPlane,
+	Plane3F* _topPlane,
+	Plane3F* _backPlane,
+	Plane3F* _frontPlane,
 	bool normalize)
 {
-	assert(planes != NULL);
+	assert(_leftPlane != NULL);
+	assert(_rightPlane != NULL);
+	assert(_bottomPlane != NULL);
+	assert(_topPlane != NULL);
+	assert(_backPlane != NULL);
+	assert(_frontPlane != NULL);
 
-	Plane3F plane;
+	Plane3F leftPlane;
+	leftPlane.normal.x = frustum.m03 + frustum.m00;
+	leftPlane.normal.y = frustum.m13 + frustum.m10;
+	leftPlane.normal.z = frustum.m23 + frustum.m20;
+	leftPlane.distance = frustum.m33 + frustum.m30;
 
-	plane.normal.x = frustum.m03 + frustum.m00;
-	plane.normal.y = frustum.m13 + frustum.m10;
-	plane.normal.z = frustum.m23 + frustum.m20;
-	plane.distance = frustum.m33 + frustum.m30;
-	planes[0] = plane;
+	Plane3F rightPlane;
+	rightPlane.normal.x = frustum.m03 - frustum.m00;
+	rightPlane.normal.y = frustum.m13 - frustum.m10;
+	rightPlane.normal.z = frustum.m23 - frustum.m20;
+	rightPlane.distance = frustum.m33 - frustum.m30;
 
-	plane.normal.x = frustum.m03 - frustum.m00;
-	plane.normal.y = frustum.m13 - frustum.m10;
-	plane.normal.z = frustum.m23 - frustum.m20;
-	plane.distance = frustum.m33 - frustum.m30;
-	planes[1] = plane;
+	Plane3F bottomPlane;
+	bottomPlane.normal.x = frustum.m03 + frustum.m01;
+	bottomPlane.normal.y = frustum.m13 + frustum.m11;
+	bottomPlane.normal.z = frustum.m23 + frustum.m21;
+	bottomPlane.distance = frustum.m33 + frustum.m31;
 
-	plane.normal.x = frustum.m03 + frustum.m01;
-	plane.normal.y = frustum.m13 + frustum.m11;
-	plane.normal.z = frustum.m23 + frustum.m21;
-	plane.distance = frustum.m33 + frustum.m31;
-	planes[2] = plane;
+	Plane3F topPlane;
+	topPlane.normal.x = frustum.m03 - frustum.m01;
+	topPlane.normal.y = frustum.m13 - frustum.m11;
+	topPlane.normal.z = frustum.m23 - frustum.m21;
+	topPlane.distance = frustum.m33 - frustum.m31;
 
-	plane.normal.x = frustum.m03 - frustum.m01;
-	plane.normal.y = frustum.m13 - frustum.m11;
-	plane.normal.z = frustum.m23 - frustum.m21;
-	plane.distance = frustum.m33 - frustum.m31;
-	planes[3] = plane;
+	Plane3F backPlane;
+	backPlane.normal.x = frustum.m02;
+	backPlane.normal.y = frustum.m12;
+	backPlane.normal.z = frustum.m22;
+	backPlane.distance = frustum.m32;
 
-	plane.normal.x = frustum.m02;
-	plane.normal.y = frustum.m12;
-	plane.normal.z = frustum.m22;
-	plane.distance = frustum.m32;
-	planes[4] = plane;
-
-	plane.normal.x = frustum.m03 - frustum.m02;
-	plane.normal.y = frustum.m13 - frustum.m12;
-	plane.normal.z = frustum.m23 - frustum.m22;
-	plane.distance = frustum.m33 - frustum.m32;
-	planes[5] = plane;
+	Plane3F frontPlane;
+	frontPlane.normal.x = frustum.m03 - frustum.m02;
+	frontPlane.normal.y = frustum.m13 - frustum.m12;
+	frontPlane.normal.z = frustum.m23 - frustum.m22;
+	frontPlane.distance = frustum.m33 - frustum.m32;
 
 	if (normalize == true)
 	{
-		planes[0] = normFrustumPlane(planes[0]);
-		planes[1] = normFrustumPlane(planes[1]);
-		planes[2] = normFrustumPlane(planes[2]);
-		planes[3] = normFrustumPlane(planes[3]);
-		planes[4] = normFrustumPlane(planes[4]);
-		planes[5] = normFrustumPlane(planes[5]);
+		leftPlane = normFrustumPlane(leftPlane);
+		rightPlane = normFrustumPlane(rightPlane);
+		bottomPlane = normFrustumPlane(bottomPlane);
+		topPlane = normFrustumPlane(topPlane);
+		backPlane = normFrustumPlane(backPlane);
+		frontPlane = normFrustumPlane(frontPlane);
 	}
+
+	*_leftPlane = leftPlane;
+	*_rightPlane = rightPlane;
+	*_bottomPlane = bottomPlane;
+	*_topPlane = topPlane;
+	*_backPlane = backPlane;
+	*_frontPlane = frontPlane;
 }
 
 inline static bool isBoxInFrustumPlane(
@@ -342,16 +372,19 @@ inline static bool isBoxInFrustumPlane(
 			box.maximum.x, box.maximum.y, box.maximum.z)) < 0.0f);
 }
 inline static bool isBoxInFrustum(
-	const Plane3F planes[6],
+	Plane3F leftPlane,
+	Plane3F rightPlane,
+	Plane3F bottomPlane,
+	Plane3F topPlane,
+	Plane3F backPlane,
+	Plane3F frontPlane,
 	Box3F box)
 {
-	assert(planes != NULL);
-
 	return
-		isBoxInFrustumPlane(planes[0], box) &&
-		isBoxInFrustumPlane(planes[1], box) &&
-		isBoxInFrustumPlane(planes[2], box) &&
-		isBoxInFrustumPlane(planes[3], box) &&
-		isBoxInFrustumPlane(planes[4], box) &&
-		isBoxInFrustumPlane(planes[5], box);
+		isBoxInFrustumPlane(leftPlane, box) &&
+		isBoxInFrustumPlane(rightPlane, box) &&
+		isBoxInFrustumPlane(bottomPlane, box) &&
+		isBoxInFrustumPlane(topPlane, box) &&
+		isBoxInFrustumPlane(backPlane, box) &&
+		isBoxInFrustumPlane(frontPlane, box);
 }

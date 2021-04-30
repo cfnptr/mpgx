@@ -217,7 +217,12 @@ void createRenderData(
 				view);
 			vkFrustumPlanes(
 				viewProj,
-				data->planes,
+				&data->leftPlane,
+				&data->rightPlane,
+				&data->bottomPlane,
+				&data->topPlane,
+				&data->backPlane,
+				&data->frontPlane,
 				false);
 		}
 		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
@@ -233,7 +238,12 @@ void createRenderData(
 				view);
 			glFrustumPlanes(
 				viewProj,
-				data->planes,
+				&data->leftPlane,
+				&data->rightPlane,
+				&data->bottomPlane,
+				&data->topPlane,
+				&data->backPlane,
+				&data->frontPlane,
 				false);
 		}
 		else
@@ -257,7 +267,12 @@ void createRenderData(
 				view);
 			vkFrustumPlanes(
 				viewProj,
-				data->planes,
+				&data->leftPlane,
+				&data->rightPlane,
+				&data->bottomPlane,
+				&data->topPlane,
+				&data->backPlane,
+				&data->frontPlane,
 				false);
 		}
 		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
@@ -275,7 +290,12 @@ void createRenderData(
 				view);
 			glFrustumPlanes(
 				viewProj,
-				data->planes,
+				&data->leftPlane,
+				&data->rightPlane,
+				&data->bottomPlane,
+				&data->topPlane,
+				&data->backPlane,
+				&data->frontPlane,
 				false);
 		}
 		else
@@ -304,7 +324,13 @@ void drawRenderer(
 
 	Vec3F rendererPosition = negVec3F(
 		getTransformPosition(renderer->transform));
-	const Plane3F* planes = data->planes;
+
+	Plane3F leftPlane = data->leftPlane;
+	Plane3F rightPlane = data->rightPlane;
+	Plane3F bottomPlane = data->bottomPlane;
+	Plane3F topPlane = data->topPlane;
+	Plane3F backPlane = data->backPlane;
+	Plane3F frontPlane = data->frontPlane;
 
 	size_t renderElementCount = 0;
 
@@ -343,7 +369,16 @@ void drawRenderer(
 			renderBounding.maximum,
 			renderPosition);
 
-		if (isBoxInFrustum(planes, renderBounding) == false)
+		bool isInFrustum = isBoxInFrustum(
+			leftPlane,
+			rightPlane,
+			bottomPlane,
+			topPlane,
+			backPlane,
+			frontPlane,
+			renderBounding);
+
+		if (isInFrustum == false)
 			continue;
 
 		RenderElement element;

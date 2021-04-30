@@ -236,7 +236,7 @@ void updateInterface(Interface* interface)
 	Vec2F size = vec2F(
 		(float)windowSize.x / interfaceScale,
 		(float)windowSize.y / interfaceScale);
-	Vec2F halfSize = divValVec2F(size,2.0f);
+	Vec2F halfSize = divValVec2F(size, 2.0f);
 
 	Vec2F cursorPosition = vec2F(
 		(cursor.x / interfaceScale) - halfSize.x,

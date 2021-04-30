@@ -1131,7 +1131,6 @@ inline static Buffer* createGlBuffer(
 	buffer->gl.type = type;
 	buffer->gl.size = size;
 	buffer->gl.isConstant = isConstant;
-	buffer->gl.handle = handle;
 	buffer->gl.glType = glType;
 	buffer->gl.handle = handle;
 	return buffer;

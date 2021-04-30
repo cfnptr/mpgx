@@ -20,7 +20,12 @@ typedef struct RenderData
 	Mat4F view;
 	Mat4F proj;
 	Mat4F viewProj;
-	Plane3F planes[6];
+	Plane3F leftPlane;
+	Plane3F rightPlane;
+	Plane3F bottomPlane;
+	Plane3F topPlane;
+	Plane3F backPlane;
+	Plane3F frontPlane;
 } RenderData;
 
 typedef void(*OnRenderDestroy)(

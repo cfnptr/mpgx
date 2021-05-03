@@ -331,7 +331,7 @@ Window* createWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool visible)
+	bool isVisible)
 {
 	assert(api < GRAPHICS_API_COUNT);
 	assert(size.x > 0);
@@ -349,7 +349,7 @@ Window* createWindow(
 
 	glfwWindowHint(
 		GLFW_VISIBLE,
-		visible ? GLFW_TRUE : GLFW_FALSE);
+		isVisible ? GLFW_TRUE : GLFW_FALSE);
 
 	if (api == VULKAN_GRAPHICS_API)
 	{

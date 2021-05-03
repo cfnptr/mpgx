@@ -276,13 +276,13 @@ Window* createWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool visible);
+	bool isVisible);
 Window* createAnyWindow(
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool visible);
+	bool isVisible);
 void destroyWindow(Window* window);
 
 uint8_t getWindowGraphicsAPI(const Window* window);

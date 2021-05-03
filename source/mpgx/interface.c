@@ -243,6 +243,7 @@ void updateInterface(Interface* interface)
 		(size.y - (cursor.y / interfaceScale)) - halfSize.y);
 
 	InterfaceElement* newElement = NULL;
+	float elementDistance = INFINITY;
 
 	for (size_t i = 0; i < elementCount; i++)
 	{
@@ -289,8 +290,11 @@ void updateInterface(Interface* interface)
 
 		if (newElement != NULL)
 		{
-			if (element->position.z < newElement->position.z)
+			if (position.z < elementDistance)
+			{
 				newElement = element;
+				elementDistance = position.z;
+			}
 		}
 		else
 		{

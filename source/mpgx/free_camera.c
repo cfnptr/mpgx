@@ -93,6 +93,26 @@ void setFreeCameraTransform(
 	freeCamera->transform = transform;
 }
 
+Vec2F getFreeCameraRotation(
+	const FreeCamera* freeCamera)
+{
+	assert(freeCamera != NULL);
+	return freeCamera->rotation;
+}
+void setFreeCameraRotation(
+	FreeCamera* freeCamera,
+	Vec2F rotation)
+{
+	assert(freeCamera != NULL);
+
+	if (rotation.y > degToRadF(89.9f))
+		rotation.y = degToRadF(89.9f);
+	else if (rotation.y < degToRadF(-89.9f))
+		rotation.y = degToRadF(-89.9f);
+
+	freeCamera->rotation = rotation;
+}
+
 float getFreeCameraMoveSpeed(
 	const FreeCamera* freeCamera)
 {

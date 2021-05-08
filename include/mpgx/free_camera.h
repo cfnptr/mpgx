@@ -23,6 +23,12 @@ void setFreeCameraTransform(
 	FreeCamera* freeCamera,
 	Transform* transform);
 
+Vec2F getFreeCameraRotation(
+	const FreeCamera* freeCamera);
+void setFreeCameraRotation(
+	FreeCamera* freeCamera,
+	Vec2F rotation);
+
 float getFreeCameraMoveSpeed(
 	const FreeCamera* freeCamera);
 void setFreeCameraMoveSpeed(

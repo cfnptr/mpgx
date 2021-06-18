@@ -136,6 +136,7 @@ void destroyTransform(Transform* transform)
 			transforms[j - 1] = transforms[j];
 
 		free(transform);
+
 		transformer->transformCount--;
 		return;
 	}

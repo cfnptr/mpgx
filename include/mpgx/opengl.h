@@ -1,8 +1,10 @@
 #pragma once
 
+/*
 #if MPGX_VULKAN_SUPPORT
 #define GLFW_INCLUDE_VULKAN
 #endif
+*/
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -163,6 +165,7 @@ inline static GLenum getGlImageCompare(uint8_t compare)
 	switch (compare)
 	{
 	default:
+	case LESS_IMAGE_COMPARE:
 		return GL_LESS;
 	case LESS_EQUAL_IMAGE_COMPARE:
 		return GL_LEQUAL;

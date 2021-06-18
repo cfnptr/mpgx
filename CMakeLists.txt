@@ -47,10 +47,24 @@ configure_file(
 
 add_library(mpgx STATIC
 	source/glad/glad.c
+
+	source/mpgx/pipelines/color_pipeline.c
+	source/mpgx/pipelines/diffuse_pipeline.c
+	source/mpgx/pipelines/gradsky_pipeline.c
+	source/mpgx/pipelines/sprite_pipeline.c
+	source/mpgx/pipelines/texcol_pipeline.c
+	source/mpgx/pipelines/texspr_pipeline.c
+
+	source/mpgx/renderers/color_renderer.c
+	source/mpgx/renderers/diffuse_renderer.c
+	source/mpgx/renderers/gradsky_renderer.c
+	source/mpgx/renderers/sprite_renderer.c
+	source/mpgx/renderers/texcol_renderer.c
+	source/mpgx/renderers/texspr_renderer.c
+	source/mpgx/renderers/text_renderer.c
+
     source/mpgx/free_camera.c
 	source/mpgx/interface.c
-	source/mpgx/pipeline.c
-	source/mpgx/render.c
 	source/mpgx/renderer.c
 	source/mpgx/text.c
 	source/mpgx/transformer.c

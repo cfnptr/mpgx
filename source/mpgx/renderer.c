@@ -394,23 +394,26 @@ void drawRenderer(
 	if (renderElementCount == 0)
 		return;
 
-	uint8_t sortingType = renderer->sortingType;
+	if (renderElementCount > 1)
+	{
+		uint8_t sortingType = renderer->sortingType;
 
-	if (sortingType == ASCENDING_RENDER_SORTING)
-	{
-		qsort(
-			renderElements,
-			renderElementCount,
-			sizeof(RenderElement),
-			ascendingRenderCompare);
-	}
-	else if (sortingType == DESCENDING_RENDER_SORTING)
-	{
-		qsort(
-			renderElements,
-			renderElementCount,
-			sizeof(RenderElement),
-			descendingRenderCompare);
+		if (sortingType == ASCENDING_RENDER_SORTING)
+		{
+			qsort(
+				renderElements,
+				renderElementCount,
+				sizeof(RenderElement),
+				ascendingRenderCompare);
+		}
+		else if (sortingType == DESCENDING_RENDER_SORTING)
+		{
+			qsort(
+				renderElements,
+				renderElementCount,
+				sizeof(RenderElement),
+				descendingRenderCompare);
+		}
 	}
 
 	Mat4F view = data->view;

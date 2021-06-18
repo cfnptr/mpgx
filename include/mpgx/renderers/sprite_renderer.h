@@ -1,0 +1,26 @@
+#pragma once
+#include "mpgx/renderer.h"
+#include "mpgx/pipelines/sprite_pipeline.h"
+
+Renderer* createSpriteRenderer(
+	Transform* transform,
+	Pipeline* pipeline,
+	uint8_t sortingType);
+Render* createSpriteRender(
+	Renderer* renderer,
+	Transform* transform,
+	Box3F bounding,
+	Vec4F color,
+	Mesh* mesh);
+
+Vec4F getSpriteRenderColor(
+	const Render* render);
+void setSpriteRenderColor(
+	Render* render,
+	Vec4F color);
+
+Mesh* getSpriteRenderMesh(
+	const Render* render);
+void setSpriteRenderMesh(
+	Render* render,
+	Mesh* mesh);

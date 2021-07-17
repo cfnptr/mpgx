@@ -5,16 +5,16 @@
 
 typedef struct GlGradSkyPipeline
 {
-	Shader* vertexShader;
-	Shader* fragmentShader;
+	Shader vertexShader;
+	Shader fragmentShader;
 	Mat4F mvp;
 	GLuint handle;
 	GLint mvpLocation;
 } GlGradSkyPipeline;
 typedef struct VkGradSkyPipeline
 {
-	Shader* vertexShader;
-	Shader* fragmentShader;
+	Shader vertexShader;
+	Shader fragmentShader;
 	Mat4F mvp;
 } VkGradSkyPipeline;
 typedef union GradSkyPipeline
@@ -24,9 +24,9 @@ typedef union GradSkyPipeline
 } GradSkyPipeline;
 
 inline static GradSkyPipeline* onGlGradSkyPipelineCreate(
-	Window* window,
-	Shader* vertexShader,
-	Shader* fragmentShader)
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader)
 {
 	GradSkyPipeline* pipeline = malloc(
 		sizeof(GradSkyPipeline));
@@ -34,7 +34,7 @@ inline static GradSkyPipeline* onGlGradSkyPipelineCreate(
 	if (pipeline == NULL)
 		return NULL;
 
-	Shader* shaders[2] = {
+	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
@@ -74,7 +74,7 @@ inline static GradSkyPipeline* onGlGradSkyPipelineCreate(
 	return pipeline;
 }
 static void onGlGradSkyPipelineDestroy(
-	Window* window,
+	Window window,
 	void* pipeline)
 {
 	GradSkyPipeline* gradSkyPipeline =
@@ -85,7 +85,7 @@ static void onGlGradSkyPipelineDestroy(
 	free(gradSkyPipeline);
 }
 static void onGlGradSkyPipelineBind(
-	Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	GradSkyPipeline* gradSkyPipeline =
 		getPipelineHandle(pipeline);
@@ -104,7 +104,7 @@ static void onGlGradSkyPipelineBind(
 	assertOpenGL();
 }
 static void onGlGradSkyPipelineUniformsSet(
-	Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	GradSkyPipeline* gradSkyPipeline =
 		getPipelineHandle(pipeline);
@@ -127,10 +127,10 @@ static void onGlGradSkyPipelineUniformsSet(
 
 	assertOpenGL();
 }
-Pipeline* createGradSkyPipeline(
-	Window* window,
-	Shader* vertexShader,
-	Shader* fragmentShader,
+Pipeline createGradSkyPipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
 	uint8_t drawMode)
 {
 	assert(window != NULL);
@@ -168,7 +168,7 @@ Pipeline* createGradSkyPipeline(
 	if (handle == NULL)
 		return NULL;
 
-	Pipeline* pipeline = createPipeline(
+	Pipeline pipeline = createPipeline(
 		window,
 		"GradSky",
 		drawMode,
@@ -188,8 +188,8 @@ Pipeline* createGradSkyPipeline(
 	return pipeline;
 }
 
-Shader* getGradSkyPipelineVertexShader(
-	const Pipeline* pipeline)
+Shader getGradSkyPipelineVertexShader(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -199,8 +199,8 @@ Shader* getGradSkyPipelineVertexShader(
 		getPipelineHandle(pipeline);
 	return gradSkyPipeline->vk.vertexShader;
 }
-Shader* getGradSkyPipelineFragmentShader(
-	const Pipeline* pipeline)
+Shader getGradSkyPipelineFragmentShader(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -212,7 +212,7 @@ Shader* getGradSkyPipelineFragmentShader(
 }
 
 Mat4F getGradSkyPipelineMVP(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -223,7 +223,7 @@ Mat4F getGradSkyPipelineMVP(
 	return gradSkyPipeline->vk.mvp;
 }
 void setGradSkyPipelineMVP(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);

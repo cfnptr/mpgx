@@ -2,71 +2,71 @@
 #include "cmmt/quaternion.h"
 #include <stdint.h>
 
-typedef struct Transformer Transformer;
-typedef struct Transform Transform;
+typedef struct Transformer* Transformer;
+typedef struct Transform* Transform;
 
-typedef enum ROTATION_TYPE
+typedef enum RotationType
 {
-	NO_ROTATION_TYPE,
-	SPIN_ROTATION_TYPE,
-	ORBIT_ROTATION_TYPE,
-	ROTATION_TYPE_COUNT,
-} ROTATION_TYPE;
+	NO_ROTATION_TYPE = 0,
+	SPIN_ROTATION_TYPE = 1,
+	ORBIT_ROTATION_TYPE = 2,
+	ROTATION_TYPE_COUNT = 3,
+} RotationType;
 
-Transformer* createTransformer();
-void destroyTransformer(Transformer* transformer);
+Transformer createTransformer();
+void destroyTransformer(Transformer transformer);
 
-Transform* createTransform(
-	Transformer* transformer,
+Transform createTransform(
+	Transformer transformer,
 	Vec3F position,
 	Vec3F scale,
 	Quat rotation,
 	uint8_t rotationType,
-	Transform* parent,
+	Transform parent,
 	bool isActive);
-void destroyTransform(Transform* transform);
+void destroyTransform(Transform transform);
 
-Transformer* getTransformTransformer(
-	const Transform* transform);
+Transformer getTransformTransformer(
+	Transform transform);
 
 Vec3F getTransformPosition(
-	const Transform* transform);
+	Transform transform);
 void setTransformPosition(
-	Transform* transform,
+	Transform transform,
 	Vec3F position);
 
 Vec3F getTransformScale(
-	const Transform* transform);
+	Transform transform);
 void setTransformScale(
-	Transform* transform,
+	Transform transform,
 	Vec3F scale);
 
 Quat getTransformRotation(
-	const Transform* transform);
+	Transform transform);
 void setTransformRotation(
-	Transform* transform,
+	Transform transform,
 	Quat rotation);
 
 uint8_t getTransformRotationType(
-	const Transform* transform);
+	Transform transform);
 void setTransformRotationType(
-	Transform* transform,
+	Transform transform,
 	uint8_t rotationType);
 
-Transform* getTransformParent(
-	const Transform* transform);
+Transform getTransformParent(
+	Transform transform);
 void setTransformParent(
-	Transform* transform,
-	Transform* parent);
+	Transform transform,
+	Transform parent);
 
 bool isTransformActive(
-	const Transform* transform);
+	Transform transform);
 void setTransformActive(
-	Transform* transform,
+	Transform transform,
 	bool isActive);
 
 Mat4F getTransformModel(
-	const Transform* transform);
+	Transform transform);
 
 void updateTransformer(
-	Transformer* transformer);
+	Transformer transformer);

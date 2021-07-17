@@ -1,25 +1,25 @@
 #pragma once
 #include "mpgx/window.h"
 
-Pipeline* createSpritePipeline(
-	Window* window,
-	Shader* vertexShader,
-	Shader* fragmentShader,
+Pipeline createSpritePipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
 	uint8_t drawMode);
 
-Shader* getSpritePipelineVertexShader(
-	const Pipeline* pipeline);
-Shader* getSpritePipelineFragmentShader(
-	const Pipeline* pipeline);
+Shader getSpritePipelineVertexShader(
+	Pipeline pipeline);
+Shader getSpritePipelineFragmentShader(
+	Pipeline pipeline);
 
 Mat4F getSpritePipelineMVP(
-	const Pipeline* pipeline);
+	Pipeline pipeline);
 void setSpritePipelineMVP(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Mat4F mvp);
 
 Vec4F getSpritePipelineColor(
-	const Pipeline* pipeline);
+	Pipeline pipeline);
 void setSpritePipelineColor(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Vec4F color);

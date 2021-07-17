@@ -6,32 +6,32 @@
 
 struct Transformer
 {
-	Transform** transforms;
+	Transform* transforms;
 	size_t transformCapacity;
 	size_t transformCount;
 };
 struct Transform
 {
-	Transformer* transformer;
+	Transformer transformer;
 	Vec3F position;
 	Vec3F scale;
 	Quat rotation;
 	uint8_t rotationType;
 	Mat4F model;
-	Transform* parent;
+	Transform parent;
 	bool isActive;
 };
 
-Transformer* createTransformer()
+Transformer createTransformer()
 {
-	Transformer* transformer = malloc(
-		sizeof(Transformer));
+	Transformer transformer = malloc(
+		sizeof(struct Transformer));
 
 	if (transformer == NULL)
 		return NULL;
 
-	Transform** transforms = malloc(
-		sizeof(Transform*));
+	Transform* transforms = malloc(
+		sizeof(Transform));
 
 	if (transforms == NULL)
 	{
@@ -44,15 +44,13 @@ Transformer* createTransformer()
 	transformer->transformCount = 0;
 	return transformer;
 }
-void destroyTransformer(Transformer* transformer)
+void destroyTransformer(Transformer transformer)
 {
 	if (transformer == NULL)
 		return;
 
-	size_t transformCount =
-		transformer->transformCount;
-	Transform** transforms =
-		transformer->transforms;
+	size_t transformCount = transformer->transformCount;
+	Transform* transforms = transformer->transforms;
 
 	for (size_t i = 0; i < transformCount; i++)
 		free(transforms[i]);
@@ -61,13 +59,13 @@ void destroyTransformer(Transformer* transformer)
 	free(transformer);
 }
 
-Transform* createTransform(
-	Transformer* transformer,
+Transform createTransform(
+	Transformer transformer,
 	Vec3F position,
 	Vec3F scale,
 	Quat rotation,
 	uint8_t rotationType,
-	Transform* parent,
+	Transform parent,
 	bool isActive)
 {
 	assert(transformer != NULL);
@@ -78,7 +76,8 @@ Transform* createTransform(
 		assert(transformer == parent->transformer);
 #endif
 
-	Transform* transform = malloc(sizeof(Transform));
+	Transform transform = malloc(
+		sizeof(struct Transform));
 
 	if (transform == NULL)
 		return NULL;
@@ -92,17 +91,15 @@ Transform* createTransform(
 	transform->parent = parent;
 	transform->isActive = isActive;
 
-	struct Transform** transforms = transformer->transforms;
-	size_t transformCount = transformer->transformCount;
-	size_t transformCapacity = transformer->transformCapacity;
+	size_t count = transformer->transformCount;
 
-	if (transformCount == transformCapacity)
+	if (count == transformer->transformCapacity)
 	{
-		transformCapacity *= 2;
+		size_t capacity = transformer->transformCapacity * 2;
 
-		transforms = realloc(
-			transforms,
-			transformCapacity * sizeof(Transform*));
+		Transform* transforms = realloc(
+			transformer->transforms,
+			sizeof(Transform) * capacity);
 
 		if (transforms == NULL)
 		{
@@ -111,20 +108,20 @@ Transform* createTransform(
 		}
 
 		transformer->transforms = transforms;
-		transformer->transformCapacity = transformCapacity;
+		transformer->transformCapacity = capacity;
 	}
 
-	transforms[transformCount] = transform;
-	transformer->transformCount++;
+	transformer->transforms[count] = transform;
+	transformer->transformCount = count + 1;
 	return transform;
 }
-void destroyTransform(Transform* transform)
+void destroyTransform(Transform transform)
 {
 	if (transform == NULL)
 		return;
 
-	Transformer* transformer = transform->transformer;
-	Transform** transforms = transformer->transforms;
+	Transformer transformer = transform->transformer;
+	Transform* transforms = transformer->transforms;
 	size_t transformCount = transformer->transformCount;
 
 	for (size_t i = 0; i < transformCount; i++)
@@ -136,7 +133,6 @@ void destroyTransform(Transform* transform)
 			transforms[j - 1] = transforms[j];
 
 		free(transform);
-
 		transformer->transformCount--;
 		return;
 	}
@@ -144,21 +140,21 @@ void destroyTransform(Transform* transform)
 	abort();
 }
 
-Transformer* getTransformTransformer(
-	const Transform* transform)
+Transformer getTransformTransformer(
+	Transform transform)
 {
 	assert(transform != NULL);
 	return transform->transformer;
 }
 
 Vec3F getTransformPosition(
-	const Transform* transform)
+	Transform transform)
 {
 	assert(transform != NULL);
 	return transform->position;
 }
 void setTransformPosition(
-	Transform* transform,
+	Transform transform,
 	Vec3F position)
 {
 	assert(transform != NULL);
@@ -166,13 +162,13 @@ void setTransformPosition(
 }
 
 Vec3F getTransformScale(
-	const Transform* transform)
+	Transform transform)
 {
 	assert(transform != NULL);
 	return transform->scale;
 }
 void setTransformScale(
-	Transform* transform,
+	Transform transform,
 	Vec3F scale)
 {
 	assert(transform != NULL);
@@ -180,13 +176,13 @@ void setTransformScale(
 }
 
 Quat getTransformRotation(
-	const Transform* transform)
+	Transform transform)
 {
 	assert(transform != NULL);
 	return transform->rotation;
 }
 void setTransformRotation(
-	Transform* transform,
+	Transform transform,
 	Quat rotation)
 {
 	assert(transform != NULL);
@@ -194,13 +190,13 @@ void setTransformRotation(
 }
 
 uint8_t getTransformRotationType(
-	const Transform* transform)
+	Transform transform)
 {
 	assert(transform != NULL);
 	return transform->rotationType;
 }
 void setTransformRotationType(
-	Transform* transform,
+	Transform transform,
 	uint8_t rotationType)
 {
 	assert(transform != NULL);
@@ -208,15 +204,15 @@ void setTransformRotationType(
 	transform->rotationType = rotationType;
 }
 
-Transform* getTransformParent(
-	const Transform* transform)
+Transform getTransformParent(
+	Transform transform)
 {
 	assert(transform != NULL);
 	return transform->parent;
 }
 void setTransformParent(
-	Transform* transform,
-	Transform* parent)
+	Transform transform,
+	Transform parent)
 {
 #ifndef NDEBUG
 	if (parent != NULL)
@@ -230,13 +226,13 @@ void setTransformParent(
 }
 
 bool isTransformActive(
-	const Transform* transform)
+	Transform transform)
 {
 	assert(transform != NULL);
 	return transform->isActive;
 }
 void setTransformActive(
-	Transform* transform,
+	Transform transform,
 	bool isActive)
 {
 	assert(transform != NULL);
@@ -244,28 +240,28 @@ void setTransformActive(
 }
 
 Mat4F getTransformModel(
-	const Transform* transform)
+	Transform transform)
 {
 	assert(transform != NULL);
 	return transform->model;
 }
 
 void updateTransformer(
-	Transformer* transformer)
+	Transformer transformer)
 {
 	assert(transformer != NULL);
 
-	Transform** transforms = transformer->transforms;
+	Transform* transforms = transformer->transforms;
 	size_t transformCount = transformer->transformCount;
 
 	for (size_t i = 0; i < transformCount; i++)
 	{
-		Transform* transform = transforms[i];
+		Transform transform = transforms[i];
 
 		if (transform->isActive == false)
 			continue;
 
-		Transform* parent = transform->parent;
+		Transform parent = transform->parent;
 
 		while (parent != NULL)
 		{
@@ -314,12 +310,12 @@ void updateTransformer(
 
 	for (size_t i = 0; i < transformCount; i++)
 	{
-		Transform* transform = transforms[i];
+		Transform transform = transforms[i];
 
 		if (transform->isActive == false)
 			continue;
 
-		Transform* parent = transform->parent;
+		Transform parent = transform->parent;
 		Mat4F model = transform->model;
 
 		while (parent != NULL)

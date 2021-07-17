@@ -4,17 +4,16 @@
 typedef struct SpriteRender
 {
 	Vec4F color;
-	Mesh* mesh;
+	Mesh mesh;
 } SpriteRender;
 
-static void onSpriteRenderDestroy(
-	void* render)
+static void onSpriteRenderDestroy(void* render)
 {
 	free(render);
 }
 static void onSpriteRenderDraw(
-	Render* render,
-	Pipeline* pipeline,
+	Render render,
+	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* view,
 	const Mat4F* proj,
@@ -34,9 +33,9 @@ static void onSpriteRenderDraw(
 		spriteRender->mesh,
 		pipeline);
 }
-Renderer* createSpriteRenderer(
-	Transform* transform,
-	Pipeline* pipeline,
+Renderer createSpriteRenderer(
+	Transform transform,
+	Pipeline pipeline,
 	uint8_t sortingType)
 {
 	assert(transform != NULL);
@@ -54,12 +53,12 @@ Renderer* createSpriteRenderer(
 		onSpriteRenderDestroy,
 		onSpriteRenderDraw);
 }
-Render* createSpriteRender(
-	Renderer* renderer,
-	Transform* transform,
+Render createSpriteRender(
+	Renderer renderer,
+	Transform transform,
 	Box3F bounding,
 	Vec4F color,
-	Mesh* mesh)
+	Mesh mesh)
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
@@ -85,7 +84,7 @@ Render* createSpriteRender(
 	spriteRender->color = color;
 	spriteRender->mesh = mesh;
 
-	Render* render = createRender(
+	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
@@ -101,7 +100,7 @@ Render* createSpriteRender(
 }
 
 Vec4F getSpriteRenderColor(
-	const Render* render)
+	Render render)
 {
 	assert(render != NULL);
 
@@ -116,7 +115,7 @@ Vec4F getSpriteRenderColor(
 	return spriteRender->color;
 }
 void setSpriteRenderColor(
-	Render* render,
+	Render render,
 	Vec4F color)
 {
 	assert(render != NULL);
@@ -132,8 +131,8 @@ void setSpriteRenderColor(
 	spriteRender->color = color;
 }
 
-Mesh* getSpriteRenderMesh(
-	const Render* render)
+Mesh getSpriteRenderMesh(
+	Render render)
 {
 	assert(render != NULL);
 
@@ -148,8 +147,8 @@ Mesh* getSpriteRenderMesh(
 	return spriteRender->mesh;
 }
 void setSpriteRenderMesh(
-	Render* render,
-	Mesh* mesh)
+	Render render,
+	Mesh mesh)
 {
 	assert(render != NULL);
 	assert(mesh != NULL);

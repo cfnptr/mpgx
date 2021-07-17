@@ -22,7 +22,7 @@
 
 typedef struct VkBuffer_
 {
-	Window* window;
+	Window window;
 	uint8_t type;
 	size_t size;
 	bool isConstant;
@@ -30,7 +30,7 @@ typedef struct VkBuffer_
 } VkBuffer_;
 typedef struct GlBuffer
 {
-	Window* window;
+	Window window;
 	uint8_t type;
 	size_t size;
 	bool isConstant;
@@ -45,22 +45,22 @@ union Buffer
 
 typedef struct VkMesh
 {
-	Window* window;
+	Window window;
 	uint8_t drawIndex;
 	size_t indexCount;
 	size_t indexOffset;
-	Buffer* vertexBuffer;
-	Buffer* indexBuffer;
+	Buffer vertexBuffer;
+	Buffer indexBuffer;
 	// TODO:
 } VkMesh;
 typedef struct GlMesh
 {
-	Window* window;
+	Window window;
 	uint8_t drawIndex;
 	size_t indexCount;
 	size_t indexOffset;
-	Buffer* vertexBuffer;
-	Buffer* indexBuffer;
+	Buffer vertexBuffer;
+	Buffer indexBuffer;
 	GLuint handle;
 } GlMesh;
 union Mesh
@@ -71,7 +71,7 @@ union Mesh
 
 typedef struct VkImage_
 {
-	Window* window;
+	Window window;
 	uint8_t type;
 	uint8_t format;
 	Vec3U size;
@@ -79,7 +79,7 @@ typedef struct VkImage_
 } VkImage_;
 typedef struct GlImage
 {
-	Window* window;
+	Window window;
 	uint8_t type;
 	uint8_t format;
 	Vec3U size;
@@ -96,7 +96,7 @@ union Image
 
 typedef struct VkSampler_
 {
-	Window* window;
+	Window window;
 	uint8_t minImageFilter;
 	uint8_t magImageFilter;
 	uint8_t minMipmapFilter;
@@ -111,7 +111,7 @@ typedef struct VkSampler_
 } VkSampler_;
 typedef struct GlSampler
 {
-	Window* window;
+	Window window;
 	uint8_t minImageFilter;
 	uint8_t magImageFilter;
 	uint8_t minMipmapFilter;
@@ -139,13 +139,13 @@ union Framebuffer
 
 typedef struct VkShader
 {
-	Window* window;
+	Window window;
 	uint8_t type;
 	// TODO:
 } VkShader;
 typedef struct GlShader
 {
-	Window* window;
+	Window window;
 	uint8_t type;
 	GLuint handle;
 } GlShader;
@@ -157,7 +157,7 @@ union Shader
 
 struct Pipeline
 {
-	Window* window;
+	Window window;
 	const char* name;
 	uint8_t drawMode;
 	OnPipelineDestroy onDestroy;
@@ -180,25 +180,25 @@ struct Window
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
-	Buffer** buffers;
+	Buffer* buffers;
 	size_t bufferCapacity;
 	size_t bufferCount;
-	Mesh** meshes;
+	Mesh* meshes;
 	size_t meshCapacity;
 	size_t meshCount;
-	Image** images;
+	Image* images;
 	size_t imageCapacity;
 	size_t imageCount;
-	Sampler** samplers;
+	Sampler* samplers;
 	size_t samplerCapacity;
 	size_t samplerCount;
-	Framebuffer** framebuffers;
+	Framebuffer* framebuffers;
 	size_t framebufferCapacity;
 	size_t framebufferCount;
-	Shader** shaders;
+	Shader* shaders;
 	size_t shaderCapacity;
 	size_t shaderCount;
-	Pipeline** pipelines;
+	Pipeline* pipelines;
 	size_t pipelineCapacity;
 	size_t pipelineCount;
 	double updateTime;
@@ -208,10 +208,9 @@ struct Window
 
 static bool graphicsInitialized = false;
 static FT_Library ftLibrary = NULL;
-static Window* currentWindow = NULL;
+static Window currentWindow = NULL;
 
-inline static void destroyGlBuffer(
-	Buffer* buffer)
+inline static void destroyGlBuffer(Buffer buffer)
 {
 	makeWindowContextCurrent(
 		buffer->gl.window);
@@ -223,8 +222,7 @@ inline static void destroyGlBuffer(
 
 	free(buffer);
 }
-inline static void destroyGlMesh(
-	Mesh* mesh)
+inline static void destroyGlMesh(Mesh mesh)
 {
 	makeWindowContextCurrent(
 		mesh->gl.window);
@@ -236,8 +234,7 @@ inline static void destroyGlMesh(
 
 	free(mesh);
 }
-inline static void destroyGlImage(
-	Image* image)
+inline static void destroyGlImage(Image image)
 {
 	makeWindowContextCurrent(
 		image->gl.window);
@@ -249,8 +246,7 @@ inline static void destroyGlImage(
 
 	free(image);
 }
-inline static void destroyGlSampler(
-	Sampler* sampler)
+inline static void destroyGlSampler(Sampler sampler)
 {
 	makeWindowContextCurrent(
 		sampler->gl.window);
@@ -262,8 +258,7 @@ inline static void destroyGlSampler(
 
 	free(sampler);
 }
-inline static void destroyGlShader(
-	Shader* shader)
+inline static void destroyGlShader(Shader shader)
 {
 	makeWindowContextCurrent(
 		shader->gl.window);
@@ -325,7 +320,7 @@ void* getFtLibrary()
 	return ftLibrary;
 }
 
-Window* createWindow(
+Window createWindow(
 	uint8_t api,
 	Vec2U size,
 	const char* title,
@@ -340,7 +335,8 @@ Window* createWindow(
 	assert(onUpdate != NULL);
 	assert(graphicsInitialized == true);
 
-	Window* window = malloc(sizeof(Window));
+	Window window = malloc(
+		sizeof(struct Window));
 
 	if (window == NULL)
 		return NULL;
@@ -470,7 +466,7 @@ Window* createWindow(
 		window->maxImageSize = maxImageSize;
 	}
 
-	Buffer** buffers = malloc(sizeof(Buffer*));
+	Buffer* buffers = malloc(sizeof(Buffer));
 
 	if (buffers == NULL)
 	{
@@ -479,7 +475,7 @@ Window* createWindow(
 		return NULL;
 	}
 
-	Mesh** meshes = malloc(sizeof(Mesh*));
+	Mesh* meshes = malloc(sizeof(Mesh));
 
 	if (meshes == NULL)
 	{
@@ -489,7 +485,7 @@ Window* createWindow(
 		return NULL;
 	}
 
-	Image** images = malloc(sizeof(Image*));
+	Image* images = malloc(sizeof(Image));
 
 	if (images == NULL)
 	{
@@ -500,9 +496,9 @@ Window* createWindow(
 		return NULL;
 	}
 
-	Sampler** samplers = malloc(sizeof(Sampler*));
+	Sampler* samplers = malloc(sizeof(Sampler));
 
-	if (images == NULL)
+	if (samplers == NULL)
 	{
 		free(images);
 		free(meshes);
@@ -512,9 +508,9 @@ Window* createWindow(
 		return NULL;
 	}
 
-	Framebuffer** framebuffers = malloc(sizeof(Framebuffer*));
+	Framebuffer* framebuffers = malloc(sizeof(Framebuffer));
 
-	if (images == NULL)
+	if (framebuffers == NULL)
 	{
 		free(samplers);
 		free(images);
@@ -525,7 +521,7 @@ Window* createWindow(
 		return NULL;
 	}
 
-	Shader** shaders = malloc(sizeof(Shader*));
+	Shader* shaders = malloc(sizeof(Shader));
 
 	if (shaders == NULL)
 	{
@@ -539,7 +535,7 @@ Window* createWindow(
 		return NULL;
 	}
 
-	Pipeline** pipelines = malloc(sizeof(Pipeline*));
+	Pipeline* pipelines = malloc(sizeof(Pipeline));
 
 	if (pipelines == NULL)
 	{
@@ -586,7 +582,7 @@ Window* createWindow(
 	currentWindow = window;
 	return window;
 }
-Window* createAnyWindow(
+Window createAnyWindow(
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate updateFunction,
@@ -599,7 +595,7 @@ Window* createAnyWindow(
 	assert(updateFunction != NULL);
 	assert(graphicsInitialized == true);
 
-	Window* window = createWindow(
+	Window window = createWindow(
 		VULKAN_GRAPHICS_API,
 		size,
 		title,
@@ -631,24 +627,24 @@ Window* createAnyWindow(
 
 	return window;
 }
-void destroyWindow(Window* window)
+void destroyWindow(Window window)
 {
 	if (window == NULL)
         return;
 
-	Pipeline** pipelines = window->pipelines;
+	Pipeline* pipelines = window->pipelines;
 	size_t pipelineCount = window->pipelineCount;
-	Shader** shaders = window->shaders;
+	Shader* shaders = window->shaders;
 	size_t shaderCount = window->shaderCount;
-	Framebuffer** framebuffers = window->framebuffers;
+	Framebuffer* framebuffers = window->framebuffers;
 	size_t framebufferCount = window->framebufferCount;
-	Sampler** samplers = window->samplers;
+	Sampler* samplers = window->samplers;
 	size_t samplerCount = window->samplerCount;
-	Image** images = window->images;
+	Image* images = window->images;
 	size_t imageCount = window->imageCount;
-	Mesh** meshes = window->meshes;
+	Mesh* meshes = window->meshes;
 	size_t meshCount = window->meshCount;
-	Buffer** buffers = window->buffers;
+	Buffer* buffers = window->buffers;
 	size_t bufferCount = window->bufferCount;
 
 	uint8_t api = window->api;
@@ -662,7 +658,7 @@ void destroyWindow(Window* window)
 	{
 		for (size_t i = 0; i < pipelineCount; i++)
 		{
-			Pipeline* pipeline = pipelines[i];
+			Pipeline pipeline = pipelines[i];
 
 			pipeline->onDestroy(
 				window,
@@ -697,37 +693,37 @@ void destroyWindow(Window* window)
 	free(window);
 }
 
-uint8_t getWindowGraphicsAPI(const Window* window)
+uint8_t getWindowGraphicsAPI(Window window)
 {
 	assert(window != NULL);
 	return window->api;
 }
-OnWindowUpdate getWindowOnUpdate(const Window* window)
+OnWindowUpdate getWindowOnUpdate(Window window)
 {
 	assert(window != NULL);
 	return window->onUpdate;
 }
-void* getWindowUpdateArgument(const Window* window)
+void* getWindowUpdateArgument(Window window)
 {
 	assert(window != NULL);
 	return window->updateArgument;
 }
-uint32_t getWindowMaxImageSize(const Window* window)
+uint32_t getWindowMaxImageSize(Window window)
 {
 	assert(window != NULL);
 	return window->maxImageSize;
 }
-double getWindowUpdateTime(const Window* window)
+double getWindowUpdateTime(Window window)
 {
 	assert(window != NULL);
 	return window->updateTime;
 }
-double getWindowDeltaTime(const Window* window)
+double getWindowDeltaTime(Window window)
 {
 	assert(window != NULL);
 	return window->deltaTime;
 }
-Vec2F getWindowContentScale(const Window* window)
+Vec2F getWindowContentScale(Window window)
 {
 	assert(window != NULL);
 
@@ -740,7 +736,7 @@ Vec2F getWindowContentScale(const Window* window)
 
 	return scale;
 }
-Vec2U getWindowFramebufferSize(const Window* window)
+Vec2U getWindowFramebufferSize(Window window)
 {
 	assert(window != NULL);
 
@@ -753,14 +749,14 @@ Vec2U getWindowFramebufferSize(const Window* window)
 
 	return vec2U(width, height);
 }
-const char* getWindowClipboard(const Window* window)
+const char* getWindowClipboard(Window window)
 {
 	assert(window != NULL);
 	return glfwGetClipboardString(window->handle);
 }
 
 bool getWindowKeyboardKey(
-	const Window* window,
+	Window window,
 	int key)
 {
 	assert(window != NULL);
@@ -770,7 +766,7 @@ bool getWindowKeyboardKey(
 		key) == GLFW_PRESS;
 }
 bool getWindowMouseButton(
-	const Window* window,
+	Window window,
 	int button)
 {
 	assert(window != NULL);
@@ -781,7 +777,7 @@ bool getWindowMouseButton(
 }
 
 Vec2U getWindowSize(
-	const Window* window)
+	Window window)
 {
 	assert(window != NULL);
 
@@ -795,7 +791,7 @@ Vec2U getWindowSize(
 	return vec2U(width, height);
 }
 void setWindowSize(
-	Window* window,
+	Window window,
 	Vec2U size)
 {
 	assert(window != NULL);
@@ -807,7 +803,7 @@ void setWindowSize(
 }
 
 Vec2I getWindowPosition(
-	const Window* window)
+	Window window)
 {
 	assert(window != NULL);
 
@@ -821,7 +817,7 @@ Vec2I getWindowPosition(
 	return position;
 }
 void setWindowPosition(
-	Window* window,
+	Window window,
 	Vec2I position)
 {
 	assert(window != NULL);
@@ -833,7 +829,7 @@ void setWindowPosition(
 }
 
 Vec2F getWindowCursorPosition(
-	const Window* window)
+	Window window)
 {
 	assert(window != NULL);
 
@@ -847,7 +843,7 @@ Vec2F getWindowCursorPosition(
 	return vec2F((float)x, (float)y);
 }
 void setWindowCursorPosition(
-	Window* window,
+	Window window,
 	Vec2F position)
 {
 	assert(window != NULL);
@@ -859,7 +855,7 @@ void setWindowCursorPosition(
 }
 
 uint8_t getWindowCursorMode(
-	const Window* window)
+	Window window)
 {
 	assert(window != NULL);
 
@@ -868,7 +864,7 @@ uint8_t getWindowCursorMode(
 		GLFW_CURSOR);
 }
 void setWindowCursorMode(
-	Window* window,
+	Window window,
 	uint8_t cursorMode)
 {
 	assert(window != NULL);
@@ -891,7 +887,7 @@ void setWindowCursorMode(
 		value);
 }
 
-bool isWindowFocused(Window* window)
+bool isWindowFocused(Window window)
 {
 	assert(window != NULL);
 
@@ -899,7 +895,7 @@ bool isWindowFocused(Window* window)
 		window->handle,
 		GLFW_FOCUSED) == GLFW_TRUE;
 }
-bool isWindowIconified(Window* window)
+bool isWindowIconified(Window window)
 {
 	assert(window != NULL);
 
@@ -907,7 +903,7 @@ bool isWindowIconified(Window* window)
 		window->handle,
 		GLFW_ICONIFIED) == GLFW_TRUE;
 }
-bool isWindowMaximized(Window* window)
+bool isWindowMaximized(Window window)
 {
 	assert(window != NULL);
 
@@ -915,7 +911,7 @@ bool isWindowMaximized(Window* window)
 		window->handle,
 		GLFW_MAXIMIZED) == GLFW_TRUE;
 }
-bool isWindowVisible(Window* window)
+bool isWindowVisible(Window window)
 {
 	assert(window != NULL);
 
@@ -923,7 +919,7 @@ bool isWindowVisible(Window* window)
 		window->handle,
 		GLFW_VISIBLE) == GLFW_TRUE;
 }
-bool isWindowHovered(Window* window)
+bool isWindowHovered(Window window)
 {
 	assert(window != NULL);
 
@@ -932,43 +928,43 @@ bool isWindowHovered(Window* window)
 		GLFW_HOVERED) == GLFW_TRUE;
 }
 
-void iconifyWindow(Window* window)
+void iconifyWindow(Window window)
 {
 	assert(window != NULL);
 	glfwIconifyWindow(window->handle);
 }
-void maximizeWindow(Window* window)
+void maximizeWindow(Window window)
 {
 	assert(window != NULL);
 	glfwMaximizeWindow(window->handle);
 }
-void restoreWindow(Window* window)
+void restoreWindow(Window window)
 {
 	assert(window != NULL);
 	glfwRestoreWindow(window->handle);
 }
-void showWindow(Window* window)
+void showWindow(Window window)
 {
 	assert(window != NULL);
 	glfwShowWindow(window->handle);
 }
-void hideWindow(Window* window)
+void hideWindow(Window window)
 {
 	assert(window != NULL);
 	glfwHideWindow(window->handle);
 }
-void focusWindow(Window* window)
+void focusWindow(Window window)
 {
 	assert(window != NULL);
 	glfwFocusWindow(window->handle);
 }
-void requestWindowAttention(Window* window)
+void requestWindowAttention(Window window)
 {
 	assert(window != NULL);
 	glfwRequestWindowAttention(window->handle);
 }
 
-void makeWindowContextCurrent(Window* window)
+void makeWindowContextCurrent(Window window)
 {
 	assert(window != NULL);
 
@@ -981,7 +977,7 @@ void makeWindowContextCurrent(Window* window)
 		currentWindow = window;
 	}
 }
-void updateWindow(Window* window)
+void updateWindow(Window window)
 {
 	assert(window != NULL);
 	assert(window->isRecording == false);
@@ -1003,7 +999,7 @@ void updateWindow(Window* window)
 	}
 }
 
-inline static void beginGlWindowRender(Window* window)
+inline static void beginGlWindowRender(Window window)
 {
 	int width, height;
 
@@ -1020,7 +1016,7 @@ inline static void beginGlWindowRender(Window* window)
 		GL_DEPTH_BUFFER_BIT |
 		GL_STENCIL_BUFFER_BIT);
 }
-void beginWindowRender(Window* window)
+void beginWindowRender(Window window)
 {
 	assert(window != NULL);
 	assert(window->isRecording == false);
@@ -1044,11 +1040,11 @@ void beginWindowRender(Window* window)
 	window->isRecording = true;
 }
 
-inline static void endGlWindowRender(Window* window)
+inline static void endGlWindowRender(Window window)
 {
 	glfwSwapBuffers(window->handle);
 }
-void endWindowRender(Window* window)
+void endWindowRender(Window window)
 {
 	assert(window != NULL);
 	assert(window->isRecording == true);
@@ -1072,14 +1068,15 @@ void endWindowRender(Window* window)
 	window->isRecording = false;
 }
 
-inline static Buffer* createGlBuffer(
-	Window* window,
+inline static Buffer createGlBuffer(
+	Window window,
 	uint8_t type,
 	const void* data,
 	size_t size,
 	bool isConstant)
 {
-	Buffer* buffer = malloc(sizeof(Buffer));
+	Buffer buffer = malloc(
+		sizeof(union Buffer));
 
 	if (buffer == NULL)
 		return NULL;
@@ -1135,8 +1132,8 @@ inline static Buffer* createGlBuffer(
 	buffer->gl.handle = handle;
 	return buffer;
 }
-Buffer* createBuffer(
-	Window* window,
+Buffer createBuffer(
+	Window window,
 	uint8_t type,
 	const void* data,
 	size_t size,
@@ -1149,7 +1146,7 @@ Buffer* createBuffer(
 
 	uint8_t api = window->api;
 
-	Buffer* buffer;
+	Buffer buffer;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1173,17 +1170,15 @@ Buffer* createBuffer(
 	if (buffer == NULL)
 		return NULL;
 
-	Buffer** buffers = window->buffers;
-	size_t bufferCount = window->bufferCount;
-	size_t bufferCapacity = window->bufferCapacity;
+	size_t count = window->bufferCount;
 
-	if (bufferCount == bufferCapacity)
+	if (count == window->bufferCapacity)
 	{
-		bufferCapacity *= 2;
+		size_t capacity = window->bufferCapacity * 2;
 
-		buffers = realloc(
-			buffers,
-			bufferCapacity * sizeof(Buffer*));
+		Buffer* buffers = realloc(
+			window->buffers,
+			sizeof(Buffer) * capacity);
 
 		if (buffers == NULL)
 		{
@@ -1205,22 +1200,22 @@ Buffer* createBuffer(
 		}
 
 		window->buffers = buffers;
-		window->bufferCapacity = bufferCapacity;
+		window->bufferCapacity = capacity;
 	}
 
-	buffers[bufferCount] = buffer;
-	window->bufferCount++;
+	window->buffers[count] = buffer;
+	window->bufferCount = count + 1;
 	return buffer;
 }
-void destroyBuffer(Buffer* buffer)
+void destroyBuffer(Buffer buffer)
 {
 	if (buffer == NULL)
 		return;
 
 	assert(buffer->vk.window->isRecording == false);
 
-	Window* window = buffer->vk.window;
-	Buffer** buffers = window->buffers;
+	Window window = buffer->vk.window;
+	Buffer* buffers = window->buffers;
 	size_t bufferCount = window->bufferCount;
 
 	for (size_t i = 0; i < bufferCount; i++)
@@ -1254,27 +1249,27 @@ void destroyBuffer(Buffer* buffer)
 	abort();
 }
 
-Window* getBufferWindow(const Buffer* buffer)
+Window getBufferWindow(Buffer buffer)
 {
 	assert(buffer != NULL);
 	return buffer->vk.window;
 }
-uint8_t getBufferType(const Buffer* buffer)
+uint8_t getBufferType(Buffer buffer)
 {
 	assert(buffer != NULL);
 	return buffer->vk.type;
 }
-size_t getBufferSize(const Buffer* buffer)
+size_t getBufferSize(Buffer buffer)
 {
 	assert(buffer != NULL);
 	return buffer->vk.size;
 }
-bool isBufferConstant(const Buffer* buffer)
+bool isBufferConstant(Buffer buffer)
 {
 	assert(buffer != NULL);
 	return buffer->vk.isConstant;
 }
-const void* getBufferHandle(const Buffer* buffer)
+const void* getBufferHandle(Buffer buffer)
 {
 	assert(buffer != NULL);
 
@@ -1296,7 +1291,7 @@ const void* getBufferHandle(const Buffer* buffer)
 }
 
 inline static void setGlBufferData(
-	Buffer* buffer,
+	Buffer buffer,
 	const void* data,
 	size_t size,
 	size_t offset)
@@ -1316,7 +1311,7 @@ inline static void setGlBufferData(
 	assertOpenGL();
 }
 void setBufferData(
-	Buffer* buffer,
+	Buffer buffer,
 	const void* data,
 	size_t size,
 	size_t offset)
@@ -1348,15 +1343,16 @@ void setBufferData(
 	}
 }
 
-inline static Mesh* createGlMesh(
-	Window* window,
+inline static Mesh createGlMesh(
+	Window window,
 	uint8_t drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
-	Buffer* vertexBuffer,
-	Buffer* indexBuffer)
+	Buffer vertexBuffer,
+	Buffer indexBuffer)
 {
-	Mesh* mesh = malloc(sizeof(Mesh));
+	Mesh mesh = malloc(
+		sizeof(union Mesh));
 
 	if (mesh == NULL)
 		return NULL;
@@ -1379,13 +1375,13 @@ inline static Mesh* createGlMesh(
 	mesh->gl.handle = handle;
 	return mesh;
 }
-Mesh* createMesh(
-	Window* window,
+Mesh createMesh(
+	Window window,
 	uint8_t drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
-	Buffer* vertexBuffer,
-	Buffer* indexBuffer)
+	Buffer vertexBuffer,
+	Buffer indexBuffer)
 {
 	assert(window != NULL);
 	assert(drawIndex < DRAW_INDEX_COUNT);
@@ -1418,7 +1414,7 @@ Mesh* createMesh(
 
 	uint8_t api = window->api;
 
-	Mesh* mesh;
+	Mesh mesh;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1443,17 +1439,15 @@ Mesh* createMesh(
 	if (mesh == NULL)
 		return NULL;
 
-	Mesh** meshes = window->meshes;
-	size_t meshCount = window->meshCount;
-	size_t meshCapacity = window->meshCapacity;
+	size_t count = window->meshCount;
 
-	if (meshCount == meshCapacity)
+	if (count == window->meshCapacity)
 	{
-		meshCapacity *= 2;
+		size_t capacity = window->meshCapacity * 2;
 
-		meshes = realloc(
-			meshes,
-			meshCapacity * sizeof(Mesh*));
+		Mesh* meshes = realloc(
+			window->meshes,
+			sizeof(Mesh) * capacity);
 
 		if (meshes == NULL)
 		{
@@ -1475,22 +1469,22 @@ Mesh* createMesh(
 		}
 
 		window->meshes = meshes;
-		window->meshCapacity = meshCapacity;
+		window->meshCapacity = capacity;
 	}
 
-	meshes[meshCount] = mesh;
-	window->meshCount++;
+	window->meshes[count] = mesh;
+	window->meshCount = count + 1;
 	return mesh;
 }
-void destroyMesh(Mesh* mesh)
+void destroyMesh(Mesh mesh)
 {
 	if (mesh == NULL)
 		return;
 
 	assert(mesh->vk.window->isRecording == false);
 
-	Window* window = mesh->vk.window;
-	Mesh** meshes = window->meshes;
+	Window window = mesh->vk.window;
+	Mesh* meshes = window->meshes;
 	size_t meshCount = window->meshCount;
 
 	for (size_t i = 0; i < meshCount; i++)
@@ -1523,25 +1517,25 @@ void destroyMesh(Mesh* mesh)
 	abort();
 }
 
-Window* getMeshWindow(const Mesh* mesh)
+Window getMeshWindow(Mesh mesh)
 {
 	assert(mesh != NULL);
 	return mesh->vk.window;
 }
-uint8_t getMeshDrawIndex(const Mesh* mesh)
+uint8_t getMeshDrawIndex(Mesh mesh)
 {
 	assert(mesh != NULL);
 	return mesh->vk.drawIndex;
 }
 
 size_t getMeshIndexCount(
-	const Mesh* mesh)
+	Mesh mesh)
 {
 	assert(mesh != NULL);
 	return mesh->vk.indexCount;
 }
 void setMeshIndexCount(
-	Mesh* mesh,
+	Mesh mesh,
 	size_t indexCount)
 {
 	assert(mesh != NULL);
@@ -1570,13 +1564,13 @@ void setMeshIndexCount(
 }
 
 size_t getMeshIndexOffset(
-	const Mesh* mesh)
+	Mesh mesh)
 {
 	assert(mesh != NULL);
 	return mesh->vk.indexOffset;
 }
 void setMeshIndexOffset(
-	Mesh* mesh,
+	Mesh mesh,
 	size_t indexOffset)
 {
 	assert(mesh != NULL);
@@ -1604,15 +1598,15 @@ void setMeshIndexOffset(
 	mesh->vk.indexOffset = indexOffset;
 }
 
-Buffer* getMeshVertexBuffer(
-	const Mesh* mesh)
+Buffer getMeshVertexBuffer(
+	Mesh mesh)
 {
 	assert(mesh != NULL);
 	return mesh->vk.vertexBuffer;
 }
 void setMeshVertexBuffer(
-	Mesh* mesh,
-	Buffer* vertexBuffer)
+	Mesh mesh,
+	Buffer vertexBuffer)
 {
 	assert(mesh != NULL);
 	assert(vertexBuffer != NULL);
@@ -1622,18 +1616,18 @@ void setMeshVertexBuffer(
 	mesh->vk.vertexBuffer = vertexBuffer;
 }
 
-Buffer* getMeshIndexBuffer(
-	const Mesh* mesh)
+Buffer getMeshIndexBuffer(
+	Mesh mesh)
 {
 	assert(mesh != NULL);
 	return mesh->vk.indexBuffer;
 }
 void setMeshIndexBuffer(
-	Mesh* mesh,
+	Mesh mesh,
 	uint8_t drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
-	Buffer* indexBuffer)
+	Buffer indexBuffer)
 {
 	assert(mesh != NULL);
 	assert(drawIndex < DRAW_INDEX_COUNT);
@@ -1669,11 +1663,11 @@ void setMeshIndexBuffer(
 }
 
 inline static void drawGlMesh(
-	Mesh* mesh,
-	Pipeline* pipeline)
+	Mesh mesh,
+	Pipeline pipeline)
 {
-	Buffer* vertexBuffer = mesh->gl.vertexBuffer;
-	Buffer* indexBuffer = mesh->gl.indexBuffer;
+	Buffer vertexBuffer = mesh->gl.vertexBuffer;
+	Buffer indexBuffer = mesh->gl.indexBuffer;
 
 	glBindVertexArray(
 		mesh->gl.handle);
@@ -1746,8 +1740,8 @@ inline static void drawGlMesh(
 }
 
 void drawMesh(
-	Mesh* mesh,
-	Pipeline* pipeline)
+	Mesh mesh,
+	Pipeline pipeline)
 {
 	assert(mesh != NULL);
 	assert(pipeline != NULL);
@@ -1773,15 +1767,15 @@ void drawMesh(
 	}
 }
 
-ImageData* createImageDataFromFile(
+ImageData createImageDataFromFile(
 	const char* filePath,
 	uint8_t _channelCount)
 {
 	assert(filePath != NULL);
 	assert(_channelCount <= 4);
 
-	ImageData* imageData = malloc(
-		sizeof(ImageData));
+	ImageData imageData = malloc(
+		sizeof(struct ImageData));
 
 	if (imageData == NULL)
 		return NULL;
@@ -1808,8 +1802,7 @@ ImageData* createImageDataFromFile(
 	imageData->channelCount = channelCount;
 	return imageData;
 }
-void destroyImageData(
-	ImageData* imageData)
+void destroyImageData(ImageData imageData)
 {
 	if (imageData == NULL)
 		return;
@@ -1818,34 +1811,32 @@ void destroyImageData(
 	free(imageData);
 }
 
-const uint8_t* getImageDataPixels(
-	const ImageData* imageData)
+const uint8_t* getImageDataPixels(ImageData imageData)
 {
 	assert(imageData != NULL);
 	return imageData->pixels;
 }
-Vec2U getImageDataSize(
-	const ImageData* imageData)
+Vec2U getImageDataSize(ImageData imageData)
 {
 	assert(imageData != NULL);
 	return imageData->size;
 }
-uint8_t getImageDataChannelCount(
-	const ImageData* imageData)
+uint8_t getImageDataChannelCount(ImageData imageData)
 {
 	assert(imageData != NULL);
 	return imageData->channelCount;
 }
 
-inline static Image* createGlImage(
-	Window* window,
+inline static Image createGlImage(
+	Window window,
 	uint8_t type,
 	uint8_t format,
 	Vec3U size,
 	const void** data,
 	uint8_t levelCount)
 {
-	Image* image = malloc(sizeof(Image));
+	Image image = malloc(
+		sizeof(union Image));
 
 	if (image == NULL)
 		return NULL;
@@ -2010,8 +2001,8 @@ inline static Image* createGlImage(
 	image->gl.handle = handle;
 	return image;
 }
-Image* createImage(
-	Window* window,
+Image createImage(
+	Window window,
 	uint8_t type,
 	uint8_t format,
 	Vec3U size,
@@ -2040,7 +2031,7 @@ Image* createImage(
 
 	uint8_t api = window->api;
 
-	Image* image;
+	Image image;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2065,17 +2056,15 @@ Image* createImage(
 	if (image == NULL)
 		return NULL;
 
-	Image** images = window->images;
-	size_t imageCount = window->imageCount;
-	size_t imageCapacity = window->imageCapacity;
+	size_t count = window->imageCount;
 
-	if (imageCount == imageCapacity)
+	if (count == window->imageCapacity)
 	{
-		imageCapacity *= 2;
+		size_t capacity = window->imageCapacity * 2;
 
-		images = realloc(
-			images,
-			imageCapacity * sizeof(Image*));
+		Image* images = realloc(
+			window->images,
+			sizeof(Image) * capacity);
 
 		if (images == NULL)
 		{
@@ -2097,15 +2086,15 @@ Image* createImage(
 		}
 
 		window->images = images;
-		window->imageCapacity = imageCapacity;
+		window->imageCapacity = capacity;
 	}
 
-	images[imageCount] = image;
-	window->imageCount++;
+	window->images[count] = image;
+	window->imageCount = count + 1;
 	return image;
 }
-Image* createImageFromFile(
-	Window* window,
+Image createImageFromFile(
+	Window window,
 	uint8_t format,
 	const char* filePath,
 	bool generateMipmap)
@@ -2132,7 +2121,7 @@ Image* createImageFromFile(
 	if (pixels == NULL || components != 4)
 		return NULL;
 
-	Image* image = createImage(
+	Image image = createImage(
 		window,
 		IMAGE_2D_TYPE,
 		format,
@@ -2143,15 +2132,15 @@ Image* createImageFromFile(
 	stbi_image_free(pixels);
 	return image;
 }
-void destroyImage(Image* image)
+void destroyImage(Image image)
 {
 	if (image == NULL)
 		return;
 
 	assert(image->vk.window->isRecording == false);
 
-	Window* window = image->vk.window;
-	Image** images = window->images;
+	Window window = image->vk.window;
+	Image* images = window->images;
 	size_t imageCount = window->imageCount;
 
 	for (size_t i = 0; i < imageCount; i++)
@@ -2186,7 +2175,7 @@ void destroyImage(Image* image)
 }
 
 inline static void setGlImageData(
-	Image* image,
+	Image image,
 	const void* data,
 	Vec3U size,
 	Vec3U offset)
@@ -2236,7 +2225,7 @@ inline static void setGlImageData(
 	assertOpenGL();
 }
 void setImageData(
-	Image* image,
+	Image image,
 	const void* data,
 	Vec3U size,
 	Vec3U offset)
@@ -2273,27 +2262,27 @@ void setImageData(
 	}
 }
 
-Window* getImageWindow(const Image* image)
+Window getImageWindow(Image image)
 {
 	assert(image != NULL);
 	return image->vk.window;
 }
-uint8_t getImageType(const Image* image)
+uint8_t getImageType(Image image)
 {
 	assert(image != NULL);
 	return image->vk.type;
 }
-uint8_t getImageFormat(const Image* image)
+uint8_t getImageFormat(Image image)
 {
 	assert(image != NULL);
 	return image->vk.format;
 }
-Vec3U getImageSize(const Image* image)
+Vec3U getImageSize(Image image)
 {
 	assert(image != NULL);
 	return image->vk.size;
 }
-const void* getImageHandle(const Image* image)
+const void* getImageHandle(Image image)
 {
 	assert(image != NULL);
 
@@ -2322,8 +2311,8 @@ uint8_t getImageLevelCount(Vec3U imageSize)
 	return (uint8_t)floorf(log2f((float)size)) + 1;
 }
 
-inline static Sampler* createGlSampler(
-	Window* window,
+inline static Sampler createGlSampler(
+	Window window,
 	uint8_t minImageFilter,
 	uint8_t magImageFilter,
 	uint8_t minMipmapFilter,
@@ -2336,7 +2325,8 @@ inline static Sampler* createGlSampler(
 	float minMipmapLod,
 	float maxMipmapLod)
 {
-	Sampler* sampler = malloc(sizeof(Sampler));
+	Sampler sampler = malloc(
+		sizeof(union Sampler));
 
 	if (sampler == NULL)
 		return NULL;
@@ -2414,8 +2404,8 @@ inline static Sampler* createGlSampler(
 	sampler->gl.handle = handle;
 	return sampler;
 }
-Sampler* createSampler(
-	Window* window,
+Sampler createSampler(
+	Window window,
 	uint8_t minImageFilter,
 	uint8_t magImageFilter,
 	uint8_t minMipmapFilter,
@@ -2440,7 +2430,7 @@ Sampler* createSampler(
 
 	uint8_t api = window->api;
 
-	Sampler* sampler;
+	Sampler sampler;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2471,17 +2461,15 @@ Sampler* createSampler(
 	if (sampler == NULL)
 		return NULL;
 
-	Sampler** samplers = window->samplers;
-	size_t samplerCount = window->samplerCount;
-	size_t samplerCapacity = window->samplerCapacity;
+	size_t count = window->samplerCount;
 
-	if (samplerCount == samplerCapacity)
+	if (count == window->samplerCapacity)
 	{
-		samplerCapacity *= 2;
+		size_t capacity = window->samplerCapacity * 2;
 
-		samplers = realloc(
-			samplers,
-			samplerCapacity * sizeof(Sampler*));
+		Sampler* samplers = realloc(
+			window->samplers,
+			sizeof(Sampler) * capacity);
 
 		if (samplers == NULL)
 		{
@@ -2503,22 +2491,22 @@ Sampler* createSampler(
 		}
 
 		window->samplers = samplers;
-		window->samplerCapacity = samplerCapacity;
+		window->samplerCapacity = capacity;
 	}
 
-	samplers[samplerCount] = sampler;
-	window->samplerCount++;
+	window->samplers[count] = sampler;
+	window->samplerCount = count + 1;
 	return sampler;
 }
-void destroySampler(Sampler* sampler)
+void destroySampler(Sampler sampler)
 {
 	if (sampler == NULL)
 		return;
 
 	assert(sampler->vk.window->isRecording == false);
 
-	Window* window = sampler->vk.window;
-	Sampler** samplers = window->samplers;
+	Window window = sampler->vk.window;
+	Sampler* samplers = window->samplers;
 	size_t samplerCount = window->samplerCount;
 
 	for (size_t i = 0; i < samplerCount; i++)
@@ -2552,80 +2540,67 @@ void destroySampler(Sampler* sampler)
 	abort();
 }
 
-Window* getSamplerWindow(
-	const Sampler* sampler)
+Window getSamplerWindow(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.window;
 }
-uint8_t getSamplerMinImageFilter(
-	const Sampler* sampler)
+uint8_t getSamplerMinImageFilter(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.minImageFilter;
 }
-uint8_t getSamplerMagImageFilter(
-	const Sampler* sampler)
+uint8_t getSamplerMagImageFilter(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.magImageFilter;
 }
-uint8_t getSamplerMinMipmapFilter(
-	const Sampler* sampler)
+uint8_t getSamplerMinMipmapFilter(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.minMipmapFilter;
 }
-bool isSamplerUseMipmapping(
-	const Sampler* sampler)
+bool isSamplerUseMipmapping(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.useMipmapping;
 }
-uint8_t getSamplerImageWrapX(
-	const Sampler* sampler)
+uint8_t getSamplerImageWrapX(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.imageWrapX;
 }
-uint8_t getSamplerImageWrapY(
-	const Sampler* sampler)
+uint8_t getSamplerImageWrapY(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.imageWrapY;
 }
-uint8_t getSamplerImageWrapZ(
-	const Sampler* sampler)
+uint8_t getSamplerImageWrapZ(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.imageWrapZ;
 }
-uint8_t getSamplerImageCompare(
-	const Sampler* sampler)
+uint8_t getSamplerImageCompare(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.imageCompare;
 }
-bool isSamplerUseCompare(
-	const Sampler* sampler)
+bool isSamplerUseCompare(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.useCompare;
 }
-float getSamplerMinMipmapLod(
-	const Sampler* sampler)
+float getSamplerMinMipmapLod(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.minMipmapLod;
 }
-float getSamplerMaxMipmapLod(
-	const Sampler* sampler)
+float getSamplerMaxMipmapLod(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.maxMipmapLod;
 }
-const void* getSamplerHandle(
-	const Sampler* sampler)
+const void* getSamplerHandle(Sampler sampler)
 {
 	assert(sampler != NULL);
 
@@ -2646,13 +2621,14 @@ const void* getSamplerHandle(
 	}
 }
 
-inline static Shader* createGlShader(
-	Window* window,
+inline static Shader createGlShader(
+	Window window,
 	uint8_t type,
 	const void* code,
 	size_t size)
 {
-	Shader* shader = malloc(sizeof(Shader));
+	Shader shader = malloc(
+		sizeof(union Shader));
 
 	if (shader == NULL)
 		return NULL;
@@ -2760,8 +2736,8 @@ inline static Shader* createGlShader(
 	shader->gl.handle = handle;
 	return shader;
 }
-Shader* createShader(
-	Window* window,
+Shader createShader(
+	Window window,
 	uint8_t type,
 	const void* code,
 	size_t size)
@@ -2773,7 +2749,7 @@ Shader* createShader(
 
 	uint8_t api = window->api;
 
-	Shader* shader;
+	Shader shader;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2796,17 +2772,15 @@ Shader* createShader(
 	if (shader == NULL)
 		return NULL;
 
-	Shader** shaders = window->shaders;
-	size_t shaderCount = window->shaderCount;
-	size_t shaderCapacity = window->shaderCapacity;
+	size_t count = window->shaderCount;
 
-	if (shaderCount == shaderCapacity)
+	if (count == window->shaderCapacity)
 	{
-		shaderCapacity *= 2;
+		size_t capacity = window->shaderCapacity * 2;
 
-		shaders = realloc(
-			shaders,
-			shaderCapacity * sizeof(Shader*));
+		Shader* shaders = realloc(
+			window->shaders,
+			sizeof(Shader) * capacity);
 
 		if (shaders == NULL)
 		{
@@ -2829,15 +2803,15 @@ Shader* createShader(
 		}
 
 		window->shaders = shaders;
-		window->shaderCapacity = shaderCapacity;
+		window->shaderCapacity = capacity;
 	}
 
-	shaders[shaderCount] = shader;
-	window->shaderCount++;
+	window->shaders[count] = shader;
+	window->shaderCount = count + 1;
 	return shader;
 }
-Shader* createShaderFromFile(
-	Window* window,
+Shader createShaderFromFile(
+	Window window,
 	uint8_t type,
 	const char* filePath)
 {
@@ -2892,7 +2866,7 @@ Shader* createShaderFromFile(
 		return NULL;
 	}
 
-	Shader* shader = createShader(
+	Shader shader = createShader(
 		window,
 		type,
 		code,
@@ -2901,15 +2875,15 @@ Shader* createShaderFromFile(
 	free(code);
 	return shader;
 }
-void destroyShader(Shader* shader)
+void destroyShader(Shader shader)
 {
 	if (shader == NULL)
 		return;
 
 	assert(shader->vk.window->isRecording == false);
 
-	Window* window = shader->vk.window;
-	Shader** shaders = window->shaders;
+	Window window = shader->vk.window;
+	Shader* shaders = window->shaders;
 	size_t shaderCount = window->shaderCount;
 
 	for (size_t i = 0; i < shaderCount; i++)
@@ -2943,17 +2917,17 @@ void destroyShader(Shader* shader)
 	abort();
 }
 
-Window* getShaderWindow(const Shader* shader)
+Window getShaderWindow(Shader shader)
 {
 	assert(shader != NULL);
 	return shader->vk.window;
 }
-uint8_t getShaderType(const Shader* shader)
+uint8_t getShaderType(Shader shader)
 {
 	assert(shader != NULL);
 	return shader->vk.type;
 }
-const void* getShaderHandle(const Shader* shader)
+const void* getShaderHandle(Shader shader)
 {
 	assert(shader != NULL);
 
@@ -2974,8 +2948,8 @@ const void* getShaderHandle(const Shader* shader)
 	}
 }
 
-Pipeline* createPipeline(
-	Window* window,
+Pipeline createPipeline(
+	Window window,
 	const char* name,
 	uint8_t drawMode,
 	OnPipelineDestroy onDestroy,
@@ -2992,7 +2966,8 @@ Pipeline* createPipeline(
 	assert(handle != NULL);
 	assert(window->isRecording == false);
 
-	Pipeline* pipeline = malloc(sizeof(Pipeline));
+	Pipeline pipeline = malloc(
+		sizeof(struct Pipeline));
 
 	if (pipeline == NULL)
 		return NULL;
@@ -3005,13 +2980,15 @@ Pipeline* createPipeline(
 	pipeline->onUniformsSet = onUniformsSet;
 	pipeline->handle = handle;
 
-	if (window->pipelineCount == window->pipelineCapacity)
+	size_t count = window->pipelineCount;
+
+	if (count == window->pipelineCapacity)
 	{
-		size_t capacity =
-			window->pipelineCapacity * 2;
-		Pipeline** pipelines = realloc(
+		size_t capacity = window->pipelineCapacity * 2;
+
+		Pipeline* pipelines = realloc(
 			window->pipelines,
-			capacity * sizeof(Pipeline*));
+			sizeof(Pipeline) * capacity);
 
 		if (pipelines == NULL)
 		{
@@ -3027,19 +3004,19 @@ Pipeline* createPipeline(
 		window->pipelineCapacity = capacity;
 	}
 
-	window->pipelines[window->pipelineCount] = pipeline;
-	window->pipelineCount++;
+	window->pipelines[count] = pipeline;
+	window->pipelineCount = count + 1;
 	return pipeline;
 }
-void destroyPipeline(Pipeline* pipeline)
+void destroyPipeline(Pipeline pipeline)
 {
 	if (pipeline == NULL)
 		return;
 
 	assert(pipeline->window->isRecording == false);
 
-	Window* window = pipeline->window;
-	Pipeline** pipelines = window->pipelines;
+	Window window = pipeline->window;
+	Pipeline* pipelines = window->pipelines;
 	size_t pipelineCount = window->pipelineCount;
 
 	for (size_t i = 0; i < pipelineCount; i++)
@@ -3054,7 +3031,6 @@ void destroyPipeline(Pipeline* pipeline)
 			window,
 			pipeline->handle);
 		free(pipeline);
-
 		window->pipelineCount--;
 		return;
 	}
@@ -3062,51 +3038,45 @@ void destroyPipeline(Pipeline* pipeline)
 	abort();
 }
 
-Window* getPipelineWindow(
-	const Pipeline* pipeline)
+Window getPipelineWindow(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->window;
 }
-const char* getPipelineName(
-	const Pipeline* pipeline)
+const char* getPipelineName(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->name;
 }
-OnPipelineDestroy getPipelineOnDestroy(
-	const Pipeline* pipeline)
+OnPipelineDestroy getPipelineOnDestroy(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->onDestroy;
 }
-OnPipelineBind getPipelineOnBind(
-	const Pipeline* pipeline)
+OnPipelineBind getPipelineOnBind(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->onBind;
 }
-OnPipelineUniformsSet getPipelineOnUniformsSet(
-	const Pipeline* pipeline)
+OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->onUniformsSet;
 }
-void* getPipelineHandle(
-	const Pipeline* pipeline)
+void* getPipelineHandle(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->handle;
 }
 
 uint8_t getPipelineDrawMode(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->drawMode;
 }
 void setPipelineDrawMode(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	uint8_t drawMode)
 {
 	assert(pipeline != NULL);
@@ -3114,7 +3084,7 @@ void setPipelineDrawMode(
 	pipeline->drawMode = drawMode;
 }
 
-void bindPipeline(Pipeline* pipeline)
+void bindPipeline(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(pipeline->window->isRecording == true);

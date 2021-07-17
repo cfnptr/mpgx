@@ -2,39 +2,39 @@
 #include "mpgx/renderer.h"
 #include "mpgx/pipelines/texcol_pipeline.h"
 
-Renderer* createTexColRenderer(
-	Transform* transform,
-	Pipeline* pipeline,
+Renderer createTexColRenderer(
+	Transform transform,
+	Pipeline pipeline,
 	uint8_t sortingType);
-Render* createTexColRender(
-	Renderer* renderer,
-	Transform* transform,
+Render createTexColRender(
+	Renderer renderer,
+	Transform transform,
 	Box3F bounding,
 	Vec4F color,
 	Vec2F size,
 	Vec2F offset,
-	Mesh* mesh);
+	Mesh mesh);
 
 Vec4F getTexColRenderColor(
-	const Render* render);
+	Render render);
 void setTexColRenderColor(
-	Render* render,
+	Render render,
 	Vec4F color);
 
 Vec2F getTexColRenderSize(
-	const Render* render);
+	Render render);
 void setTexColRenderSize(
-	Render* render,
+	Render render,
 	Vec2F size);
 
 Vec2F getTexColRenderOffset(
-	const Render* render);
+	Render render);
 void setTexColRenderOffset(
-	Render* render,
+	Render render,
 	Vec2F offset);
 
-Mesh* getTexColRenderMesh(
-	const Render* render);
+Mesh getTexColRenderMesh(
+	Render render);
 void setTexColRenderMesh(
-	Render* render,
-	Mesh* mesh);
+	Render render,
+	Mesh mesh);

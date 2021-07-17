@@ -4,17 +4,16 @@
 typedef struct TextRender
 {
 	Vec4F color;
-	Text* text;
+	Text text;
 } TextRender;
 
-static void onTextRenderDestroy(
-	void* render)
+static void onTextRenderDestroy(void* render)
 {
 	free(render);
 }
 static void onTextRenderDraw(
-	Render* render,
-	Pipeline* pipeline,
+	Render render,
+	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* view,
 	const Mat4F* proj,
@@ -34,9 +33,9 @@ static void onTextRenderDraw(
 		textRender->text,
 		pipeline);
 }
-Renderer* createTextRenderer(
-	Transform* transform,
-	Pipeline* pipeline,
+Renderer createTextRenderer(
+	Transform transform,
+	Pipeline pipeline,
 	uint8_t sortingType)
 {
 	assert(transform != NULL);
@@ -54,12 +53,12 @@ Renderer* createTextRenderer(
 		onTextRenderDestroy,
 		onTextRenderDraw);
 }
-Render* createTextRender(
-	Renderer* renderer,
-	Transform* transform,
+Render createTextRender(
+	Renderer renderer,
+	Transform transform,
 	Box3F bounding,
 	Vec4F color,
-	Text* text)
+	Text text)
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
@@ -85,7 +84,7 @@ Render* createTextRender(
 	textRender->color = color;
 	textRender->text = text;
 
-	Render* render = createRender(
+	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
@@ -101,7 +100,7 @@ Render* createTextRender(
 }
 
 Vec4F getTextRenderColor(
-	const Render* render)
+	Render render)
 {
 	assert(render != NULL);
 
@@ -116,7 +115,7 @@ Vec4F getTextRenderColor(
 	return textRender->color;
 }
 void setTextRenderColor(
-	Render* render,
+	Render render,
 	Vec4F color)
 {
 	assert(render != NULL);
@@ -132,8 +131,8 @@ void setTextRenderColor(
 	textRender->color = color;
 }
 
-Text* getTextRenderText(
-	const Render* render)
+Text getTextRenderText(
+	Render render)
 {
 	assert(render != NULL);
 
@@ -148,8 +147,8 @@ Text* getTextRenderText(
 	return textRender->text;
 }
 void setTextRenderText(
-	Render* render,
-	Text* text)
+	Render render,
+	Text text)
 {
 	assert(render != NULL);
 	assert(text != NULL);

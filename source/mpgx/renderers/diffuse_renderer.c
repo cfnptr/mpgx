@@ -3,17 +3,16 @@
 
 typedef struct DiffuseRender
 {
-	Mesh* mesh;
+	Mesh mesh;
 } DiffuseRender;
 
-static void onDiffuseRenderDestroy(
-	void* render)
+static void onDiffuseRenderDestroy(void* render)
 {
 	free(render);
 }
 static void onDiffuseRenderDraw(
-	Render* render,
-	Pipeline* pipeline,
+	Render render,
+	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* view,
 	const Mat4F* proj,
@@ -35,9 +34,9 @@ static void onDiffuseRenderDraw(
 		diffuseRender->mesh,
 		pipeline);
 }
-Renderer* createDiffuseRenderer(
-	Transform* transform,
-	Pipeline* pipeline,
+Renderer createDiffuseRenderer(
+	Transform transform,
+	Pipeline pipeline,
 	uint8_t sortingType)
 {
 	assert(transform != NULL);
@@ -55,11 +54,11 @@ Renderer* createDiffuseRenderer(
 		onDiffuseRenderDestroy,
 		onDiffuseRenderDraw);
 }
-Render* createDiffuseRender(
-	Renderer* renderer,
-	Transform* transform,
+Render createDiffuseRender(
+	Renderer renderer,
+	Transform transform,
 	Box3F bounding,
-	Mesh* mesh)
+	Mesh mesh)
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
@@ -84,7 +83,7 @@ Render* createDiffuseRender(
 
 	diffuseRender->mesh = mesh;
 
-	Render* render = createRender(
+	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
@@ -99,8 +98,8 @@ Render* createDiffuseRender(
 	return render;
 }
 
-Mesh* getDiffuseRenderMesh(
-	const Render* render)
+Mesh getDiffuseRenderMesh(
+	Render render)
 {
 	assert(render != NULL);
 
@@ -115,8 +114,8 @@ Mesh* getDiffuseRenderMesh(
 	return diffuseRender->mesh;
 }
 void setDiffuseRenderMesh(
-	Render* render,
-	Mesh* mesh)
+	Render render,
+	Mesh mesh)
 {
 	assert(render != NULL);
 	assert(mesh != NULL);

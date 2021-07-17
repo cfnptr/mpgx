@@ -5,10 +5,10 @@
 
 typedef struct VkTexColPipeline
 {
-	Shader* vertexShader;
-	Shader* fragmentShader;
-	Image* texture;
-	Sampler* sampler;
+	Shader vertexShader;
+	Shader fragmentShader;
+	Image texture;
+	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
 	Vec2F size;
@@ -16,10 +16,10 @@ typedef struct VkTexColPipeline
 } VkTexColPipeline;
 typedef struct GlTexColPipeline
 {
-	Shader* vertexShader;
-	Shader* fragmentShader;
-	Image* texture;
-	Sampler* sampler;
+	Shader vertexShader;
+	Shader fragmentShader;
+	Image texture;
+	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
 	Vec2F size;
@@ -38,11 +38,11 @@ typedef union TexColPipeline
 } TexColPipeline;
 
 inline static TexColPipeline* onGlTexColPipelineCreate(
-	Window* window,
-	Shader* vertexShader,
-	Shader* fragmentShader,
-	Image* texture,
-	Sampler* sampler)
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	Image texture,
+	Sampler sampler)
 {
 	TexColPipeline* pipeline = malloc(
 		sizeof(TexColPipeline));
@@ -50,7 +50,7 @@ inline static TexColPipeline* onGlTexColPipelineCreate(
 	if (pipeline == NULL)
 		return NULL;
 
-	Shader* shaders[2] = {
+	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
@@ -155,7 +155,7 @@ inline static TexColPipeline* onGlTexColPipelineCreate(
 	return pipeline;
 }
 static void onGlTexColPipelineDestroy(
-	Window* window,
+	Window window,
 	void* pipeline)
 {
 	TexColPipeline* texColPipeline =
@@ -166,7 +166,7 @@ static void onGlTexColPipelineDestroy(
 	free(texColPipeline);
 }
 static void onGlTexColPipelineBind(
-	Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	TexColPipeline* texColPipeline =
 		getPipelineHandle(pipeline);
@@ -202,7 +202,7 @@ static void onGlTexColPipelineBind(
 	assertOpenGL();
 }
 static void onGlTexColPipelineUniformsSet(
-	Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	TexColPipeline* texColPipeline =
 		getPipelineHandle(pipeline);
@@ -245,12 +245,12 @@ static void onGlTexColPipelineUniformsSet(
 
 	assertOpenGL();
 }
-Pipeline* createTexColPipeline(
-	Window* window,
-	Shader* vertexShader,
-	Shader* fragmentShader,
-	Image* texture,
-	Sampler* sampler,
+Pipeline createTexColPipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	Image texture,
+	Sampler sampler,
 	uint8_t drawMode)
 {
 	assert(window != NULL);
@@ -294,7 +294,7 @@ Pipeline* createTexColPipeline(
 	if (handle == NULL)
 		return NULL;
 
-	Pipeline* pipeline = createPipeline(
+	Pipeline pipeline = createPipeline(
 		window,
 		"TexCol",
 		drawMode,
@@ -314,8 +314,8 @@ Pipeline* createTexColPipeline(
 	return pipeline;
 }
 
-Shader* getTexColPipelineVertexShader(
-	const Pipeline* pipeline)
+Shader getTexColPipelineVertexShader(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -325,8 +325,8 @@ Shader* getTexColPipelineVertexShader(
 		getPipelineHandle(pipeline);
 	return texColPipeline->vk.vertexShader;
 }
-Shader* getTexColPipelineFragmentShader(
-	const Pipeline* pipeline)
+Shader getTexColPipelineFragmentShader(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -336,8 +336,8 @@ Shader* getTexColPipelineFragmentShader(
 		getPipelineHandle(pipeline);
 	return texColPipeline->vk.fragmentShader;
 }
-Image* getTexColPipelineTexture(
-	const Pipeline* pipeline)
+Image getTexColPipelineTexture(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -347,8 +347,8 @@ Image* getTexColPipelineTexture(
 		getPipelineHandle(pipeline);
 	return texColPipeline->vk.texture;
 }
-Sampler* getTexColPipelineSampler(
-	const Pipeline* pipeline)
+Sampler getTexColPipelineSampler(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -360,7 +360,7 @@ Sampler* getTexColPipelineSampler(
 }
 
 Mat4F getTexColPipelineMVP(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -371,7 +371,7 @@ Mat4F getTexColPipelineMVP(
 	return texColPipeline->vk.mvp;
 }
 void setTexColPipelineMVP(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);
@@ -384,7 +384,7 @@ void setTexColPipelineMVP(
 }
 
 Vec4F getTexColPipelineColor(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -395,7 +395,7 @@ Vec4F getTexColPipelineColor(
 	return texColPipeline->vk.color;
 }
 void setTexColPipelineColor(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Vec4F color)
 {
 	assert(pipeline != NULL);
@@ -408,7 +408,7 @@ void setTexColPipelineColor(
 }
 
 Vec2F getTexColPipelineSize(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -419,7 +419,7 @@ Vec2F getTexColPipelineSize(
 	return texColPipeline->vk.size;
 }
 void setTexColPipelineSize(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Vec2F size)
 {
 	assert(pipeline != NULL);
@@ -432,7 +432,7 @@ void setTexColPipelineSize(
 }
 
 Vec2F getTexColPipelineOffset(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -443,7 +443,7 @@ Vec2F getTexColPipelineOffset(
 	return texColPipeline->vk.offset;
 }
 void setTexColPipelineOffset(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Vec2F offset)
 {
 	assert(pipeline != NULL);

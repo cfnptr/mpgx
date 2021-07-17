@@ -5,8 +5,8 @@
 
 struct Render
 {
-	Renderer* renderer;
-	Transform* transform;
+	Renderer renderer;
+	Transform transform;
 	Box3F bounding;
 	void* handle;
 };
@@ -14,24 +14,24 @@ typedef struct RenderElement
 {
 	Vec3F rendererPosition;
 	Vec3F renderPosition;
-	Render* render;
+	Render render;
 } RenderElement;
 struct Renderer
 {
-	Transform* transform;
-	Pipeline* pipeline;
+	Transform transform;
+	Pipeline pipeline;
 	uint8_t sortingType;
 	OnRenderDestroy onDestroy;
 	OnRenderDraw onDraw;
-	Render** renders;
+	Render* renders;
 	RenderElement* renderElements;
 	size_t renderCapacity;
 	size_t renderCount;
 };
 
-Renderer* createRenderer(
-	Transform* transform,
-	Pipeline* pipeline,
+Renderer createRenderer(
+	Transform transform,
+	Pipeline pipeline,
 	uint8_t sortingType,
 	OnRenderDestroy onDestroy,
 	OnRenderDraw onDraw)
@@ -42,12 +42,14 @@ Renderer* createRenderer(
 	assert(onDestroy != NULL);
 	assert(onDraw != NULL);
 
-	Renderer* renderer = malloc(sizeof(Renderer));
+	Renderer renderer = malloc(
+		sizeof(struct Renderer));
 
 	if (renderer == NULL)
 		return NULL;
 
-	Render** renders = malloc(sizeof(Render*));
+	Render* renders = malloc(
+		sizeof(Render));
 
 	if (renders == NULL)
 	{
@@ -76,20 +78,20 @@ Renderer* createRenderer(
 	renderer->renderCount = 0;
 	return renderer;
 }
-void destroyRenderer(Renderer* renderer)
+void destroyRenderer(Renderer renderer)
 {
 	if (renderer == NULL)
 		return;
 
 	free(renderer->renderElements);
 
-	Render** renders = renderer->renders;
+	Render* renders = renderer->renders;
 	size_t renderCount = renderer->renderCount;
 	OnRenderDestroy onDestroy = renderer->onDestroy;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
-		Render* render = renders[i];
+		Render render = renders[i];
 		onDestroy(render->handle);
 		free(render);
 	}
@@ -98,39 +100,35 @@ void destroyRenderer(Renderer* renderer)
 	free(renderer);
 }
 
-Transform* getRendererTransform(
-	const Renderer* renderer)
+Transform getRendererTransform(Renderer renderer)
 {
 	assert(renderer != NULL);
 	return renderer->transform;
 }
-Pipeline* getRendererPipeline(
-	const Renderer* renderer)
+Pipeline getRendererPipeline(Renderer renderer)
 {
 	assert(renderer != NULL);
 	return renderer->pipeline;
 }
-OnRenderDestroy getRendererOnDestroy(
-	const Renderer* renderer)
+OnRenderDestroy getRendererOnDestroy(Renderer renderer)
 {
 	assert(renderer != NULL);
 	return renderer->onDestroy;
 }
-OnRenderDraw getRendererOnDraw(
-	const Renderer* renderer)
+OnRenderDraw getRendererOnDraw(Renderer renderer)
 {
 	assert(renderer != NULL);
 	return renderer->onDraw;
 }
 
 uint8_t getRendererSorting(
-	const Renderer* renderer)
+	Renderer renderer)
 {
 	assert(renderer != NULL);
 	return renderer->sortingType;
 }
 void setRendererSorting(
-	Renderer* renderer,
+	Renderer renderer,
 	uint8_t sortingType)
 {
 	assert(renderer != NULL);
@@ -190,7 +188,7 @@ static int descendingRenderCompare(
 }
 
 void createRenderData(
-	const Window* window,
+	Window window,
 	Mat4F view,
 	Camera camera,
 	RenderData* data)
@@ -198,7 +196,8 @@ void createRenderData(
 	assert(window != NULL);
 	assert(data != NULL);
 
-	uint8_t graphicsAPI = getWindowGraphicsAPI(window);
+	uint8_t graphicsAPI =
+		getWindowGraphicsAPI(window);
 
 	Mat4F proj;
 	Mat4F viewProj;
@@ -313,12 +312,12 @@ void createRenderData(
 	data->viewProj = viewProj;
 }
 void drawRenderer(
-	Renderer* renderer,
+	Renderer renderer,
 	const RenderData* data)
 {
 	assert(renderer != NULL);
 
-	Render** renders = renderer->renders;
+	Render* renders = renderer->renders;
 	RenderElement* renderElements = renderer->renderElements;
 	size_t renderCount = renderer->renderCount;
 
@@ -336,13 +335,13 @@ void drawRenderer(
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
-		Render* render = renders[i];
-		Transform* transform = render->transform;
+		Render render = renders[i];
+		Transform transform = render->transform;
 
 		if (isTransformActive(transform) == false)
 			continue;
 
-		Transform* parent = getTransformParent(transform);
+		Transform parent = getTransformParent(transform);
 
 		while (parent != NULL)
 		{
@@ -419,14 +418,14 @@ void drawRenderer(
 	Mat4F view = data->view;
 	Mat4F proj = data->proj;
 	Mat4F viewProj = data->viewProj;
-	Pipeline* pipeline = renderer->pipeline;
+	Pipeline pipeline = renderer->pipeline;
 	OnRenderDraw onDraw = renderer->onDraw;
 
 	bindPipeline(pipeline);
 
 	for (size_t i = 0; i < renderElementCount; i++)
 	{
-		Render* render = renderElements[i].render;
+		Render render = renderElements[i].render;
 
 		Mat4F model = getTransformModel(
 			render->transform);
@@ -445,9 +444,9 @@ void drawRenderer(
 	}
 }
 
-Render* createRender(
-	Renderer* renderer,
-	Transform* transform,
+Render createRender(
+	Renderer renderer,
+	Transform transform,
 	Box3F bounding,
 	void* handle)
 {
@@ -457,7 +456,8 @@ Render* createRender(
 	assert(getTransformTransformer(transform) ==
 		getTransformTransformer(renderer->transform));
 
-	Render* render = malloc(sizeof(Render));
+	Render render = malloc(
+		sizeof(struct Render));
 
 	if (render == NULL)
 		return NULL;
@@ -467,17 +467,15 @@ Render* createRender(
 	render->bounding = bounding;
 	render->handle = handle;
 
-	Render** renders = renderer->renders;
-	size_t renderCount = renderer->renderCount;
-	size_t renderCapacity = renderer->renderCapacity;
+	size_t count = renderer->renderCount;
 
-	if (renderCount == renderCapacity)
+	if (count == renderer->renderCapacity)
 	{
-		renderCapacity *= 2;
+		size_t capacity = renderer->renderCapacity * 2;
 
-		renders = realloc(
-			renders,
-			renderCapacity * sizeof(Render*));
+		Render* renders = realloc(
+			renderer->renders,
+			sizeof(Render) * capacity);
 
 		if (renders == NULL)
 		{
@@ -490,7 +488,7 @@ Render* createRender(
 
 		RenderElement* renderElements = realloc(
 			renderer->renderElements,
-			renderCapacity * sizeof(RenderElement));
+			sizeof(RenderElement) * capacity);
 
 		if (renderElements == NULL)
 		{
@@ -500,20 +498,20 @@ Render* createRender(
 		}
 
 		renderer->renderElements = renderElements;
-		renderer->renderCapacity = renderCapacity;
+		renderer->renderCapacity = capacity;
 	}
 
-	renders[renderCount] = render;
-	renderer->renderCount++;
+	renderer->renders[count] = render;
+	renderer->renderCount = count + 1;
 	return render;
 }
-void destroyRender(Render* render)
+void destroyRender(Render render)
 {
 	if (render == NULL)
 		return;
 
-	Renderer* renderer = render->renderer;
-	Render** renders = renderer->renders;
+	Renderer renderer = render->renderer;
+	Render* renders = renderer->renders;
 	size_t renderCount = renderer->renderCount;
 	OnRenderDestroy onDestroy = renderer->onDestroy;
 
@@ -527,7 +525,6 @@ void destroyRender(Render* render)
 
 		onDestroy(render->handle);
 		free(render);
-
 		renderer->renderCount--;
 		return;
 	}
@@ -535,32 +532,32 @@ void destroyRender(Render* render)
 	abort();
 }
 
-Renderer* getRenderRenderer(const Render* render)
+Renderer getRenderRenderer(Render render)
 {
 	assert(render != NULL);
 	return render->renderer;
 }
-Transform* getRenderTransform(const Render* render)
+Transform getRenderTransform(Render render)
 {
 	assert(render != NULL);
 	return render->transform;
 }
 
 Box3F getRenderBounding(
-	const Render* render)
+	Render render)
 {
 	assert(render != NULL);
 	return render->bounding;
 }
 void setRenderBounding(
-	Render* render,
+	Render render,
 	Box3F bounding)
 {
 	assert(render != NULL);
 	render->bounding = bounding;
 }
 
-void* getRenderHandle(const Render* render)
+void* getRenderHandle(Render render)
 {
 	assert(render != NULL);
 	return render->handle;

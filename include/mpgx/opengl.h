@@ -24,8 +24,8 @@ inline static void assertOpenGL()
 }
 
 inline static GLuint createGlPipeline(
-	Window* window,
-	Shader** _shaders,
+	Window window,
+	Shader* _shaders,
 	size_t shaderCount)
 {
 	assert(window != NULL);
@@ -108,7 +108,7 @@ inline static GLuint createGlPipeline(
 	return program;
 }
 inline static void destroyGlPipeline(
-	Window* window,
+	Window window,
 	GLuint pipeline)
 {
 	assert(window != NULL);

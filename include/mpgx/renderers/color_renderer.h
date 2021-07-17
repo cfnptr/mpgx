@@ -2,25 +2,25 @@
 #include "mpgx/renderer.h"
 #include "mpgx/pipelines/color_pipeline.h"
 
-Renderer* createColorRenderer(
-	Transform* transform,
-	Pipeline* pipeline,
+Renderer createColorRenderer(
+	Transform transform,
+	Pipeline pipeline,
 	uint8_t sortingType);
-Render* createColorRender(
-	Renderer* renderer,
-	Transform* transform,
+Render createColorRender(
+	Renderer renderer,
+	Transform transform,
 	Box3F bounding,
 	Vec4F color,
-	Mesh* mesh);
+	Mesh mesh);
 
 Vec4F getColorRenderColor(
-	const Render* render);
+	Render render);
 void setColorRenderColor(
-	Render* render,
+	Render render,
 	Vec4F color);
 
-Mesh* getColorRenderMesh(
-	const Render* render);
+Mesh getColorRenderMesh(
+	Render render);
 void setColorRenderMesh(
-	Render* render,
-	Mesh* mesh);
+	Render render,
+	Mesh mesh);

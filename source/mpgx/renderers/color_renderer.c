@@ -4,7 +4,7 @@
 typedef struct ColorRender
 {
 	Vec4F color;
-	Mesh* mesh;
+	Mesh mesh;
 } ColorRender;
 
 static void onColorRenderDestroy(void* render)
@@ -12,8 +12,8 @@ static void onColorRenderDestroy(void* render)
 	free(render);
 }
 static void onColorRenderDraw(
-	Render* render,
-	Pipeline* pipeline,
+	Render render,
+	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* view,
 	const Mat4F* proj,
@@ -33,9 +33,9 @@ static void onColorRenderDraw(
 		colorRender->mesh,
 		pipeline);
 }
-Renderer* createColorRenderer(
-	Transform* transform,
-	Pipeline* pipeline,
+Renderer createColorRenderer(
+	Transform transform,
+	Pipeline pipeline,
 	uint8_t sortingType)
 {
 	assert(transform != NULL);
@@ -53,12 +53,12 @@ Renderer* createColorRenderer(
 		onColorRenderDestroy,
 		onColorRenderDraw);
 }
-Render* createColorRender(
-	Renderer* renderer,
-	Transform* transform,
+Render createColorRender(
+	Renderer renderer,
+	Transform transform,
 	Box3F bounding,
 	Vec4F color,
-	Mesh* mesh)
+	Mesh mesh)
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
@@ -84,7 +84,7 @@ Render* createColorRender(
 	colorRender->color = color;
 	colorRender->mesh = mesh;
 
-	Render* render = createRender(
+	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
@@ -100,7 +100,7 @@ Render* createColorRender(
 }
 
 Vec4F getColorRenderColor(
-	const Render* render)
+	Render render)
 {
 	assert(render != NULL);
 
@@ -115,7 +115,7 @@ Vec4F getColorRenderColor(
 	return colorRender->color;
 }
 void setColorRenderColor(
-	Render* render,
+	Render render,
 	Vec4F color)
 {
 	assert(render != NULL);
@@ -131,8 +131,8 @@ void setColorRenderColor(
 	colorRender->color = color;
 }
 
-Mesh* getColorRenderMesh(
-	const Render* render)
+Mesh getColorRenderMesh(
+	Render render)
 {
 	assert(render != NULL);
 
@@ -147,8 +147,8 @@ Mesh* getColorRenderMesh(
 	return colorRender->mesh;
 }
 void setColorRenderMesh(
-	Render* render,
-	Mesh* mesh)
+	Render render,
+	Mesh mesh)
 {
 	assert(render != NULL);
 	assert(mesh != NULL);

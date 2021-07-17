@@ -3,8 +3,8 @@
 
 #include <stdbool.h>
 
-typedef struct Font Font;
-typedef struct Text Text;
+typedef struct Font* Font;
+typedef struct Text* Text;
 
 // TODO: add font loading from the memory
 // TODO: add tab symbol handling
@@ -17,76 +17,76 @@ typedef struct Text Text;
 
 // TODO: add text fallback fonts
 
-Font* createFontFromFile(
+Font createFontFromFile(
 	const void* filePath);
-void destroyFont(Font* font);
+void destroyFont(Font font);
 
-Text* createText(
-	Window* window,
-	Font* font,
+Text createText(
+	Window window,
+	Font font,
 	uint32_t fontSize,
 	const char* data,
 	bool isConstant);
-void destroyText(Text* text);
+void destroyText(Text text);
 
-Window* getTextWindow(const Text* text);
-bool isTextConstant(const Text* text);
-Vec2F getTextSize(const Text* text);
+Window getTextWindow(Text text);
+bool isTextConstant(Text text);
+Vec2F getTextSize(Text text);
 
 Vec2F getTextOffset(
-	const Text* text,
+	Text text,
 	uint8_t anchor);
 size_t getTextUnicodeCharCount(
-	const Text* text);
+	Text text);
 bool getTextUnicodeCharAdvance(
-	const Text* text,
+	Text text,
 	size_t index,
 	Vec2F* advance);
 
-Font* getTextFont(
-	const Text* text);
+Font getTextFont(
+	Text text);
 void setTextFont(
-	Text* text,
-	Font* font);
+	Text text,
+	Font font);
 
 uint32_t getTextFontSize(
-	const Text* text);
+	Text text);
 void setTextFontSize(
-	Text* text,
+	Text text,
 	uint32_t fontSize);
 
 const char* getTextData(
-	const Text* text);
+	Text text);
 bool setTextData(
-	Text* text,
+	Text text,
 	const char* data);
 
 bool bakeText(
-	Text* text,
+	Text text,
 	bool reuse);
 void drawText(
-	Text* text,
-	Pipeline* pipeline);
+	Text text,
+	Pipeline pipeline);
 
-Pipeline* createTextPipeline(
-	Window* window,
-	Shader* vertexShader,
-	Shader* fragmentShader,
+Pipeline createTextPipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
 	uint8_t drawMode);
 
-Shader* getTextPipelineVertexShader(
-	const Pipeline* pipeline);
-Shader* getTextPipelineFragmentShader(
-	const Pipeline* pipeline);
+Shader getTextPipelineVertexShader(
+	Pipeline pipeline);
+Shader getTextPipelineFragmentShader(
+	Pipeline pipeline);
 
 Vec4F getTextPipelineColor(
-	const Pipeline* pipeline);
+	Pipeline pipeline);
 void setTextPipelineColor(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Vec4F color);
 
 Mat4F getTextPipelineMVP(
-	const Pipeline* pipeline);
+	Pipeline pipeline);
 void setTextPipelineMVP(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Mat4F mvp);

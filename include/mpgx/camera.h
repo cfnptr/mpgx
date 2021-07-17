@@ -7,12 +7,12 @@
 #include <stdint.h>
 #include <assert.h>
 
-typedef enum CAMERA_TYPE
+typedef enum CameraType
 {
-	PERSPECTIVE_CAMERA_TYPE,
-	ORTHOGRAPHIC_CAMERA_TYPE,
-	CAMERA_TYPE_COUNT,
-} CAMERA_TYPE;
+	PERSPECTIVE_CAMERA_TYPE = 0,
+	ORTHOGRAPHIC_CAMERA_TYPE = 1,
+	CAMERA_TYPE_COUNT = 2,
+} CameraType;
 
 typedef struct PerspectiveCamera
 {

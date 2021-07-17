@@ -6,8 +6,8 @@
 
 struct FreeCamera
 {
-	Window* window;
-	Transform* transform;
+	Window window;
+	Transform transform;
 	Vec2F rotation;
 	Vec2F lastCursorPosition;
 	float moveSpeed;
@@ -17,9 +17,9 @@ struct FreeCamera
 	float farClipPlane;
 };
 
-FreeCamera* createFreeCamera(
-	Window* window,
-	Transformer* transformer,
+FreeCamera createFreeCamera(
+	Window window,
+	Transformer transformer,
 	float moveSpeed,
 	float viewSpeed,
 	float fieldOfView,
@@ -29,13 +29,13 @@ FreeCamera* createFreeCamera(
 	assert(window != NULL);
 	assert(transformer != NULL);
 
-	FreeCamera* freeCamera = malloc(
-		sizeof(FreeCamera));
+	FreeCamera freeCamera = malloc(
+		sizeof(struct FreeCamera));
 
 	if (freeCamera == NULL)
 		return NULL;
 
-	Transform* transform = createTransform(
+	Transform transform = createTransform(
 		transformer,
 		zeroVec3F(),
 		oneVec3F(),
@@ -62,8 +62,7 @@ FreeCamera* createFreeCamera(
 	freeCamera->farClipPlane = farClipPlane;
 	return freeCamera;
 }
-void destroyFreeCamera(
-	FreeCamera* freeCamera)
+void destroyFreeCamera(FreeCamera freeCamera)
 {
 	if (freeCamera == NULL)
 		return;
@@ -72,21 +71,21 @@ void destroyFreeCamera(
 	free(freeCamera);
 }
 
-Window* getFreeCameraWindow(FreeCamera* freeCamera)
+Window getFreeCameraWindow(FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->window;
 }
 
-Transform* getFreeCameraTransform(
-	const FreeCamera* freeCamera)
+Transform getFreeCameraTransform(
+	FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->transform;
 }
 void setFreeCameraTransform(
-	FreeCamera* freeCamera,
-	Transform* transform)
+	FreeCamera freeCamera,
+	Transform transform)
 {
 	assert(freeCamera != NULL);
 	assert(transform != NULL);
@@ -94,13 +93,13 @@ void setFreeCameraTransform(
 }
 
 Vec2F getFreeCameraRotation(
-	const FreeCamera* freeCamera)
+	FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->rotation;
 }
 void setFreeCameraRotation(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	Vec2F rotation)
 {
 	assert(freeCamera != NULL);
@@ -114,13 +113,13 @@ void setFreeCameraRotation(
 }
 
 float getFreeCameraMoveSpeed(
-	const FreeCamera* freeCamera)
+	FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->moveSpeed;
 }
 void setFreeCameraMoveSpeed(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	float moveSpeed)
 {
 	assert(freeCamera != NULL);
@@ -128,13 +127,13 @@ void setFreeCameraMoveSpeed(
 }
 
 float getFreeCameraViewSpeed(
-	const FreeCamera* freeCamera)
+	FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->viewSpeed;
 }
 void setFreeCameraViewSpeed(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	float viewSpeed)
 {
 	assert(freeCamera != NULL);
@@ -142,13 +141,13 @@ void setFreeCameraViewSpeed(
 }
 
 float getFreeCameraFieldOfView(
-	const FreeCamera* freeCamera)
+	FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->fieldOfView;
 }
 void setFreeCameraFieldOfView(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	float fieldOfView)
 {
 	assert(freeCamera != NULL);
@@ -156,13 +155,13 @@ void setFreeCameraFieldOfView(
 }
 
 float getFreeCameraNearClipPlane(
-	const FreeCamera* freeCamera)
+	FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->nearClipPlane;
 }
 void setFreeCameraNearClipPlane(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	float nearClipPlane)
 {
 	assert(freeCamera != NULL);
@@ -170,23 +169,23 @@ void setFreeCameraNearClipPlane(
 }
 
 float getFreeCameraFarClipPlane(
-	const FreeCamera* freeCamera)
+	FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->farClipPlane;
 }
 void setFreeCameraFarClipPlane(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	float farClipPlane)
 {
 	assert(freeCamera != NULL);
 	freeCamera->farClipPlane = farClipPlane;
 }
 
-void updateFreeCamera(FreeCamera* freeCamera)
+void updateFreeCamera(FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
-	Window* window = freeCamera->window;
+	Window window = freeCamera->window;
 
 	if (isWindowFocused(window) == false)
 		return;
@@ -198,7 +197,7 @@ void updateFreeCamera(FreeCamera* freeCamera)
 			LOCKED_CURSOR_MODE);
 
 		float deltaTime = (float)getWindowDeltaTime(window);
-		Transform* transform = freeCamera->transform;
+		Transform transform = freeCamera->transform;
 		Vec2F rotation = freeCamera->rotation;
 		Vec2F lastCursorPosition = freeCamera->lastCursorPosition;
 		float moveSpeed = freeCamera->moveSpeed * 2.0f;
@@ -263,7 +262,7 @@ void updateFreeCamera(FreeCamera* freeCamera)
 		freeCamera->lastCursorPosition = zeroVec2F();
 	}
 }
-Camera getFreeCamera(const FreeCamera* freeCamera)
+Camera getFreeCamera(FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 

@@ -6,17 +6,16 @@ typedef struct TexSprRender
 	Vec4F color;
 	Vec2F size;
 	Vec2F offset;
-	Mesh* mesh;
+	Mesh mesh;
 } TexSprRender;
 
-static void onTexSprRenderDestroy(
-	void* render)
+static void onTexSprRenderDestroy(void* render)
 {
 	free(render);
 }
 static void onTexSprRenderDraw(
-	Render* render,
-	Pipeline* pipeline,
+	Render render,
+	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* view,
 	const Mat4F* proj,
@@ -42,9 +41,9 @@ static void onTexSprRenderDraw(
 		texSprRender->mesh,
 		pipeline);
 }
-Renderer* createTexSprRenderer(
-	Transform* transform,
-	Pipeline* pipeline,
+Renderer createTexSprRenderer(
+	Transform transform,
+	Pipeline pipeline,
 	uint8_t sortingType)
 {
 	assert(transform != NULL);
@@ -62,14 +61,14 @@ Renderer* createTexSprRenderer(
 		onTexSprRenderDestroy,
 		onTexSprRenderDraw);
 }
-Render* createTexSprRender(
-	Renderer* renderer,
-	Transform* transform,
+Render createTexSprRender(
+	Renderer renderer,
+	Transform transform,
 	Box3F bounding,
 	Vec4F color,
 	Vec2F size,
 	Vec2F offset,
-	Mesh* mesh)
+	Mesh mesh)
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
@@ -97,7 +96,7 @@ Render* createTexSprRender(
 	texSprRender->offset = offset;
 	texSprRender->mesh = mesh;
 
-	Render* render = createRender(
+	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
@@ -113,7 +112,7 @@ Render* createTexSprRender(
 }
 
 Vec4F getTexSprRenderColor(
-	const Render* render)
+	Render render)
 {
 	assert(render != NULL);
 
@@ -128,7 +127,7 @@ Vec4F getTexSprRenderColor(
 	return texSprRender->color;
 }
 void setTexSprRenderColor(
-	Render* render,
+	Render render,
 	Vec4F color)
 {
 	assert(render != NULL);
@@ -145,7 +144,7 @@ void setTexSprRenderColor(
 }
 
 Vec2F getTexSprRenderSize(
-	const Render* render)
+	Render render)
 {
 	assert(render != NULL);
 
@@ -160,7 +159,7 @@ Vec2F getTexSprRenderSize(
 	return texSprRender->size;
 }
 void setTexSprRenderSize(
-	Render* render,
+	Render render,
 	Vec2F size)
 {
 	assert(render != NULL);
@@ -177,7 +176,7 @@ void setTexSprRenderSize(
 }
 
 Vec2F getTexSprRenderOffset(
-	const Render* render)
+	Render render)
 {
 	assert(render != NULL);
 
@@ -192,7 +191,7 @@ Vec2F getTexSprRenderOffset(
 	return texSprRender->offset;
 }
 void setTexSprRenderOffset(
-	Render* render,
+	Render render,
 	Vec2F offset)
 {
 	assert(render != NULL);
@@ -208,8 +207,8 @@ void setTexSprRenderOffset(
 	texSprRender->offset = offset;
 }
 
-Mesh* getTexSprRenderMesh(
-	const Render* render)
+Mesh getTexSprRenderMesh(
+	Render render)
 {
 	assert(render != NULL);
 
@@ -224,8 +223,8 @@ Mesh* getTexSprRenderMesh(
 	return texSprRender->mesh;
 }
 void setTexSprRenderMesh(
-	Render* render,
-	Mesh* mesh)
+	Render render,
+	Mesh mesh)
 {
 	assert(render != NULL);
 	assert(mesh != NULL);

@@ -5,10 +5,10 @@
 
 typedef struct VkTexSprPipeline
 {
-	Shader* vertexShader;
-	Shader* fragmentShader;
-	Image* texture;
-	Sampler* sampler;
+	Shader vertexShader;
+	Shader fragmentShader;
+	Image texture;
+	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
 	Vec2F size;
@@ -16,10 +16,10 @@ typedef struct VkTexSprPipeline
 } VkTexSprPipeline;
 typedef struct GlTexSprPipeline
 {
-	Shader* vertexShader;
-	Shader* fragmentShader;
-	Image* texture;
-	Sampler* sampler;
+	Shader vertexShader;
+	Shader fragmentShader;
+	Image texture;
+	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
 	Vec2F size;
@@ -38,11 +38,11 @@ typedef union TexSprPipeline
 } TexSprPipeline;
 
 inline static TexSprPipeline* onGlTexSprPipelineCreate(
-	Window* window,
-	Shader* vertexShader,
-	Shader* fragmentShader,
-	Image* texture,
-	Sampler* sampler)
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	Image texture,
+	Sampler sampler)
 {
 	TexSprPipeline* pipeline = malloc(
 		sizeof(TexSprPipeline));
@@ -50,7 +50,7 @@ inline static TexSprPipeline* onGlTexSprPipelineCreate(
 	if (pipeline == NULL)
 		return NULL;
 
-	Shader* shaders[2] = {
+	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
@@ -155,7 +155,7 @@ inline static TexSprPipeline* onGlTexSprPipelineCreate(
 	return pipeline;
 }
 static void onGlTexSprPipelineDestroy(
-	Window* window,
+	Window window,
 	void* pipeline)
 {
 	TexSprPipeline* texSprPipeline =
@@ -166,7 +166,7 @@ static void onGlTexSprPipelineDestroy(
 	free(texSprPipeline);
 }
 static void onGlTexSprPipelineBind(
-	Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	TexSprPipeline* texSprPipeline =
 		getPipelineHandle(pipeline);
@@ -206,7 +206,7 @@ static void onGlTexSprPipelineBind(
 	assertOpenGL();
 }
 static void onGlTexSprPipelineUniformsSet(
-	Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	TexSprPipeline* texSprPipeline =
 		getPipelineHandle(pipeline);
@@ -249,12 +249,12 @@ static void onGlTexSprPipelineUniformsSet(
 
 	assertOpenGL();
 }
-Pipeline* createTexSprPipeline(
-	Window* window,
-	Shader* vertexShader,
-	Shader* fragmentShader,
-	Image* texture,
-	Sampler* sampler,
+Pipeline createTexSprPipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	Image texture,
+	Sampler sampler,
 	uint8_t drawMode)
 {
 	assert(window != NULL);
@@ -298,7 +298,7 @@ Pipeline* createTexSprPipeline(
 	if (handle == NULL)
 		return NULL;
 
-	Pipeline* pipeline = createPipeline(
+	Pipeline pipeline = createPipeline(
 		window,
 		"TexSpr",
 		drawMode,
@@ -318,8 +318,8 @@ Pipeline* createTexSprPipeline(
 	return pipeline;
 }
 
-Shader* getTexSprPipelineVertexShader(
-	const Pipeline* pipeline)
+Shader getTexSprPipelineVertexShader(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -329,8 +329,8 @@ Shader* getTexSprPipelineVertexShader(
 		getPipelineHandle(pipeline);
 	return texSprPipeline->vk.vertexShader;
 }
-Shader* getTexSprPipelineFragmentShader(
-	const Pipeline* pipeline)
+Shader getTexSprPipelineFragmentShader(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -340,8 +340,8 @@ Shader* getTexSprPipelineFragmentShader(
 		getPipelineHandle(pipeline);
 	return texSprPipeline->vk.fragmentShader;
 }
-Image* getTexSprPipelineTexture(
-	const Pipeline* pipeline)
+Image getTexSprPipelineTexture(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -351,8 +351,8 @@ Image* getTexSprPipelineTexture(
 		getPipelineHandle(pipeline);
 	return texSprPipeline->vk.texture;
 }
-Sampler* getTexSprPipelineSampler(
-	const Pipeline* pipeline)
+Sampler getTexSprPipelineSampler(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -364,7 +364,7 @@ Sampler* getTexSprPipelineSampler(
 }
 
 Mat4F getTexSprPipelineMVP(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -375,7 +375,7 @@ Mat4F getTexSprPipelineMVP(
 	return texSprPipeline->vk.mvp;
 }
 void setTexSprPipelineMVP(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);
@@ -388,7 +388,7 @@ void setTexSprPipelineMVP(
 }
 
 Vec4F getTexSprPipelineColor(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -399,7 +399,7 @@ Vec4F getTexSprPipelineColor(
 	return texSprPipeline->vk.color;
 }
 void setTexSprPipelineColor(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Vec4F color)
 {
 	assert(pipeline != NULL);
@@ -412,7 +412,7 @@ void setTexSprPipelineColor(
 }
 
 Vec2F getTexSprPipelineSize(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -423,7 +423,7 @@ Vec2F getTexSprPipelineSize(
 	return texSprPipeline->vk.size;
 }
 void setTexSprPipelineSize(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Vec2F size)
 {
 	assert(pipeline != NULL);
@@ -436,7 +436,7 @@ void setTexSprPipelineSize(
 }
 
 Vec2F getTexSprPipelineOffset(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -447,7 +447,7 @@ Vec2F getTexSprPipelineOffset(
 	return texSprPipeline->vk.offset;
 }
 void setTexSprPipelineOffset(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Vec2F offset)
 {
 	assert(pipeline != NULL);

@@ -6,7 +6,7 @@ typedef struct TexColRender
 	Vec4F color;
 	Vec2F size;
 	Vec2F offset;
-	Mesh* mesh;
+	Mesh mesh;
 } TexColRender;
 
 static void onTexColRenderDestroy(void* render)
@@ -14,8 +14,8 @@ static void onTexColRenderDestroy(void* render)
 	free(render);
 }
 static void onTexColRenderDraw(
-	Render* render,
-	Pipeline* pipeline,
+	Render render,
+	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* view,
 	const Mat4F* proj,
@@ -41,9 +41,9 @@ static void onTexColRenderDraw(
 		texColRender->mesh,
 		pipeline);
 }
-Renderer* createTexColRenderer(
-	Transform* transform,
-	Pipeline* pipeline,
+Renderer createTexColRenderer(
+	Transform transform,
+	Pipeline pipeline,
 	uint8_t sortingType)
 {
 	assert(transform != NULL);
@@ -61,14 +61,14 @@ Renderer* createTexColRenderer(
 		onTexColRenderDestroy,
 		onTexColRenderDraw);
 }
-Render* createTexColRender(
-	Renderer* renderer,
-	Transform* transform,
+Render createTexColRender(
+	Renderer renderer,
+	Transform transform,
 	Box3F bounding,
 	Vec4F color,
 	Vec2F size,
 	Vec2F offset,
-	Mesh* mesh)
+	Mesh mesh)
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
@@ -96,7 +96,7 @@ Render* createTexColRender(
 	texColRender->offset = offset;
 	texColRender->mesh = mesh;
 
-	Render* render = createRender(
+	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
@@ -112,7 +112,7 @@ Render* createTexColRender(
 }
 
 Vec4F getTexColRenderColor(
-	const Render* render)
+	Render render)
 {
 	assert(render != NULL);
 
@@ -127,7 +127,7 @@ Vec4F getTexColRenderColor(
 	return texColRender->color;
 }
 void setTexColRenderColor(
-	Render* render,
+	Render render,
 	Vec4F color)
 {
 	assert(render != NULL);
@@ -144,7 +144,7 @@ void setTexColRenderColor(
 }
 
 Vec2F getTexColRenderSize(
-	const Render* render)
+	Render render)
 {
 	assert(render != NULL);
 
@@ -159,7 +159,7 @@ Vec2F getTexColRenderSize(
 	return texColRender->size;
 }
 void setTexColRenderSize(
-	Render* render,
+	Render render,
 	Vec2F size)
 {
 	assert(render != NULL);
@@ -176,7 +176,7 @@ void setTexColRenderSize(
 }
 
 Vec2F getTexColRenderOffset(
-	const Render* render)
+	Render render)
 {
 	assert(render != NULL);
 
@@ -191,7 +191,7 @@ Vec2F getTexColRenderOffset(
 	return texColRender->offset;
 }
 void setTexColRenderOffset(
-	Render* render,
+	Render render,
 	Vec2F offset)
 {
 	assert(render != NULL);
@@ -207,8 +207,8 @@ void setTexColRenderOffset(
 	texColRender->offset = offset;
 }
 
-Mesh* getTexColRenderMesh(
-	const Render* render)
+Mesh getTexColRenderMesh(
+	Render render)
 {
 	assert(render != NULL);
 
@@ -223,8 +223,8 @@ Mesh* getTexColRenderMesh(
 	return texColRender->mesh;
 }
 void setTexColRenderMesh(
-	Render* render,
-	Mesh* mesh)
+	Render render,
+	Mesh mesh)
 {
 	assert(render != NULL);
 	assert(mesh != NULL);

@@ -8,7 +8,7 @@
 #define DEFAULT_WINDOW_WIDTH 1280
 #define DEFAULT_WINDOW_HEIGHT 720
 
-typedef enum KEYBOARD_KEY
+typedef enum KeyboardKey
 {
 	UNKNOWN_KEYBOARD_KEY = -1,
 	SPACE_KEYBOARD_KEY = 32,
@@ -132,9 +132,9 @@ typedef enum KEYBOARD_KEY
 	RIGHT_SUPER_KEYBOARD_KEY = 347,
 	MENU_KEYBOARD_KEY = 348,
 	LAST_KEYBOARD_KEY = MENU_KEYBOARD_KEY,
-} KEYBOARD_KEY;
+} KeyboardKey;
 
-typedef enum MOUSE_BUTTON
+typedef enum MouseButton
 {
 	N1_MOUSE_BUTTON = 0,
 	N2_MOUSE_BUTTON = 1,
@@ -148,121 +148,123 @@ typedef enum MOUSE_BUTTON
 	LEFT_MOUSE_BUTTON = N1_MOUSE_BUTTON,
 	RIGHT_MOUSE_BUTTON = N2_MOUSE_BUTTON,
 	MIDDLE_MOUSE_BUTTON = N3_MOUSE_BUTTON,
-} MOUSE_BUTTON;
+} MouseButton;
 
-typedef enum CURSOR_MODE
+typedef enum CursorMode
 {
-	DEFAULT_CURSOR_MODE,
-	HIDDEN_CURSOR_MODE,
-	LOCKED_CURSOR_MODE,
-	CURSOR_MODE_COUNT,
-} CURSOR_MODE;
+	DEFAULT_CURSOR_MODE = 0,
+	HIDDEN_CURSOR_MODE = 1,
+	LOCKED_CURSOR_MODE = 2,
+	CURSOR_MODE_COUNT = 3,
+} CursorMode;
 
-typedef enum GRAPHICS_API
+typedef enum GraphicsAPI
 {
-	VULKAN_GRAPHICS_API,
-	OPENGL_GRAPHICS_API,
-	OPENGL_ES_GRAPHICS_API,
-	GRAPHICS_API_COUNT,
-} GRAPHICS_API;
+	VULKAN_GRAPHICS_API = 0,
+	OPENGL_GRAPHICS_API = 1,
+	OPENGL_ES_GRAPHICS_API = 2,
+	GRAPHICS_API_COUNT = 3,
+} GraphicsAPI;
 
-typedef enum BUFFER_TYPE
+typedef enum BufferType
 {
-	VERTEX_BUFFER_TYPE,
-	INDEX_BUFFER_TYPE,
-	UNIFORM_BUFFER_TYPE,
-	BUFFER_TYPE_COUNT,
-} BUFFER_TYPE;
+	VERTEX_BUFFER_TYPE = 0,
+	INDEX_BUFFER_TYPE = 1,
+	UNIFORM_BUFFER_TYPE = 2,
+	BUFFER_TYPE_COUNT = 3,
+} BufferType;
 
-typedef enum DRAW_INDEX
+typedef enum DrawIndex
 {
-	UINT16_DRAW_INDEX,
-	UINT32_DRAW_INDEX,
-	DRAW_INDEX_COUNT,
-} DRAW_INDEX;
+	UINT16_DRAW_INDEX = 0,
+	UINT32_DRAW_INDEX = 1,
+	DRAW_INDEX_COUNT = 2,
+} DrawIndex;
 
-typedef enum IMAGE_TYPE
+typedef enum ImageType
 {
-	IMAGE_2D_TYPE,
-	IMAGE_3D_TYPE,
-	IMAGE_TYPE_COUNT,
-} IMAGE_TYPE;
+	IMAGE_2D_TYPE = 0,
+	IMAGE_3D_TYPE = 1,
+	IMAGE_TYPE_COUNT = 2,
+} ImageType;
 
-typedef enum IMAGE_FORMAT
+typedef enum ImageFormat
 {
-	R8G8B8A8_UNORM_IMAGE_FORMAT,
-	R8G8B8A8_SRGB_IMAGE_FORMAT,
-	IMAGE_FORMAT_COUNT,
-} IMAGE_FORMAT;
+	R8G8B8A8_UNORM_IMAGE_FORMAT = 0,
+	R8G8B8A8_SRGB_IMAGE_FORMAT = 1,
+	IMAGE_FORMAT_COUNT = 2,
+} ImageFormat;
 
-typedef enum IMAGE_FILTER
+typedef enum ImageFilter
 {
-	LINEAR_IMAGE_FILTER,
-	NEAREST_IMAGE_FILTER,
-	IMAGE_FILTER_COUNT,
-} IMAGE_FILTER;
+	LINEAR_IMAGE_FILTER = 0,
+	NEAREST_IMAGE_FILTER = 1,
+	IMAGE_FILTER_COUNT = 2,
+} ImageFilter;
 
-typedef enum IMAGE_WRAP
+typedef enum ImageWrap
 {
-	REPEAT_IMAGE_WRAP,
-	MIRRORED_REPEAT_IMAGE_WRAP,
-	CLAMP_TO_EDGE_IMAGE_WRAP,
-	IMAGE_WRAP_COUNT,
-} IMAGE_WRAP;
+	REPEAT_IMAGE_WRAP = 0,
+	MIRRORED_REPEAT_IMAGE_WRAP = 1,
+	CLAMP_TO_EDGE_IMAGE_WRAP = 2,
+	IMAGE_WRAP_COUNT = 3,
+} ImageWrap;
 
-typedef enum IMAGE_COMPARE
+typedef enum ImageCompare
 {
-	LESS_EQUAL_IMAGE_COMPARE,
-	GREATER_EQUAL_IMAGE_COMPARE,
-	LESS_IMAGE_COMPARE,
-	GREATER_IMAGE_COMPARE,
-	EQUAL_IMAGE_COMPARE,
-	NOT_EQUAL_IMAGE_COMPARE,
-	ALWAYS_IMAGE_COMPARE,
-	NEVER_IMAGE_COMPARE,
-	IMAGE_COMPARE_COUNT,
-} IMAGE_COMPARE;
+	LESS_EQUAL_IMAGE_COMPARE = 0,
+	GREATER_EQUAL_IMAGE_COMPARE = 1,
+	LESS_IMAGE_COMPARE = 2,
+	GREATER_IMAGE_COMPARE = 3,
+	EQUAL_IMAGE_COMPARE = 4,
+	NOT_EQUAL_IMAGE_COMPARE = 5,
+	ALWAYS_IMAGE_COMPARE = 6,
+	NEVER_IMAGE_COMPARE = 7,
+	IMAGE_COMPARE_COUNT = 8,
+} ImageCompare;
 
-typedef enum SHADER_TYPE
+typedef enum ShaderType
 {
-	VERTEX_SHADER_TYPE,
-	FRAGMENT_SHADER_TYPE,
-	COMPUTE_SHADER_TYPE,
-	SHADER_TYPE_COUNT,
-} SHADER_TYPE;
+	VERTEX_SHADER_TYPE = 0,
+	FRAGMENT_SHADER_TYPE = 1,
+	COMPUTE_SHADER_TYPE = 2,
+	SHADER_TYPE_COUNT = 3,
+} ShaderType;
 
-typedef enum DRAW_MODE
+typedef enum DrawMode
 {
-	POINTS_DRAW_MODE,
-	LINE_STRIP_DRAW_MODE,
-	LINE_LOOP_DRAW_MODE,
-	LINES_DRAW_MODE,
-	TRIANGLE_STRIP_DRAW_MODE,
-	TRIANGLE_FAN_DRAW_MODE,
-	TRIANGLES_DRAW_MODE,
-	DRAW_MODE_COUNT,
-} DRAW_MODE;
+	POINTS_DRAW_MODE = 0,
+	LINE_STRIP_DRAW_MODE = 1,
+	LINE_LOOP_DRAW_MODE = 2,
+	LINES_DRAW_MODE = 3,
+	TRIANGLE_STRIP_DRAW_MODE = 4,
+	TRIANGLE_FAN_DRAW_MODE = 5,
+	TRIANGLES_DRAW_MODE = 6,
+	DRAW_MODE_COUNT = 7,
+} DrawMode;
 
-typedef struct Window Window;
-typedef union Buffer Buffer;
-typedef union Mesh Mesh;
-typedef union Image Image;
-typedef union Sampler Sampler;
-typedef union Framebuffer Framebuffer;
-typedef union Shader Shader;
-typedef struct Pipeline Pipeline;
-typedef struct ImageData ImageData;
+// TODO: check if all modified mallocs have struct
+
+typedef struct Window* Window;
+typedef union Buffer* Buffer;
+typedef union Mesh* Mesh;
+typedef union Image* Image;
+typedef union Sampler* Sampler;
+typedef union Framebuffer* Framebuffer;
+typedef union Shader* Shader;
+typedef struct Pipeline* Pipeline;
+typedef struct ImageData* ImageData;
 
 typedef void(*OnWindowUpdate)(
 	void* argument);
 
 typedef void(*OnPipelineDestroy)(
-	Window* window,
+	Window window,
 	void* pipeline);
 typedef void(*OnPipelineBind)(
-	Pipeline* pipeline);
+	Pipeline pipeline);
 typedef void(*OnPipelineUniformsSet)(
-	Pipeline* pipeline);
+	Pipeline pipeline);
 
 bool initializeGraphics();
 void terminateGraphics();
@@ -270,187 +272,183 @@ bool isGraphicsInitialized();
 
 void* getFtLibrary();
 
-Window* createWindow(
+Window createWindow(
 	uint8_t api,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
 	bool isVisible);
-Window* createAnyWindow(
+Window createAnyWindow(
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
 	bool isVisible);
-void destroyWindow(Window* window);
+void destroyWindow(Window window);
 
-uint8_t getWindowGraphicsAPI(const Window* window);
-OnWindowUpdate getWindowOnUpdate(const Window* window);
-void* getWindowUpdateArgument(const Window* window);
-uint32_t getWindowMaxImageSize(const Window* window);
-double getWindowUpdateTime(const Window* window);
-double getWindowDeltaTime(const Window* window);
-Vec2F getWindowContentScale(const Window* window);
-Vec2U getWindowFramebufferSize(const Window* window);
-const char* getWindowClipboard(const Window* window);
+uint8_t getWindowGraphicsAPI(Window window);
+OnWindowUpdate getWindowOnUpdate(Window window);
+void* getWindowUpdateArgument(Window window);
+uint32_t getWindowMaxImageSize(Window window);
+double getWindowUpdateTime(Window window);
+double getWindowDeltaTime(Window window);
+Vec2F getWindowContentScale(Window window);
+Vec2U getWindowFramebufferSize(Window window);
+const char* getWindowClipboard(Window window);
 
 bool getWindowKeyboardKey(
-	const Window* window,
+	Window window,
 	int key);
 bool getWindowMouseButton(
-	const Window* window,
+	Window window,
 	int button);
 
 Vec2U getWindowSize(
-	const Window* window);
+	Window window);
 void setWindowSize(
-	Window* window,
+	Window window,
 	Vec2U size);
 
 Vec2I getWindowPosition(
-	const Window* window);
+	Window window);
 void setWindowPosition(
-	Window* window,
+	Window window,
 	Vec2I position);
 
 Vec2F getWindowCursorPosition(
-	const Window* window);
+	Window window);
 void setWindowCursorPosition(
-	Window* window,
+	Window window,
 	Vec2F position);
 
 uint8_t getWindowCursorMode(
-	const Window* window);
+	Window window);
 void setWindowCursorMode(
-	Window* window,
+	Window window,
 	uint8_t cursorMode);
 
-bool isWindowFocused(Window* window);
-bool isWindowIconified(Window* window);
-bool isWindowMaximized(Window* window);
-bool isWindowVisible(Window* window);
-bool isWindowHovered(Window* window);
+bool isWindowFocused(Window window);
+bool isWindowIconified(Window window);
+bool isWindowMaximized(Window window);
+bool isWindowVisible(Window window);
+bool isWindowHovered(Window window);
 
-void iconifyWindow(Window* window);
-void maximizeWindow(Window* window);
-void restoreWindow(Window* window);
-void showWindow(Window* window);
-void hideWindow(Window* window);
-void focusWindow(Window* window);
-void requestWindowAttention(Window* window);
+void iconifyWindow(Window window);
+void maximizeWindow(Window window);
+void restoreWindow(Window window);
+void showWindow(Window window);
+void hideWindow(Window window);
+void focusWindow(Window window);
+void requestWindowAttention(Window window);
 
-void makeWindowContextCurrent(Window* window);
-void updateWindow(Window* window);
+void makeWindowContextCurrent(Window window);
+void updateWindow(Window window);
 
-void beginWindowRender(Window* window);
-void endWindowRender(Window* window);
+void beginWindowRender(Window window);
+void endWindowRender(Window window);
 
-Buffer* createBuffer(
-	Window* window,
+Buffer createBuffer(
+	Window window,
 	uint8_t type,
 	const void* data,
 	size_t size,
 	bool isConstant);
-void destroyBuffer(Buffer* buffer);
+void destroyBuffer(Buffer buffer);
 
-Window* getBufferWindow(const Buffer* buffer);
-uint8_t getBufferType(const Buffer* buffer);
-size_t getBufferSize(const Buffer* buffer);
-bool isBufferConstant(const Buffer* buffer);
-const void* getBufferHandle(const Buffer* buffer);
+Window getBufferWindow(Buffer buffer);
+uint8_t getBufferType(Buffer buffer);
+size_t getBufferSize(Buffer buffer);
+bool isBufferConstant(Buffer buffer);
+const void* getBufferHandle(Buffer buffer);
 
 void setBufferData(
-	Buffer* buffer,
+	Buffer buffer,
 	const void* data,
 	size_t size,
 	size_t offset);
 
-Mesh* createMesh(
-	Window* window,
+Mesh createMesh(
+	Window window,
 	uint8_t drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
-	Buffer* vertexBuffer,
-	Buffer* indexBuffer);
-void destroyMesh(Mesh* mesh);
+	Buffer vertexBuffer,
+	Buffer indexBuffer);
+void destroyMesh(Mesh mesh);
 
-Window* getMeshWindow(const Mesh* mesh);
-uint8_t getMeshDrawIndex(const Mesh* mesh);
+Window getMeshWindow(Mesh mesh);
+uint8_t getMeshDrawIndex(Mesh mesh);
 
 size_t getMeshIndexCount(
-	const Mesh* mesh);
+	Mesh mesh);
 void setMeshIndexCount(
-	Mesh* mesh,
+	Mesh mesh,
 	size_t indexCount);
 
 size_t getMeshIndexOffset(
-	const Mesh* mesh);
+	Mesh mesh);
 void setMeshIndexOffset(
-	Mesh* mesh,
+	Mesh mesh,
 	size_t indexOffset);
 
-Buffer* getMeshVertexBuffer(
-	const Mesh* mesh);
+Buffer getMeshVertexBuffer(
+	Mesh mesh);
 void setMeshVertexBuffer(
-	Mesh* mesh,
-	Buffer* vertexBuffer);
+	Mesh mesh,
+	Buffer vertexBuffer);
 
-Buffer* getMeshIndexBuffer(
-	const Mesh* mesh);
+Buffer getMeshIndexBuffer(
+	Mesh mesh);
 void setMeshIndexBuffer(
-	Mesh* mesh,
+	Mesh mesh,
 	uint8_t drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
-	Buffer* indexBuffer);
+	Buffer indexBuffer);
 
 void drawMesh(
-	Mesh* mesh,
-	Pipeline* pipeline);
+	Mesh mesh,
+	Pipeline pipeline);
 
-ImageData* createImageDataFromFile(
+ImageData createImageDataFromFile(
 	const char* filePath,
 	uint8_t channelCount);
-void destroyImageData(
-	ImageData* imageData);
+void destroyImageData(ImageData imageData);
 
-const uint8_t* getImageDataPixels(
-	const ImageData* imageData);
-Vec2U getImageDataSize(
-	const ImageData* imageData);
-uint8_t getImageDataChannelCount(
-	const ImageData* imageData);
+const uint8_t* getImageDataPixels(ImageData imageData);
+Vec2U getImageDataSize(ImageData imageData);
+uint8_t getImageDataChannelCount(ImageData imageData);
 
-Image* createImage(
-	Window* window,
+Image createImage(
+	Window window,
 	uint8_t type,
 	uint8_t format,
 	Vec3U size,
 	const void** data,
 	uint8_t levelCount);
-Image* createImageFromFile(
-	Window* window,
+Image createImageFromFile(
+	Window window,
 	uint8_t format,
 	const char* filePath,
 	bool generateMipmap);
-void destroyImage(Image* image);
+void destroyImage(Image image);
 
 void setImageData(
-	Image* image,
+	Image image,
 	const void* data,
 	Vec3U size,
 	Vec3U offset);
 
-Window* getImageWindow(const Image* image);
-uint8_t getImageType(const Image* image);
-uint8_t getImageFormat(const Image* image);
-Vec3U getImageSize(const Image* image);
-const void* getImageHandle(const Image* image);
+Window getImageWindow(Image image);
+uint8_t getImageType(Image image);
+uint8_t getImageFormat(Image image);
+Vec3U getImageSize(Image image);
+const void* getImageHandle(Image image);
 uint8_t getImageLevelCount(Vec3U imageSize);
 
-Sampler* createSampler(
-	Window* window,
+Sampler createSampler(
+	Window window,
 	uint8_t minImageFilter,
 	uint8_t magImageFilter,
 	uint8_t minMipmapFilter,
@@ -462,77 +460,58 @@ Sampler* createSampler(
 	bool useCompare,
 	float minMipmapLod,
 	float maxMipmapLod);
-void destroySampler(Sampler* sampler);
+void destroySampler(Sampler sampler);
 
-Window* getSamplerWindow(
-	const Sampler* sampler);
-uint8_t getSamplerMinImageFilter(
-	const Sampler* sampler);
-uint8_t getSamplerMagImageFilter(
-	const Sampler* sampler);
-uint8_t getSamplerMinMipmapFilter(
-	const Sampler* sampler);
-bool isSamplerUseMipmapping(
-	const Sampler* sampler);
-uint8_t getSamplerImageWrapX(
-	const Sampler* sampler);
-uint8_t getSamplerImageWrapY(
-	const Sampler* sampler);
-uint8_t getSamplerImageWrapZ(
-	const Sampler* sampler);
-uint8_t getSamplerImageCompare(
-	const Sampler* sampler);
-bool isSamplerUseCompare(
-	const Sampler* sampler);
-float getSamplerMinMipmapLod(
-	const Sampler* sampler);
-float getSamplerMaxMipmapLod(
-	const Sampler* sampler);
-const void* getSamplerHandle(
-	const Sampler* sampler);
+Window getSamplerWindow(Sampler sampler);
+uint8_t getSamplerMinImageFilter(Sampler sampler);
+uint8_t getSamplerMagImageFilter(Sampler sampler);
+uint8_t getSamplerMinMipmapFilter(Sampler sampler);
+bool isSamplerUseMipmapping(Sampler sampler);
+uint8_t getSamplerImageWrapX(Sampler sampler);
+uint8_t getSamplerImageWrapY(Sampler sampler);
+uint8_t getSamplerImageWrapZ(Sampler sampler);
+uint8_t getSamplerImageCompare(Sampler sampler);
+bool isSamplerUseCompare(Sampler sampler);
+float getSamplerMinMipmapLod(Sampler sampler);
+float getSamplerMaxMipmapLod(Sampler sampler);
+const void* getSamplerHandle(Sampler sampler);
 
-Shader* createShader(
-	Window* window,
+Shader createShader(
+	Window window,
 	uint8_t type,
 	const void* code,
 	size_t size);
-Shader* createShaderFromFile(
-	Window* window,
+Shader createShaderFromFile(
+	Window window,
 	uint8_t type,
 	const char* filePath);
-void destroyShader(Shader* shader);
+void destroyShader(Shader shader);
 
-Window* getShaderWindow(const Shader* shader);
-uint8_t getShaderType(const Shader* shader);
-const void* getShaderHandle(const Shader* shader);
+Window getShaderWindow(Shader shader);
+uint8_t getShaderType(Shader shader);
+const void* getShaderHandle(Shader shader);
 
-Pipeline* createPipeline(
-	Window* window,
+Pipeline createPipeline(
+	Window window,
 	const char* name,
 	uint8_t drawMode,
 	OnPipelineDestroy onDestroy,
 	OnPipelineBind onBind,
 	OnPipelineUniformsSet onUniformsSet,
 	void* handle);
-void destroyPipeline(Pipeline* pipeline);
+void destroyPipeline(Pipeline pipeline);
 
-Window* getPipelineWindow(
-	const Pipeline* pipeline);
-const char* getPipelineName(
-	const Pipeline* pipeline);
-OnPipelineDestroy getPipelineOnDestroy(
-	const Pipeline* pipeline);
-OnPipelineBind getPipelineOnBind(
-	const Pipeline* pipeline);
-OnPipelineUniformsSet getPipelineOnUniformsSet(
-	const Pipeline* pipeline);
-void* getPipelineHandle(
-	const Pipeline* pipeline);
+Window getPipelineWindow(Pipeline pipeline);
+const char* getPipelineName(Pipeline pipeline);
+OnPipelineDestroy getPipelineOnDestroy(Pipeline pipeline);
+OnPipelineBind getPipelineOnBind(Pipeline pipeline);
+OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline);
+void* getPipelineHandle(Pipeline pipeline);
 
 uint8_t getPipelineDrawMode(
-	const Pipeline* pipeline);
+	Pipeline pipeline);
 void setPipelineDrawMode(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	uint8_t drawMode);
 
-void bindPipeline(Pipeline* pipeline);
+void bindPipeline(Pipeline pipeline);

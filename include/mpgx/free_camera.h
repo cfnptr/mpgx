@@ -3,61 +3,61 @@
 #include "mpgx/camera.h"
 #include "mpgx/transformer.h"
 
-typedef struct FreeCamera FreeCamera;
+typedef struct FreeCamera* FreeCamera;
 
-FreeCamera* createFreeCamera(
-	Window* window,
-	Transformer* transformer,
+FreeCamera createFreeCamera(
+	Window window,
+	Transformer transformer,
 	float moveSpeed,
 	float viewSpeed,
 	float fieldOfView,
 	float nearClipPlane,
 	float farClipPlane);
-void destroyFreeCamera(FreeCamera* freeCamera);
+void destroyFreeCamera(FreeCamera freeCamera);
 
-Window* getFreeCameraWindow(FreeCamera* freeCamera);
+Window getFreeCameraWindow(FreeCamera freeCamera);
 
-Transform* getFreeCameraTransform(
-	const FreeCamera* freeCamera);
+Transform getFreeCameraTransform(
+	FreeCamera freeCamera);
 void setFreeCameraTransform(
-	FreeCamera* freeCamera,
-	Transform* transform);
+	FreeCamera freeCamera,
+	Transform transform);
 
 Vec2F getFreeCameraRotation(
-	const FreeCamera* freeCamera);
+	FreeCamera freeCamera);
 void setFreeCameraRotation(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	Vec2F rotation);
 
 float getFreeCameraMoveSpeed(
-	const FreeCamera* freeCamera);
+	FreeCamera freeCamera);
 void setFreeCameraMoveSpeed(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	float moveSpeed);
 
 float getFreeCameraViewSpeed(
-	const FreeCamera* freeCamera);
+	FreeCamera freeCamera);
 void setFreeCameraViewSpeed(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	float viewSpeed);
 
 float getFreeCameraFieldOfView(
-	const FreeCamera* freeCamera);
+	FreeCamera freeCamera);
 void setFreeCameraFieldOfView(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	float fieldOfView);
 
 float getFreeCameraNearClipPlane(
-	const FreeCamera* freeCamera);
+	FreeCamera freeCamera);
 void setFreeCameraNearClipPlane(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	float nearClipPlane);
 
 float getFreeCameraFarClipPlane(
-	const FreeCamera* freeCamera);
+	FreeCamera freeCamera);
 void setFreeCameraFarClipPlane(
-	FreeCamera* freeCamera,
+	FreeCamera freeCamera,
 	float farClipPlane);
 
-void updateFreeCamera(FreeCamera* freeCamera);
-Camera getFreeCamera(const FreeCamera* freeCamera);
+void updateFreeCamera(FreeCamera freeCamera);
+Camera getFreeCamera(FreeCamera freeCamera);

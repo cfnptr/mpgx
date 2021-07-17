@@ -5,15 +5,15 @@
 
 typedef struct VkSpritePipeline
 {
-	Shader* vertexShader;
-	Shader* fragmentShader;
+	Shader vertexShader;
+	Shader fragmentShader;
 	Mat4F mvp;
 	Vec4F color;
 } VkSpritePipeline;
 typedef struct GlSpritePipeline
 {
-	Shader* vertexShader;
-	Shader* fragmentShader;
+	Shader vertexShader;
+	Shader fragmentShader;
 	Mat4F mvp;
 	Vec4F color;
 	GLuint handle;
@@ -27,9 +27,9 @@ typedef union SpritePipeline
 } SpritePipeline;
 
 inline static SpritePipeline* onGlSpritePipelineCreate(
-	Window* window,
-	Shader* vertexShader,
-	Shader* fragmentShader)
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader)
 {
 	SpritePipeline* pipeline = malloc(
 		sizeof(SpritePipeline));
@@ -37,7 +37,7 @@ inline static SpritePipeline* onGlSpritePipelineCreate(
 	if (pipeline == NULL)
 		return NULL;
 
-	Shader* shaders[2] = {
+	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
@@ -94,7 +94,7 @@ inline static SpritePipeline* onGlSpritePipelineCreate(
 	return pipeline;
 }
 static void onGlSpritePipelineDestroy(
-	Window* window,
+	Window window,
 	void* pipeline)
 {
 	SpritePipeline* spritePipeline =
@@ -105,7 +105,7 @@ static void onGlSpritePipelineDestroy(
 	free(spritePipeline);
 }
 static void onGlSpritePipelineBind(
-	Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	SpritePipeline* spritePipeline =
 		getPipelineHandle(pipeline);
@@ -128,7 +128,7 @@ static void onGlSpritePipelineBind(
 	assertOpenGL();
 }
 static void onGlSpritePipelineUniformsSet(
-	Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	SpritePipeline* spritePipeline =
 		getPipelineHandle(pipeline);
@@ -155,10 +155,10 @@ static void onGlSpritePipelineUniformsSet(
 
 	assertOpenGL();
 }
-Pipeline* createSpritePipeline(
-	Window* window,
-	Shader* vertexShader,
-	Shader* fragmentShader,
+Pipeline createSpritePipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
 	uint8_t drawMode)
 {
 	assert(window != NULL);
@@ -196,7 +196,7 @@ Pipeline* createSpritePipeline(
 	if (handle == NULL)
 		return NULL;
 
-	Pipeline* pipeline = createPipeline(
+	Pipeline pipeline = createPipeline(
 		window,
 		"Sprite",
 		drawMode,
@@ -216,8 +216,8 @@ Pipeline* createSpritePipeline(
 	return pipeline;
 }
 
-Shader* getSpritePipelineVertexShader(
-	const Pipeline* pipeline)
+Shader getSpritePipelineVertexShader(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -227,8 +227,8 @@ Shader* getSpritePipelineVertexShader(
 		getPipelineHandle(pipeline);
 	return spritePipeline->vk.vertexShader;
 }
-Shader* getSpritePipelineFragmentShader(
-	const Pipeline* pipeline)
+Shader getSpritePipelineFragmentShader(
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -240,7 +240,7 @@ Shader* getSpritePipelineFragmentShader(
 }
 
 Mat4F getSpritePipelineMVP(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -251,7 +251,7 @@ Mat4F getSpritePipelineMVP(
 	return spritePipeline->vk.mvp;
 }
 void setSpritePipelineMVP(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);
@@ -264,7 +264,7 @@ void setSpritePipelineMVP(
 }
 
 Vec4F getSpritePipelineColor(
-	const Pipeline* pipeline)
+	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -275,7 +275,7 @@ Vec4F getSpritePipelineColor(
 	return colorPipeline->vk.color;
 }
 void setSpritePipelineColor(
-	Pipeline* pipeline,
+	Pipeline pipeline,
 	Vec4F color)
 {
 	assert(pipeline != NULL);

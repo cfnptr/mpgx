@@ -63,7 +63,7 @@ add_library(mpgx STATIC
 	source/mpgx/renderers/texspr_renderer.c
 	source/mpgx/renderers/text_renderer.c
 
-    source/mpgx/free_camera.c
+    	source/mpgx/free_camera.c
 	source/mpgx/interface.c
 	source/mpgx/renderer.c
 	source/mpgx/text.c

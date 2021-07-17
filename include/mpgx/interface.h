@@ -6,91 +6,90 @@
 #include "cmmt/vector.h"
 #include "cmmt/bounding.h"
 
-typedef enum INTERFACE_ANCHOR
+typedef enum InterfaceAnchor
 {
-	CENTER_INTERFACE_ANCHOR,
-	LEFT_INTERFACE_ANCHOR,
-	RIGHT_INTERFACE_ANCHOR,
-	BOTTOM_INTERFACE_ANCHOR,
-	TOP_INTERFACE_ANCHOR,
-	LEFT_BOTTOM_INTERFACE_ANCHOR,
-	LEFT_TOP_INTERFACE_ANCHOR,
-	RIGHT_BOTTOM_INTERFACE_ANCHOR,
-	RIGHT_TOP_INTERFACE_ANCHOR,
-	INTERFACE_ANCHOR_COUNT,
-} INTERFACE_ANCHOR;
+	CENTER_INTERFACE_ANCHOR = 0,
+	LEFT_INTERFACE_ANCHOR = 1,
+	RIGHT_INTERFACE_ANCHOR = 2,
+	BOTTOM_INTERFACE_ANCHOR = 3,
+	TOP_INTERFACE_ANCHOR = 4,
+	LEFT_BOTTOM_INTERFACE_ANCHOR = 5,
+	LEFT_TOP_INTERFACE_ANCHOR = 6,
+	RIGHT_BOTTOM_INTERFACE_ANCHOR = 7,
+	RIGHT_TOP_INTERFACE_ANCHOR = 8,
+	INTERFACE_ANCHOR_COUNT = 9,
+} InterfaceAnchor;
 
-typedef struct Interface Interface;
-typedef struct InterfaceElement InterfaceElement;
+typedef struct Interface* Interface;
+typedef struct InterfaceElement* InterfaceElement;
 
 typedef void(*OnInterfaceElementDestroy)(
 	void* handle);
 typedef void(*OnInterfaceElementEvent)(
-	InterfaceElement* element);
+	InterfaceElement element);
 
-Interface* createInterface(
-	Window* window,
+Interface createInterface(
+	Window window,
 	float scale);
-void destroyInterface(Interface* interface);
+void destroyInterface(Interface interface);
 
-Window* getInterfaceWindow(
-	const Interface* interface);
+Window getInterfaceWindow(
+	Interface interface);
 
 float getInterfaceScale(
-	const Interface* interface);
+	Interface interface);
 void setInterfaceScale(
-	Interface* interface,
+	Interface interface,
 	float scale);
 
 Camera createInterfaceCamera(
-	const Interface* interface);
+	Interface interface);
 
-void preUpdateInterface(Interface* interface);
-void updateInterface(Interface* interface);
+void preUpdateInterface(Interface interface);
+void updateInterface(Interface interface);
 
-InterfaceElement* createInterfaceElement(
-	Interface* interface,
+InterfaceElement createInterfaceElement(
+	Interface interface,
 	uint8_t anchor,
 	Vec3F position,
 	Box2F bounds,
-	Transform* transform,
+	Transform transform,
 	OnInterfaceElementDestroy onDestroy,
 	OnInterfaceElementEvent onEnter,
 	OnInterfaceElementEvent onExit,
 	OnInterfaceElementEvent onStay,
 	void* handle);
-void destroyInterfaceElement(
-	InterfaceElement* element);
+void destroyInterfaceElement(InterfaceElement element);
 
-Interface* getInterfaceElementInterface(
-	const InterfaceElement* element);
-Transform* getInterfaceElementTransform(
-	const InterfaceElement* element);
+Interface getInterfaceElementInterface(
+	InterfaceElement element);
+Transform getInterfaceElementTransform(
+	InterfaceElement element);
 OnInterfaceElementDestroy getInterfaceElementOnDestroy(
-	const InterfaceElement* element);
+	InterfaceElement element);
 OnInterfaceElementEvent getInterfaceElementOnEnter(
-	const InterfaceElement* element);
+	InterfaceElement element);
 OnInterfaceElementEvent getInterfaceElementOnExit(
-	const InterfaceElement* element);
+	InterfaceElement element);
 OnInterfaceElementEvent getInterfaceElementOnStay(
-	const InterfaceElement* element);
+	InterfaceElement element);
 void* getInterfaceElementHandle(
-	const InterfaceElement* element);
+	InterfaceElement element);
 
 uint8_t getInterfaceElementAnchor(
-	const InterfaceElement* element);
+	InterfaceElement element);
 void setInterfaceElementAnchor(
-	InterfaceElement* element,
+	InterfaceElement element,
 	uint8_t anchor);
 
 Vec3F getInterfaceElementPosition(
-	const InterfaceElement* element);
+	InterfaceElement element);
 void setInterfaceElementPosition(
-	InterfaceElement* element,
+	InterfaceElement element,
 	Vec3F position);
 
 Box2F getInterfaceElementBounds(
-	const InterfaceElement* element);
+	InterfaceElement element);
 void setInterfaceElementBounds(
-	InterfaceElement* element,
+	InterfaceElement element,
 	Box2F bounds);

@@ -2,25 +2,25 @@
 #include "mpgx/renderer.h"
 #include "mpgx/pipelines/gradsky_pipeline.h"
 
-Renderer* createGradSkyRenderer(
-	Transform* transform,
-	Pipeline* pipeline,
+Renderer createGradSkyRenderer(
+	Transform transform,
+	Pipeline pipeline,
 	uint8_t sortingType);
-Render* createGradSkyRender(
-	Renderer* renderer,
-	Transform* transform,
+Render createGradSkyRender(
+	Renderer renderer,
+	Transform transform,
 	Box3F bounding,
 	Vec4F color,
-	Mesh* mesh);
+	Mesh mesh);
 
 Vec4F getGradSkyRenderColor(
-	const Render* render);
+	Render render);
 void setGradSkyRenderColor(
-	Render* render,
+	Render render,
 	Vec4F color);
 
-Mesh* getGradSkyRenderMesh(
-	const Render* render);
+Mesh getGradSkyRenderMesh(
+	Render render);
 void setGradSkyRenderMesh(
-	Render* render,
-	Mesh* mesh);
+	Render render,
+	Mesh mesh);

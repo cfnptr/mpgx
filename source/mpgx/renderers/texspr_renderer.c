@@ -1,5 +1,7 @@
 #include "mpgx/renderers/texspr_renderer.h"
+
 #include <string.h>
+#include <assert.h>
 
 typedef struct TexSprRender
 {
@@ -44,11 +46,13 @@ static void onTexSprRenderDraw(
 Renderer createTexSprRenderer(
 	Transform transform,
 	Pipeline pipeline,
-	uint8_t sortingType)
+	uint8_t sortingType,
+	size_t capacity)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
 	assert(sortingType < RENDER_SORTING_COUNT);
+	assert(capacity != 0);
 
 	assert(strcmp(
 		getPipelineName(pipeline),
@@ -59,7 +63,8 @@ Renderer createTexSprRenderer(
 		pipeline,
 		sortingType,
 		onTexSprRenderDestroy,
-		onTexSprRenderDraw);
+		onTexSprRenderDraw,
+		capacity);
 }
 Render createTexSprRender(
 	Renderer renderer,

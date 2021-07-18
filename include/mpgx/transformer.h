@@ -13,7 +13,7 @@ typedef enum RotationType
 	ROTATION_TYPE_COUNT = 3,
 } RotationType;
 
-Transformer createTransformer();
+Transformer createTransformer(size_t capacity);
 void destroyTransformer(Transformer transformer);
 
 Transform createTransform(

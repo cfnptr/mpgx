@@ -269,7 +269,7 @@ Camera getFreeCamera(FreeCamera freeCamera)
 	Vec2U framebufferSize = getWindowFramebufferSize(
 		freeCamera->window);
 
-	return perspectiveCamera(
+	return perspCamera(
 		freeCamera->fieldOfView,
 		(float)framebufferSize.x / (float)framebufferSize.y,
 		freeCamera->nearClipPlane,

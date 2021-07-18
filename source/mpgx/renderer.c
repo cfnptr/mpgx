@@ -34,13 +34,15 @@ Renderer createRenderer(
 	Pipeline pipeline,
 	uint8_t sortingType,
 	OnRenderDestroy onDestroy,
-	OnRenderDraw onDraw)
+	OnRenderDraw onDraw,
+	size_t capacity)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
 	assert(sortingType < RENDER_SORTING_COUNT);
 	assert(onDestroy != NULL);
 	assert(onDraw != NULL);
+	assert(capacity != 0);
 
 	Renderer renderer = malloc(
 		sizeof(struct Renderer));
@@ -49,7 +51,7 @@ Renderer createRenderer(
 		return NULL;
 
 	Render* renders = malloc(
-		sizeof(Render));
+		sizeof(Render) * capacity);
 
 	if (renders == NULL)
 	{
@@ -58,7 +60,7 @@ Renderer createRenderer(
 	}
 
 	RenderElement* renderElements = malloc(
-		sizeof(RenderElement));
+		sizeof(RenderElement) * capacity);
 
 	if (renderElements == NULL)
 	{
@@ -74,7 +76,7 @@ Renderer createRenderer(
 	renderer->onDraw = onDraw;
 	renderer->renders = renders;
 	renderer->renderElements = renderElements;
-	renderer->renderCapacity = 1;
+	renderer->renderCapacity = capacity;
 	renderer->renderCount = 0;
 	return renderer;
 }
@@ -202,19 +204,19 @@ void createRenderData(
 	Mat4F proj;
 	Mat4F viewProj;
 
-	if (camera.perspective.type == PERSPECTIVE_CAMERA_TYPE)
+	if (camera.persp.type == PERSP_CAMERA_TYPE)
 	{
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
-			proj = vkPerspectiveMat4F(
-				camera.perspective.fieldOfView,
-				camera.perspective.aspectRatio,
-				camera.perspective.nearClipPlane,
-				camera.perspective.farClipPlane);
+			proj = perspZeroOneMat4F(
+				camera.persp.fieldOfView,
+				camera.persp.aspectRatio,
+				camera.persp.nearClipPlane,
+				camera.persp.farClipPlane);
 			viewProj = dotMat4F(
 				proj,
 				view);
-			vkFrustumPlanes(
+			frustumZeroOneMat4F(
 				viewProj,
 				&data->leftPlane,
 				&data->rightPlane,
@@ -227,15 +229,15 @@ void createRenderData(
 		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
-			proj = glPerspectiveMat4F(
-				camera.perspective.fieldOfView,
-				camera.perspective.aspectRatio,
-				camera.perspective.nearClipPlane,
-				camera.perspective.farClipPlane);
+			proj = perspNegOneMat4F(
+				camera.persp.fieldOfView,
+				camera.persp.aspectRatio,
+				camera.persp.nearClipPlane,
+				camera.persp.farClipPlane);
 			viewProj = dotMat4F(
 				proj,
 				view);
-			glFrustumPlanes(
+			frustumNegOneMat4F(
 				viewProj,
 				&data->leftPlane,
 				&data->rightPlane,
@@ -250,21 +252,21 @@ void createRenderData(
 			abort();
 		}
 	}
-	else if (camera.orthographic.type == ORTHOGRAPHIC_CAMERA_TYPE)
+	else if (camera.ortho.type == ORTHO_CAMERA_TYPE)
 	{
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
-			proj = vkOrthographicMat4F(
-				camera.orthographic.leftFrustum,
-				camera.orthographic.rightFrustum,
-				camera.orthographic.bottomFrustum,
-				camera.orthographic.topFrustum,
-				camera.orthographic.nearClipPlane,
-				camera.orthographic.farClipPlane);
+			proj = orthoZeroOneMat4F(
+				camera.ortho.leftFrustum,
+				camera.ortho.rightFrustum,
+				camera.ortho.bottomFrustum,
+				camera.ortho.topFrustum,
+				camera.ortho.nearClipPlane,
+				camera.ortho.farClipPlane);
 			viewProj = dotMat4F(
 				proj,
 				view);
-			vkFrustumPlanes(
+			frustumZeroOneMat4F(
 				viewProj,
 				&data->leftPlane,
 				&data->rightPlane,
@@ -277,17 +279,17 @@ void createRenderData(
 		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
-			proj = glOrthographicMat4F(
-				camera.orthographic.leftFrustum,
-				camera.orthographic.rightFrustum,
-				camera.orthographic.bottomFrustum,
-				camera.orthographic.topFrustum,
-				camera.orthographic.nearClipPlane,
-				camera.orthographic.farClipPlane);
+			proj = orthoNegOneMat4F(
+				camera.ortho.leftFrustum,
+				camera.ortho.rightFrustum,
+				camera.ortho.bottomFrustum,
+				camera.ortho.topFrustum,
+				camera.ortho.nearClipPlane,
+				camera.ortho.farClipPlane);
 			viewProj = dotMat4F(
 				proj,
 				view);
-			glFrustumPlanes(
+			frustumNegOneMat4F(
 				viewProj,
 				&data->leftPlane,
 				&data->rightPlane,

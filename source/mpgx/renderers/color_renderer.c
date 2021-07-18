@@ -1,5 +1,7 @@
 #include "mpgx/renderers/color_renderer.h"
+
 #include <string.h>
+#include <assert.h>
 
 typedef struct ColorRender
 {
@@ -36,11 +38,13 @@ static void onColorRenderDraw(
 Renderer createColorRenderer(
 	Transform transform,
 	Pipeline pipeline,
-	uint8_t sortingType)
+	uint8_t sortingType,
+	size_t capacity)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
 	assert(sortingType < RENDER_SORTING_COUNT);
+	assert(capacity != 0);
 
 	assert(strcmp(
 		getPipelineName(pipeline),
@@ -51,7 +55,8 @@ Renderer createColorRenderer(
 		pipeline,
 		sortingType,
 		onColorRenderDestroy,
-		onColorRenderDraw);
+		onColorRenderDraw,
+		capacity);
 }
 Render createColorRender(
 	Renderer renderer,

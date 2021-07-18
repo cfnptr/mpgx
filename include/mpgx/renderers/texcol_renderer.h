@@ -5,7 +5,8 @@
 Renderer createTexColRenderer(
 	Transform transform,
 	Pipeline pipeline,
-	uint8_t sortingType);
+	uint8_t sortingType,
+	size_t capacity);
 Render createTexColRender(
 	Renderer renderer,
 	Transform transform,

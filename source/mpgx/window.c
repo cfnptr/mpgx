@@ -326,13 +326,27 @@ Window createWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool isVisible)
+	bool isVisible,
+	size_t bufferCapacity,
+	size_t meshCapacity,
+	size_t imageCapacity,
+	size_t samplerCapacity,
+	size_t framebufferCapacity,
+	size_t shaderCapacity,
+	size_t pipelineCapacity)
 {
 	assert(api < GRAPHICS_API_COUNT);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(title != NULL);
 	assert(onUpdate != NULL);
+	assert(bufferCapacity != 0);
+	assert(meshCapacity != 0);
+	assert(imageCapacity != 0);
+	assert(samplerCapacity != 0);
+	assert(framebufferCapacity != 0);
+	assert(shaderCapacity != 0);
+	assert(pipelineCapacity != 0);
 	assert(graphicsInitialized == true);
 
 	Window window = malloc(
@@ -466,7 +480,8 @@ Window createWindow(
 		window->maxImageSize = maxImageSize;
 	}
 
-	Buffer* buffers = malloc(sizeof(Buffer));
+	Buffer* buffers = malloc(
+		sizeof(Buffer) * bufferCapacity);
 
 	if (buffers == NULL)
 	{
@@ -475,7 +490,8 @@ Window createWindow(
 		return NULL;
 	}
 
-	Mesh* meshes = malloc(sizeof(Mesh));
+	Mesh* meshes = malloc(
+		sizeof(Mesh) * meshCapacity);
 
 	if (meshes == NULL)
 	{
@@ -485,7 +501,8 @@ Window createWindow(
 		return NULL;
 	}
 
-	Image* images = malloc(sizeof(Image));
+	Image* images = malloc(
+		sizeof(Image) * imageCapacity);
 
 	if (images == NULL)
 	{
@@ -496,7 +513,8 @@ Window createWindow(
 		return NULL;
 	}
 
-	Sampler* samplers = malloc(sizeof(Sampler));
+	Sampler* samplers = malloc(
+		sizeof(Sampler) * samplerCapacity);
 
 	if (samplers == NULL)
 	{
@@ -508,7 +526,8 @@ Window createWindow(
 		return NULL;
 	}
 
-	Framebuffer* framebuffers = malloc(sizeof(Framebuffer));
+	Framebuffer* framebuffers = malloc(
+		sizeof(Framebuffer) * framebufferCapacity);
 
 	if (framebuffers == NULL)
 	{
@@ -521,7 +540,8 @@ Window createWindow(
 		return NULL;
 	}
 
-	Shader* shaders = malloc(sizeof(Shader));
+	Shader* shaders = malloc(
+		sizeof(Shader) * shaderCapacity);
 
 	if (shaders == NULL)
 	{
@@ -535,7 +555,8 @@ Window createWindow(
 		return NULL;
 	}
 
-	Pipeline* pipelines = malloc(sizeof(Pipeline));
+	Pipeline* pipelines = malloc(
+		sizeof(Pipeline) * pipelineCapacity);
 
 	if (pipelines == NULL)
 	{
@@ -555,25 +576,25 @@ Window createWindow(
 	window->updateArgument = updateArgument;
 	window->handle = handle;
 	window->buffers = buffers;
-	window->bufferCapacity = 1;
+	window->bufferCapacity = bufferCapacity;
 	window->bufferCount = 0;
 	window->meshes = meshes;
-	window->meshCapacity = 1;
+	window->meshCapacity = meshCapacity;
 	window->meshCount = 0;
 	window->images = images;
-	window->imageCapacity = 1;
+	window->imageCapacity = imageCapacity;
 	window->imageCount = 0;
 	window->samplers = samplers;
-	window->samplerCapacity = 1;
+	window->samplerCapacity = samplerCapacity;
 	window->samplerCount = 0;
 	window->framebuffers = framebuffers;
-	window->framebufferCapacity = 1;
+	window->framebufferCapacity = framebufferCapacity;
 	window->framebufferCount = 0;
 	window->shaders = shaders;
-	window->shaderCapacity = 1;
+	window->shaderCapacity = shaderCapacity;
 	window->shaderCount = 0;
 	window->pipelines = pipelines;
-	window->pipelineCapacity = 1;
+	window->pipelineCapacity = pipelineCapacity;
 	window->pipelineCount = 0;
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
@@ -587,12 +608,26 @@ Window createAnyWindow(
 	const char* title,
 	OnWindowUpdate updateFunction,
 	void* updateArgument,
-	bool visible)
+	bool visible,
+	size_t bufferCapacity,
+	size_t meshCapacity,
+	size_t imageCapacity,
+	size_t samplerCapacity,
+	size_t framebufferCapacity,
+	size_t shaderCapacity,
+	size_t pipelineCapacity)
 {
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(title != NULL);
 	assert(updateFunction != NULL);
+	assert(bufferCapacity != 0);
+	assert(meshCapacity != 0);
+	assert(imageCapacity != 0);
+	assert(samplerCapacity != 0);
+	assert(framebufferCapacity != 0);
+	assert(shaderCapacity != 0);
+	assert(pipelineCapacity != 0);
 	assert(graphicsInitialized == true);
 
 	Window window = createWindow(
@@ -601,7 +636,14 @@ Window createAnyWindow(
 		title,
 		updateFunction,
 		updateArgument,
-		visible);
+		visible,
+		bufferCapacity,
+		meshCapacity,
+		imageCapacity,
+		samplerCapacity,
+		framebufferCapacity,
+		shaderCapacity,
+		pipelineCapacity);
 
 	if (window != NULL)
 		return window;
@@ -612,7 +654,14 @@ Window createAnyWindow(
 		title,
 		updateFunction,
 		updateArgument,
-		visible);
+		visible,
+		bufferCapacity,
+		meshCapacity,
+		imageCapacity,
+		samplerCapacity,
+		framebufferCapacity,
+		shaderCapacity,
+		pipelineCapacity);
 
 	if (window != NULL)
 		return window;
@@ -623,7 +672,14 @@ Window createAnyWindow(
 		title,
 		updateFunction,
 		updateArgument,
-		visible);
+		visible,
+		bufferCapacity,
+		meshCapacity,
+		imageCapacity,
+		samplerCapacity,
+		framebufferCapacity,
+		shaderCapacity,
+		pipelineCapacity);
 
 	return window;
 }

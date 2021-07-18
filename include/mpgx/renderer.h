@@ -1,8 +1,9 @@
 #pragma once
 #include "mpgx/text.h"
 #include "mpgx/window.h"
-#include "mpgx/camera.h"
 #include "mpgx/transformer.h"
+
+#include "cmmt/camera.h"
 
 typedef struct Renderer* Renderer;
 typedef struct Render* Render;
@@ -44,7 +45,8 @@ Renderer createRenderer(
 	Pipeline pipeline,
 	uint8_t sortingType,
 	OnRenderDestroy onDestroy,
-	OnRenderDraw onDraw);
+	OnRenderDraw onDraw,
+	size_t capacity);
 void destroyRenderer(Renderer renderer);
 
 Transform getRendererTransform(Renderer renderer);

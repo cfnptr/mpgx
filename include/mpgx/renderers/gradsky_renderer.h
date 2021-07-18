@@ -5,7 +5,8 @@
 Renderer createGradSkyRenderer(
 	Transform transform,
 	Pipeline pipeline,
-	uint8_t sortingType);
+	uint8_t sortingType,
+	size_t capacity);
 Render createGradSkyRender(
 	Renderer renderer,
 	Transform transform,

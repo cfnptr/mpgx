@@ -28,9 +28,11 @@ struct Interface
 
 Interface createInterface(
 	Window window,
-	float scale)
+	float scale,
+	size_t capacity)
 {
 	assert(window != NULL);
+	assert(capacity != 0);
 
 	Interface interface = malloc(
 		sizeof(struct Interface));
@@ -39,7 +41,7 @@ Interface createInterface(
 		return NULL;
 
 	InterfaceElement* elements = malloc(
-		sizeof(InterfaceElement));
+		sizeof(InterfaceElement) * capacity);
 
 	if (elements == NULL)
 	{
@@ -50,7 +52,7 @@ Interface createInterface(
 	interface->window = window;
 	interface->scale = scale;
 	interface->elements = elements;
-	interface->elementCapacity = 1;
+	interface->elementCapacity = capacity;
 	interface->elementCount = 0;
 	interface->lastElement = NULL;
 	return interface;
@@ -107,7 +109,7 @@ Camera createInterfaceCamera(
 		((float)windowSize.x / scale) / 2.0f,
 		((float)windowSize.y / scale) / 2.0f);
 
-	return orthographicCamera(
+	return orthoCamera(
 		-halfSize.x,
 		halfSize.x,
 		-halfSize.y,

@@ -278,13 +278,27 @@ Window createWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool isVisible);
+	bool isVisible,
+	size_t bufferCapacity,
+	size_t meshCapacity,
+	size_t imageCapacity,
+	size_t samplerCapacity,
+	size_t framebufferCapacity,
+	size_t shaderCapacity,
+	size_t pipelineCapacity);
 Window createAnyWindow(
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool isVisible);
+	bool isVisible,
+	size_t bufferCapacity,
+	size_t meshCapacity,
+	size_t imageCapacity,
+	size_t samplerCapacity,
+	size_t framebufferCapacity,
+	size_t shaderCapacity,
+	size_t pipelineCapacity);
 void destroyWindow(Window window);
 
 uint8_t getWindowGraphicsAPI(Window window);

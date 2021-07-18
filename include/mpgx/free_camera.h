@@ -1,7 +1,8 @@
 #pragma once
 #include "mpgx/window.h"
-#include "mpgx/camera.h"
 #include "mpgx/transformer.h"
+
+#include "cmmt/camera.h"
 
 typedef struct FreeCamera* FreeCamera;
 

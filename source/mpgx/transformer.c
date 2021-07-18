@@ -22,8 +22,10 @@ struct Transform
 	bool isActive;
 };
 
-Transformer createTransformer()
+Transformer createTransformer(size_t capacity)
 {
+	assert(capacity != 0);
+
 	Transformer transformer = malloc(
 		sizeof(struct Transformer));
 
@@ -31,7 +33,7 @@ Transformer createTransformer()
 		return NULL;
 
 	Transform* transforms = malloc(
-		sizeof(Transform));
+		sizeof(Transform) * capacity);
 
 	if (transforms == NULL)
 	{
@@ -40,7 +42,7 @@ Transformer createTransformer()
 	}
 
 	transformer->transforms = transforms;
-	transformer->transformCapacity = 1;
+	transformer->transformCapacity = capacity;
 	transformer->transformCount = 0;
 	return transformer;
 }

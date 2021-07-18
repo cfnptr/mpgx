@@ -1,5 +1,7 @@
 #include "mpgx/renderers/diffuse_renderer.h"
+
 #include <string.h>
+#include <assert.h>
 
 typedef struct DiffuseRender
 {
@@ -37,11 +39,13 @@ static void onDiffuseRenderDraw(
 Renderer createDiffuseRenderer(
 	Transform transform,
 	Pipeline pipeline,
-	uint8_t sortingType)
+	uint8_t sortingType,
+	size_t capacity)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
 	assert(sortingType < RENDER_SORTING_COUNT);
+	assert(capacity != 0);
 
 	assert(strcmp(
 		getPipelineName(pipeline),
@@ -52,7 +56,8 @@ Renderer createDiffuseRenderer(
 		pipeline,
 		sortingType,
 		onDiffuseRenderDestroy,
-		onDiffuseRenderDraw);
+		onDiffuseRenderDraw,
+		capacity);
 }
 Render createDiffuseRender(
 	Renderer renderer,

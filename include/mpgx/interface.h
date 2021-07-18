@@ -1,9 +1,9 @@
 #pragma once
 #include "mpgx/window.h"
-#include "mpgx/camera.h"
 #include "mpgx/transformer.h"
 
 #include "cmmt/vector.h"
+#include "cmmt/camera.h"
 #include "cmmt/bounding.h"
 
 typedef enum InterfaceAnchor
@@ -30,7 +30,8 @@ typedef void(*OnInterfaceElementEvent)(
 
 Interface createInterface(
 	Window window,
-	float scale);
+	float scale,
+	size_t capacity);
 void destroyInterface(Interface interface);
 
 Window getInterfaceWindow(

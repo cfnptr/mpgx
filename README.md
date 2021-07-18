@@ -19,8 +19,8 @@ git submodule update --init --recursive
 ```
 
 ## Third-party
-* [cmmt](https://github.com/cfnptr/cmmt) (BSD-3-Clause License)
-* [freetype](https://www.freetype.org) (FreeType License)
-* [glad](https://glad.dav1d.de) (MIT License)
-* [glfw](https://www.glfw.org) (Zlib License)
-* [stb_image](https://nothings.org) (MIT License)
+* [cmmt](https://github.com/cfnptr/cmmt/) (BSD-3-Clause License)
+* [freetype](https://www.freetype.org/) (FreeType License)
+* [glad](https://glad.dav1d.de/) (MIT License)
+* [glfw](https://www.glfw.org/) (Zlib License)
+* [stb_image](https://nothings.org/) (MIT License)

@@ -75,6 +75,10 @@ Render createColorRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) ==
 		getMeshWindow(mesh));
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
@@ -108,13 +112,11 @@ Vec4F getColorRenderColor(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Color") == 0);
-
 	ColorRender* colorRender =
 		getRenderHandle(render);
 	return colorRender->color;
@@ -124,13 +126,15 @@ void setColorRenderColor(
 	Vec4F color)
 {
 	assert(render != NULL);
-
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Color") == 0);
-
 	ColorRender* colorRender =
 		getRenderHandle(render);
 	colorRender->color = color;
@@ -140,13 +144,11 @@ Mesh getColorRenderMesh(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Color") == 0);
-
 	ColorRender* colorRender =
 		getRenderHandle(render);
 	return colorRender->mesh;
@@ -157,13 +159,11 @@ void setColorRenderMesh(
 {
 	assert(render != NULL);
 	assert(mesh != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Color") == 0);
-
 	ColorRender* colorRender =
 		getRenderHandle(render);
 	colorRender->mesh = mesh;

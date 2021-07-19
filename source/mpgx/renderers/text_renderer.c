@@ -75,6 +75,10 @@ Render createTextRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) ==
 		getTextWindow(text));
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
@@ -108,13 +112,11 @@ Vec4F getTextRenderColor(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Text") == 0);
-
 	TextRender* textRender =
 		getRenderHandle(render);
 	return textRender->color;
@@ -124,13 +126,15 @@ void setTextRenderColor(
 	Vec4F color)
 {
 	assert(render != NULL);
-
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Text") == 0);
-
 	TextRender* textRender =
 		getRenderHandle(render);
 	textRender->color = color;
@@ -140,13 +144,11 @@ Text getTextRenderText(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Text") == 0);
-
 	TextRender* textRender =
 		getRenderHandle(render);
 	return textRender->text;
@@ -157,13 +159,11 @@ void setTextRenderText(
 {
 	assert(render != NULL);
 	assert(text != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Text") == 0);
-
 	TextRender* textRender =
 		getRenderHandle(render);
 	textRender->text = text;

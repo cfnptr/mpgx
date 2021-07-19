@@ -107,13 +107,11 @@ Mesh getDiffuseRenderMesh(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Diffuse") == 0);
-
 	DiffuseRender* diffuseRender =
 		getRenderHandle(render);
 	return diffuseRender->mesh;
@@ -124,13 +122,11 @@ void setDiffuseRenderMesh(
 {
 	assert(render != NULL);
 	assert(mesh != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Diffuse") == 0);
-
 	DiffuseRender* diffuseRender =
 		getRenderHandle(render);
 	diffuseRender->mesh = mesh;

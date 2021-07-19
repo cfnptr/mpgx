@@ -40,6 +40,7 @@ typedef struct VkTextPipeline
 	Shader vertexShader;
 	Shader fragmentShader;
 	Image texture;
+	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
 } VkTextPipeline;
@@ -48,13 +49,13 @@ typedef struct GlTextPipeline
 	Shader vertexShader;
 	Shader fragmentShader;
 	Image texture;
+	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
 	GLuint handle;
 	GLint mvpLocation;
 	GLint colorLocation;
 	GLint textureLocation;
-	Sampler sampler;
 } GlTextPipeline;
 typedef union TextPipeline
 {
@@ -1617,10 +1618,30 @@ void drawText(
 		pipeline);
 }
 
+Sampler createTextSampler(Window window)
+{
+	assert(window != NULL);
+
+	return createSampler(
+		window,
+		NEAREST_IMAGE_FILTER,
+		NEAREST_IMAGE_FILTER,
+		NEAREST_IMAGE_FILTER,
+		false,
+		CLAMP_TO_EDGE_IMAGE_WRAP,
+		CLAMP_TO_EDGE_IMAGE_WRAP,
+		CLAMP_TO_EDGE_IMAGE_WRAP,
+		NEVER_IMAGE_COMPARE,
+		false,
+		DEFAULT_MIN_MIPMAP_LOD,
+		DEFAULT_MAX_MIPMAP_LOD);
+}
+
 inline static TextPipeline* onGlTextPipelineCreate(
 	Window window,
 	Shader vertexShader,
-	Shader fragmentShader)
+	Shader fragmentShader,
+	Sampler sampler)
 {
 	TextPipeline* pipeline = malloc(
 		sizeof(TextPipeline));
@@ -1688,37 +1709,16 @@ inline static TextPipeline* onGlTextPipelineCreate(
 
 	assertOpenGL();
 
-	Sampler sampler = createSampler(
-		window,
-		NEAREST_IMAGE_FILTER,
-		NEAREST_IMAGE_FILTER,
-		NEAREST_IMAGE_FILTER,
-		false,
-		REPEAT_IMAGE_WRAP,
-		REPEAT_IMAGE_WRAP,
-		REPEAT_IMAGE_WRAP,
-		NEVER_IMAGE_COMPARE,
-		false,
-		-1000.0f,
-		1000.0f);
-
-	if (sampler == NULL)
-	{
-		glDeleteProgram(handle);
-		free(pipeline);
-		return NULL;
-	}
-
 	pipeline->gl.vertexShader = vertexShader;
 	pipeline->gl.fragmentShader = fragmentShader;
 	pipeline->gl.texture = NULL;
+	pipeline->gl.sampler = sampler;
 	pipeline->gl.mvp = identMat4F();
 	pipeline->gl.color = valVec4F(1.0f);
 	pipeline->gl.handle = handle;
 	pipeline->gl.mvpLocation = mvpLocation;
 	pipeline->gl.colorLocation = colorLocation;
 	pipeline->gl.textureLocation = textureLocation;
-	pipeline->gl.sampler = sampler;
 	return pipeline;
 }
 static void onGlTextPipelineDestroy(
@@ -1727,8 +1727,6 @@ static void onGlTextPipelineDestroy(
 {
 	TextPipeline* textPipeline =
 		(TextPipeline*)pipeline;
-	destroySampler(
-		textPipeline->gl.sampler);
 	destroyGlPipeline(
 		window,
 		textPipeline->gl.handle);
@@ -1814,15 +1812,18 @@ Pipeline createTextPipeline(
 	Window window,
 	Shader vertexShader,
 	Shader fragmentShader,
+	Sampler sampler,
 	uint8_t drawMode)
 {
 	assert(window != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
+	assert(sampler != NULL);
 	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
 	assert(getShaderWindow(vertexShader) == window);
 	assert(getShaderWindow(fragmentShader) == window);
+	assert(getSamplerWindow(sampler) == window);
 
 	uint8_t api = getWindowGraphicsAPI(window);
 
@@ -1837,7 +1838,8 @@ Pipeline createTextPipeline(
 		handle = onGlTextPipelineCreate(
 			window,
 			vertexShader,
-			fragmentShader);
+			fragmentShader,
+			sampler);
 
 		onDestroy = onGlTextPipelineDestroy;
 		onBind = onGlTextPipelineBind;
@@ -1892,6 +1894,17 @@ Shader getTextPipelineFragmentShader(
 	TextPipeline* textPipeline =
 		getPipelineHandle(pipeline);
 	return textPipeline->vk.fragmentShader;
+}
+Sampler getTextPipelineSampler(
+	Pipeline pipeline)
+{
+	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		"Text") == 0);
+	TextPipeline* textPipeline =
+		getPipelineHandle(pipeline);
+	return textPipeline->vk.sampler;
 }
 
 Vec4F getTextPipelineColor(

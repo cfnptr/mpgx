@@ -9,7 +9,7 @@ Renderer createTexSprRenderer(
 	size_t capacity);
 Render createTexSprRender(
 	Renderer renderer,
-	Transform  transform,
+	Transform transform,
 	Box3F bounding,
 	Vec4F color,
 	Vec2F size,

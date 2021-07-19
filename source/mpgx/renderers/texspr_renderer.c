@@ -85,6 +85,10 @@ Render createTexSprRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) ==
 		getMeshWindow(mesh));
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
@@ -120,13 +124,11 @@ Vec4F getTexSprRenderColor(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-
 	TexSprRender* texSprRender =
 		getRenderHandle(render);
 	return texSprRender->color;
@@ -136,13 +138,15 @@ void setTexSprRenderColor(
 	Vec4F color)
 {
 	assert(render != NULL);
-
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-
 	TexSprRender* texSprRender =
 		getRenderHandle(render);
 	texSprRender->color = color;
@@ -152,13 +156,11 @@ Vec2F getTexSprRenderSize(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-
 	TexSprRender* texSprRender =
 		getRenderHandle(render);
 	return texSprRender->size;
@@ -168,13 +170,11 @@ void setTexSprRenderSize(
 	Vec2F size)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-
 	TexSprRender* texSprRender =
 		getRenderHandle(render);
 	texSprRender->size = size;
@@ -184,13 +184,11 @@ Vec2F getTexSprRenderOffset(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-
 	TexSprRender* texSprRender =
 		getRenderHandle(render);
 	return texSprRender->offset;
@@ -200,13 +198,11 @@ void setTexSprRenderOffset(
 	Vec2F offset)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-
 	TexSprRender* texSprRender =
 		getRenderHandle(render);
 	texSprRender->offset = offset;
@@ -216,13 +212,11 @@ Mesh getTexSprRenderMesh(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-
 	TexSprRender* texSprRender =
 		getRenderHandle(render);
 	return texSprRender->mesh;
@@ -233,13 +227,11 @@ void setTexSprRenderMesh(
 {
 	assert(render != NULL);
 	assert(mesh != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-
 	TexSprRender* texSprRender =
 		getRenderHandle(render);
 	texSprRender->mesh = mesh;

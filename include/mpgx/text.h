@@ -68,15 +68,20 @@ void drawText(
 	Text text,
 	Pipeline pipeline);
 
+Sampler createTextSampler(Window window);
+
 Pipeline createTextPipeline(
 	Window window,
 	Shader vertexShader,
 	Shader fragmentShader,
+	Sampler sampler,
 	uint8_t drawMode);
 
 Shader getTextPipelineVertexShader(
 	Pipeline pipeline);
 Shader getTextPipelineFragmentShader(
+	Pipeline pipeline);
+Sampler getTextPipelineSampler(
 	Pipeline pipeline);
 
 Vec4F getTextPipelineColor(

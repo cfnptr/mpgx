@@ -75,6 +75,10 @@ Render createSpriteRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) ==
 		getMeshWindow(mesh));
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
@@ -108,13 +112,11 @@ Vec4F getSpriteRenderColor(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Sprite") == 0);
-
 	SpriteRender* spriteRender =
 		getRenderHandle(render);
 	return spriteRender->color;
@@ -124,13 +126,15 @@ void setSpriteRenderColor(
 	Vec4F color)
 {
 	assert(render != NULL);
-
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Sprite") == 0);
-
 	SpriteRender* spriteRender =
 		getRenderHandle(render);
 	spriteRender->color = color;
@@ -140,13 +144,11 @@ Mesh getSpriteRenderMesh(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Sprite") == 0);
-
 	SpriteRender* spriteRender =
 		getRenderHandle(render);
 	return spriteRender->mesh;
@@ -157,13 +159,11 @@ void setSpriteRenderMesh(
 {
 	assert(render != NULL);
 	assert(mesh != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Sprite") == 0);
-
 	SpriteRender* spriteRender =
 		getRenderHandle(render);
 	spriteRender->mesh = mesh;

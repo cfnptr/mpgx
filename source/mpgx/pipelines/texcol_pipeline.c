@@ -66,71 +66,56 @@ inline static TexColPipeline* onGlTexColPipelineCreate(
 		return NULL;
 	}
 
-	GLint mvpLocation = glGetUniformLocation(
+	GLint mvpLocation = getGlUniformLocation(
 		handle,
 		"u_MVP");
 
-	if (mvpLocation == -1)
+	if (mvpLocation == NULL_UNIFORM_LOCATION)
 	{
-#ifndef NDEBUG
-		printf("Failed to get 'u_MVP' location\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
 	}
 
-	GLint colorLocation = glGetUniformLocation(
+	GLint colorLocation = getGlUniformLocation(
 		handle,
 		"u_Color");
 
-	if (colorLocation == -1)
+	if (colorLocation == NULL_UNIFORM_LOCATION)
 	{
-#ifndef NDEBUG
-		printf("Failed to get 'u_Color' location\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
 	}
 
-	GLint sizeLocation = glGetUniformLocation(
+	GLint sizeLocation = getGlUniformLocation(
 		handle,
 		"u_Size");
 
-	if (sizeLocation == -1)
+	if (sizeLocation == NULL_UNIFORM_LOCATION)
 	{
-#ifndef NDEBUG
-		printf("Failed to get 'u_Size' location\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
 	}
 
-	GLint offsetLocation = glGetUniformLocation(
+	GLint offsetLocation = getGlUniformLocation(
 		handle,
 		"u_Offset");
 
-	if (offsetLocation == -1)
+	if (offsetLocation == NULL_UNIFORM_LOCATION)
 	{
-#ifndef NDEBUG
-		printf("Failed to get 'u_Offset' location\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
 	}
 
-	GLint textureLocation = glGetUniformLocation(
+	GLint textureLocation = getGlUniformLocation(
 		handle,
 		"u_Texture");
 
-	if (textureLocation == -1)
+	if (textureLocation == NULL_UNIFORM_LOCATION)
 	{
-#ifndef NDEBUG
-		printf("Failed to get 'u_Texture' location\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
@@ -399,6 +384,10 @@ void setTexColPipelineColor(
 	Vec4F color)
 {
 	assert(pipeline != NULL);
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);

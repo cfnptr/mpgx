@@ -85,6 +85,10 @@ Render createTexColRender(
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) ==
 		getMeshWindow(mesh));
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
@@ -120,13 +124,11 @@ Vec4F getTexColRenderColor(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexCol") == 0);
-
 	TexColRender* texColRender =
 		getRenderHandle(render);
 	return texColRender->color;
@@ -136,13 +138,15 @@ void setTexColRenderColor(
 	Vec4F color)
 {
 	assert(render != NULL);
-
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexCol") == 0);
-
 	TexColRender* texColRender =
 		getRenderHandle(render);
 	texColRender->color = color;
@@ -152,13 +156,11 @@ Vec2F getTexColRenderSize(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexCol") == 0);
-
 	TexColRender* texColRender =
 		getRenderHandle(render);
 	return texColRender->size;
@@ -168,13 +170,11 @@ void setTexColRenderSize(
 	Vec2F size)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexCol") == 0);
-
 	TexColRender* texColRender =
 		getRenderHandle(render);
 	texColRender->size = size;
@@ -184,13 +184,11 @@ Vec2F getTexColRenderOffset(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexCol") == 0);
-
 	TexColRender* texColRender =
 		getRenderHandle(render);
 	return texColRender->offset;
@@ -200,13 +198,11 @@ void setTexColRenderOffset(
 	Vec2F offset)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexCol") == 0);
-
 	TexColRender* texColRender =
 		getRenderHandle(render);
 	texColRender->offset = offset;
@@ -216,13 +212,11 @@ Mesh getTexColRenderMesh(
 	Render render)
 {
 	assert(render != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexCol") == 0);
-
 	TexColRender* texColRender =
 		getRenderHandle(render);
 	return texColRender->mesh;
@@ -233,13 +227,11 @@ void setTexColRenderMesh(
 {
 	assert(render != NULL);
 	assert(mesh != NULL);
-
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexCol") == 0);
-
 	TexColRender* texColRender =
 		getRenderHandle(render);
 	texColRender->mesh = mesh;

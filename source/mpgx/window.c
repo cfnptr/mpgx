@@ -273,9 +273,8 @@ static void glfwErrorCallback(
 	int error,
 	const char* description)
 {
-	fprintf(
-		stderr,
-		"GLFW ERROR: %d, %s\n",
+	fprintf(stderr,
+		"GLFW error: %d, %s\n",
 		error,
 		description);
 
@@ -2758,7 +2757,7 @@ inline static Shader createGlShader(
 				handle,
 				length,
 				&length,
-				infoLog);
+				(GLchar*)infoLog);
 
 			const char* typeString;
 
@@ -2771,7 +2770,8 @@ inline static Shader createGlShader(
 			else
 				abort();
 
-			printf("Failed to compile %s shader:\n%s",
+			fprintf(stderr,
+				"OpenGL %s shader compile error: %s\n",
 				typeString,
 				infoLog);
 			free(infoLog);

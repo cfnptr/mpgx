@@ -63,43 +63,34 @@ inline static DiffusePipeline* onGlDiffusePipelineCreate(
 		return NULL;
 	}
 
-	GLint mvpLocation = glGetUniformLocation(
+	GLint mvpLocation = getGlUniformLocation(
 		handle,
 		"u_MVP");
 
-	if (mvpLocation == -1)
+	if (mvpLocation == NULL_UNIFORM_LOCATION)
 	{
-#ifndef NDEBUG
-		printf("Failed to get 'u_MVP' location\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
 	}
 
-	GLint normalLocation = glGetUniformLocation(
+	GLint normalLocation = getGlUniformLocation(
 		handle,
 		"u_Normal");
 
-	if (normalLocation == -1)
+	if (normalLocation == NULL_UNIFORM_LOCATION)
 	{
-#ifndef NDEBUG
-		printf("Failed to get 'u_Normal' location\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
 	}
 
-	GLuint uniformBlockIndex = glGetUniformBlockIndex(
+	GLuint uniformBlockIndex = getGlUniformBlockIndex(
 		handle,
 		"FragmentBufferObject");
 
 	if (uniformBlockIndex == GL_INVALID_INDEX)
 	{
-#ifndef NDEBUG
-		printf("Failed to get 'FragmentBufferObject' block index\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
@@ -121,9 +112,6 @@ inline static DiffusePipeline* onGlDiffusePipelineCreate(
 
 	if (uniformBuffer == NULL)
 	{
-#ifndef NDEBUG
-		printf("Failed to create diffuse uniform buffer\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
@@ -384,6 +372,10 @@ void setDiffusePipelineObjectColor(
 	Vec4F objectColor)
 {
 	assert(pipeline != NULL);
+	assert(objectColor.x >= 0.0f &&
+		objectColor.y >= 0.0f &&
+		objectColor.z >= 0.0f &&
+		objectColor.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Diffuse") == 0);
@@ -408,6 +400,10 @@ void setDiffusePipelineAmbientColor(
 	Vec4F ambientColor)
 {
 	assert(pipeline != NULL);
+	assert(ambientColor.x >= 0.0f &&
+		ambientColor.y >= 0.0f &&
+		ambientColor.z >= 0.0f &&
+		ambientColor.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Diffuse") == 0);
@@ -432,6 +428,10 @@ void setDiffusePipelineLightColor(
 	Vec4F lightColor)
 {
 	assert(pipeline != NULL);
+	assert(lightColor.x >= 0.0f &&
+		lightColor.y >= 0.0f &&
+		lightColor.z >= 0.0f &&
+		lightColor.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Diffuse") == 0);
@@ -461,12 +461,17 @@ void setDiffusePipelineLightDirection(
 	Vec3F lightDirection)
 {
 	assert(pipeline != NULL);
+	assert(lightDirection.x >= 0.0f &&
+		lightDirection.y >= 0.0f &&
+		lightDirection.z >= 0.0f);
+	assert(lightDirection.x <= 1.0f &&
+		lightDirection.y <= 1.0f &&
+		lightDirection.z <= 1.0f);
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
-	lightDirection = normVec3F(lightDirection);
 	diffusePipeline->vk.fbo.lightDirection = vec4F(
 		lightDirection.x,
 		lightDirection.y,

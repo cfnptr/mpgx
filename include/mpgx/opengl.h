@@ -13,14 +13,94 @@
 #include <assert.h>
 #include <stdbool.h>
 
+#define NULL_UNIFORM_LOCATION -1
+
 inline static void assertOpenGL()
 {
 #ifndef NDEBUG
 	GLenum error = glGetError();
 
 	if (error != GL_NO_ERROR)
+	{
+		const char* errorName;
+
+		switch (error)
+		{
+		default:
+			errorName = "UNKNOWN_ERROR";
+			break;
+		case GL_INVALID_ENUM:
+			errorName = "GL_INVALID_ENUM";
+			break;
+		case GL_INVALID_VALUE:
+			errorName = "GL_INVALID_VALUE";
+			break;
+		case GL_INVALID_OPERATION:
+			errorName = "GL_INVALID_OPERATION";
+			break;
+		case GL_STACK_OVERFLOW:
+			errorName = "GL_STACK_OVERFLOW";
+			break;
+		case GL_STACK_UNDERFLOW:
+			errorName = "GL_STACK_UNDERFLOW";
+			break;
+		case GL_OUT_OF_MEMORY:
+			errorName = "GL_OUT_OF_MEMORY";
+			break;
+		case GL_INVALID_FRAMEBUFFER_OPERATION:
+			errorName = "GL_INVALID_FRAMEBUFFER_OPERATION";
+			break;
+		case GL_CONTEXT_LOST:
+			errorName = "GL_CONTEXT_LOST";
+			break;
+		}
+
+		fprintf(stderr,
+			"OpenGL error: %s\n",
+			errorName);
+
 		abort();
+	}
 #endif
+}
+
+inline static GLint getGlUniformLocation(
+	GLuint program,
+	const GLchar* name)
+{
+	GLint uniformLocation = glGetUniformLocation(
+		program,
+		name);
+
+#ifndef NDEBUG
+	if (uniformLocation == NULL_UNIFORM_LOCATION)
+	{
+		fprintf(stderr,
+			"Failed to get '%s' uniform location\n",
+			name);
+	}
+#endif
+
+	return uniformLocation;
+}
+inline static GLuint getGlUniformBlockIndex(
+	GLuint program,
+	const GLchar* name)
+{
+	GLuint uniformBlockIndex = glGetUniformBlockIndex(
+		program,
+		name);
+
+#ifndef NDEBUG
+	if (uniformBlockIndex == GL_INVALID_INDEX)
+	{
+		fprintf(stderr,
+			"Failed to get '%s' uniform block index\n",
+			name);
+	}
+#endif
+
+	return uniformBlockIndex;
 }
 
 inline static GLuint createGlPipeline(
@@ -92,9 +172,11 @@ inline static GLuint createGlPipeline(
 				program,
 				length,
 				&length,
+				(GLchar*)infoLog);
+
+			printf("OpenGL program link error: %s\n",
 				infoLog);
 
-			printf("%s\n", infoLog);
 			free(infoLog);
 		}
 #endif

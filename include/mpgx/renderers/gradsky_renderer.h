@@ -12,6 +12,7 @@ Render createGradSkyRender(
 	Transform transform,
 	Box3F bounding,
 	Vec4F color,
+	float time,
 	Mesh mesh);
 
 Vec4F getGradSkyRenderColor(
@@ -19,6 +20,12 @@ Vec4F getGradSkyRenderColor(
 void setGradSkyRenderColor(
 	Render render,
 	Vec4F color);
+
+float getGradSkyRenderTime(
+	Render render);
+void setGradSkyRenderTime(
+	Render render,
+	float time);
 
 Mesh getGradSkyRenderMesh(
 	Render render);

@@ -53,29 +53,23 @@ inline static ColorPipeline* onGlColorPipelineCreate(
 		return NULL;
 	}
 
-	GLint mvpLocation = glGetUniformLocation(
+	GLint mvpLocation = getGlUniformLocation(
 		handle,
 		"u_MVP");
 
-	if (mvpLocation == -1)
+	if (mvpLocation == NULL_UNIFORM_LOCATION)
 	{
-#ifndef NDEBUG
-		printf("Failed to get 'u_MVP' location\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
 	}
 
-	GLint colorLocation = glGetUniformLocation(
+	GLint colorLocation = getGlUniformLocation(
 		handle,
 		"u_Color");
 
-	if (colorLocation == -1)
+	if (colorLocation == NULL_UNIFORM_LOCATION)
 	{
-#ifndef NDEBUG
-		printf("Failed to get 'u_Color' location\n");
-#endif
 		glDeleteProgram(handle);
 		free(pipeline);
 		return NULL;
@@ -274,6 +268,10 @@ void setColorPipelineColor(
 	Vec4F color)
 {
 	assert(pipeline != NULL);
+	assert(color.x >= 0.0f &&
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Color") == 0);

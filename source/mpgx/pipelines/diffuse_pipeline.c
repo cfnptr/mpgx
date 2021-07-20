@@ -461,17 +461,12 @@ void setDiffusePipelineLightDirection(
 	Vec3F lightDirection)
 {
 	assert(pipeline != NULL);
-	assert(lightDirection.x >= 0.0f &&
-		lightDirection.y >= 0.0f &&
-		lightDirection.z >= 0.0f);
-	assert(lightDirection.x <= 1.0f &&
-		lightDirection.y <= 1.0f &&
-		lightDirection.z <= 1.0f);
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Diffuse") == 0);
 	DiffusePipeline* diffusePipeline =
 		getPipelineHandle(pipeline);
+	lightDirection = normVec3F(lightDirection);
 	diffusePipeline->vk.fbo.lightDirection = vec4F(
 		lightDirection.x,
 		lightDirection.y,

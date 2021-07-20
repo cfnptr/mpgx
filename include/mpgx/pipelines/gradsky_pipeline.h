@@ -41,8 +41,8 @@ void setGradSkyPipelineColor(
 	Pipeline pipeline,
 	Vec4F color);
 
-float getGradSkyPipelineTime(
+Vec3F getGradSkyPipelineSunDirection(
 	Pipeline pipeline);
-void setGradSkyPipelineTime(
+void setGradSkyPipelineSunDirection(
 	Pipeline pipeline,
-	float time);
+	Vec3F sunDirection);

@@ -1865,9 +1865,16 @@ ImageData createImageDataFromFile(
 		return NULL;
 	}
 
+	if (channelCount != _channelCount)
+	{
+		stbi_image_free(pixels);
+		free(imageData);
+		return NULL;
+	}
+
 	imageData->pixels = pixels;
 	imageData->size = vec2U(width, height);
-	imageData->channelCount = channelCount;
+	imageData->channelCount = _channelCount;
 	return imageData;
 }
 void destroyImageData(ImageData imageData)

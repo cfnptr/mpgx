@@ -3,12 +3,6 @@
 
 #include <string.h>
 
-// TODO: how to make sky darkening at sunset
-// 1) inverse sun position  (if required, need to be checked).
-// 2) get distance between vertex and sun and divide it by 2.
-// 3) multiply by the height (or height inverse);
-// 4) set the vertex color multiplicator
-
 struct GradSkyAmbient
 {
 	Vec4F* colors;
@@ -23,7 +17,7 @@ typedef struct VkGradSkyPipeline
 	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
-	float time;
+	Vec3F sunDirection;
 } VkGradSkyPipeline;
 typedef struct GlGradSkyPipeline
 {
@@ -33,11 +27,11 @@ typedef struct GlGradSkyPipeline
 	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
-	float time;
+	Vec3F sunDirection;
 	GLuint handle;
 	GLint mvpLocation;
 	GLint colorLocation;
-	GLint timeLocation;
+	GLint sunDirectionLocation;
 	GLint textureLocation;
 } GlGradSkyPipeline;
 typedef union GradSkyPipeline
@@ -140,7 +134,7 @@ Sampler createGradSkySampler(Window window)
 		LINEAR_IMAGE_FILTER,
 		NEAREST_IMAGE_FILTER,
 		false,
-		REPEAT_IMAGE_WRAP,
+		CLAMP_TO_EDGE_IMAGE_WRAP,
 		CLAMP_TO_EDGE_IMAGE_WRAP,
 		REPEAT_IMAGE_WRAP,
 		NEVER_IMAGE_COMPARE,
@@ -200,11 +194,11 @@ inline static GradSkyPipeline* onGlGradSkyPipelineCreate(
 		return NULL;
 	}
 
-	GLint timeLocation = getGlUniformLocation(
+	GLint sunDirectionLocation = getGlUniformLocation(
 		handle,
-		"u_Time");
+		"u_SunDirection");
 
-	if (timeLocation == NULL_UNIFORM_LOCATION)
+	if (sunDirectionLocation == NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(handle);
 		free(pipeline);
@@ -231,11 +225,11 @@ inline static GradSkyPipeline* onGlGradSkyPipelineCreate(
 	pipeline->gl.mvp = identMat4F();
 	pipeline->gl.mvp = identMat4F();
 	pipeline->gl.color = oneVec4F();
-	pipeline->gl.time = 0.5f;
+	pipeline->gl.sunDirection = vec3F(0.0f, 1.0f, 1.0f);
 	pipeline->gl.handle = handle;
 	pipeline->gl.mvpLocation = mvpLocation;
 	pipeline->gl.colorLocation = colorLocation;
-	pipeline->gl.timeLocation = timeLocation;
+	pipeline->gl.sunDirectionLocation = sunDirectionLocation;
 	pipeline->gl.textureLocation = textureLocation;
 	return pipeline;
 }
@@ -305,10 +299,10 @@ static void onGlGradSkyPipelineUniformsSet(
 		gradSkyPipeline->gl.colorLocation,
 		1,
 		(const GLfloat*)&gradSkyPipeline->gl.color);
-	glUniform1fv(
-		gradSkyPipeline->gl.timeLocation,
+	glUniform3fv(
+		gradSkyPipeline->gl.sunDirectionLocation,
 		1,
-		(const GLfloat*)&gradSkyPipeline->gl.time);
+		(const GLfloat*)&gradSkyPipeline->gl.sunDirection);
 
 	glEnableVertexAttribArray(0);
 
@@ -488,7 +482,7 @@ void setGradSkyPipelineColor(
 	gradSkyPipeline->vk.color = color;
 }
 
-float getGradSkyPipelineTime(
+Vec3F getGradSkyPipelineSunDirection(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -497,11 +491,11 @@ float getGradSkyPipelineTime(
 		"GradSky") == 0);
 	GradSkyPipeline* gradSkyPipeline =
 		getPipelineHandle(pipeline);
-	return gradSkyPipeline->vk.time;
+	return negVec3F(gradSkyPipeline->vk.sunDirection);
 }
-void setGradSkyPipelineTime(
+void setGradSkyPipelineSunDirection(
 	Pipeline pipeline,
-	float time)
+	Vec3F sunDirection)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -509,5 +503,6 @@ void setGradSkyPipelineTime(
 		"GradSky") == 0);
 	GradSkyPipeline* gradSkyPipeline =
 		getPipelineHandle(pipeline);
-	gradSkyPipeline->vk.time = time;
+	gradSkyPipeline->vk.sunDirection =
+		negVec3F(normVec3F(sunDirection));
 }

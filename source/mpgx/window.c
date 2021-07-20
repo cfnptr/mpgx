@@ -748,6 +748,19 @@ void destroyWindow(Window window)
 	free(window);
 }
 
+bool isWindowEmpty(Window window)
+{
+	assert(window != NULL);
+
+	return
+		window->bufferCount == 0 &&
+		window->meshCount == 0 &&
+		window->imageCount == 0 &&
+		window->samplerCount == 0 &&
+		window->framebufferCount == 0 &&
+		window->shaderCount == 0 &&
+		window->pipelineCount == 0;
+}
 uint8_t getWindowGraphicsAPI(Window window)
 {
 	assert(window != NULL);

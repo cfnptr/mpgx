@@ -61,6 +61,12 @@ void destroyTransformer(Transformer transformer)
 	free(transformer);
 }
 
+bool isTransformerEmpty(Transformer transformer)
+{
+	assert(transformer != NULL);
+	return transformer->transformCount == 0;
+}
+
 Transform createTransform(
 	Transformer transformer,
 	Vec3F position,

@@ -16,6 +16,8 @@ typedef enum RotationType
 Transformer createTransformer(size_t capacity);
 void destroyTransformer(Transformer transformer);
 
+bool isTransformerEmpty(Transformer transformer);
+
 Transform createTransform(
 	Transformer transformer,
 	Vec3F position,

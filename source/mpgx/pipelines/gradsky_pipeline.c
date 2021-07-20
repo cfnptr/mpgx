@@ -3,6 +3,18 @@
 
 #include <string.h>
 
+// TODO: how to make sky darkening at sunset
+// 1) inverse sun position  (if required, need to be checked).
+// 2) get distance between vertex and sun and divide it by 2.
+// 3) multiply by the height (or height inverse);
+// 4) set the vertex color multiplicator
+
+struct GradSkyAmbient
+{
+	Vec4F* colors;
+	size_t count;
+};
+
 typedef struct VkGradSkyPipeline
 {
 	Shader vertexShader;
@@ -33,6 +45,90 @@ typedef union GradSkyPipeline
 	VkGradSkyPipeline vk;
 	GlGradSkyPipeline gl;
 } GradSkyPipeline;
+
+GradSkyAmbient createGradSkyAmbient(
+	ImageData gradient)
+{
+	assert(gradient != NULL);
+	assert(getImageDataChannelCount(gradient) == 4);
+
+	Vec2U size = getImageDataSize(gradient);
+
+	Vec4F* colors = malloc(
+		sizeof(Vec4F) * size.x);
+
+	if (colors == NULL)
+		return NULL;
+
+	const uint8_t* pixels = getImageDataPixels(gradient);
+
+	size_t index = 0;
+
+	for (uint32_t x = 0; x < size.x; x++)
+	{
+		Vec4F color = zeroVec4F();
+
+		for (uint32_t y = 0; y < size.y; y++)
+		{
+			Vec4F addition = vec4F(
+				(float)pixels[index] / 255.0f,
+				(float)pixels[index + 1] / 255.0f,
+				(float)pixels[index + 2] / 255.0f,
+				(float)pixels[index + 3] / 255.0f);
+			color = addVec4F(color, addition);
+			index += 4;
+		}
+
+		colors[x] = divValVec4F(color, (float)size.y);
+	}
+
+	GradSkyAmbient gradSkyAmbient = malloc(
+		sizeof(struct GradSkyAmbient));
+
+	if (gradSkyAmbient == NULL)
+	{
+		free(colors);
+		return NULL;
+	}
+
+	gradSkyAmbient->colors = colors;
+	gradSkyAmbient->count = size.x;
+	return gradSkyAmbient;
+}
+void destroyGradSkyAmbient(
+	GradSkyAmbient gradSkyAmbient)
+{
+	if (gradSkyAmbient == NULL)
+		return;
+
+	free(gradSkyAmbient->colors);
+	free(gradSkyAmbient);
+}
+Vec4F getGradSkyAmbientColor(
+	GradSkyAmbient gradSkyAmbient,
+	float dayTime)
+{
+	assert(gradSkyAmbient != NULL);
+
+	if (dayTime < 0.0f)
+		dayTime = -dayTime;
+
+	dayTime = dayTime - (float)((int)dayTime);
+	dayTime = (float)gradSkyAmbient->count * dayTime;
+
+	float secondValue = dayTime - (float)((int)dayTime);
+	float firstValue = 1.0f - secondValue;
+
+	Vec4F* colors = gradSkyAmbient->colors;
+	Vec4F firstColor = colors[(size_t)dayTime];
+	Vec4F secondColor = colors[(size_t)dayTime + 1];
+
+	return vec4F(
+		firstColor.x * firstValue + secondColor.x * secondValue,
+		firstColor.y * firstValue + secondColor.y * secondValue,
+		firstColor.z * firstValue + secondColor.z * secondValue,
+		firstColor.w * firstValue + secondColor.w * secondValue);
+}
 
 Sampler createGradSkySampler(Window window)
 {
@@ -166,10 +262,14 @@ static void onGlGradSkyPipelineBind(
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_STENCIL_TEST);
-	glDisable(GL_BLEND);
+	glEnable(GL_BLEND);
 
 	glFrontFace(GL_CW);
 	glCullFace(GL_BACK);
+
+	glBlendFunc(
+		GL_SRC_ALPHA,
+		GL_ONE_MINUS_SRC_ALPHA);
 
 	GLuint glTexture= *(const GLuint*)
 		getImageHandle(gradSkyPipeline->gl.texture);

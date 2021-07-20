@@ -34,8 +34,8 @@ Interface createInterface(
 	size_t capacity);
 void destroyInterface(Interface interface);
 
-Window getInterfaceWindow(
-	Interface interface);
+bool isInterfaceEmpty(Interface interface);
+Window getInterfaceWindow(Interface interface);
 
 float getInterfaceScale(
 	Interface interface);

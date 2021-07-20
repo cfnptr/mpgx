@@ -1,7 +1,14 @@
 #pragma once
 #include "mpgx/window.h"
 
-// TODO: calc sky ambient color
+typedef struct GradSkyAmbient* GradSkyAmbient;
+
+GradSkyAmbient createGradSkyAmbient(ImageData gradient);
+void destroyGradSkyAmbient(GradSkyAmbient gradSkyAmbient);
+
+Vec4F getGradSkyAmbientColor(
+	GradSkyAmbient gradSkyAmbient,
+	float dayTime);
 
 Sampler createGradSkySampler(Window window);
 

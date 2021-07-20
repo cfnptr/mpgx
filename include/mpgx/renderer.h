@@ -49,6 +49,7 @@ Renderer createRenderer(
 	size_t capacity);
 void destroyRenderer(Renderer renderer);
 
+bool isRendererEmpty(Renderer renderer);
 Transform getRendererTransform(Renderer renderer);
 Pipeline getRendererPipeline(Renderer renderer);
 OnRenderDestroy getRendererOnDestroy(Renderer renderer);

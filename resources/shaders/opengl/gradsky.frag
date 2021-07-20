@@ -10,5 +10,5 @@ void main()
     vec2 texCoords = vec2(u_Time, f_TexCoord);
     vec4 color = texture(u_Texture, texCoords);
     o_Color = color * u_Color;
-    gl_FragDepth = 0.999999;
+    gl_FragDepth = 0.9999999;
 }

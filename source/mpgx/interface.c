@@ -76,8 +76,12 @@ void destroyInterface(Interface interface)
 	free(interface);
 }
 
-Window getInterfaceWindow(
-	Interface interface)
+bool isInterfaceEmpty(Interface interface)
+{
+	assert(interface != NULL);
+	return interface->elementCount == 0;
+}
+Window getInterfaceWindow(Interface interface)
 {
 	assert(interface != NULL);
 	return interface->window;

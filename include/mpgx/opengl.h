@@ -56,7 +56,7 @@ inline static void assertOpenGL()
 		}
 
 		fprintf(stderr,
-			"OpenGL error: %s\n",
+			"OpenGL error: %s.\n",
 			errorName);
 
 		abort();
@@ -76,7 +76,7 @@ inline static GLint getGlUniformLocation(
 	if (uniformLocation == NULL_UNIFORM_LOCATION)
 	{
 		fprintf(stderr,
-			"Failed to get '%s' uniform location\n",
+			"Failed to get '%s' uniform location.\n",
 			name);
 	}
 #endif
@@ -95,7 +95,7 @@ inline static GLuint getGlUniformBlockIndex(
 	if (uniformBlockIndex == GL_INVALID_INDEX)
 	{
 		fprintf(stderr,
-			"Failed to get '%s' uniform block index\n",
+			"Failed to get '%s' uniform block index.\n",
 			name);
 	}
 #endif
@@ -174,7 +174,8 @@ inline static GLuint createGlPipeline(
 				&length,
 				(GLchar*)infoLog);
 
-			printf("OpenGL program link error: %s\n",
+			fprintf(stderr,
+				"OpenGL program link error: %s.\n",
 				infoLog);
 
 			free(infoLog);

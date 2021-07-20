@@ -102,6 +102,11 @@ void destroyRenderer(Renderer renderer)
 	free(renderer);
 }
 
+bool isRendererEmpty(Renderer renderer)
+{
+	assert(renderer != NULL);
+	return renderer->renderCount == 0;
+}
 Transform getRendererTransform(Renderer renderer)
 {
 	assert(renderer != NULL);
@@ -318,6 +323,7 @@ void drawRenderer(
 	const RenderData* data)
 {
 	assert(renderer != NULL);
+	assert(data != NULL);
 
 	Render* renders = renderer->renders;
 	RenderElement* renderElements = renderer->renderElements;

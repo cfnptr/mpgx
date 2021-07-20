@@ -246,8 +246,6 @@ typedef enum DrawMode
 	DRAW_MODE_COUNT = 7,
 } DrawMode;
 
-// TODO: check if all modified mallocs have struct
-
 typedef struct Window* Window;
 typedef union Buffer* Buffer;
 typedef union Mesh* Mesh;
@@ -304,6 +302,7 @@ Window createAnyWindow(
 	size_t pipelineCapacity);
 void destroyWindow(Window window);
 
+bool isWindowEmpty(Window window);
 uint8_t getWindowGraphicsAPI(Window window);
 OnWindowUpdate getWindowOnUpdate(Window window);
 void* getWindowUpdateArgument(Window window);

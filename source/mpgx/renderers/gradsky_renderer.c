@@ -6,7 +6,7 @@
 typedef struct GradSkyRender
 {
 	Vec4F color;
-	Vec3F sunDirection;
+	float sunHeight;
 	Mesh mesh;
 } GradSkyRender;
 
@@ -32,9 +32,9 @@ static void onGradSkyRenderDraw(
 	setGradSkyPipelineColor(
 		pipeline,
 		gradSkyRender->color);
-	setGradSkyPipelineSunDirection(
+	setGradSkyPipelineSunHeight(
 		pipeline,
-		gradSkyRender->sunDirection);
+		gradSkyRender->sunHeight);
 	drawMesh(
 		gradSkyRender->mesh,
 		pipeline);
@@ -67,7 +67,7 @@ Render createGradSkyRender(
 	Transform transform,
 	Box3F bounding,
 	Vec4F color,
-	Vec3F sunDirection,
+	float sunHeight,
 	Mesh mesh)
 {
 	assert(renderer != NULL);
@@ -92,7 +92,7 @@ Render createGradSkyRender(
 		return NULL;
 
 	gradSkyRender->color = color;
-	gradSkyRender->sunDirection = normVec3F(sunDirection);
+	gradSkyRender->sunHeight = sunHeight;
 	gradSkyRender->mesh = mesh;
 
 	Render render = createRender(
@@ -142,7 +142,7 @@ void setGradSkyRenderColor(
 	gradSkyRender->color = color;
 }
 
-Vec3F getGradSkyRenderSunDirection(
+float getGradSkyRenderSunHeight(
 	Render render)
 {
 	assert(render != NULL);
@@ -153,11 +153,11 @@ Vec3F getGradSkyRenderSunDirection(
 		"GradSky") == 0);
 	GradSkyRender* gradSkyRender =
 		getRenderHandle(render);
-	return negVec3F(gradSkyRender->sunDirection);
+	return gradSkyRender->sunHeight;
 }
-void setGradSkyRenderSunDirection(
+void setGradSkyRenderSunHeight(
 	Render render,
-	Vec3F sunDirection)
+	float sunHeight)
 {
 	assert(render != NULL);
 	assert(strcmp(
@@ -167,8 +167,7 @@ void setGradSkyRenderSunDirection(
 		"GradSky") == 0);
 	GradSkyRender* gradSkyRender =
 		getRenderHandle(render);
-	gradSkyRender->sunDirection =
-		negVec3F(sunDirection);
+	gradSkyRender->sunHeight = sunHeight;
 }
 
 Mesh getGradSkyRenderMesh(

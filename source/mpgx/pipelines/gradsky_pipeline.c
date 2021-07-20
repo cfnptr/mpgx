@@ -17,7 +17,7 @@ typedef struct VkGradSkyPipeline
 	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
-	Vec3F sunDirection;
+	float sunHeight;
 } VkGradSkyPipeline;
 typedef struct GlGradSkyPipeline
 {
@@ -27,11 +27,11 @@ typedef struct GlGradSkyPipeline
 	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
-	Vec3F sunDirection;
+	float sunHeight;
 	GLuint handle;
 	GLint mvpLocation;
 	GLint colorLocation;
-	GLint sunDirectionLocation;
+	GLint sunHeightLocation;
 	GLint textureLocation;
 } GlGradSkyPipeline;
 typedef union GradSkyPipeline
@@ -194,11 +194,11 @@ inline static GradSkyPipeline* onGlGradSkyPipelineCreate(
 		return NULL;
 	}
 
-	GLint sunDirectionLocation = getGlUniformLocation(
+	GLint sunHeightLocation = getGlUniformLocation(
 		handle,
-		"u_SunDirection");
+		"u_SunHeight");
 
-	if (sunDirectionLocation == NULL_UNIFORM_LOCATION)
+	if (sunHeightLocation == NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(handle);
 		free(pipeline);
@@ -225,11 +225,11 @@ inline static GradSkyPipeline* onGlGradSkyPipelineCreate(
 	pipeline->gl.mvp = identMat4F();
 	pipeline->gl.mvp = identMat4F();
 	pipeline->gl.color = oneVec4F();
-	pipeline->gl.sunDirection = vec3F(0.0f, 1.0f, 1.0f);
+	pipeline->gl.sunHeight = 1.0f;
 	pipeline->gl.handle = handle;
 	pipeline->gl.mvpLocation = mvpLocation;
 	pipeline->gl.colorLocation = colorLocation;
-	pipeline->gl.sunDirectionLocation = sunDirectionLocation;
+	pipeline->gl.sunHeightLocation = sunHeightLocation;
 	pipeline->gl.textureLocation = textureLocation;
 	return pipeline;
 }
@@ -299,10 +299,10 @@ static void onGlGradSkyPipelineUniformsSet(
 		gradSkyPipeline->gl.colorLocation,
 		1,
 		(const GLfloat*)&gradSkyPipeline->gl.color);
-	glUniform3fv(
-		gradSkyPipeline->gl.sunDirectionLocation,
+	glUniform1fv(
+		gradSkyPipeline->gl.sunHeightLocation,
 		1,
-		(const GLfloat*)&gradSkyPipeline->gl.sunDirection);
+		(const GLfloat*)&gradSkyPipeline->gl.sunHeight);
 
 	glEnableVertexAttribArray(0);
 
@@ -482,7 +482,7 @@ void setGradSkyPipelineColor(
 	gradSkyPipeline->vk.color = color;
 }
 
-Vec3F getGradSkyPipelineSunDirection(
+float getGradSkyPipelineSunHeight(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -491,11 +491,11 @@ Vec3F getGradSkyPipelineSunDirection(
 		"GradSky") == 0);
 	GradSkyPipeline* gradSkyPipeline =
 		getPipelineHandle(pipeline);
-	return negVec3F(gradSkyPipeline->vk.sunDirection);
+	return gradSkyPipeline->vk.sunHeight;
 }
-void setGradSkyPipelineSunDirection(
+void setGradSkyPipelineSunHeight(
 	Pipeline pipeline,
-	Vec3F sunDirection)
+	float sunHeight)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
@@ -503,6 +503,5 @@ void setGradSkyPipelineSunDirection(
 		"GradSky") == 0);
 	GradSkyPipeline* gradSkyPipeline =
 		getPipelineHandle(pipeline);
-	gradSkyPipeline->vk.sunDirection =
-		negVec3F(normVec3F(sunDirection));
+	gradSkyPipeline->vk.sunHeight = sunHeight;
 }

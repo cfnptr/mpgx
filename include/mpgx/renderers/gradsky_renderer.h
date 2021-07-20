@@ -12,7 +12,7 @@ Render createGradSkyRender(
 	Transform transform,
 	Box3F bounding,
 	Vec4F color,
-	Vec3F sunDirection,
+	float sunHeight,
 	Mesh mesh);
 
 Vec4F getGradSkyRenderColor(
@@ -21,11 +21,11 @@ void setGradSkyRenderColor(
 	Render render,
 	Vec4F color);
 
-Vec3F getGradSkyRenderSunDirection(
+float getGradSkyRenderSunHeight(
 	Render render);
-void setGradSkyRenderSunDirection(
+void setGradSkyRenderSunHeight(
 	Render render,
-	Vec3F sunDirection);
+	float sunHeight);
 
 Mesh getGradSkyRenderMesh(
 	Render render);

@@ -56,21 +56,20 @@ GradSkyAmbient createGradSkyAmbient(
 
 	const uint8_t* pixels = getImageDataPixels(gradient);
 
-	size_t index = 0;
-
 	for (uint32_t x = 0; x < size.x; x++)
 	{
 		Vec4F color = zeroVec4F();
 
 		for (uint32_t y = 0; y < size.y; y++)
 		{
+			size_t index = (y * size.x + x) * 4;
+			
 			Vec4F addition = vec4F(
 				(float)pixels[index] / 255.0f,
 				(float)pixels[index + 1] / 255.0f,
 				(float)pixels[index + 2] / 255.0f,
 				(float)pixels[index + 3] / 255.0f);
 			color = addVec4F(color, addition);
-			index += 4;
 		}
 
 		colors[x] = divValVec4F(color, (float)size.y);
@@ -103,17 +102,17 @@ Vec4F getGradSkyAmbientColor(
 	float dayTime)
 {
 	assert(gradSkyAmbient != NULL);
+	assert(dayTime >= 0.0f);
+	assert(dayTime <= 1.0f);
 
-	if (dayTime < 0.0f)
-		dayTime = -dayTime;
+	Vec4F* colors = gradSkyAmbient->colors;
+	size_t colorCount = gradSkyAmbient->count;
 
-	dayTime = dayTime - (float)((int)dayTime);
-	dayTime = (float)gradSkyAmbient->count * dayTime;
+	dayTime = (float)(colorCount - 1) * dayTime;
 
 	float secondValue = dayTime - (float)((int)dayTime);
 	float firstValue = 1.0f - secondValue;
 
-	Vec4F* colors = gradSkyAmbient->colors;
 	Vec4F firstColor = colors[(size_t)dayTime];
 	Vec4F secondColor = colors[(size_t)dayTime + 1];
 

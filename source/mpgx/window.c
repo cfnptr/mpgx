@@ -131,10 +131,25 @@ union Sampler
 	GlSampler gl;
 };
 
+typedef struct VkFramebuffer_
+{
+	Window window;
+	Image* colorAttachments;
+	size_t colorAttachmentCount;
+	Image depthStencilAttachment;
+} VkFramebuffer_;
+typedef struct GlFramebuffer
+{
+	Window window;
+	Image* colorAttachments;
+	size_t colorAttachmentCount;
+	Image depthStencilAttachment;
+	GLuint handle;
+} GlFramebuffer;
 union Framebuffer
 {
-	// TODO:
-	void* handle;
+	VkFramebuffer_ vk;
+	GlFramebuffer gl;
 };
 
 typedef struct VkShader
@@ -257,6 +272,19 @@ inline static void destroyGlSampler(Sampler sampler)
 	assertOpenGL();
 
 	free(sampler);
+}
+inline static void destroyGlFramebuffer(Framebuffer framebuffer)
+{
+	makeWindowContextCurrent(
+		framebuffer->gl.window);
+
+	glDeleteFramebuffers(
+		GL_ONE,
+		&framebuffer->gl.handle);
+	assertOpenGL();
+
+	free(framebuffer->gl.colorAttachments);
+	free(framebuffer);
 }
 inline static void destroyGlShader(Shader shader)
 {
@@ -722,8 +750,8 @@ void destroyWindow(Window window)
 
 		for (size_t i = 0; i < shaderCount; i++)
 			destroyGlShader(shaders[i]);
-		/*for (size_t i = 0; i < framebufferCount; i++)
-			destroyGlFramebuffer(framebuffers[i]);*/ // TODO:
+		for (size_t i = 0; i < framebufferCount; i++)
+			destroyGlFramebuffer(framebuffers[i]);
 		for (size_t i = 0; i < samplerCount; i++)
 			destroyGlSampler(samplers[i]);
 		for (size_t i = 0; i < imageCount; i++)
@@ -1921,17 +1949,11 @@ inline static Image createGlImage(
 	GLenum dataType;
 
 	if (type == IMAGE_2D_TYPE)
-	{
 		glType = GL_TEXTURE_2D;
-	}
 	else if (type == IMAGE_3D_TYPE)
-	{
 		glType = GL_TEXTURE_3D;
-	}
 	else
-	{
 		abort();
-	}
 
 	GLint glFormat;
 
@@ -1949,6 +1971,26 @@ inline static Image createGlImage(
 		glFormat = GL_SRGB8_ALPHA8;
 		dataFormat = GL_RGBA;
 		dataType = GL_UNSIGNED_BYTE;
+		break;
+	case D16_UNORM_IMAGE_FORMAT:
+		glFormat = GL_DEPTH_COMPONENT16;
+		dataFormat = GL_DEPTH_COMPONENT;
+		dataType = GL_UNSIGNED_SHORT;
+		break;
+	case D32_SFLOAT_IMAGE_FORMAT:
+		glFormat = GL_DEPTH_COMPONENT32F;
+		dataFormat = GL_DEPTH_COMPONENT;
+		dataType = GL_FLOAT;
+		break;
+	case D24_UNORM_S8_UINT_IMAGE_FORMAT:
+		glFormat = GL_DEPTH24_STENCIL8;
+		dataFormat = GL_DEPTH_STENCIL;
+		dataType = GL_UNSIGNED_INT_24_8;
+		break;
+	case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
+		glFormat = GL_DEPTH32F_STENCIL8;
+		dataFormat = GL_DEPTH_STENCIL;
+		dataType = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
 		break;
 	}
 
@@ -2694,6 +2736,307 @@ const void* getSamplerHandle(Sampler sampler)
 	{
 		abort();
 	}
+}
+
+inline static Framebuffer createGlFramebuffer(
+	Window window,
+	Image* _colorAttachments,
+	size_t colorAttachmentCount,
+	Image depthStencilAttachment)
+{
+	Framebuffer framebuffer = malloc(
+		sizeof(union Framebuffer));
+
+	if (framebuffer == NULL)
+		return NULL;
+
+	makeWindowContextCurrent(window);
+
+	GLuint handle = GL_ZERO;
+
+	glGenFramebuffers(
+		GL_ONE,
+		&handle);
+	glBindFramebuffer(
+		GL_FRAMEBUFFER,
+		handle);
+
+	Image* colorAttachments;
+
+	if (_colorAttachments != NULL)
+	{
+		colorAttachments = malloc(
+			sizeof(Image) * colorAttachmentCount);
+
+		if (colorAttachments == NULL)
+		{
+			glDeleteFramebuffers(
+				GL_ONE,
+				&handle);
+			free(framebuffer);
+			return NULL;
+		}
+
+		GLenum colorIndex = 0;
+
+		for (size_t i = 0; i < colorAttachmentCount; i++)
+		{
+			Image colorAttachment = _colorAttachments[i];
+			uint8_t format = colorAttachment->gl.format;
+
+			switch (format)
+			{
+			default:
+				glDeleteFramebuffers(
+					GL_ONE,
+					&handle);
+				free(colorAttachments);
+				free(framebuffer);
+				return NULL;
+			case R8G8B8A8_UNORM_IMAGE_FORMAT:
+			case R8G8B8A8_SRGB_IMAGE_FORMAT:
+				glFramebufferTexture2D(
+					GL_FRAMEBUFFER,
+					GL_COLOR_ATTACHMENT0 + colorIndex,
+					colorAttachment->gl.glType,
+					colorAttachment->gl.handle,
+					GL_ZERO);
+				colorIndex++;
+				break;
+			}
+
+			colorAttachments[i] = colorAttachment;
+		}
+	}
+	else
+	{
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
+		colorAttachments = NULL;
+	}
+
+	if (depthStencilAttachment != NULL)
+	{
+		uint8_t format = depthStencilAttachment->gl.format;
+
+		switch (format)
+		{
+		default:
+			glDeleteFramebuffers(
+				GL_ONE,
+				&handle);
+			free(colorAttachments);
+			free(framebuffer);
+			return NULL;
+		case D16_UNORM_IMAGE_FORMAT:
+		case D32_SFLOAT_IMAGE_FORMAT:
+			glFramebufferTexture2D(
+				GL_FRAMEBUFFER,
+				GL_DEPTH_ATTACHMENT,
+				depthStencilAttachment->gl.glType,
+				depthStencilAttachment->gl.handle,
+				GL_ZERO);
+			break;
+		case D24_UNORM_S8_UINT_IMAGE_FORMAT:
+		case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
+			glFramebufferTexture2D(
+				GL_FRAMEBUFFER,
+				GL_DEPTH_STENCIL_ATTACHMENT,
+				depthStencilAttachment->gl.glType,
+				depthStencilAttachment->gl.handle,
+				GL_ZERO);
+			break;
+		}
+	}
+
+	GLenum status = glCheckFramebufferStatus(
+		GL_FRAMEBUFFER);
+
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
+#ifndef NDEBUG
+		const char* statusName;
+
+		switch (status)
+		{
+		default:
+			statusName = "UNKNOWN_STATUS";
+			break;
+		case GL_FRAMEBUFFER_UNDEFINED:
+			statusName = "GL_FRAMEBUFFER_UNDEFINED";
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+			statusName = "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+			statusName = "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
+			break;
+		case GL_FRAMEBUFFER_UNSUPPORTED:
+			statusName = "GL_FRAMEBUFFER_UNSUPPORTED";
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+			statusName = "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE";
+			break;
+		}
+
+		fprintf(stderr,
+			"OpenGL framebuffer create error: %s\n",
+			statusName);
+#endif
+
+		assertOpenGL();
+
+		glDeleteFramebuffers(
+			GL_ONE,
+			&handle);
+		free(colorAttachments);
+		free(framebuffer);
+		return NULL;
+	}
+
+	assertOpenGL();
+
+	framebuffer->gl.window = window;
+	framebuffer->gl.handle = handle;
+	framebuffer->gl.colorAttachments = colorAttachments;
+	framebuffer->gl.colorAttachmentCount = colorAttachmentCount;
+	framebuffer->gl.depthStencilAttachment = depthStencilAttachment;
+	return framebuffer;
+}
+Framebuffer createFramebuffer(
+	Window window,
+	Image* colorAttachments,
+	size_t colorAttachmentCount,
+	Image depthStencilAttachment)
+{
+	assert(window != NULL);
+	assert((colorAttachments == NULL &&
+		colorAttachmentCount == 0) ||
+		(colorAttachments != NULL &&
+		colorAttachmentCount != 0));
+	assert(window->isRecording == false);
+
+	uint8_t api = window->api;
+
+	Framebuffer framebuffer;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		abort();
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		framebuffer = createGlFramebuffer(
+			window,
+			colorAttachments,
+			colorAttachmentCount,
+			depthStencilAttachment);
+	}
+	else
+	{
+		abort();
+	}
+
+	if (framebuffer == NULL)
+		return NULL;
+
+	size_t count = window->framebufferCount;
+
+	if (count == window->framebufferCapacity)
+	{
+		size_t capacity = window->framebufferCapacity * 2;
+
+		Framebuffer* framebuffers = realloc(
+			window->framebuffers,
+			sizeof(Framebuffer) * capacity);
+
+		if (framebuffers == NULL)
+		{
+			if (api == VULKAN_GRAPHICS_API)
+			{
+				abort();
+			}
+			else if (api == OPENGL_GRAPHICS_API ||
+				api == OPENGL_ES_GRAPHICS_API)
+			{
+				destroyGlFramebuffer(framebuffer);
+			}
+			else
+			{
+				abort();
+			}
+
+			return NULL;
+		}
+
+		window->framebuffers = framebuffers;
+		window->framebufferCapacity = capacity;
+	}
+
+	window->framebuffers[count] = framebuffer;
+	window->framebufferCount = count + 1;
+	return framebuffer;
+}
+void destroyFramebuffer(Framebuffer framebuffer)
+{
+	if (framebuffer == NULL)
+		return;
+
+	assert(framebuffer->vk.window->isRecording == false);
+
+	Window window = framebuffer->vk.window;
+	Framebuffer* framebuffers = window->framebuffers;
+	size_t framebufferCount = window->framebufferCount;
+
+	for (size_t i = 0; i < framebufferCount; i++)
+	{
+		if (framebuffer != framebuffers[i])
+			continue;
+
+		for (size_t j = i + 1; j < framebufferCount; j++)
+			framebuffers[j - 1] = framebuffers[j];
+
+		uint8_t api = window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
+		{
+			abort();
+		}
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
+		{
+			destroyGlFramebuffer(framebuffer);
+		}
+		else
+		{
+			abort();
+		}
+
+		window->framebufferCount--;
+		return;
+	}
+
+	abort();
+}
+
+Image* getFramebufferColorAttachments(
+	Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->vk.colorAttachments;
+}
+size_t getFramebufferColorAttachmentCount(
+	Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->vk.colorAttachmentCount;
+}
+Image getFramebufferDepthStencilAttachment(
+	Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->vk.depthStencilAttachment;
 }
 
 inline static Shader createGlShader(

@@ -21,6 +21,7 @@ struct Renderer
 	Transform transform;
 	Pipeline pipeline;
 	uint8_t sortingType;
+	bool useCulling;
 	OnRenderDestroy onDestroy;
 	OnRenderDraw onDraw;
 	Render* renders;
@@ -33,6 +34,7 @@ Renderer createRenderer(
 	Transform transform,
 	Pipeline pipeline,
 	uint8_t sortingType,
+	bool useCulling,
 	OnRenderDestroy onDestroy,
 	OnRenderDraw onDraw,
 	size_t capacity)
@@ -72,6 +74,7 @@ Renderer createRenderer(
 	renderer->transform = transform;
 	renderer->pipeline = pipeline;
 	renderer->sortingType = sortingType;
+	renderer->useCulling = useCulling;
 	renderer->onDestroy = onDestroy;
 	renderer->onDraw = onDraw;
 	renderer->renders = renders;
@@ -128,19 +131,33 @@ OnRenderDraw getRendererOnDraw(Renderer renderer)
 	return renderer->onDraw;
 }
 
-uint8_t getRendererSorting(
+uint8_t getRendererSortingType(
 	Renderer renderer)
 {
 	assert(renderer != NULL);
 	return renderer->sortingType;
 }
-void setRendererSorting(
+void setRendererSortingType(
 	Renderer renderer,
 	uint8_t sortingType)
 {
 	assert(renderer != NULL);
 	assert(sortingType < RENDER_SORTING_COUNT);
 	renderer->sortingType = sortingType;
+}
+
+bool getRendererUseCulling(
+	Renderer renderer)
+{
+	assert(renderer != NULL);
+	return renderer->useCulling;
+}
+void setRendererUseCulling(
+	Renderer renderer,
+	bool useCulling)
+{
+	assert(renderer != NULL);
+	renderer->useCulling = useCulling;
 }
 
 static int ascendingRenderCompare(
@@ -325,9 +342,14 @@ void drawRenderer(
 	assert(renderer != NULL);
 	assert(data != NULL);
 
+	size_t renderCount = renderer->renderCount;
+
+	if (renderCount == 0)
+		return;
+
 	Render* renders = renderer->renders;
 	RenderElement* renderElements = renderer->renderElements;
-	size_t renderCount = renderer->renderCount;
+	bool useCulling = renderer->useCulling;
 
 	Vec3F rendererPosition = negVec3F(
 		getTransformPosition(renderer->transform));
@@ -360,33 +382,37 @@ void drawRenderer(
 
 		Mat4F model = getTransformModel(transform);
 		Vec3F renderPosition = getTranslationMat4F(model);
-		Vec3F renderScale = getScaleMat4F(model);
-		Box3F renderBounding = getRenderBounding(render);
 
-		renderBounding.minimum = mulVec3F(
-			renderBounding.minimum,
-			renderScale);
-		renderBounding.minimum = addVec3F(
-			renderBounding.minimum,
-			renderPosition);
-		renderBounding.maximum = mulVec3F(
-			renderBounding.maximum,
-			renderScale);
-		renderBounding.maximum = addVec3F(
-			renderBounding.maximum,
-			renderPosition);
+		if (useCulling == true)
+		{
+			Vec3F renderScale = getScaleMat4F(model);
+			Box3F renderBounding = getRenderBounding(render);
 
-		bool isInFrustum = isBoxInFrustum(
-			leftPlane,
-			rightPlane,
-			bottomPlane,
-			topPlane,
-			backPlane,
-			frontPlane,
-			renderBounding);
+			renderBounding.minimum = mulVec3F(
+				renderBounding.minimum,
+				renderScale);
+			renderBounding.minimum = addVec3F(
+				renderBounding.minimum,
+				renderPosition);
+			renderBounding.maximum = mulVec3F(
+				renderBounding.maximum,
+				renderScale);
+			renderBounding.maximum = addVec3F(
+				renderBounding.maximum,
+				renderPosition);
 
-		if (isInFrustum == false)
-			continue;
+			bool isInFrustum = isBoxInFrustum(
+				leftPlane,
+				rightPlane,
+				bottomPlane,
+				topPlane,
+				backPlane,
+				frontPlane,
+				renderBounding);
+
+			if (isInFrustum == false)
+				continue;
+		}
 
 		RenderElement element;
 		element.rendererPosition = rendererPosition;

@@ -126,12 +126,12 @@ void preUpdateInterface(Interface interface)
 {
 	assert(interface != NULL);
 
-	InterfaceElement* elements = interface->elements;
 	size_t elementCount = interface->elementCount;
 
 	if (elementCount == 0)
 		return;
 
+	InterfaceElement* elements = interface->elements;
 	Vec2U windowSize = getWindowSize(interface->window);
 	float scale = interface->scale;
 

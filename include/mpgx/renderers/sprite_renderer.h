@@ -6,6 +6,7 @@ Renderer createSpriteRenderer(
 	Transform transform,
 	Pipeline pipeline,
 	uint8_t sortingType,
+	bool useCulling,
 	size_t capacity);
 Render createSpriteRender(
 	Renderer renderer,

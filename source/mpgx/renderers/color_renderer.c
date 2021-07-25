@@ -39,6 +39,7 @@ Renderer createColorRenderer(
 	Transform transform,
 	Pipeline pipeline,
 	uint8_t sortingType,
+	bool useCulling,
 	size_t capacity)
 {
 	assert(transform != NULL);
@@ -54,6 +55,7 @@ Renderer createColorRenderer(
 		transform,
 		pipeline,
 		sortingType,
+		useCulling,
 		onColorRenderDestroy,
 		onColorRenderDraw,
 		capacity);

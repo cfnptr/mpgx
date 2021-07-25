@@ -43,6 +43,7 @@ Renderer createGradSkyRenderer(
 	Transform transform,
 	Pipeline pipeline,
 	uint8_t sortingType,
+	bool useCulling,
 	size_t capacity)
 {
 	assert(transform != NULL);
@@ -58,6 +59,7 @@ Renderer createGradSkyRenderer(
 		transform,
 		pipeline,
 		sortingType,
+		useCulling,
 		onGradSkyRenderDestroy,
 		onGradSkyRenderDraw,
 		capacity);

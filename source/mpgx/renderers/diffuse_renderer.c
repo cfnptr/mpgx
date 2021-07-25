@@ -40,6 +40,7 @@ Renderer createDiffuseRenderer(
 	Transform transform,
 	Pipeline pipeline,
 	uint8_t sortingType,
+	bool useCulling,
 	size_t capacity)
 {
 	assert(transform != NULL);
@@ -55,6 +56,7 @@ Renderer createDiffuseRenderer(
 		transform,
 		pipeline,
 		sortingType,
+		useCulling,
 		onDiffuseRenderDestroy,
 		onDiffuseRenderDraw,
 		capacity);

@@ -79,10 +79,9 @@ Transform createTransform(
 	assert(transformer != NULL);
 	assert(rotationType < ROTATION_TYPE_COUNT);
 
-#ifndef NDEBUG
-	if (parent != NULL)
-		assert(transformer == parent->transformer);
-#endif
+	assert((parent == NULL) ||
+		(parent != NULL &&
+		transformer == parent->transformer));
 
 	Transform transform = malloc(
 		sizeof(struct Transform));
@@ -222,14 +221,10 @@ void setTransformParent(
 	Transform transform,
 	Transform parent)
 {
-#ifndef NDEBUG
-	if (parent != NULL)
-	{
-		assert(transform->transformer ==
-			parent->transformer);
-	}
-#endif
-
+	assert((parent == NULL) ||
+		(parent != NULL &&
+		transform->transformer ==
+		parent->transformer));
 	transform->parent = parent;
 }
 
@@ -259,8 +254,12 @@ void updateTransformer(
 {
 	assert(transformer != NULL);
 
-	Transform* transforms = transformer->transforms;
 	size_t transformCount = transformer->transformCount;
+
+	if (transformCount == 0)
+		return;
+
+	Transform* transforms = transformer->transforms;
 
 	for (size_t i = 0; i < transformCount; i++)
 	{

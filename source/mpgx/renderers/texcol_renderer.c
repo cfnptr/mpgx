@@ -47,6 +47,7 @@ Renderer createTexColRenderer(
 	Transform transform,
 	Pipeline pipeline,
 	uint8_t sortingType,
+	bool useCulling,
 	size_t capacity)
 {
 	assert(transform != NULL);
@@ -62,6 +63,7 @@ Renderer createTexColRenderer(
 		transform,
 		pipeline,
 		sortingType,
+		useCulling,
 		onTexColRenderDestroy,
 		onTexColRenderDraw,
 		capacity);

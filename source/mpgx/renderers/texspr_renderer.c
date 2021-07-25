@@ -47,6 +47,7 @@ Renderer createTexSprRenderer(
 	Transform transform,
 	Pipeline pipeline,
 	uint8_t sortingType,
+	bool useCulling,
 	size_t capacity)
 {
 	assert(transform != NULL);
@@ -62,6 +63,7 @@ Renderer createTexSprRenderer(
 		transform,
 		pipeline,
 		sortingType,
+		useCulling,
 		onTexSprRenderDestroy,
 		onTexSprRenderDraw,
 		capacity);

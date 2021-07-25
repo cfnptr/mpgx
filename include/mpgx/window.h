@@ -195,7 +195,11 @@ typedef enum ImageFormat
 {
 	R8G8B8A8_UNORM_IMAGE_FORMAT = 0,
 	R8G8B8A8_SRGB_IMAGE_FORMAT = 1,
-	IMAGE_FORMAT_COUNT = 2,
+	D16_UNORM_IMAGE_FORMAT = 2,
+	D32_SFLOAT_IMAGE_FORMAT = 3,
+	D24_UNORM_S8_UINT_IMAGE_FORMAT = 4,
+	D32_SFLOAT_S8_UINT_IMAGE_FORMAT = 5,
+	IMAGE_FORMAT_COUNT = 6,
 } ImageFormat;
 
 typedef enum ImageFilter
@@ -245,6 +249,8 @@ typedef enum DrawMode
 	TRIANGLES_DRAW_MODE = 6,
 	DRAW_MODE_COUNT = 7,
 } DrawMode;
+
+// TODO: OpenGL renderbuffer optimization
 
 typedef struct Window* Window;
 typedef union Buffer* Buffer;
@@ -491,6 +497,20 @@ bool isSamplerUseCompare(Sampler sampler);
 float getSamplerMinMipmapLod(Sampler sampler);
 float getSamplerMaxMipmapLod(Sampler sampler);
 const void* getSamplerHandle(Sampler sampler);
+
+Framebuffer createFramebuffer(
+	Window window,
+	Image* colorAttachments,
+	size_t colorAttachmentCount,
+	Image depthStencilAttachment);
+void destroyFramebuffer(Framebuffer framebuffer);
+
+Image* getFramebufferColorAttachments(
+	Framebuffer framebuffer);
+size_t getFramebufferColorAttachmentCount(
+	Framebuffer framebuffer);
+Image getFramebufferDepthStencilAttachment(
+	Framebuffer framebuffer);
 
 Shader createShader(
 	Window window,

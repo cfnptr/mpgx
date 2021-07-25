@@ -44,6 +44,7 @@ Renderer createRenderer(
 	Transform transform,
 	Pipeline pipeline,
 	uint8_t sortingType,
+	bool useCulling,
 	OnRenderDestroy onDestroy,
 	OnRenderDraw onDraw,
 	size_t capacity);
@@ -60,6 +61,12 @@ uint8_t getRendererSortingType(
 void setRendererSortingType(
 	Renderer renderer,
 	uint8_t sortingType);
+
+bool getRendererUseCulling(
+	Renderer renderer);
+void setRendererUseCulling(
+	Renderer renderer,
+	bool useCulling);
 
 void createRenderData(
 	Window window,

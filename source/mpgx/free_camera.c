@@ -207,21 +207,21 @@ void updateFreeCamera(FreeCamera freeCamera)
 		if (lastCursorPosition.x == 0 && lastCursorPosition.y == 0)
 			lastCursorPosition = cursorPosition;
 
-		rotation.x += (cursorPosition.x - lastCursorPosition.x) * viewSpeed;
-		rotation.y += (cursorPosition.y - lastCursorPosition.y) * viewSpeed;
+		rotation.x -= (cursorPosition.y - lastCursorPosition.y) * viewSpeed;
+		rotation.y -= (cursorPosition.x - lastCursorPosition.x) * viewSpeed;
 
-		if (rotation.y > degToRadF(89.9f))
-			rotation.y = degToRadF(89.9f);
-		else if (rotation.y < degToRadF(-89.9f))
-			rotation.y = degToRadF(-89.9f);
+		if (rotation.x > degToRadF(89.9f))
+			rotation.x = degToRadF(89.9f);
+		else if (rotation.x < degToRadF(-89.9f))
+			rotation.x = degToRadF(-89.9f);
 
 		freeCamera->rotation = rotation;
 		freeCamera->lastCursorPosition = cursorPosition;
 
-		Quat transformRotation = eulerQuat(vec3F(
-			rotation.y,
-			rotation.x,
-			0.0f));
+		Quat transformRotation = eulerQuat(
+			vec3F(rotation.x, 0.0f,0.0f));
+		transformRotation = dotQuat(transformRotation,
+			eulerQuat(vec3F(0.0f, rotation.y,0.0f)));
 		setTransformRotation(
 			transform,
 			transformRotation);
@@ -242,8 +242,8 @@ void updateFreeCamera(FreeCamera freeCamera)
 			translation.z = BACK_AXIS_VALUE * deltaTime * moveSpeed;
 
 		translation = dotVecQuat3F(
-			transformRotation,
-			translation);
+			translation,
+			transformRotation);
 
 		Vec3F transformPosition =
 			getTransformPosition(transform);

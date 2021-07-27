@@ -452,9 +452,9 @@ Vec3F getDiffusePipelineLightDirection(
 	Vec4F lightDirection =
 		diffusePipeline->vk.fbo.lightDirection;
 	return vec3F(
-		lightDirection.x,
-		lightDirection.y,
-		lightDirection.z);
+		-lightDirection.x,
+		-lightDirection.y,
+		-lightDirection.z);
 }
 void setDiffusePipelineLightDirection(
 	Pipeline pipeline,
@@ -468,8 +468,8 @@ void setDiffusePipelineLightDirection(
 		getPipelineHandle(pipeline);
 	lightDirection = normVec3F(lightDirection);
 	diffusePipeline->vk.fbo.lightDirection = vec4F(
-		lightDirection.x,
-		lightDirection.y,
-		lightDirection.z,
+		-lightDirection.x,
+		-lightDirection.y,
+		-lightDirection.z,
 		0.0f);
 }

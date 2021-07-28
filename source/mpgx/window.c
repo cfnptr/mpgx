@@ -20,13 +20,15 @@
 #define OPENGL_ES_SHADER_HEADER \
 "#version 300 es\n"
 
+// TODO: Vulkan API implementation
+
 typedef struct VkBuffer_
 {
 	Window window;
 	uint8_t type;
 	size_t size;
 	bool isConstant;
-	// TODO:
+	int handle;
 } VkBuffer_;
 typedef struct GlBuffer
 {
@@ -51,7 +53,6 @@ typedef struct VkMesh
 	size_t indexOffset;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
-	// TODO:
 } VkMesh;
 typedef struct GlMesh
 {
@@ -75,7 +76,7 @@ typedef struct VkImage_
 	uint8_t type;
 	uint8_t format;
 	Vec3U size;
-	// TODO:
+	int handle;
 } VkImage_;
 typedef struct GlImage
 {
@@ -108,6 +109,7 @@ typedef struct VkSampler_
 	bool useCompare;
 	float minMipmapLod;
 	float maxMipmapLod;
+	int handle;
 } VkSampler_;
 typedef struct GlSampler
 {
@@ -156,7 +158,7 @@ typedef struct VkShader
 {
 	Window window;
 	uint8_t type;
-	// TODO:
+	int handle;
 } VkShader;
 typedef struct GlShader
 {
@@ -219,12 +221,17 @@ struct Window
 	double updateTime;
 	double deltaTime;
 	bool isRecording;
+	bool isRendering;
 };
 
 static bool graphicsInitialized = false;
 static FT_Library ftLibrary = NULL;
 static Window currentWindow = NULL;
 
+inline static void destroyVkBuffer(Buffer buffer)
+{
+
+}
 inline static void destroyGlBuffer(Buffer buffer)
 {
 	makeWindowContextCurrent(
@@ -236,6 +243,11 @@ inline static void destroyGlBuffer(Buffer buffer)
 	assertOpenGL();
 
 	free(buffer);
+}
+
+inline static void destroyVkMesh(Mesh mesh)
+{
+
 }
 inline static void destroyGlMesh(Mesh mesh)
 {
@@ -249,6 +261,11 @@ inline static void destroyGlMesh(Mesh mesh)
 
 	free(mesh);
 }
+
+inline static void destroyVkImage(Image image)
+{
+
+}
 inline static void destroyGlImage(Image image)
 {
 	makeWindowContextCurrent(
@@ -260,6 +277,11 @@ inline static void destroyGlImage(Image image)
 	assertOpenGL();
 
 	free(image);
+}
+
+inline static void destroyVkSampler(Sampler sampler)
+{
+
 }
 inline static void destroyGlSampler(Sampler sampler)
 {
@@ -273,6 +295,11 @@ inline static void destroyGlSampler(Sampler sampler)
 
 	free(sampler);
 }
+
+inline static void destroyVkFramebuffer(Framebuffer framebuffer)
+{
+
+}
 inline static void destroyGlFramebuffer(Framebuffer framebuffer)
 {
 	makeWindowContextCurrent(
@@ -285,6 +312,11 @@ inline static void destroyGlFramebuffer(Framebuffer framebuffer)
 
 	free(framebuffer->gl.colorAttachments);
 	free(framebuffer);
+}
+
+inline static void destroyVkShader(Shader shader)
+{
+
 }
 inline static void destroyGlShader(Shader shader)
 {
@@ -317,8 +349,7 @@ bool initializeGraphics()
 	if(glfwInit() == GLFW_FALSE)
 		return false;
 
-	glfwSetErrorCallback(
-		glfwErrorCallback);
+	glfwSetErrorCallback(glfwErrorCallback);
 
 	if (FT_Init_FreeType(&ftLibrary) != 0)
 		return false;
@@ -363,8 +394,8 @@ Window createWindow(
 	size_t pipelineCapacity)
 {
 	assert(api < GRAPHICS_API_COUNT);
-	assert(size.x > 0);
-	assert(size.y > 0);
+	assert(size.x != 0);
+	assert(size.y != 0);
 	assert(title != NULL);
 	assert(onUpdate != NULL);
 	assert(bufferCapacity != 0);
@@ -400,7 +431,6 @@ Window createWindow(
 			GLFW_CLIENT_API,
 			GLFW_NO_API);
 
-		// TODO: add Vulkan support
 		free(window);
 		return NULL;
 	}
@@ -482,7 +512,6 @@ Window createWindow(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		// TODO: implement Vulkan functions
 		abort();
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
@@ -626,6 +655,7 @@ Window createWindow(
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
 	window->isRecording = false;
+	window->isRendering = false;
 
 	currentWindow = window;
 	return window;
@@ -732,22 +762,33 @@ void destroyWindow(Window window)
 
 	uint8_t api = window->api;
 
+	for (size_t i = 0; i < pipelineCount; i++)
+	{
+		Pipeline pipeline = pipelines[i];
+
+		pipeline->onDestroy(
+			window,
+			pipeline->handle);
+	}
+
     if (api == VULKAN_GRAPHICS_API)
 	{
-    	abort();
+		for (size_t i = 0; i < shaderCount; i++)
+			destroyVkShader(shaders[i]);
+		for (size_t i = 0; i < framebufferCount; i++)
+			destroyVkFramebuffer(framebuffers[i]);
+		for (size_t i = 0; i < samplerCount; i++)
+			destroyVkSampler(samplers[i]);
+		for (size_t i = 0; i < imageCount; i++)
+			destroyVkImage(images[i]);
+		for (size_t i = 0; i < meshCount; i++)
+			destroyVkMesh(meshes[i]);
+		for (size_t i = 0; i < bufferCount; i++)
+			destroyVkBuffer(buffers[i]);
 	}
     else if (api == OPENGL_GRAPHICS_API ||
     	api == OPENGL_ES_GRAPHICS_API)
 	{
-		for (size_t i = 0; i < pipelineCount; i++)
-		{
-			Pipeline pipeline = pipelines[i];
-
-			pipeline->onDestroy(
-				window,
-				pipeline->handle);
-		}
-
 		for (size_t i = 0; i < shaderCount; i++)
 			destroyGlShader(shaders[i]);
 		for (size_t i = 0; i < framebufferCount; i++)
@@ -772,6 +813,7 @@ void destroyWindow(Window window)
 	free(framebuffers);
 	free(shaders);
 	free(pipelines);
+
 	glfwDestroyWindow(window->handle);
 	free(window);
 }
@@ -1063,9 +1105,9 @@ void requestWindowAttention(Window window)
 void makeWindowContextCurrent(Window window)
 {
 	assert(window != NULL);
-
 	assert(window->api == OPENGL_GRAPHICS_API ||
 		window->api == OPENGL_ES_GRAPHICS_API);
+	assert(window->isRecording == false);
 
 	if (window != currentWindow)
 	{
@@ -1095,6 +1137,10 @@ void updateWindow(Window window)
 	}
 }
 
+inline static void beginVkWindowRender(Window window)
+{
+
+}
 inline static void beginGlWindowRender(Window window)
 {
 	int width, height;
@@ -1104,24 +1150,25 @@ inline static void beginGlWindowRender(Window window)
 		&width,
 		&height);
 
-	glViewport(0, 0, width, height);
-
-	// TODO: move to the framebuffer
+	glViewport(
+		0, 0, width, height); // TODO: move viewport to thew pipeline
 	glClear(
 		GL_COLOR_BUFFER_BIT |
 		GL_DEPTH_BUFFER_BIT |
 		GL_STENCIL_BUFFER_BIT);
+	assertOpenGL();
 }
 void beginWindowRender(Window window)
 {
 	assert(window != NULL);
 	assert(window->isRecording == false);
+	assert(window->isRendering == false);
 
 	uint8_t api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		beginVkWindowRender(window);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -1136,6 +1183,10 @@ void beginWindowRender(Window window)
 	window->isRecording = true;
 }
 
+inline static void endVkWindowRender(Window window)
+{
+
+}
 inline static void endGlWindowRender(Window window)
 {
 	glfwSwapBuffers(window->handle);
@@ -1144,12 +1195,13 @@ void endWindowRender(Window window)
 {
 	assert(window != NULL);
 	assert(window->isRecording == true);
+	assert(window->isRendering == false);
 
 	uint8_t api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		return;
+		endVkWindowRender(window);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -1164,6 +1216,15 @@ void endWindowRender(Window window)
 	window->isRecording = false;
 }
 
+inline static Buffer createVkBuffer(
+	Window window,
+	uint8_t type,
+	const void* data,
+	size_t size,
+	bool isConstant)
+{
+	return NULL;
+}
 inline static Buffer createGlBuffer(
 	Window window,
 	uint8_t type,
@@ -1246,7 +1307,12 @@ Buffer createBuffer(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		return NULL;
+		buffer = createVkBuffer(
+			window,
+			type,
+			data,
+			size,
+			isConstant);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -1280,7 +1346,7 @@ Buffer createBuffer(
 		{
 			if (api == VULKAN_GRAPHICS_API)
 			{
-				abort();
+				destroyVkBuffer(buffer);
 			}
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
@@ -1326,7 +1392,7 @@ void destroyBuffer(Buffer buffer)
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
-			abort();
+			destroyVkBuffer(buffer);
 		}
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
@@ -1373,7 +1439,7 @@ const void* getBufferHandle(Buffer buffer)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		return &buffer->vk.handle;
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -1386,15 +1452,20 @@ const void* getBufferHandle(Buffer buffer)
 	}
 }
 
+inline static void setVkBufferData(
+	Buffer buffer,
+	const void* data,
+	size_t size,
+	size_t offset)
+{
+
+}
 inline static void setGlBufferData(
 	Buffer buffer,
 	const void* data,
 	size_t size,
 	size_t offset)
 {
-	makeWindowContextCurrent(
-		buffer->gl.window);
-
 	glBindBuffer(
 		buffer->gl.glType,
 		buffer->gl.handle);
@@ -1403,7 +1474,6 @@ inline static void setGlBufferData(
 		(GLintptr)offset,
 		(GLsizeiptr)size,
 		data);
-
 	assertOpenGL();
 }
 void setBufferData(
@@ -1422,7 +1492,11 @@ void setBufferData(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		setVkBufferData(
+			buffer,
+			data,
+			size,
+			offset);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -1439,6 +1513,16 @@ void setBufferData(
 	}
 }
 
+inline static Mesh createVkMesh(
+	Window window,
+	uint8_t drawIndex,
+	size_t indexCount,
+	size_t indexOffset,
+	Buffer vertexBuffer,
+	Buffer indexBuffer)
+{
+	return NULL;
+}
 inline static Mesh createGlMesh(
 	Window window,
 	uint8_t drawIndex,
@@ -1514,7 +1598,13 @@ Mesh createMesh(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		return NULL;
+		mesh = createVkMesh(
+			window,
+			drawIndex,
+			indexCount,
+			indexOffset,
+			vertexBuffer,
+			indexBuffer);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -1549,7 +1639,7 @@ Mesh createMesh(
 		{
 			if (api == VULKAN_GRAPHICS_API)
 			{
-				abort();
+				destroyVkMesh(mesh);
 			}
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
@@ -1595,9 +1685,10 @@ void destroyMesh(Mesh mesh)
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
-			abort();
+			destroyVkMesh(mesh);
 		}
-		else if (api == OPENGL_GRAPHICS_API)
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
 		{
 			destroyGlMesh(mesh);
 		}
@@ -1758,6 +1849,12 @@ void setMeshIndexBuffer(
 	mesh->vk.indexBuffer = indexBuffer;
 }
 
+inline static void drawVkMesh(
+	Mesh mesh,
+	Pipeline pipeline)
+{
+
+}
 inline static void drawGlMesh(
 	Mesh mesh,
 	Pipeline pipeline)
@@ -1848,7 +1945,9 @@ void drawMesh(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		drawVkMesh(
+			mesh,
+			pipeline);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -1930,6 +2029,16 @@ uint8_t getImageDataChannelCount(ImageData imageData)
 	return imageData->channelCount;
 }
 
+inline static Image createVkImage(
+	Window window,
+	uint8_t type,
+	uint8_t format,
+	Vec3U size,
+	const void** data,
+	uint8_t levelCount)
+{
+	return NULL;
+}
 inline static Image createGlImage(
 	Window window,
 	uint8_t type,
@@ -2152,7 +2261,13 @@ Image createImage(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		image = createVkImage(
+			window,
+			type,
+			format,
+			size,
+			data,
+			levelCount);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -2187,7 +2302,7 @@ Image createImage(
 		{
 			if (api == VULKAN_GRAPHICS_API)
 			{
-				abort();
+				destroyVkImage(image);
 			}
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
@@ -2272,7 +2387,7 @@ void destroyImage(Image image)
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
-			abort();
+			destroyVkImage(image);
 		}
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
@@ -2291,6 +2406,14 @@ void destroyImage(Image image)
 	abort();
 }
 
+inline static void setVkImageData(
+	Image image,
+	const void* data,
+	Vec3U size,
+	Vec3U offset)
+{
+
+}
 inline static void setGlImageData(
 	Image image,
 	const void* data,
@@ -2362,7 +2485,11 @@ void setImageData(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		setVkImageData(
+			image,
+			data,
+			size,
+			offset);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -2407,7 +2534,7 @@ const void* getImageHandle(Image image)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		return &image->vk.handle;
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -2428,6 +2555,22 @@ uint8_t getImageLevelCount(Vec3U imageSize)
 	return (uint8_t)floorf(log2f((float)size)) + 1;
 }
 
+inline static Sampler createVkSampler(
+	Window window,
+	uint8_t minImageFilter,
+	uint8_t magImageFilter,
+	uint8_t minMipmapFilter,
+	bool useMipmapping,
+	uint8_t imageWrapX,
+	uint8_t imageWrapY,
+	uint8_t imageWrapZ,
+	uint8_t imageCompare,
+	bool useCompare,
+	float minMipmapLod,
+	float maxMipmapLod)
+{
+	return NULL;
+}
 inline static Sampler createGlSampler(
 	Window window,
 	uint8_t minImageFilter,
@@ -2551,7 +2694,19 @@ Sampler createSampler(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		sampler = createVkSampler(
+			window,
+			minImageFilter,
+			magImageFilter,
+			minMipmapFilter,
+			useMipmapping,
+			imageWrapX,
+			imageWrapY,
+			imageWrapZ,
+			imageCompare,
+			useCompare,
+			minMipmapLod,
+			maxMipmapLod);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -2592,7 +2747,7 @@ Sampler createSampler(
 		{
 			if (api == VULKAN_GRAPHICS_API)
 			{
-				abort();
+				destroyVkSampler(sampler);
 			}
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
@@ -2638,7 +2793,7 @@ void destroySampler(Sampler sampler)
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
-			abort();
+			destroyVkSampler(sampler);
 		}
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
@@ -2725,7 +2880,7 @@ const void* getSamplerHandle(Sampler sampler)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		return &sampler->vk.handle;
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -2738,6 +2893,14 @@ const void* getSamplerHandle(Sampler sampler)
 	}
 }
 
+inline static Framebuffer createVkFramebuffer(
+	Window window,
+	Image* _colorAttachments,
+	size_t colorAttachmentCount,
+	Image depthStencilAttachment)
+{
+	return NULL;
+}
 inline static Framebuffer createGlFramebuffer(
 	Window window,
 	Image* _colorAttachments,
@@ -2914,6 +3077,8 @@ Framebuffer createFramebuffer(
 		colorAttachmentCount == 0) ||
 		(colorAttachments != NULL &&
 		colorAttachmentCount != 0));
+	assert(colorAttachments != NULL ||
+		depthStencilAttachment != NULL);
 	assert(window->isRecording == false);
 
 	uint8_t api = window->api;
@@ -2922,7 +3087,11 @@ Framebuffer createFramebuffer(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		framebuffer = createVkFramebuffer(
+			window,
+			colorAttachments,
+			colorAttachmentCount,
+			depthStencilAttachment);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -2955,7 +3124,7 @@ Framebuffer createFramebuffer(
 		{
 			if (api == VULKAN_GRAPHICS_API)
 			{
-				abort();
+				destroyVkFramebuffer(framebuffer);
 			}
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
@@ -3001,7 +3170,7 @@ void destroyFramebuffer(Framebuffer framebuffer)
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
-			abort();
+			destroyVkFramebuffer(framebuffer);
 		}
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
@@ -3039,6 +3208,145 @@ Image getFramebufferDepthStencilAttachment(
 	return framebuffer->vk.depthStencilAttachment;
 }
 
+inline static void beginVkFramebufferRender(
+	Framebuffer framebuffer,
+	bool clearColorBuffer,
+	bool clearDepthBuffer,
+	bool clearStencilBuffer,
+	Vec4F clearColor)
+{
+
+}
+inline static void beginGlFramebufferRender(
+	Framebuffer framebuffer,
+	bool clearColorBuffer,
+	bool clearDepthBuffer,
+	bool clearStencilBuffer,
+	Vec4F clearColor)
+{
+	glBindFramebuffer(
+		GL_FRAMEBUFFER,
+		framebuffer->gl.handle);
+
+	if (clearColorBuffer == true ||
+		clearDepthBuffer == true ||
+		clearStencilBuffer == true)
+	{
+		glClearColor(
+			clearColor.x,
+			clearColor.y,
+			clearColor.z,
+			clearColor.w);
+
+		GLbitfield clearMask = 0;
+
+		if (clearColorBuffer == true)
+			clearMask |= GL_COLOR_BUFFER_BIT;
+		if (clearDepthBuffer == true)
+			clearMask |= GL_DEPTH_BUFFER_BIT;
+		if (clearStencilBuffer == true)
+			clearMask |= GL_STENCIL_BUFFER_BIT;
+
+		glClear(clearMask);
+	}
+
+	assertOpenGL();
+}
+void beginFramebufferRender(
+	Framebuffer framebuffer,
+	bool clearColorBuffer,
+	bool clearDepthBuffer,
+	bool clearStencilBuffer,
+	Vec4F clearColor)
+{
+	assert(framebuffer != NULL);
+	assert(
+		clearColor.x >= 0.0f &&
+		clearColor.y >= 0.0f &&
+		clearColor.z >= 0.0f &&
+		clearColor.w >= 0.0f);
+	assert(
+		clearColor.x <= 1.0f &&
+		clearColor.y <= 1.0f &&
+		clearColor.z <= 1.0f &&
+		clearColor.w <= 1.0f);
+	assert(framebuffer->vk.window->isRecording == true);
+	assert(framebuffer->vk.window->isRendering == false);
+
+	Window window = framebuffer->vk.window;
+	uint8_t api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		beginVkFramebufferRender(
+			framebuffer,
+			clearColorBuffer,
+			clearDepthBuffer,
+			clearStencilBuffer,
+			clearColor);
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		beginGlFramebufferRender(
+			framebuffer,
+			clearColorBuffer,
+			clearDepthBuffer,
+			clearStencilBuffer,
+			clearColor);
+	}
+	else
+	{
+		abort();
+	}
+
+	window->isRendering = true;
+}
+
+inline static void endVkFramebufferRender(Window window)
+{
+
+}
+inline static void endGlFramebufferRender(Window window)
+{
+	glBindFramebuffer(
+		GL_FRAMEBUFFER,
+		GL_ZERO);
+	assertOpenGL();
+}
+void endFramebufferRender(Window window)
+{
+	assert(window != NULL);
+	assert(window->isRecording == true);
+	assert(window->isRendering == true);
+
+	uint8_t api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		endVkFramebufferRender(window);
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		endGlFramebufferRender(window);
+	}
+	else
+	{
+		abort();
+	}
+
+	window->isRendering = true;
+}
+
+inline static Shader createVkShader(
+	Window window,
+	uint8_t type,
+	const void* code,
+	size_t size)
+{
+	return NULL;
+}
 inline static Shader createGlShader(
 	Window window,
 	uint8_t type,
@@ -3172,7 +3480,11 @@ Shader createShader(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		shader = createVkShader(
+			window,
+			type,
+			code,
+			size);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -3205,7 +3517,7 @@ Shader createShader(
 		{
 			if (api == VULKAN_GRAPHICS_API)
 			{
-				abort();
+				destroyVkShader(shader);
 			}
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
@@ -3317,7 +3629,7 @@ void destroyShader(Shader shader)
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
-			abort();
+			destroyVkShader(shader);
 		}
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
@@ -3354,7 +3666,7 @@ const void* getShaderHandle(Shader shader)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		abort();
+		return &shader->vk.handle;
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)

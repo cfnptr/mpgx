@@ -92,6 +92,25 @@ void setFreeCameraTransform(
 	freeCamera->transform = transform;
 }
 
+Vec3F getFreeCameraPosition(
+	FreeCamera freeCamera)
+{
+	assert(freeCamera != NULL);
+
+	return negVec3F(getTransformPosition(
+		freeCamera->transform));
+}
+void setFreeCameraPosition(
+	FreeCamera freeCamera,
+	Vec3F position)
+{
+	assert(freeCamera != NULL);
+
+	setTransformPosition(
+		freeCamera->transform,
+		negVec3F(position));
+}
+
 Vec2F getFreeCameraRotation(
 	FreeCamera freeCamera)
 {

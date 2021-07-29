@@ -24,6 +24,12 @@ void setFreeCameraTransform(
 	FreeCamera freeCamera,
 	Transform transform);
 
+Vec3F getFreeCameraPosition(
+	FreeCamera freeCamera);
+void setFreeCameraPosition(
+	FreeCamera freeCamera,
+	Vec3F position);
+
 Vec2F getFreeCameraRotation(
 	FreeCamera freeCamera);
 void setFreeCameraRotation(

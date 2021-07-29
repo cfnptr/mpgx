@@ -236,20 +236,29 @@ static void onGlGradSkyPipelineDestroy(
 	Window window,
 	void* pipeline)
 {
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		(GradSkyPipeline*)pipeline;
 	destroyGlPipeline(
 		window,
-		gradSkyPipeline->gl.handle);
-	free(gradSkyPipeline);
+		handle->gl.handle);
+	free(handle);
 }
 static void onGlGradSkyPipelineBind(
 	Pipeline pipeline)
 {
-	GradSkyPipeline* gradSkyPipeline =
+	Vec2U size = getWindowFramebufferSize(
+		getPipelineWindow(pipeline));
+
+	glViewport(
+		0,
+		0,
+		(GLsizei)size.x,
+		(GLsizei)size.y);
+
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
 
-	glUseProgram(gradSkyPipeline->gl.handle);
+	glUseProgram(handle->gl.handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -265,9 +274,9 @@ static void onGlGradSkyPipelineBind(
 		GL_ONE_MINUS_SRC_ALPHA);
 
 	GLuint glTexture= *(const GLuint*)
-		getImageHandle(gradSkyPipeline->gl.texture);
+		getImageHandle(handle->gl.texture);
 	GLuint glSampler = *(const GLuint*)
-		getSamplerHandle(gradSkyPipeline->gl.sampler);
+		getSamplerHandle(handle->gl.sampler);
 
 	glActiveTexture(GL_TEXTURE0 + 0);
 
@@ -278,7 +287,7 @@ static void onGlGradSkyPipelineBind(
 		0,
 		glSampler);
 	glUniform1i(
-		gradSkyPipeline->gl.textureLocation,
+		handle->gl.textureLocation,
 		0);
 
 	assertOpenGL();
@@ -286,22 +295,22 @@ static void onGlGradSkyPipelineBind(
 static void onGlGradSkyPipelineUniformsSet(
 	Pipeline pipeline)
 {
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
 
 	glUniformMatrix4fv(
-		gradSkyPipeline->gl.mvpLocation,
+		handle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&gradSkyPipeline->gl.mvp);
+		(const GLfloat*)&handle->gl.mvp);
 	glUniform4fv(
-		gradSkyPipeline->gl.colorLocation,
+		handle->gl.colorLocation,
 		1,
-		(const GLfloat*)&gradSkyPipeline->gl.color);
+		(const GLfloat*)&handle->gl.color);
 	glUniform1fv(
-		gradSkyPipeline->gl.sunHeightLocation,
+		handle->gl.sunHeightLocation,
 		1,
-		(const GLfloat*)&gradSkyPipeline->gl.sunHeight);
+		(const GLfloat*)&handle->gl.sunHeight);
 
 	glEnableVertexAttribArray(0);
 
@@ -391,9 +400,9 @@ Shader getGradSkyPipelineVertexShader(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"GradSky") == 0);
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
-	return gradSkyPipeline->vk.vertexShader;
+	return handle->vk.vertexShader;
 }
 Shader getGradSkyPipelineFragmentShader(
 	Pipeline pipeline)
@@ -402,9 +411,9 @@ Shader getGradSkyPipelineFragmentShader(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"GradSky") == 0);
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
-	return gradSkyPipeline->vk.fragmentShader;
+	return handle->vk.fragmentShader;
 }
 Image getGradSkyPipelineTexture(
 	Pipeline pipeline)
@@ -413,9 +422,9 @@ Image getGradSkyPipelineTexture(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"GradSky") == 0);
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
-	return gradSkyPipeline->vk.texture;
+	return handle->vk.texture;
 }
 Sampler getGradSkyPipelineSampler(
 	Pipeline pipeline)
@@ -424,9 +433,9 @@ Sampler getGradSkyPipelineSampler(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"GradSky") == 0);
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
-	return gradSkyPipeline->vk.sampler;
+	return handle->vk.sampler;
 }
 
 Mat4F getGradSkyPipelineMVP(
@@ -436,9 +445,9 @@ Mat4F getGradSkyPipelineMVP(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"GradSky") == 0);
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
-	return gradSkyPipeline->vk.mvp;
+	return handle->vk.mvp;
 }
 void setGradSkyPipelineMVP(
 	Pipeline pipeline,
@@ -448,9 +457,9 @@ void setGradSkyPipelineMVP(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"GradSky") == 0);
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
-	gradSkyPipeline->vk.mvp = mvp;
+	handle->vk.mvp = mvp;
 }
 
 Vec4F getGradSkyPipelineColor(
@@ -460,9 +469,9 @@ Vec4F getGradSkyPipelineColor(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"GradSky") == 0);
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
-	return gradSkyPipeline->vk.color;
+	return handle->vk.color;
 }
 void setGradSkyPipelineColor(
 	Pipeline pipeline,
@@ -476,9 +485,9 @@ void setGradSkyPipelineColor(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"GradSky") == 0);
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
-	gradSkyPipeline->vk.color = color;
+	handle->vk.color = color;
 }
 
 float getGradSkyPipelineSunHeight(
@@ -488,9 +497,9 @@ float getGradSkyPipelineSunHeight(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"GradSky") == 0);
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
-	return gradSkyPipeline->vk.sunHeight;
+	return handle->vk.sunHeight;
 }
 void setGradSkyPipelineSunHeight(
 	Pipeline pipeline,
@@ -500,7 +509,7 @@ void setGradSkyPipelineSunHeight(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"GradSky") == 0);
-	GradSkyPipeline* gradSkyPipeline =
+	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
-	gradSkyPipeline->vk.sunHeight = sunHeight;
+	handle->vk.sunHeight = sunHeight;
 }

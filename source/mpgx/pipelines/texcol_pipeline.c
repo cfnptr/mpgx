@@ -143,20 +143,29 @@ static void onGlTexColPipelineDestroy(
 	Window window,
 	void* pipeline)
 {
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		(TexColPipeline*)pipeline;
 	destroyGlPipeline(
 		window,
-		texColPipeline->gl.handle);
-	free(texColPipeline);
+		handle->gl.handle);
+	free(handle);
 }
 static void onGlTexColPipelineBind(
 	Pipeline pipeline)
 {
-	TexColPipeline* texColPipeline =
+	Vec2U size = getWindowFramebufferSize(
+		getPipelineWindow(pipeline));
+
+	glViewport(
+		0,
+		0,
+		(GLsizei)size.x,
+		(GLsizei)size.y);
+
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
 
-	glUseProgram(texColPipeline->gl.handle);
+	glUseProgram(handle->gl.handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -168,9 +177,9 @@ static void onGlTexColPipelineBind(
 	glCullFace(GL_BACK);
 
 	GLuint glTexture= *(const GLuint*)
-		getImageHandle(texColPipeline->gl.texture);
+		getImageHandle(handle->gl.texture);
 	GLuint glSampler = *(const GLuint*)
-		getSamplerHandle(texColPipeline->gl.sampler);
+		getSamplerHandle(handle->gl.sampler);
 
 	glActiveTexture(GL_TEXTURE0 + 0);
 
@@ -181,7 +190,7 @@ static void onGlTexColPipelineBind(
 		0,
 		glSampler);
 	glUniform1i(
-		texColPipeline->gl.textureLocation,
+		handle->gl.textureLocation,
 		0);
 
 	assertOpenGL();
@@ -189,26 +198,26 @@ static void onGlTexColPipelineBind(
 static void onGlTexColPipelineUniformsSet(
 	Pipeline pipeline)
 {
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
 
 	glUniformMatrix4fv(
-		texColPipeline->gl.mvpLocation,
+		handle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&texColPipeline->gl.mvp);
+		(const GLfloat*)&handle->gl.mvp);
 	glUniform4fv(
-		texColPipeline->gl.colorLocation,
+		handle->gl.colorLocation,
 		1,
-		(const GLfloat*)&texColPipeline->gl.color);
+		(const GLfloat*)&handle->gl.color);
 	glUniform2fv(
-		texColPipeline->gl.sizeLocation,
+		handle->gl.sizeLocation,
 		1,
-		(const GLfloat*)&texColPipeline->gl.size);
+		(const GLfloat*)&handle->gl.size);
 	glUniform2fv(
-		texColPipeline->gl.offsetLocation,
+		handle->gl.offsetLocation,
 		1,
-		(const GLfloat*)&texColPipeline->gl.offset);
+		(const GLfloat*)&handle->gl.offset);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -306,9 +315,9 @@ Shader getTexColPipelineVertexShader(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texColPipeline->vk.vertexShader;
+	return handle->vk.vertexShader;
 }
 Shader getTexColPipelineFragmentShader(
 	Pipeline pipeline)
@@ -317,9 +326,9 @@ Shader getTexColPipelineFragmentShader(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texColPipeline->vk.fragmentShader;
+	return handle->vk.fragmentShader;
 }
 Image getTexColPipelineTexture(
 	Pipeline pipeline)
@@ -328,9 +337,9 @@ Image getTexColPipelineTexture(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texColPipeline->vk.texture;
+	return handle->vk.texture;
 }
 Sampler getTexColPipelineSampler(
 	Pipeline pipeline)
@@ -339,9 +348,9 @@ Sampler getTexColPipelineSampler(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texColPipeline->vk.sampler;
+	return handle->vk.sampler;
 }
 
 Mat4F getTexColPipelineMVP(
@@ -351,9 +360,9 @@ Mat4F getTexColPipelineMVP(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texColPipeline->vk.mvp;
+	return handle->vk.mvp;
 }
 void setTexColPipelineMVP(
 	Pipeline pipeline,
@@ -363,9 +372,9 @@ void setTexColPipelineMVP(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	texColPipeline->vk.mvp = mvp;
+	handle->vk.mvp = mvp;
 }
 
 Vec4F getTexColPipelineColor(
@@ -375,9 +384,9 @@ Vec4F getTexColPipelineColor(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texColPipeline->vk.color;
+	return handle->vk.color;
 }
 void setTexColPipelineColor(
 	Pipeline pipeline,
@@ -391,9 +400,9 @@ void setTexColPipelineColor(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	texColPipeline->vk.color = color;
+	handle->vk.color = color;
 }
 
 Vec2F getTexColPipelineSize(
@@ -403,9 +412,9 @@ Vec2F getTexColPipelineSize(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texColPipeline->vk.size;
+	return handle->vk.size;
 }
 void setTexColPipelineSize(
 	Pipeline pipeline,
@@ -415,9 +424,9 @@ void setTexColPipelineSize(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	texColPipeline->vk.size = size;
+	handle->vk.size = size;
 }
 
 Vec2F getTexColPipelineOffset(
@@ -427,9 +436,9 @@ Vec2F getTexColPipelineOffset(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texColPipeline->vk.offset;
+	return handle->vk.offset;
 }
 void setTexColPipelineOffset(
 	Pipeline pipeline,
@@ -439,7 +448,7 @@ void setTexColPipelineOffset(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexCol") == 0);
-	TexColPipeline* texColPipeline =
+	TexColPipeline* handle =
 		getPipelineHandle(pipeline);
-	texColPipeline->vk.offset = offset;
+	handle->vk.offset = offset;
 }

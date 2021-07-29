@@ -13,7 +13,7 @@ typedef struct TexSprRender
 
 static void onTexSprRenderDestroy(void* render)
 {
-	free(render);
+	free((TexSprRender*)render);
 }
 static void onTexSprRenderDraw(
 	Render render,
@@ -24,23 +24,22 @@ static void onTexSprRenderDraw(
 	const Mat4F* viewProj,
 	const Mat4F* mvp)
 {
-	TexSprRender* texSprRender =
+	TexSprRender* handle =
 		getRenderHandle(render);
-
 	setTexSprPipelineMVP(
 		pipeline,
 		*mvp);
 	setTexSprPipelineColor(
 		pipeline,
-		texSprRender->color);
+		handle->color);
 	setTexSprPipelineSize(
 		pipeline,
-		texSprRender->size);
+		handle->size);
 	setTexSprPipelineOffset(
 		pipeline,
-		texSprRender->offset);
+		handle->offset);
 	drawMesh(
-		texSprRender->mesh,
+		handle->mesh,
 		pipeline);
 }
 Renderer createTexSprRenderer(
@@ -96,26 +95,26 @@ Render createTexSprRender(
 		getRendererPipeline(renderer)),
 		"TexSpr") == 0);
 
-	TexSprRender* texSprRender = malloc(
+	TexSprRender* handle = malloc(
 		sizeof(TexSprRender));
 
-	if (texSprRender == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	texSprRender->color = color;
-	texSprRender->size = size;
-	texSprRender->offset = offset;
-	texSprRender->mesh = mesh;
+	handle->color = color;
+	handle->size = size;
+	handle->offset = offset;
+	handle->mesh = mesh;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		texSprRender);
+		handle);
 
 	if (render == NULL)
 	{
-		free(texSprRender);
+		free(handle);
 		return NULL;
 	}
 
@@ -131,9 +130,9 @@ Vec4F getTexSprRenderColor(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-	TexSprRender* texSprRender =
+	TexSprRender* handle =
 		getRenderHandle(render);
-	return texSprRender->color;
+	return handle->color;
 }
 void setTexSprRenderColor(
 	Render render,
@@ -149,9 +148,9 @@ void setTexSprRenderColor(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-	TexSprRender* texSprRender =
+	TexSprRender* handle =
 		getRenderHandle(render);
-	texSprRender->color = color;
+	handle->color = color;
 }
 
 Vec2F getTexSprRenderSize(
@@ -163,9 +162,9 @@ Vec2F getTexSprRenderSize(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-	TexSprRender* texSprRender =
+	TexSprRender* handle =
 		getRenderHandle(render);
-	return texSprRender->size;
+	return handle->size;
 }
 void setTexSprRenderSize(
 	Render render,
@@ -177,9 +176,9 @@ void setTexSprRenderSize(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-	TexSprRender* texSprRender =
+	TexSprRender* handle =
 		getRenderHandle(render);
-	texSprRender->size = size;
+	handle->size = size;
 }
 
 Vec2F getTexSprRenderOffset(
@@ -191,9 +190,9 @@ Vec2F getTexSprRenderOffset(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-	TexSprRender* texSprRender =
+	TexSprRender* handle =
 		getRenderHandle(render);
-	return texSprRender->offset;
+	return handle->offset;
 }
 void setTexSprRenderOffset(
 	Render render,
@@ -205,9 +204,9 @@ void setTexSprRenderOffset(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-	TexSprRender* texSprRender =
+	TexSprRender* handle =
 		getRenderHandle(render);
-	texSprRender->offset = offset;
+	handle->offset = offset;
 }
 
 Mesh getTexSprRenderMesh(
@@ -219,9 +218,9 @@ Mesh getTexSprRenderMesh(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-	TexSprRender* texSprRender =
+	TexSprRender* handle =
 		getRenderHandle(render);
-	return texSprRender->mesh;
+	return handle->mesh;
 }
 void setTexSprRenderMesh(
 	Render render,
@@ -234,7 +233,7 @@ void setTexSprRenderMesh(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"TexSpr") == 0);
-	TexSprRender* texSprRender =
+	TexSprRender* handle =
 		getRenderHandle(render);
-	texSprRender->mesh = mesh;
+	handle->mesh = mesh;
 }

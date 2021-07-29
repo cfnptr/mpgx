@@ -11,7 +11,7 @@ typedef struct ColorRender
 
 static void onColorRenderDestroy(void* render)
 {
-	free(render);
+	free((ColorRender*)render);
 }
 static void onColorRenderDraw(
 	Render render,
@@ -22,17 +22,16 @@ static void onColorRenderDraw(
 	const Mat4F* viewProj,
 	const Mat4F* mvp)
 {
-	ColorRender* colorRender =
+	ColorRender* handle =
 		getRenderHandle(render);
-
 	setColorPipelineMVP(
 		pipeline,
 		*mvp);
 	setColorPipelineColor(
 		pipeline,
-		colorRender->color);
+		handle->color);
 	drawMesh(
-		colorRender->mesh,
+		handle->mesh,
 		pipeline);
 }
 Renderer createColorRenderer(

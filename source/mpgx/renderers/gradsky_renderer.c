@@ -12,7 +12,7 @@ typedef struct GradSkyRender
 
 static void onGradSkyRenderDestroy(void* render)
 {
-	free(render);
+	free((GradSkyRender*)render);
 }
 static void onGradSkyRenderDraw(
 	Render render,
@@ -23,20 +23,19 @@ static void onGradSkyRenderDraw(
 	const Mat4F* viewProj,
 	const Mat4F* mvp)
 {
-	GradSkyRender* gradSkyRender =
+	GradSkyRender* handle =
 		getRenderHandle(render);
-
 	setGradSkyPipelineMVP(
 		pipeline,
 		*mvp);
 	setGradSkyPipelineColor(
 		pipeline,
-		gradSkyRender->color);
+		handle->color);
 	setGradSkyPipelineSunHeight(
 		pipeline,
-		gradSkyRender->sunHeight);
+		handle->sunHeight);
 	drawMesh(
-		gradSkyRender->mesh,
+		handle->mesh,
 		pipeline);
 }
 Renderer createGradSkyRenderer(
@@ -87,25 +86,25 @@ Render createGradSkyRender(
 		getRendererPipeline(renderer)),
 		"GradSky") == 0);
 
-	GradSkyRender* gradSkyRender = malloc(
+	GradSkyRender* handle = malloc(
 		sizeof(GradSkyRender));
 
-	if (gradSkyRender == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	gradSkyRender->color = color;
-	gradSkyRender->sunHeight = sunHeight;
-	gradSkyRender->mesh = mesh;
+	handle->color = color;
+	handle->sunHeight = sunHeight;
+	handle->mesh = mesh;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		gradSkyRender);
+		handle);
 
 	if (render == NULL)
 	{
-		free(gradSkyRender);
+		free(handle);
 		return NULL;
 	}
 
@@ -121,9 +120,9 @@ Vec4F getGradSkyRenderColor(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"GradSky") == 0);
-	GradSkyRender* gradSkyRender =
+	GradSkyRender* handle =
 		getRenderHandle(render);
-	return gradSkyRender->color;
+	return handle->color;
 }
 void setGradSkyRenderColor(
 	Render render,
@@ -139,9 +138,9 @@ void setGradSkyRenderColor(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"GradSky") == 0);
-	GradSkyRender* gradSkyRender =
+	GradSkyRender* handle =
 		getRenderHandle(render);
-	gradSkyRender->color = color;
+	handle->color = color;
 }
 
 float getGradSkyRenderSunHeight(
@@ -153,9 +152,9 @@ float getGradSkyRenderSunHeight(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"GradSky") == 0);
-	GradSkyRender* gradSkyRender =
+	GradSkyRender* handle =
 		getRenderHandle(render);
-	return gradSkyRender->sunHeight;
+	return handle->sunHeight;
 }
 void setGradSkyRenderSunHeight(
 	Render render,
@@ -167,9 +166,9 @@ void setGradSkyRenderSunHeight(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"GradSky") == 0);
-	GradSkyRender* gradSkyRender =
+	GradSkyRender* handle =
 		getRenderHandle(render);
-	gradSkyRender->sunHeight = sunHeight;
+	handle->sunHeight = sunHeight;
 }
 
 Mesh getGradSkyRenderMesh(
@@ -181,9 +180,9 @@ Mesh getGradSkyRenderMesh(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"GradSky") == 0);
-	GradSkyRender* gradSkyRender =
+	GradSkyRender* handle =
 		getRenderHandle(render);
-	return gradSkyRender->mesh;
+	return handle->mesh;
 }
 void setGradSkyRenderMesh(
 	Render render,
@@ -196,7 +195,7 @@ void setGradSkyRenderMesh(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"GradSky") == 0);
-	GradSkyRender* gradSkyRender =
+	GradSkyRender* handle =
 		getRenderHandle(render);
-	gradSkyRender->mesh = mesh;
+	handle->mesh = mesh;
 }

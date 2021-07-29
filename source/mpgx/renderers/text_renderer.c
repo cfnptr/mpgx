@@ -11,7 +11,7 @@ typedef struct TextRender
 
 static void onTextRenderDestroy(void* render)
 {
-	free(render);
+	free((TextRender*)render);
 }
 static void onTextRenderDraw(
 	Render render,
@@ -22,17 +22,16 @@ static void onTextRenderDraw(
 	const Mat4F* viewProj,
 	const Mat4F* mvp)
 {
-	TextRender* textRender =
+	TextRender* handle =
 		getRenderHandle(render);
-
 	setTextPipelineMVP(
 		pipeline,
 		*mvp);
 	setTextPipelineColor(
 		pipeline,
-		textRender->color);
+		handle->color);
 	drawText(
-		textRender->text,
+		handle->text,
 		pipeline);
 }
 Renderer createTextRenderer(
@@ -86,24 +85,24 @@ Render createTextRender(
 		getRendererPipeline(renderer)),
 		"Text") == 0);
 
-	TextRender* textRender = malloc(
+	TextRender* handle = malloc(
 		sizeof(TextRender));
 
-	if (textRender == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	textRender->color = color;
-	textRender->text = text;
+	handle->color = color;
+	handle->text = text;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		textRender);
+		handle);
 
 	if (render == NULL)
 	{
-		free(textRender);
+		free(handle);
 		return NULL;
 	}
 
@@ -119,9 +118,9 @@ Vec4F getTextRenderColor(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Text") == 0);
-	TextRender* textRender =
+	TextRender* handle =
 		getRenderHandle(render);
-	return textRender->color;
+	return handle->color;
 }
 void setTextRenderColor(
 	Render render,
@@ -137,9 +136,9 @@ void setTextRenderColor(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Text") == 0);
-	TextRender* textRender =
+	TextRender* handle =
 		getRenderHandle(render);
-	textRender->color = color;
+	handle->color = color;
 }
 
 Text getTextRenderText(
@@ -151,9 +150,9 @@ Text getTextRenderText(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Text") == 0);
-	TextRender* textRender =
+	TextRender* handle =
 		getRenderHandle(render);
-	return textRender->text;
+	return handle->text;
 }
 void setTextRenderText(
 	Render render,
@@ -166,7 +165,7 @@ void setTextRenderText(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Text") == 0);
-	TextRender* textRender =
+	TextRender* handle =
 		getRenderHandle(render);
-	textRender->text = text;
+	handle->text = text;
 }

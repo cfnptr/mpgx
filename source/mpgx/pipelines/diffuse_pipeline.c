@@ -142,23 +142,31 @@ static void onGlDiffusePipelineDestroy(
 	Window window,
 	void* pipeline)
 {
-	DiffusePipeline* diffusePipeline =
+	DiffusePipeline* handle =
 		(DiffusePipeline*)pipeline;
-
 	destroyBuffer(
-		diffusePipeline->gl.uniformBuffer);
+		handle->gl.uniformBuffer);
 	destroyGlPipeline(
 		window,
-		diffusePipeline->gl.handle);
-	free(diffusePipeline);
+		handle->gl.handle);
+	free(handle);
 }
 static void onGlDiffusePipelineBind(
 	Pipeline pipeline)
 {
-	DiffusePipeline* diffusePipeline =
+	Vec2U size = getWindowFramebufferSize(
+		getPipelineWindow(pipeline));
+
+	glViewport(
+		0,
+		0,
+		(GLsizei)size.x,
+		(GLsizei)size.y);
+
+	DiffusePipeline* handle =
 		getPipelineHandle(pipeline);
 
-	glUseProgram(diffusePipeline->gl.handle);
+	glUseProgram(handle->gl.handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -170,7 +178,7 @@ static void onGlDiffusePipelineBind(
 	glCullFace(GL_BACK);
 
 	Buffer uniformBuffer =
-		diffusePipeline->gl.uniformBuffer;
+		handle->gl.uniformBuffer;
 	GLuint buffer = *(GLuint*)
 		getBufferHandle(uniformBuffer);
 
@@ -183,7 +191,7 @@ static void onGlDiffusePipelineBind(
 
 	setBufferData(
 		uniformBuffer,
-		&diffusePipeline->gl.fbo,
+		&handle->gl.fbo,
 		sizeof(DiffuseUniformBuffer),
 		0);
 }

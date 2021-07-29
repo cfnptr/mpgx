@@ -143,20 +143,29 @@ static void onGlTexSprPipelineDestroy(
 	Window window,
 	void* pipeline)
 {
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		(TexSprPipeline*)pipeline;
 	destroyGlPipeline(
 		window,
-		texSprPipeline->gl.handle);
-	free(texSprPipeline);
+		handle->gl.handle);
+	free(handle);
 }
 static void onGlTexSprPipelineBind(
 	Pipeline pipeline)
 {
-	TexSprPipeline* texSprPipeline =
+	Vec2U size = getWindowFramebufferSize(
+		getPipelineWindow(pipeline));
+
+	glViewport(
+		0,
+		0,
+		(GLsizei)size.x,
+		(GLsizei)size.y);
+
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
 
-	glUseProgram(texSprPipeline->gl.handle);
+	glUseProgram(handle->gl.handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -172,9 +181,9 @@ static void onGlTexSprPipelineBind(
 		GL_ONE_MINUS_SRC_ALPHA);
 
 	GLuint glTexture= *(const GLuint*)
-		getImageHandle(texSprPipeline->gl.texture);
+		getImageHandle(handle->gl.texture);
 	GLuint glSampler = *(const GLuint*)
-		getSamplerHandle(texSprPipeline->gl.sampler);
+		getSamplerHandle(handle->gl.sampler);
 
 	glActiveTexture(GL_TEXTURE0 + 0);
 
@@ -185,7 +194,7 @@ static void onGlTexSprPipelineBind(
 		0,
 		glSampler);
 	glUniform1i(
-		texSprPipeline->gl.textureLocation,
+		handle->gl.textureLocation,
 		0);
 
 	assertOpenGL();
@@ -193,26 +202,26 @@ static void onGlTexSprPipelineBind(
 static void onGlTexSprPipelineUniformsSet(
 	Pipeline pipeline)
 {
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
 
 	glUniformMatrix4fv(
-		texSprPipeline->gl.mvpLocation,
+		handle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&texSprPipeline->gl.mvp);
+		(const GLfloat*)&handle->gl.mvp);
 	glUniform4fv(
-		texSprPipeline->gl.colorLocation,
+		handle->gl.colorLocation,
 		1,
-		(const GLfloat*)&texSprPipeline->gl.color);
+		(const GLfloat*)&handle->gl.color);
 	glUniform2fv(
-		texSprPipeline->gl.sizeLocation,
+		handle->gl.sizeLocation,
 		1,
-		(const GLfloat*)&texSprPipeline->gl.size);
+		(const GLfloat*)&handle->gl.size);
 	glUniform2fv(
-		texSprPipeline->gl.offsetLocation,
+		handle->gl.offsetLocation,
 		1,
-		(const GLfloat*)&texSprPipeline->gl.offset);
+		(const GLfloat*)&handle->gl.offset);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -310,9 +319,9 @@ Shader getTexSprPipelineVertexShader(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texSprPipeline->vk.vertexShader;
+	return handle->vk.vertexShader;
 }
 Shader getTexSprPipelineFragmentShader(
 	Pipeline pipeline)
@@ -321,9 +330,9 @@ Shader getTexSprPipelineFragmentShader(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texSprPipeline->vk.fragmentShader;
+	return handle->vk.fragmentShader;
 }
 Image getTexSprPipelineTexture(
 	Pipeline pipeline)
@@ -332,9 +341,9 @@ Image getTexSprPipelineTexture(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texSprPipeline->vk.texture;
+	return handle->vk.texture;
 }
 Sampler getTexSprPipelineSampler(
 	Pipeline pipeline)
@@ -343,9 +352,9 @@ Sampler getTexSprPipelineSampler(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texSprPipeline->vk.sampler;
+	return handle->vk.sampler;
 }
 
 Mat4F getTexSprPipelineMVP(
@@ -355,9 +364,9 @@ Mat4F getTexSprPipelineMVP(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texSprPipeline->vk.mvp;
+	return handle->vk.mvp;
 }
 void setTexSprPipelineMVP(
 	Pipeline pipeline,
@@ -367,9 +376,9 @@ void setTexSprPipelineMVP(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	texSprPipeline->vk.mvp = mvp;
+	handle->vk.mvp = mvp;
 }
 
 Vec4F getTexSprPipelineColor(
@@ -379,9 +388,9 @@ Vec4F getTexSprPipelineColor(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texSprPipeline->vk.color;
+	return handle->vk.color;
 }
 void setTexSprPipelineColor(
 	Pipeline pipeline,
@@ -395,9 +404,9 @@ void setTexSprPipelineColor(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	texSprPipeline->vk.color = color;
+	handle->vk.color = color;
 }
 
 Vec2F getTexSprPipelineSize(
@@ -407,9 +416,9 @@ Vec2F getTexSprPipelineSize(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texSprPipeline->vk.size;
+	return handle->vk.size;
 }
 void setTexSprPipelineSize(
 	Pipeline pipeline,
@@ -419,9 +428,9 @@ void setTexSprPipelineSize(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	texSprPipeline->vk.size = size;
+	handle->vk.size = size;
 }
 
 Vec2F getTexSprPipelineOffset(
@@ -431,9 +440,9 @@ Vec2F getTexSprPipelineOffset(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	return texSprPipeline->vk.offset;
+	return handle->vk.offset;
 }
 void setTexSprPipelineOffset(
 	Pipeline pipeline,
@@ -443,7 +452,7 @@ void setTexSprPipelineOffset(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"TexSpr") == 0);
-	TexSprPipeline* texSprPipeline =
+	TexSprPipeline* handle =
 		getPipelineHandle(pipeline);
-	texSprPipeline->vk.offset = offset;
+	handle->vk.offset = offset;
 }

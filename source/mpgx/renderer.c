@@ -447,6 +447,10 @@ void drawRenderer(
 				sizeof(RenderElement),
 				descendingRenderCompare);
 		}
+		else
+		{
+			abort();
+		}
 	}
 
 	Mat4F view = data->view;

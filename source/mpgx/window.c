@@ -1143,15 +1143,9 @@ inline static void beginVkWindowRender(Window window)
 }
 inline static void beginGlWindowRender(Window window)
 {
-	int width, height;
-
-	glfwGetFramebufferSize(
-		window->handle,
-		&width,
-		&height);
-
-	glViewport(
-		0, 0, width, height); // TODO: move viewport to thew pipeline
+	glBindFramebuffer(
+		GL_FRAMEBUFFER,
+		GL_ZERO);
 	glClear(
 		GL_COLOR_BUFFER_BIT |
 		GL_DEPTH_BUFFER_BIT |
@@ -3336,7 +3330,7 @@ void endFramebufferRender(Window window)
 		abort();
 	}
 
-	window->isRendering = true;
+	window->isRendering = false;
 }
 
 inline static Shader createVkShader(

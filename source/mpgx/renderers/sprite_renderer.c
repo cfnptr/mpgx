@@ -11,7 +11,7 @@ typedef struct SpriteRender
 
 static void onSpriteRenderDestroy(void* render)
 {
-	free(render);
+	free((SpriteRender*)render);
 }
 static void onSpriteRenderDraw(
 	Render render,
@@ -22,17 +22,16 @@ static void onSpriteRenderDraw(
 	const Mat4F* viewProj,
 	const Mat4F* mvp)
 {
-	SpriteRender* spriteRender =
+	SpriteRender* handle =
 		getRenderHandle(render);
-
 	setSpritePipelineMVP(
 		pipeline,
 		*mvp);
 	setSpritePipelineColor(
 		pipeline,
-		spriteRender->color);
+		handle->color);
 	drawMesh(
-		spriteRender->mesh,
+		handle->mesh,
 		pipeline);
 }
 Renderer createSpriteRenderer(
@@ -86,24 +85,24 @@ Render createSpriteRender(
 		getRendererPipeline(renderer)),
 		"Sprite") == 0);
 
-	SpriteRender* spriteRender = malloc(
+	SpriteRender* handle = malloc(
 		sizeof(SpriteRender));
 
-	if (spriteRender == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	spriteRender->color = color;
-	spriteRender->mesh = mesh;
+	handle->color = color;
+	handle->mesh = mesh;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		spriteRender);
+		handle);
 
 	if (render == NULL)
 	{
-		free(spriteRender);
+		free(handle);
 		return NULL;
 	}
 
@@ -119,9 +118,9 @@ Vec4F getSpriteRenderColor(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Sprite") == 0);
-	SpriteRender* spriteRender =
+	SpriteRender* handle =
 		getRenderHandle(render);
-	return spriteRender->color;
+	return handle->color;
 }
 void setSpriteRenderColor(
 	Render render,
@@ -137,9 +136,9 @@ void setSpriteRenderColor(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Sprite") == 0);
-	SpriteRender* spriteRender =
+	SpriteRender* handle =
 		getRenderHandle(render);
-	spriteRender->color = color;
+	handle->color = color;
 }
 
 Mesh getSpriteRenderMesh(
@@ -151,9 +150,9 @@ Mesh getSpriteRenderMesh(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Sprite") == 0);
-	SpriteRender* spriteRender =
+	SpriteRender* handle =
 		getRenderHandle(render);
-	return spriteRender->mesh;
+	return handle->mesh;
 }
 void setSpriteRenderMesh(
 	Render render,
@@ -166,7 +165,7 @@ void setSpriteRenderMesh(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Sprite") == 0);
-	SpriteRender* spriteRender =
+	SpriteRender* handle =
 		getRenderHandle(render);
-	spriteRender->mesh = mesh;
+	handle->mesh = mesh;
 }

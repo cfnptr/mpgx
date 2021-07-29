@@ -90,16 +90,25 @@ static void onGlColorPipelineDestroy(
 	Window window,
 	void* pipeline)
 {
-	ColorPipeline* colorPipeline =
+	ColorPipeline* handle =
 		(ColorPipeline*)pipeline;
 	destroyGlPipeline(
 		window,
-		colorPipeline->gl.handle);
-	free(colorPipeline);
+		handle->gl.handle);
+	free(handle);
 }
 static void onGlColorPipelineBind(
 	Pipeline pipeline)
 {
+	Vec2U size = getWindowFramebufferSize(
+		getPipelineWindow(pipeline));
+
+	glViewport(
+		0,
+		0,
+		(GLsizei)size.x,
+		(GLsizei)size.y);
+
 	ColorPipeline* colorPipeline =
 		getPipelineHandle(pipeline);
 
@@ -119,18 +128,18 @@ static void onGlColorPipelineBind(
 static void onGlColorPipelineUniformsSet(
 	Pipeline pipeline)
 {
-	ColorPipeline* colorPipeline =
+	ColorPipeline* handle =
 		getPipelineHandle(pipeline);
 
 	glUniformMatrix4fv(
-		colorPipeline->gl.mvpLocation,
+		handle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&colorPipeline->gl.mvp);
+		(const GLfloat*)&handle->gl.mvp);
 	glUniform4fv(
-		colorPipeline->gl.colorLocation,
+		handle->gl.colorLocation,
 		1,
-		(const GLfloat*)&colorPipeline->gl.color);
+		(const GLfloat*)&handle->gl.color);
 
 	glEnableVertexAttribArray(0);
 
@@ -212,9 +221,9 @@ Shader getColorPipelineVertexShader(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Color") == 0);
-	ColorPipeline* colorPipeline =
+	ColorPipeline* handle =
 		getPipelineHandle(pipeline);
-	return colorPipeline->vk.vertexShader;
+	return handle->vk.vertexShader;
 }
 Shader getColorPipelineFragmentShader(
 	Pipeline pipeline)
@@ -223,9 +232,9 @@ Shader getColorPipelineFragmentShader(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Color") == 0);
-	ColorPipeline* colorPipeline =
+	ColorPipeline* handle =
 		getPipelineHandle(pipeline);
-	return colorPipeline->vk.fragmentShader;
+	return handle->vk.fragmentShader;
 }
 
 Mat4F getColorPipelineMVP(
@@ -235,9 +244,9 @@ Mat4F getColorPipelineMVP(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Color") == 0);
-	ColorPipeline* colorPipeline =
+	ColorPipeline* handle =
 		getPipelineHandle(pipeline);
-	return colorPipeline->vk.mvp;
+	return handle->vk.mvp;
 }
 void setColorPipelineMVP(
 	Pipeline pipeline,
@@ -247,9 +256,9 @@ void setColorPipelineMVP(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Color") == 0);
-	ColorPipeline* colorPipeline =
+	ColorPipeline* handle =
 		getPipelineHandle(pipeline);
-	colorPipeline->vk.mvp = mvp;
+	handle->vk.mvp = mvp;
 }
 
 Vec4F getColorPipelineColor(
@@ -259,9 +268,9 @@ Vec4F getColorPipelineColor(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Color") == 0);
-	ColorPipeline* colorPipeline =
+	ColorPipeline* handle =
 		getPipelineHandle(pipeline);
-	return colorPipeline->vk.color;
+	return handle->vk.color;
 }
 void setColorPipelineColor(
 	Pipeline pipeline,
@@ -275,7 +284,7 @@ void setColorPipelineColor(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		"Color") == 0);
-	ColorPipeline* colorPipeline =
+	ColorPipeline* handle =
 		getPipelineHandle(pipeline);
-	colorPipeline->vk.color = color;
+	handle->vk.color = color;
 }

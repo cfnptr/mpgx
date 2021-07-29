@@ -10,7 +10,7 @@ typedef struct DiffuseRender
 
 static void onDiffuseRenderDestroy(void* render)
 {
-	free(render);
+	free((DiffuseRender*)render);
 }
 static void onDiffuseRenderDraw(
 	Render render,
@@ -21,11 +21,10 @@ static void onDiffuseRenderDraw(
 	const Mat4F* viewProj,
 	const Mat4F* mvp)
 {
-	DiffuseRender* diffuseRender =
+	DiffuseRender* handle =
 		getRenderHandle(render);
 	Mat4F normal = invMat4F(
 		transposeMat4F(*model));
-
 	setDiffusePipelineMVP(
 		pipeline,
 		*mvp);
@@ -33,7 +32,7 @@ static void onDiffuseRenderDraw(
 		pipeline,
 		normal);
 	drawMesh(
-		diffuseRender->mesh,
+		handle->mesh,
 		pipeline);
 }
 Renderer createDiffuseRenderer(
@@ -82,23 +81,23 @@ Render createDiffuseRender(
 		getRendererPipeline(renderer)),
 		"Diffuse") == 0);
 
-	DiffuseRender* diffuseRender = malloc(
+	DiffuseRender* handle = malloc(
 		sizeof(DiffuseRender));
 
-	if (diffuseRender == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	diffuseRender->mesh = mesh;
+	handle->mesh = mesh;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		diffuseRender);
+		handle);
 
 	if (render == NULL)
 	{
-		free(diffuseRender);
+		free(handle);
 		return NULL;
 	}
 
@@ -114,9 +113,9 @@ Mesh getDiffuseRenderMesh(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Diffuse") == 0);
-	DiffuseRender* diffuseRender =
+	DiffuseRender* handle =
 		getRenderHandle(render);
-	return diffuseRender->mesh;
+	return handle->mesh;
 }
 void setDiffuseRenderMesh(
 	Render render,
@@ -129,7 +128,7 @@ void setDiffuseRenderMesh(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		"Diffuse") == 0);
-	DiffuseRender* diffuseRender =
+	DiffuseRender* handle =
 		getRenderHandle(render);
-	diffuseRender->mesh = mesh;
+	handle->mesh = mesh;
 }

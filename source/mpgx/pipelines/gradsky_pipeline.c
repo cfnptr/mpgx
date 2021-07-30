@@ -337,6 +337,7 @@ Pipeline createGradSkyPipeline(
 	assert(fragmentShader != NULL);
 	assert(texture != NULL);
 	assert(sampler != NULL);
+	assert(drawMode < DRAW_MODE_COUNT);
 	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
 	assert(getShaderWindow(vertexShader) == window);

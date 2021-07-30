@@ -162,6 +162,7 @@ Pipeline createColorPipeline(
 	assert(window != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
+	assert(drawMode < DRAW_MODE_COUNT);
 	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
 	assert(getShaderWindow(vertexShader) == window);

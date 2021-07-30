@@ -181,7 +181,7 @@ static void onGlTexColPipelineBind(
 	GLuint glSampler = *(const GLuint*)
 		getSamplerHandle(handle->gl.sampler);
 
-	glActiveTexture(GL_TEXTURE0 + 0);
+	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
@@ -252,6 +252,7 @@ Pipeline createTexColPipeline(
 	assert(fragmentShader != NULL);
 	assert(texture != NULL);
 	assert(sampler != NULL);
+	assert(drawMode < DRAW_MODE_COUNT);
 	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
 	assert(getShaderWindow(vertexShader) == window);

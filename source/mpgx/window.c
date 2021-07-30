@@ -3073,6 +3073,7 @@ Framebuffer createFramebuffer(
 		colorAttachmentCount != 0));
 	assert(colorAttachments != NULL ||
 		depthStencilAttachment != NULL);
+	assert(getImageWindow(depthStencilAttachment) == window);
 	assert(window->isRecording == false);
 
 	uint8_t api = window->api;

@@ -331,7 +331,6 @@ void createRenderData(
 		abort();
 	}
 
-	data->view = view;
 	data->proj = proj;
 	data->viewProj = viewProj;
 }
@@ -453,8 +452,6 @@ void drawRenderer(
 		}
 	}
 
-	Mat4F view = data->view;
-	Mat4F proj = data->proj;
 	Mat4F viewProj = data->viewProj;
 	Pipeline pipeline = renderer->pipeline;
 	OnRenderDraw onDraw = renderer->onDraw;
@@ -467,18 +464,12 @@ void drawRenderer(
 
 		Mat4F model = getTransformModel(
 			render->transform);
-		Mat4F mvp = dotMat4F(
-			viewProj,
-			model);
 
 		onDraw(
 			render,
 			pipeline,
 			&model,
-			&view,
-			&proj,
-			&viewProj,
-			&mvp);
+			&viewProj);
 	}
 }
 

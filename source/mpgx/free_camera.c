@@ -1,5 +1,7 @@
 #include "mpgx/free_camera.h"
+
 #include "cmmt/angle.h"
+#include "cmmt/common.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -229,10 +231,10 @@ void updateFreeCamera(FreeCamera freeCamera)
 		rotation.x += (cursorPosition.y - lastCursorPosition.y) * viewSpeed;
 		rotation.y += (cursorPosition.x - lastCursorPosition.x) * viewSpeed;
 
-		if (rotation.x > degToRadF(89.9f))
-			rotation.x = degToRadF(89.9f);
-		else if (rotation.x < degToRadF(-89.9f))
-			rotation.x = degToRadF(-89.9f);
+		rotation.x = clamp(
+			rotation.x,
+			degToRadF(-89.9f),
+			degToRadF(89.9f));
 
 		freeCamera->rotation = rotation;
 		freeCamera->lastCursorPosition = cursorPosition;

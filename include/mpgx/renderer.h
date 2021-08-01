@@ -17,7 +17,6 @@ typedef enum RenderSorting
 
 typedef struct RenderData
 {
-	Mat4F view;
 	Mat4F proj;
 	Mat4F viewProj;
 	Plane3F leftPlane;
@@ -34,10 +33,7 @@ typedef void(*OnRenderDraw)(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
-	const Mat4F* view,
-	const Mat4F* proj,
-	const Mat4F* viewProj,
-	const Mat4F* mvp);
+	const Mat4F* viewProj);
 
 Renderer createRenderer(
 	Transform transform,

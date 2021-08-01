@@ -16,18 +16,18 @@ static void onDiffuseRenderDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
-	const Mat4F* view,
-	const Mat4F* proj,
-	const Mat4F* viewProj,
-	const Mat4F* mvp)
+	const Mat4F* viewProj)
 {
 	DiffuseRender* handle =
 		getRenderHandle(render);
-	Mat4F normal = invMat4F(
-		transposeMat4F(*model));
+	Mat4F mvp = dotMat4F(
+		*viewProj,
+		*model);
+	Mat4F normal = transposeMat4F(
+		invMat4F(*model));
 	setDiffusePipelineMVP(
 		pipeline,
-		*mvp);
+		mvp);
 	setDiffusePipelineNormal(
 		pipeline,
 		normal);

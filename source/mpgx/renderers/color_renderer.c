@@ -17,16 +17,16 @@ static void onColorRenderDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
-	const Mat4F* view,
-	const Mat4F* proj,
-	const Mat4F* viewProj,
-	const Mat4F* mvp)
+	const Mat4F* viewProj)
 {
 	ColorRender* handle =
 		getRenderHandle(render);
+	Mat4F mvp = dotMat4F(
+		*viewProj,
+		*model);
 	setColorPipelineMVP(
 		pipeline,
-		*mvp);
+		mvp);
 	setColorPipelineColor(
 		pipeline,
 		handle->color);

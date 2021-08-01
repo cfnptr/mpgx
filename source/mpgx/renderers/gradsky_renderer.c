@@ -18,16 +18,16 @@ static void onGradSkyRenderDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
-	const Mat4F* view,
-	const Mat4F* proj,
-	const Mat4F* viewProj,
-	const Mat4F* mvp)
+	const Mat4F* viewProj)
 {
 	GradSkyRender* handle =
 		getRenderHandle(render);
+	Mat4F mvp = dotMat4F(
+		*viewProj,
+		*model);
 	setGradSkyPipelineMVP(
 		pipeline,
-		*mvp);
+		mvp);
 	setGradSkyPipelineColor(
 		pipeline,
 		handle->color);

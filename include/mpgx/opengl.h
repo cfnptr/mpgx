@@ -56,7 +56,7 @@ inline static void assertOpenGL()
 		}
 
 		fprintf(stderr,
-			"OpenGL error: %s.\n",
+			"OpenGL error: %s\n",
 			errorName);
 
 		abort();
@@ -175,7 +175,7 @@ inline static GLuint createGlPipeline(
 				(GLchar*)infoLog);
 
 			fprintf(stderr,
-				"OpenGL program link error: %s.\n",
+				"OpenGL program link error: %s\n",
 				infoLog);
 
 			free(infoLog);

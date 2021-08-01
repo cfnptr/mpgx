@@ -17,16 +17,16 @@ static void onSpriteRenderDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
-	const Mat4F* view,
-	const Mat4F* proj,
-	const Mat4F* viewProj,
-	const Mat4F* mvp)
+	const Mat4F* viewProj)
 {
 	SpriteRender* handle =
 		getRenderHandle(render);
+	Mat4F mvp = dotMat4F(
+		*viewProj,
+		*model);
 	setSpritePipelineMVP(
 		pipeline,
-		*mvp);
+		mvp);
 	setSpritePipelineColor(
 		pipeline,
 		handle->color);

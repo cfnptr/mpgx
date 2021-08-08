@@ -1049,7 +1049,7 @@ bool setTextData(
 	{
 		char* data = realloc(
 			text->data,
-			dataSize * sizeof(char));
+			dataSize);
 
 		if (data == NULL)
 			return false;
@@ -1057,7 +1057,7 @@ bool setTextData(
 		memcpy(
 			data,
 			_data,
-			dataSize * sizeof(char));
+			dataSize);
 
 		text->data = data;
 		text->dataSize = dataSize;
@@ -1068,7 +1068,7 @@ bool setTextData(
 		memcpy(
 			text->data,
 			_data,
-			dataSize * sizeof(char));
+			dataSize);
 		return true;
 	}
 }
@@ -1630,8 +1630,8 @@ Sampler createTextSampler(Window window)
 
 	return createSampler(
 		window,
-		NEAREST_IMAGE_FILTER,
-		NEAREST_IMAGE_FILTER,
+		LINEAR_IMAGE_FILTER,
+		LINEAR_IMAGE_FILTER,
 		NEAREST_IMAGE_FILTER,
 		false,
 		REPEAT_IMAGE_WRAP,

@@ -215,7 +215,8 @@ void createRenderData(
 	Window window,
 	Mat4F view,
 	Camera camera,
-	RenderData* data)
+	RenderData* data,
+	bool createPlanes)
 {
 	assert(window != NULL);
 	assert(data != NULL);
@@ -238,15 +239,19 @@ void createRenderData(
 			viewProj = dotMat4F(
 				proj,
 				view);
-			frustumZeroOneMat4F(
-				viewProj,
-				&data->leftPlane,
-				&data->rightPlane,
-				&data->bottomPlane,
-				&data->topPlane,
-				&data->backPlane,
-				&data->frontPlane,
-				false);
+
+			if (createPlanes == true)
+			{
+				frustumZeroOneMat4F(
+					viewProj,
+					&data->leftPlane,
+					&data->rightPlane,
+					&data->bottomPlane,
+					&data->topPlane,
+					&data->backPlane,
+					&data->frontPlane,
+					false);
+			}
 		}
 		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
@@ -259,15 +264,19 @@ void createRenderData(
 			viewProj = dotMat4F(
 				proj,
 				view);
-			frustumNegOneMat4F(
-				viewProj,
-				&data->leftPlane,
-				&data->rightPlane,
-				&data->bottomPlane,
-				&data->topPlane,
-				&data->backPlane,
-				&data->frontPlane,
-				false);
+
+			if (createPlanes == true)
+			{
+				frustumNegOneMat4F(
+					viewProj,
+					&data->leftPlane,
+					&data->rightPlane,
+					&data->bottomPlane,
+					&data->topPlane,
+					&data->backPlane,
+					&data->frontPlane,
+					false);
+			}
 		}
 		else
 		{
@@ -288,15 +297,19 @@ void createRenderData(
 			viewProj = dotMat4F(
 				proj,
 				view);
-			frustumZeroOneMat4F(
-				viewProj,
-				&data->leftPlane,
-				&data->rightPlane,
-				&data->bottomPlane,
-				&data->topPlane,
-				&data->backPlane,
-				&data->frontPlane,
-				false);
+
+			if (createPlanes == true)
+			{
+				frustumZeroOneMat4F(
+					viewProj,
+					&data->leftPlane,
+					&data->rightPlane,
+					&data->bottomPlane,
+					&data->topPlane,
+					&data->backPlane,
+					&data->frontPlane,
+					false);
+			}
 		}
 		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
@@ -311,15 +324,19 @@ void createRenderData(
 			viewProj = dotMat4F(
 				proj,
 				view);
-			frustumNegOneMat4F(
-				viewProj,
-				&data->leftPlane,
-				&data->rightPlane,
-				&data->bottomPlane,
-				&data->topPlane,
-				&data->backPlane,
-				&data->frontPlane,
-				false);
+
+			if (createPlanes == true)
+			{
+				frustumNegOneMat4F(
+					viewProj,
+					&data->leftPlane,
+					&data->rightPlane,
+					&data->bottomPlane,
+					&data->topPlane,
+					&data->backPlane,
+					&data->frontPlane,
+					false);
+			}
 		}
 		else
 		{
@@ -333,6 +350,16 @@ void createRenderData(
 
 	data->proj = proj;
 	data->viewProj = viewProj;
+
+	if (createPlanes == false)
+	{
+		data->leftPlane = plane3F(zeroVec3F(), 0.0f);
+		data->rightPlane = plane3F(zeroVec3F(), 0.0f);
+		data->bottomPlane = plane3F(zeroVec3F(), 0.0f);
+		data->topPlane = plane3F(zeroVec3F(), 0.0f);
+		data->backPlane = plane3F(zeroVec3F(), 0.0f);
+		data->frontPlane = plane3F(zeroVec3F(), 0.0f);
+	}
 }
 RenderResult drawRenderer(
 	Renderer renderer,

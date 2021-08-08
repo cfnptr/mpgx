@@ -72,7 +72,8 @@ void createRenderData(
 	Window window,
 	Mat4F view,
 	Camera camera,
-	RenderData* data);
+	RenderData* data,
+	bool createPlanes);
 RenderResult drawRenderer(
 	Renderer renderer,
 	const RenderData* data);

@@ -287,10 +287,11 @@ inline static bool createTextPixels(
 {
 	uint32_t glyphLength = (uint32_t)sqrtf((float)glyphCount) + 1;
 	uint32_t pixelLength = glyphLength * fontSize;
-	size_t pixelCount = pixelLength * pixelLength;
+	size_t pixelCount = (size_t)pixelLength * pixelLength;
 
-	uint8_t* pixels = malloc(
-		pixelCount * 4 * sizeof(uint8_t));
+	uint8_t* pixels = calloc(
+		pixelCount,
+		4 * sizeof(uint8_t));
 
 	if (pixels == NULL)
 		return false;
@@ -1628,9 +1629,9 @@ Sampler createTextSampler(Window window)
 		NEAREST_IMAGE_FILTER,
 		NEAREST_IMAGE_FILTER,
 		false,
-		CLAMP_TO_EDGE_IMAGE_WRAP,
-		CLAMP_TO_EDGE_IMAGE_WRAP,
-		CLAMP_TO_EDGE_IMAGE_WRAP,
+		REPEAT_IMAGE_WRAP,
+		REPEAT_IMAGE_WRAP,
+		REPEAT_IMAGE_WRAP,
 		NEVER_IMAGE_COMPARE,
 		false,
 		DEFAULT_MIN_MIPMAP_LOD,

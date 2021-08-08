@@ -360,6 +360,7 @@ InterfaceElement createInterfaceElement(
 {
 	assert(interface != NULL);
 	assert(anchor < INTERFACE_ANCHOR_COUNT);
+	assert(transform != NULL);
 	assert(onDestroy != NULL);
 
 	InterfaceElement element = malloc(
@@ -373,7 +374,6 @@ InterfaceElement createInterfaceElement(
 	element->anchor = anchor;
 	element->position = position;
 	element->bounds = bounds;
-	element->transform = transform;
 	element->onDestroy = onDestroy;
 	element->onEnter = onEnter;
 	element->onExit = onExit;
@@ -392,7 +392,6 @@ InterfaceElement createInterfaceElement(
 
 		if (elements == NULL)
 		{
-			destroyTransform(transform);
 			free(element);
 			return NULL;
 		}

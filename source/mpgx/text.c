@@ -845,6 +845,11 @@ Vec2F getTextSize(Text text)
 	assert(text != NULL);
 	return text->textSize;
 }
+size_t getTextIndexCount(Text text)
+{
+	assert(text != NULL);
+	return getMeshIndexCount(text->mesh);
+}
 
 Vec2F getTextOffset(
 	Text text,

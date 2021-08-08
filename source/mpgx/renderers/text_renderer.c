@@ -13,7 +13,7 @@ static void onTextRenderDestroy(void* render)
 {
 	free((TextRender*)render);
 }
-static void onTextRenderDraw(
+static size_t onTextRenderDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -21,6 +21,7 @@ static void onTextRenderDraw(
 {
 	TextRender* handle =
 		getRenderHandle(render);
+	Text text = handle->text;
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
@@ -31,8 +32,9 @@ static void onTextRenderDraw(
 		pipeline,
 		handle->color);
 	drawText(
-		handle->text,
+		text,
 		pipeline);
+	return getTextIndexCount(text) / 3;
 }
 Renderer createTextRenderer(
 	Transform transform,

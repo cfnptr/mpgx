@@ -26,10 +26,15 @@ typedef struct RenderData
 	Plane3F backPlane;
 	Plane3F frontPlane;
 } RenderData;
+typedef struct RenderResult
+{
+	size_t renderCount;
+	size_t polygonCount;
+} RenderResult;
 
 typedef void(*OnRenderDestroy)(
 	void* render);
-typedef void(*OnRenderDraw)(
+typedef size_t(*OnRenderDraw)(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -68,7 +73,7 @@ void createRenderData(
 	Mat4F view,
 	Camera camera,
 	RenderData* data);
-void drawRenderer(
+RenderResult drawRenderer(
 	Renderer renderer,
 	const RenderData* data);
 

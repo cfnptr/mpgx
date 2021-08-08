@@ -12,7 +12,7 @@ static void onDiffuseRenderDestroy(void* render)
 {
 	free((DiffuseRender*)render);
 }
-static void onDiffuseRenderDraw(
+static size_t onDiffuseRenderDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -20,6 +20,7 @@ static void onDiffuseRenderDraw(
 {
 	DiffuseRender* handle =
 		getRenderHandle(render);
+	Mesh mesh = handle->mesh;
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
@@ -32,8 +33,9 @@ static void onDiffuseRenderDraw(
 		pipeline,
 		normal);
 	drawMesh(
-		handle->mesh,
+		mesh,
 		pipeline);
+	return getMeshIndexCount(mesh) / 3;
 }
 Renderer createDiffuseRenderer(
 	Transform transform,

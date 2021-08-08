@@ -32,6 +32,7 @@ void destroyText(Text text);
 Window getTextWindow(Text text);
 bool isTextConstant(Text text);
 Vec2F getTextSize(Text text);
+size_t getTextIndexCount(Text text);
 
 Vec2F getTextOffset(
 	Text text,

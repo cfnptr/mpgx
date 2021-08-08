@@ -334,17 +334,21 @@ void createRenderData(
 	data->proj = proj;
 	data->viewProj = viewProj;
 }
-void drawRenderer(
+RenderResult drawRenderer(
 	Renderer renderer,
 	const RenderData* data)
 {
 	assert(renderer != NULL);
 	assert(data != NULL);
 
+	RenderResult result;
+	result.renderCount = 0;
+	result.polygonCount = 0;
+
 	size_t renderCount = renderer->renderCount;
 
 	if (renderCount == 0)
-		return;
+		return result;
 
 	Render* renders = renderer->renders;
 	RenderElement* renderElements = renderer->renderElements;
@@ -359,8 +363,6 @@ void drawRenderer(
 	Plane3F topPlane = data->topPlane;
 	Plane3F backPlane = data->backPlane;
 	Plane3F frontPlane = data->frontPlane;
-
-	size_t renderElementCount = 0;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
@@ -417,16 +419,16 @@ void drawRenderer(
 		element.rendererPosition = rendererPosition;
 		element.renderPosition = renderPosition;
 		element.render = render;
-		renderElements[renderElementCount++] = element;
+		renderElements[result.renderCount++] = element;
 
 	CONTINUE:
 		continue;
 	}
 
-	if (renderElementCount == 0)
-		return;
+	if (result.renderCount == 0)
+		return result;
 
-	if (renderElementCount > 1)
+	if (result.renderCount > 1)
 	{
 		uint8_t sortingType = renderer->sortingType;
 
@@ -434,7 +436,7 @@ void drawRenderer(
 		{
 			qsort(
 				renderElements,
-				renderElementCount,
+				result.renderCount,
 				sizeof(RenderElement),
 				ascendingRenderCompare);
 		}
@@ -442,7 +444,7 @@ void drawRenderer(
 		{
 			qsort(
 				renderElements,
-				renderElementCount,
+				result.renderCount,
 				sizeof(RenderElement),
 				descendingRenderCompare);
 		}
@@ -458,19 +460,21 @@ void drawRenderer(
 
 	bindPipeline(pipeline);
 
-	for (size_t i = 0; i < renderElementCount; i++)
+	for (size_t i = 0; i < result.renderCount; i++)
 	{
 		Render render = renderElements[i].render;
 
 		Mat4F model = getTransformModel(
 			render->transform);
 
-		onDraw(
+		result.polygonCount += onDraw(
 			render,
 			pipeline,
 			&model,
 			&viewProj);
 	}
+
+	return result;
 }
 
 Render createRender(

@@ -14,7 +14,7 @@ static void onGradSkyRenderDestroy(void* render)
 {
 	free((GradSkyRender*)render);
 }
-static void onGradSkyRenderDraw(
+static size_t onGradSkyRenderDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -22,6 +22,7 @@ static void onGradSkyRenderDraw(
 {
 	GradSkyRender* handle =
 		getRenderHandle(render);
+	Mesh mesh = handle->mesh;
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
@@ -35,8 +36,9 @@ static void onGradSkyRenderDraw(
 		pipeline,
 		handle->sunHeight);
 	drawMesh(
-		handle->mesh,
+		mesh,
 		pipeline);
+	return getMeshIndexCount(mesh) / 3;
 }
 Renderer createGradSkyRenderer(
 	Transform transform,

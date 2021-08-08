@@ -13,7 +13,7 @@ static void onColorRenderDestroy(void* render)
 {
 	free((ColorRender*)render);
 }
-static void onColorRenderDraw(
+static size_t onColorRenderDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -21,6 +21,7 @@ static void onColorRenderDraw(
 {
 	ColorRender* handle =
 		getRenderHandle(render);
+	Mesh mesh = handle->mesh;
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
@@ -31,8 +32,9 @@ static void onColorRenderDraw(
 		pipeline,
 		handle->color);
 	drawMesh(
-		handle->mesh,
+		mesh,
 		pipeline);
+	return getMeshIndexCount(mesh) / 3;
 }
 Renderer createColorRenderer(
 	Transform transform,

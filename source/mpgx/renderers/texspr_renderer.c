@@ -15,7 +15,7 @@ static void onTexSprRenderDestroy(void* render)
 {
 	free((TexSprRender*)render);
 }
-static void onTexSprRenderDraw(
+static size_t onTexSprRenderDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -23,6 +23,7 @@ static void onTexSprRenderDraw(
 {
 	TexSprRender* handle =
 		getRenderHandle(render);
+	Mesh mesh = handle->mesh;
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
@@ -39,8 +40,9 @@ static void onTexSprRenderDraw(
 		pipeline,
 		handle->offset);
 	drawMesh(
-		handle->mesh,
+		mesh,
 		pipeline);
+	return getMeshIndexCount(mesh) / 3;
 }
 Renderer createTexSprRenderer(
 	Transform transform,

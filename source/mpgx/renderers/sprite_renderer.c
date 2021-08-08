@@ -13,7 +13,7 @@ static void onSpriteRenderDestroy(void* render)
 {
 	free((SpriteRender*)render);
 }
-static void onSpriteRenderDraw(
+static size_t onSpriteRenderDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -21,6 +21,7 @@ static void onSpriteRenderDraw(
 {
 	SpriteRender* handle =
 		getRenderHandle(render);
+	Mesh mesh = handle->mesh;
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
@@ -31,8 +32,9 @@ static void onSpriteRenderDraw(
 		pipeline,
 		handle->color);
 	drawMesh(
-		handle->mesh,
+		mesh,
 		pipeline);
+	return getMeshIndexCount(mesh) / 3;
 }
 Renderer createSpriteRenderer(
 	Transform transform,

@@ -370,7 +370,7 @@ RenderResult drawRenderer(
 
 	RenderResult result;
 	result.renderCount = 0;
-	result.polygonCount = 0;
+	result.indexCount = 0;
 
 	size_t renderCount = renderer->renderCount;
 
@@ -390,6 +390,8 @@ RenderResult drawRenderer(
 	Plane3F topPlane = data->topPlane;
 	Plane3F backPlane = data->backPlane;
 	Plane3F frontPlane = data->frontPlane;
+
+	size_t elementCount = 0;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
@@ -446,16 +448,16 @@ RenderResult drawRenderer(
 		element.rendererPosition = rendererPosition;
 		element.renderPosition = renderPosition;
 		element.render = render;
-		renderElements[result.renderCount++] = element;
+		renderElements[elementCount++] = element;
 
 	CONTINUE:
 		continue;
 	}
 
-	if (result.renderCount == 0)
+	if (elementCount == 0)
 		return result;
 
-	if (result.renderCount > 1)
+	if (elementCount > 1)
 	{
 		uint8_t sortingType = renderer->sortingType;
 
@@ -463,7 +465,7 @@ RenderResult drawRenderer(
 		{
 			qsort(
 				renderElements,
-				result.renderCount,
+				elementCount,
 				sizeof(RenderElement),
 				ascendingRenderCompare);
 		}
@@ -471,7 +473,7 @@ RenderResult drawRenderer(
 		{
 			qsort(
 				renderElements,
-				result.renderCount,
+				elementCount,
 				sizeof(RenderElement),
 				descendingRenderCompare);
 		}
@@ -487,18 +489,24 @@ RenderResult drawRenderer(
 
 	bindPipeline(pipeline);
 
-	for (size_t i = 0; i < result.renderCount; i++)
+	for (size_t i = 0; i < elementCount; i++)
 	{
 		Render render = renderElements[i].render;
 
 		Mat4F model = getTransformModel(
 			render->transform);
 
-		result.polygonCount += onDraw(
+		size_t indexCount = onDraw(
 			render,
 			pipeline,
 			&model,
 			&viewProj);
+
+		if (indexCount != 0)
+		{
+			result.renderCount++;
+			result.indexCount += indexCount;
+		}
 	}
 
 	return result;

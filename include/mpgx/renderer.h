@@ -29,7 +29,7 @@ typedef struct RenderData
 typedef struct RenderResult
 {
 	size_t renderCount;
-	size_t polygonCount;
+	size_t indexCount;
 } RenderResult;
 
 typedef void(*OnRenderDestroy)(

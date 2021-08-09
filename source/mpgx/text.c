@@ -1601,7 +1601,7 @@ bool bakeText(
 
 	return true;
 }
-void drawText(
+size_t drawText(
 	Text text,
 	Pipeline pipeline)
 {
@@ -1619,7 +1619,7 @@ void drawText(
 
 	textPipeline->vk.texture =
 		text->texture;
-	drawMesh(
+	return drawMesh(
 		text->mesh,
 		pipeline);
 }

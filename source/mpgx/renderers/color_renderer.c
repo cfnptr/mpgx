@@ -21,7 +21,6 @@ static size_t onColorRenderDraw(
 {
 	ColorRender* handle =
 		getRenderHandle(render);
-	Mesh mesh = handle->mesh;
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
@@ -31,10 +30,9 @@ static size_t onColorRenderDraw(
 	setColorPipelineColor(
 		pipeline,
 		handle->color);
-	drawMesh(
-		mesh,
+	return drawMesh(
+		handle->mesh,
 		pipeline);
-	return getMeshIndexCount(mesh) / 3;
 }
 Renderer createColorRenderer(
 	Transform transform,

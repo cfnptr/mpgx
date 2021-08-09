@@ -23,7 +23,6 @@ static size_t onTexColRenderDraw(
 {
 	TexColRender* handle =
 		getRenderHandle(render);
-	Mesh mesh = handle->mesh;
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
@@ -39,10 +38,9 @@ static size_t onTexColRenderDraw(
 	setTexColPipelineOffset(
 		pipeline,
 		handle->offset);
-	drawMesh(
-		mesh,
+	return drawMesh(
+		handle->mesh,
 		pipeline);
-	return getMeshIndexCount(mesh) / 3;
 }
 Renderer createTexColRenderer(
 	Transform transform,

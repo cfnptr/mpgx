@@ -22,7 +22,6 @@ static size_t onGradSkyRenderDraw(
 {
 	GradSkyRender* handle =
 		getRenderHandle(render);
-	Mesh mesh = handle->mesh;
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
@@ -35,10 +34,9 @@ static size_t onGradSkyRenderDraw(
 	setGradSkyPipelineSunHeight(
 		pipeline,
 		handle->sunHeight);
-	drawMesh(
-		mesh,
+	return drawMesh(
+		handle->mesh,
 		pipeline);
-	return getMeshIndexCount(mesh) / 3;
 }
 Renderer createGradSkyRenderer(
 	Transform transform,

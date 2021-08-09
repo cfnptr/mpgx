@@ -21,7 +21,6 @@ static size_t onTextRenderDraw(
 {
 	TextRender* handle =
 		getRenderHandle(render);
-	Text text = handle->text;
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
@@ -31,10 +30,9 @@ static size_t onTextRenderDraw(
 	setTextPipelineColor(
 		pipeline,
 		handle->color);
-	drawText(
-		text,
+	return drawText(
+		handle->text,
 		pipeline);
-	return getTextIndexCount(text) / 3;
 }
 Renderer createTextRenderer(
 	Transform transform,

@@ -1926,7 +1926,7 @@ inline static void drawGlMesh(
 	assertOpenGL();
 }
 
-void drawMesh(
+size_t drawMesh(
 	Mesh mesh,
 	Pipeline pipeline)
 {
@@ -1934,6 +1934,9 @@ void drawMesh(
 	assert(pipeline != NULL);
 	assert(mesh->vk.window == pipeline->window);
 	assert(mesh->vk.window->isRecording == true);
+
+	if (mesh->vk.indexCount == 0)
+		return 0;
 
 	uint8_t api = pipeline->window->api;
 
@@ -1954,6 +1957,8 @@ void drawMesh(
 	{
 		abort();
 	}
+
+	return mesh->vk.indexCount;
 }
 
 ImageData createImageDataFromFile(

@@ -429,7 +429,7 @@ void setMeshIndexBuffer(
 	size_t indexOffset,
 	Buffer indexBuffer);
 
-void drawMesh(
+size_t drawMesh(
 	Mesh mesh,
 	Pipeline pipeline);
 

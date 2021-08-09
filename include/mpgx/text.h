@@ -65,7 +65,7 @@ bool setTextData(
 bool bakeText(
 	Text text,
 	bool reuse);
-void drawText(
+size_t drawText(
 	Text text,
 	Pipeline pipeline);
 

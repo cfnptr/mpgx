@@ -893,6 +893,64 @@ const char* getWindowClipboard(Window window)
 	return glfwGetClipboardString(window->handle);
 }
 
+inline static const char* getVkWindowGpuName(Window window)
+{
+	return NULL;
+}
+inline static const char* getGlWindowGpuName()
+{
+	return (const char*)glGetString(GL_RENDERER);
+}
+const char* getWindowGpuName(Window window)
+{
+	assert(window != NULL);
+
+	uint8_t api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		return getVkWindowGpuName(window);
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return getGlWindowGpuName();
+	}
+	else
+	{
+		abort();
+	}
+}
+
+inline static const char* getVkWindowGpuVendor(Window window)
+{
+	return NULL;
+}
+inline static const char* getGlWindowGpuVendor()
+{
+	return (const char*)glGetString(GL_VENDOR);
+}
+const char* getWindowGpuVendor(Window window)
+{
+	assert(window != NULL);
+
+	uint8_t api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		return getVkWindowGpuVendor(window);
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return getGlWindowGpuVendor();
+	}
+	else
+	{
+		abort();
+	}
+}
+
 bool getWindowKeyboardKey(
 	Window window,
 	int key)

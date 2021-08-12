@@ -318,6 +318,8 @@ double getWindowDeltaTime(Window window);
 Vec2F getWindowContentScale(Window window);
 Vec2U getWindowFramebufferSize(Window window);
 const char* getWindowClipboard(Window window);
+const char* getWindowGpuName(Window window);
+const char* getWindowGpuVendor(Window window);
 
 bool getWindowKeyboardKey(
 	Window window,

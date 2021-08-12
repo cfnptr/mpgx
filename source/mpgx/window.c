@@ -899,7 +899,10 @@ inline static const char* getVkWindowGpuName(Window window)
 }
 inline static const char* getGlWindowGpuName()
 {
-	return (const char*)glGetString(GL_RENDERER);
+	const char* name = (const char*)
+		glGetString(GL_RENDERER);
+	assertOpenGL();
+	return name;
 }
 const char* getWindowGpuName(Window window)
 {
@@ -928,7 +931,10 @@ inline static const char* getVkWindowGpuVendor(Window window)
 }
 inline static const char* getGlWindowGpuVendor()
 {
-	return (const char*)glGetString(GL_VENDOR);
+	const char* vendor = (const char*)
+		glGetString(GL_VENDOR);
+	assertOpenGL();
+	return vendor;
 }
 const char* getWindowGpuVendor(Window window)
 {
@@ -1617,30 +1623,35 @@ Mesh createMesh(
 {
 	assert(window != NULL);
 	assert(drawIndex < DRAW_INDEX_COUNT);
-	assert(vertexBuffer != NULL);
-	assert(indexBuffer != NULL);
-	assert(window == vertexBuffer->vk.window);
-	assert(window == indexBuffer->vk.window);
-	assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
-	assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
 	assert(window->isRecording == false);
 
 #ifndef NDEBUG
-	if (drawIndex == UINT16_DRAW_INDEX)
+	if (vertexBuffer != NULL)
 	{
-		assert(indexCount * sizeof(uint16_t) +
-			indexOffset * sizeof(uint16_t) <=
-			indexBuffer->vk.size);
+		assert(vertexBuffer->vk.window == window);
+		assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
 	}
-	else if (drawIndex == UINT32_DRAW_INDEX)
+	if (indexBuffer != NULL)
 	{
-		assert(indexCount * sizeof(uint32_t) +
-			indexOffset * sizeof(uint32_t) <=
-			indexBuffer->vk.size);
-	}
-	else
-	{
-		abort();
+		assert(indexBuffer->vk.window == window);
+		assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
+
+		if (drawIndex == UINT16_DRAW_INDEX)
+		{
+			assert(indexCount * sizeof(uint16_t) +
+				indexOffset * sizeof(uint16_t) <=
+				indexBuffer->vk.size);
+		}
+		else if (drawIndex == UINT32_DRAW_INDEX)
+		{
+			assert(indexCount * sizeof(uint32_t) +
+				indexOffset * sizeof(uint32_t) <=
+				indexBuffer->vk.size);
+		}
+		else
+		{
+			abort();
+		}
 	}
 #endif
 
@@ -1781,21 +1792,24 @@ void setMeshIndexCount(
 	assert(mesh->vk.window->isRecording == false);
 
 #ifndef NDEBUG
-	if (mesh->vk.drawIndex == UINT16_DRAW_INDEX)
+	if (mesh->vk.indexBuffer != NULL)
 	{
-		assert(indexCount * sizeof(uint16_t) +
-			mesh->vk.indexOffset * sizeof(uint16_t) <=
-			mesh->vk.indexBuffer->vk.size);
-	}
-	else if (mesh->vk.drawIndex == UINT32_DRAW_INDEX)
-	{
-		assert(indexCount * sizeof(uint32_t) +
-			mesh->vk.indexOffset * sizeof(uint32_t) <=
-			mesh->vk.indexBuffer->vk.size);
-	}
-	else
-	{
-		abort();
+		if (mesh->vk.drawIndex == UINT16_DRAW_INDEX)
+		{
+			assert(indexCount * sizeof(uint16_t) +
+				mesh->vk.indexOffset * sizeof(uint16_t) <=
+				mesh->vk.indexBuffer->vk.size);
+		}
+		else if (mesh->vk.drawIndex == UINT32_DRAW_INDEX)
+		{
+			assert(indexCount * sizeof(uint32_t) +
+				mesh->vk.indexOffset * sizeof(uint32_t) <=
+				mesh->vk.indexBuffer->vk.size);
+		}
+		else
+		{
+			abort();
+		}
 	}
 #endif
 
@@ -1816,21 +1830,24 @@ void setMeshIndexOffset(
 	assert(mesh->vk.window->isRecording == false);
 
 #ifndef NDEBUG
-	if (mesh->vk.drawIndex == UINT16_DRAW_INDEX)
+	if (mesh->vk.indexBuffer != NULL)
 	{
-		assert(mesh->vk.indexCount * sizeof(uint16_t) +
-			indexOffset * sizeof(uint16_t) <=
-			mesh->vk.indexBuffer->vk.size);
-	}
-	else if (mesh->vk.drawIndex == UINT32_DRAW_INDEX)
-	{
-		assert(mesh->vk.indexCount * sizeof(uint32_t) +
-			indexOffset * sizeof(uint32_t) <=
-			mesh->vk.indexBuffer->vk.size);
-	}
-	else
-	{
-		abort();
+		if (mesh->vk.drawIndex == UINT16_DRAW_INDEX)
+		{
+			assert(mesh->vk.indexCount * sizeof(uint16_t) +
+				indexOffset * sizeof(uint16_t) <=
+				mesh->vk.indexBuffer->vk.size);
+		}
+		else if (mesh->vk.drawIndex == UINT32_DRAW_INDEX)
+		{
+			assert(mesh->vk.indexCount * sizeof(uint32_t) +
+				indexOffset * sizeof(uint32_t) <=
+				mesh->vk.indexBuffer->vk.size);
+		}
+		else
+		{
+			abort();
+		}
 	}
 #endif
 
@@ -1848,10 +1865,16 @@ void setMeshVertexBuffer(
 	Buffer vertexBuffer)
 {
 	assert(mesh != NULL);
-	assert(vertexBuffer != NULL);
-	assert(mesh->vk.window == vertexBuffer->vk.window);
-	assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
 	assert(mesh->vk.window->isRecording == false);
+
+#ifndef NDEBUG
+	if (vertexBuffer != NULL)
+	{
+		assert(mesh->vk.window == vertexBuffer->vk.window);
+		assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
+	}
+#endif
+
 	mesh->vk.vertexBuffer = vertexBuffer;
 }
 
@@ -1870,28 +1893,30 @@ void setMeshIndexBuffer(
 {
 	assert(mesh != NULL);
 	assert(drawIndex < DRAW_INDEX_COUNT);
-	assert(indexCount != 0);
-	assert(indexBuffer != NULL);
-	assert(mesh->vk.window == indexBuffer->vk.window);
-	assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
 	assert(mesh->vk.window->isRecording == false);
 
 #ifndef NDEBUG
-	if (drawIndex == UINT16_DRAW_INDEX)
+	if (indexBuffer != NULL)
 	{
-		assert(indexCount * sizeof(uint16_t) +
-			indexOffset * sizeof(uint16_t) <=
-			indexBuffer->vk.size);
-	}
-	else if (drawIndex == UINT32_DRAW_INDEX)
-	{
-		assert(indexCount * sizeof(uint32_t) +
-			indexOffset * sizeof(uint32_t) <=
-			indexBuffer->vk.size);
-	}
-	else
-	{
-		abort();
+		assert(mesh->vk.window == indexBuffer->vk.window);
+		assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
+
+		if (drawIndex == UINT16_DRAW_INDEX)
+		{
+			assert(indexCount * sizeof(uint16_t) +
+				indexOffset * sizeof(uint16_t) <=
+				indexBuffer->vk.size);
+		}
+		else if (drawIndex == UINT32_DRAW_INDEX)
+		{
+			assert(indexCount * sizeof(uint32_t) +
+				indexOffset * sizeof(uint32_t) <=
+				indexBuffer->vk.size);
+		}
+		else
+		{
+			abort();
+		}
 	}
 #endif
 
@@ -1905,7 +1930,6 @@ inline static void drawVkMesh(
 	Mesh mesh,
 	Pipeline pipeline)
 {
-
 }
 inline static void drawGlMesh(
 	Mesh mesh,
@@ -1993,8 +2017,12 @@ size_t drawMesh(
 	assert(mesh->vk.window == pipeline->window);
 	assert(mesh->vk.window->isRecording == true);
 
-	if (mesh->vk.indexCount == 0)
+	if (mesh->vk.vertexBuffer == NULL ||
+		mesh->vk.indexBuffer == NULL ||
+		mesh->vk.indexCount == 0)
+	{
 		return 0;
+	}
 
 	uint8_t api = pipeline->window->api;
 

@@ -1210,7 +1210,7 @@ bool bakeText(
 					VERTEX_BUFFER_TYPE,
 					vertices,
 					vertexCount * sizeof(float),
-					text->isConstant);
+					false);
 
 				free(vertices);
 
@@ -1242,7 +1242,7 @@ bool bakeText(
 					INDEX_BUFFER_TYPE,
 					indices,
 					indexCount * sizeof(uint32_t),
-					text->isConstant);
+					false);
 
 				free(indices);
 
@@ -1273,8 +1273,8 @@ bool bakeText(
 
 			if (vertexBuffer == NULL)
 			{
-				Buffer _vertexBuffer =
-					getMeshVertexBuffer(text->mesh);
+				Mesh mesh = text->mesh;
+				Buffer _vertexBuffer = getMeshVertexBuffer(mesh);
 
 				setBufferData(
 					_vertexBuffer,
@@ -1282,7 +1282,7 @@ bool bakeText(
 					vertexCount * sizeof(float),
 					0);
 				setMeshIndexCount(
-					text->mesh,
+					mesh,
 					uniCharCount * 6);
 
 				free(vertices);
@@ -1346,7 +1346,7 @@ bool bakeText(
 				VERTEX_BUFFER_TYPE,
 				NULL,
 				16,
-				text->isConstant);
+				false);
 
 			if (vertexBuffer == NULL)
 			{
@@ -1360,7 +1360,7 @@ bool bakeText(
 				INDEX_BUFFER_TYPE,
 				NULL,
 				6,
-				text->isConstant);
+				false);
 
 			if (indexBuffer == NULL)
 			{
@@ -1518,7 +1518,7 @@ bool bakeText(
 				VERTEX_BUFFER_TYPE,
 				vertices,
 				vertexCount * sizeof(float),
-				text->isConstant);
+				false);
 
 			free(vertices);
 
@@ -1550,7 +1550,7 @@ bool bakeText(
 				INDEX_BUFFER_TYPE,
 				indices,
 				indexCount * sizeof(uint32_t),
-				text->isConstant);
+				false);
 
 			free(indices);
 

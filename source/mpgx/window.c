@@ -2426,6 +2426,8 @@ Image createImageFromFile(
 		return NULL;
 	}
 
+	stbi_set_flip_vertically_on_load(true);
+
 	int width, height, components;
 
 	stbi_uc* pixels = stbi_load(

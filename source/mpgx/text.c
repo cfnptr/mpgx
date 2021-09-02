@@ -1804,12 +1804,16 @@ static void onGlTextUniformsSet(
 		sizeof(Vec2F) * 2,
 		(const void*)sizeof(Vec2F));
 
+	glUniform1i(
+		handle->gl.textureLocation,
+		0);
+
+	glActiveTexture(GL_TEXTURE0);
+
 	GLuint glTexture = *(const GLuint*)
 		getImageHandle(handle->gl.texture);
 	GLuint glSampler = *(const GLuint*)
 		getSamplerHandle(handle->gl.sampler);
-
-	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
@@ -1817,9 +1821,6 @@ static void onGlTextUniformsSet(
 	glBindSampler(
 		0,
 		glSampler);
-	glUniform1i(
-		handle->gl.textureLocation,
-		0);
 
 	assertOpenGL();
 }

@@ -180,12 +180,16 @@ static void onGlTexSprPipelineBind(
 		GL_SRC_ALPHA,
 		GL_ONE_MINUS_SRC_ALPHA);
 
+	glUniform1i(
+		handle->gl.textureLocation,
+		0);
+
+	glActiveTexture(GL_TEXTURE0);
+
 	GLuint glTexture= *(const GLuint*)
 		getImageHandle(handle->gl.texture);
 	GLuint glSampler = *(const GLuint*)
 		getSamplerHandle(handle->gl.sampler);
-
-	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
@@ -193,9 +197,6 @@ static void onGlTexSprPipelineBind(
 	glBindSampler(
 		0,
 		glSampler);
-	glUniform1i(
-		handle->gl.textureLocation,
-		0);
 
 	assertOpenGL();
 }

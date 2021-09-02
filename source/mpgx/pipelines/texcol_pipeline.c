@@ -176,12 +176,16 @@ static void onGlTexColPipelineBind(
 	glFrontFace(GL_CW);
 	glCullFace(GL_BACK);
 
+	glUniform1i(
+		handle->gl.textureLocation,
+		0);
+
+	glActiveTexture(GL_TEXTURE0);
+
 	GLuint glTexture= *(const GLuint*)
 		getImageHandle(handle->gl.texture);
 	GLuint glSampler = *(const GLuint*)
 		getSamplerHandle(handle->gl.sampler);
-
-	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
@@ -189,9 +193,6 @@ static void onGlTexColPipelineBind(
 	glBindSampler(
 		0,
 		glSampler);
-	glUniform1i(
-		handle->gl.textureLocation,
-		0);
 
 	assertOpenGL();
 }

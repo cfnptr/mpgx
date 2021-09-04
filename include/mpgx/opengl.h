@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef GL_INFO_LOG_OUT
+#define GL_INFO_LOG_OUT stderr
+#endif
+
 /*
 #if MPGX_VULKAN_SUPPORT
 #define GLFW_INCLUDE_VULKAN
@@ -149,7 +153,6 @@ inline static GLuint createGlPipeline(
 
 	if (result == GL_FALSE)
 	{
-#ifndef NDEBUG
 		GLint length = 0;
 
 		glGetProgramiv(
@@ -174,13 +177,13 @@ inline static GLuint createGlPipeline(
 				&length,
 				(GLchar*)infoLog);
 
-			fprintf(stderr,
+			fprintf(GL_INFO_LOG_OUT,
 				"OpenGL program link error: %s\n",
 				infoLog);
 
 			free(infoLog);
 		}
-#endif
+
 		assertOpenGL();
 
 		glDeleteProgram(program);

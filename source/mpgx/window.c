@@ -3492,7 +3492,6 @@ inline static Shader createGlShader(
 
 	if (result == GL_FALSE)
 	{
-#ifndef NDEBUG
 		GLint length = 0;
 
 		glGetShaderiv(
@@ -3529,13 +3528,12 @@ inline static Shader createGlShader(
 			else
 				abort();
 
-			fprintf(stderr,
+			fprintf(GL_INFO_LOG_OUT,
 				"OpenGL %s shader compile error: %s\n",
 				typeString,
 				infoLog);
 			free(infoLog);
 		}
-#endif
 
 		assertOpenGL();
 

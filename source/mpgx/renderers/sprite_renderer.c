@@ -24,7 +24,7 @@ static size_t onSpriteRenderDraw(
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
-	setSpritePipelineMVP(
+	setSpritePipelineMvp(
 		pipeline,
 		mvp);
 	setSpritePipelineColor(

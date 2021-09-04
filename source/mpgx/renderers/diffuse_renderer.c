@@ -25,7 +25,7 @@ static size_t onDiffuseRenderDraw(
 		*model);
 	Mat4F normal = transposeMat4F(
 		invMat4F(*model));
-	setDiffusePipelineMVP(
+	setDiffusePipelineMvp(
 		pipeline,
 		mvp);
 	setDiffusePipelineNormal(

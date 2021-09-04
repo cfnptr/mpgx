@@ -238,7 +238,7 @@ Shader getColorPipelineFragmentShader(
 	return handle->vk.fragmentShader;
 }
 
-Mat4F getColorPipelineMVP(
+Mat4F getColorPipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -249,7 +249,7 @@ Mat4F getColorPipelineMVP(
 		getPipelineHandle(pipeline);
 	return handle->vk.mvp;
 }
-void setColorPipelineMVP(
+void setColorPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp)
 {

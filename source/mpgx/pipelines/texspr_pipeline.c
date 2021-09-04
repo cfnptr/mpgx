@@ -359,7 +359,7 @@ Sampler getTexSprPipelineSampler(
 	return handle->vk.sampler;
 }
 
-Mat4F getTexSprPipelineMVP(
+Mat4F getTexSprPipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -370,7 +370,7 @@ Mat4F getTexSprPipelineMVP(
 		getPipelineHandle(pipeline);
 	return handle->vk.mvp;
 }
-void setTexSprPipelineMVP(
+void setTexSprPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp)
 {

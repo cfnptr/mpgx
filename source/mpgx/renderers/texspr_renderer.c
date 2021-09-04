@@ -26,7 +26,7 @@ static size_t onTexSprRenderDraw(
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
-	setTexSprPipelineMVP(
+	setTexSprPipelineMvp(
 		pipeline,
 		mvp);
 	setTexSprPipelineColor(

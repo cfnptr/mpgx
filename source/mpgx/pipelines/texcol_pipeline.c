@@ -355,7 +355,7 @@ Sampler getTexColPipelineSampler(
 	return handle->vk.sampler;
 }
 
-Mat4F getTexColPipelineMVP(
+Mat4F getTexColPipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -366,7 +366,7 @@ Mat4F getTexColPipelineMVP(
 		getPipelineHandle(pipeline);
 	return handle->vk.mvp;
 }
-void setTexColPipelineMVP(
+void setTexColPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp)
 {

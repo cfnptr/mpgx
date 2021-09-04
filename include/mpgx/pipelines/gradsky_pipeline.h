@@ -29,9 +29,9 @@ Image getGradSkyPipelineTexture(
 Sampler getGradSkyPipelineSampler(
 	Pipeline pipeline);
 
-Mat4F getGradSkyPipelineMVP(
+Mat4F getGradSkyPipelineMvp(
 	Pipeline pipeline);
-void setGradSkyPipelineMVP(
+void setGradSkyPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 

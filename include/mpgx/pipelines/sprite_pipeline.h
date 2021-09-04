@@ -12,9 +12,9 @@ Shader getSpritePipelineVertexShader(
 Shader getSpritePipelineFragmentShader(
 	Pipeline pipeline);
 
-Mat4F getSpritePipelineMVP(
+Mat4F getSpritePipelineMvp(
 	Pipeline pipeline);
-void setSpritePipelineMVP(
+void setSpritePipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 

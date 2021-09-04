@@ -243,7 +243,7 @@ Shader getSpritePipelineFragmentShader(
 	return handle->vk.fragmentShader;
 }
 
-Mat4F getSpritePipelineMVP(
+Mat4F getSpritePipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -254,7 +254,7 @@ Mat4F getSpritePipelineMVP(
 		getPipelineHandle(pipeline);
 	return handle->vk.mvp;
 }
-void setSpritePipelineMVP(
+void setSpritePipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp)
 {

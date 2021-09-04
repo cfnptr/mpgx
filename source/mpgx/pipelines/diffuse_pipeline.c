@@ -317,7 +317,7 @@ Shader getDiffusePipelineFragmentShader(
 	return diffusePipeline->vk.fragmentShader;
 }
 
-Mat4F getDiffusePipelineMVP(
+Mat4F getDiffusePipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -328,7 +328,7 @@ Mat4F getDiffusePipelineMVP(
 		getPipelineHandle(pipeline);
 	return diffusePipeline->vk.mvp;
 }
-void setDiffusePipelineMVP(
+void setDiffusePipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp)
 {

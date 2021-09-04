@@ -12,9 +12,9 @@ Shader getDiffusePipelineVertexShader(
 Shader getDiffusePipelineFragmentShader(
 	Pipeline pipeline);
 
-Mat4F getDiffusePipelineMVP(
+Mat4F getDiffusePipelineMvp(
 	Pipeline pipeline);
-void setDiffusePipelineMVP(
+void setDiffusePipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 

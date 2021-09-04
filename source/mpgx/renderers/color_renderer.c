@@ -24,7 +24,7 @@ static size_t onColorRenderDraw(
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
-	setColorPipelineMVP(
+	setColorPipelineMvp(
 		pipeline,
 		mvp);
 	setColorPipelineColor(

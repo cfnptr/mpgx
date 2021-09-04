@@ -26,7 +26,7 @@ static size_t onTexColRenderDraw(
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
-	setTexColPipelineMVP(
+	setTexColPipelineMvp(
 		pipeline,
 		mvp);
 	setTexColPipelineColor(

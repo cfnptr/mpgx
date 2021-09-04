@@ -12,9 +12,9 @@ Shader getColorPipelineVertexShader(
 Shader getColorPipelineFragmentShader(
 	Pipeline pipeline);
 
-Mat4F getColorPipelineMVP(
+Mat4F getColorPipelineMvp(
 	Pipeline pipeline);
-void setColorPipelineMVP(
+void setColorPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 

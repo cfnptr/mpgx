@@ -440,7 +440,7 @@ Sampler getGradSkyPipelineSampler(
 	return handle->vk.sampler;
 }
 
-Mat4F getGradSkyPipelineMVP(
+Mat4F getGradSkyPipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -451,7 +451,7 @@ Mat4F getGradSkyPipelineMVP(
 		getPipelineHandle(pipeline);
 	return handle->vk.mvp;
 }
-void setGradSkyPipelineMVP(
+void setGradSkyPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp)
 {

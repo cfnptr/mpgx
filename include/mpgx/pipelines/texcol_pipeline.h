@@ -18,9 +18,9 @@ Image getTexColPipelineTexture(
 Sampler getTexColPipelineSampler(
 	Pipeline pipeline);
 
-Mat4F getTexColPipelineMVP(
+Mat4F getTexColPipelineMvp(
 	Pipeline pipeline);
-void setTexColPipelineMVP(
+void setTexColPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 

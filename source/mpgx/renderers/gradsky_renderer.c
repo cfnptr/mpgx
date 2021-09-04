@@ -25,7 +25,7 @@ static size_t onGradSkyRenderDraw(
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
-	setGradSkyPipelineMVP(
+	setGradSkyPipelineMvp(
 		pipeline,
 		mvp);
 	setGradSkyPipelineColor(

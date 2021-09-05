@@ -35,12 +35,6 @@ void setGradSkyPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 
-Vec4F getGradSkyPipelineColor(
-	Pipeline pipeline);
-void setGradSkyPipelineColor(
-	Pipeline pipeline,
-	Vec4F color);
-
 float getGradSkyPipelineSunHeight(
 	Pipeline pipeline);
 void setGradSkyPipelineSunHeight(

@@ -16,7 +16,6 @@ typedef struct VkGradSkyPipeline
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
-	Vec4F color;
 	float sunHeight;
 } VkGradSkyPipeline;
 typedef struct GlGradSkyPipeline
@@ -26,11 +25,9 @@ typedef struct GlGradSkyPipeline
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
-	Vec4F color;
 	float sunHeight;
 	GLuint handle;
 	GLint mvpLocation;
-	GLint colorLocation;
 	GLint sunHeightLocation;
 	GLint textureLocation;
 } GlGradSkyPipeline;
@@ -182,17 +179,6 @@ inline static GradSkyPipeline* onGlGradSkyPipelineCreate(
 		return NULL;
 	}
 
-	GLint colorLocation = getGlUniformLocation(
-		handle,
-		"u_Color");
-
-	if (colorLocation == NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(handle);
-		free(pipeline);
-		return NULL;
-	}
-
 	GLint sunHeightLocation = getGlUniformLocation(
 		handle,
 		"u_SunHeight");
@@ -223,11 +209,9 @@ inline static GradSkyPipeline* onGlGradSkyPipelineCreate(
 	pipeline->gl.sampler = sampler;
 	pipeline->gl.mvp = identMat4F();
 	pipeline->gl.mvp = identMat4F();
-	pipeline->gl.color = oneVec4F();
 	pipeline->gl.sunHeight = 1.0f;
 	pipeline->gl.handle = handle;
 	pipeline->gl.mvpLocation = mvpLocation;
-	pipeline->gl.colorLocation = colorLocation;
 	pipeline->gl.sunHeightLocation = sunHeightLocation;
 	pipeline->gl.textureLocation = textureLocation;
 	return pipeline;
@@ -304,10 +288,6 @@ static void onGlGradSkyPipelineUniformsSet(
 		1,
 		GL_FALSE,
 		(const GLfloat*)&handle->gl.mvp);
-	glUniform4fv(
-		handle->gl.colorLocation,
-		1,
-		(const GLfloat*)&handle->gl.color);
 	glUniform1fv(
 		handle->gl.sunHeightLocation,
 		1,
@@ -462,34 +442,6 @@ void setGradSkyPipelineMvp(
 	GradSkyPipeline* handle =
 		getPipelineHandle(pipeline);
 	handle->vk.mvp = mvp;
-}
-
-Vec4F getGradSkyPipelineColor(
-	Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		getPipelineName(pipeline),
-		"GradSky") == 0);
-	GradSkyPipeline* handle =
-		getPipelineHandle(pipeline);
-	return handle->vk.color;
-}
-void setGradSkyPipelineColor(
-	Pipeline pipeline,
-	Vec4F color)
-{
-	assert(pipeline != NULL);
-	assert(color.x >= 0.0f &&
-		color.y >= 0.0f &&
-		color.z >= 0.0f &&
-		color.w >= 0.0f);
-	assert(strcmp(
-		getPipelineName(pipeline),
-		"GradSky") == 0);
-	GradSkyPipeline* handle =
-		getPipelineHandle(pipeline);
-	handle->vk.color = color;
 }
 
 float getGradSkyPipelineSunHeight(

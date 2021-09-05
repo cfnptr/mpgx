@@ -1,6 +1,4 @@
 in float f_TexCoord;
-in float f_Intensity;
-
 out vec4 o_Color;
 
 uniform float u_SunHeight;

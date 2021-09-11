@@ -3,22 +3,22 @@
 #include <string.h>
 #include <assert.h>
 
-typedef struct DiffuseRender
+typedef struct RenderHandle
 {
 	Mesh mesh;
-} DiffuseRender;
+} RenderHandle;
 
-static void onDiffuseRenderDestroy(void* render)
+static void onRenderHandleDestroy(void* handle)
 {
-	free((DiffuseRender*)render);
+	free((RenderHandle*)handle);
 }
-static size_t onDiffuseRenderDraw(
+static size_t onRenderHandleDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	DiffuseRender* handle =
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
@@ -32,7 +32,7 @@ static size_t onDiffuseRenderDraw(
 		pipeline,
 		normal);
 	return drawMesh(
-		handle->mesh,
+		renderHandle->mesh,
 		pipeline);
 }
 Renderer createDiffuseRenderer(
@@ -49,15 +49,15 @@ Renderer createDiffuseRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
+		DIFFUSE_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		transform,
 		pipeline,
 		sortingType,
 		useCulling,
-		onDiffuseRenderDestroy,
-		onDiffuseRenderDraw,
+		onRenderHandleDestroy,
+		onRenderHandleDraw,
 		capacity);
 }
 Render createDiffuseRender(
@@ -79,25 +79,25 @@ Render createDiffuseRender(
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		"Diffuse") == 0);
+		DIFFUSE_PIPELINE_NAME) == 0);
 
-	DiffuseRender* handle = malloc(
-		sizeof(DiffuseRender));
+	RenderHandle* renderHandle = malloc(
+		sizeof(RenderHandle));
 
-	if (handle == NULL)
+	if (renderHandle == NULL)
 		return NULL;
 
-	handle->mesh = mesh;
+	renderHandle->mesh = mesh;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		handle);
+		renderHandle);
 
 	if (render == NULL)
 	{
-		free(handle);
+		free(renderHandle);
 		return NULL;
 	}
 
@@ -112,10 +112,10 @@ Mesh getDiffuseRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Diffuse") == 0);
-	DiffuseRender* handle =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->mesh;
+	return renderHandle->mesh;
 }
 void setDiffuseRenderMesh(
 	Render render,
@@ -127,8 +127,8 @@ void setDiffuseRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Diffuse") == 0);
-	DiffuseRender* handle =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->mesh = mesh;
+	renderHandle->mesh = mesh;
 }

@@ -265,10 +265,10 @@ typedef struct ImageData* ImageData;
 typedef void(*OnWindowUpdate)(
 	void* argument);
 
-typedef void(*OnPipelineDestroy)(
+typedef void(*OnPipelineHandleDestroy)(
 	Window window,
-	void* pipeline);
-typedef void(*OnPipelineBind)(
+	void* handle);
+typedef void(*OnPipelineHandleBind)(
 	Pipeline pipeline);
 typedef void(*OnPipelineUniformsSet)(
 	Pipeline pipeline);
@@ -541,16 +541,16 @@ Pipeline createPipeline(
 	Window window,
 	const char* name,
 	uint8_t drawMode,
-	OnPipelineDestroy onDestroy,
-	OnPipelineBind onBind,
+	OnPipelineHandleDestroy onHandleDestroy,
+	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
 	void* handle);
 void destroyPipeline(Pipeline pipeline);
 
 Window getPipelineWindow(Pipeline pipeline);
 const char* getPipelineName(Pipeline pipeline);
-OnPipelineDestroy getPipelineOnDestroy(Pipeline pipeline);
-OnPipelineBind getPipelineOnBind(Pipeline pipeline);
+OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline);
+OnPipelineHandleBind getPipelineOnHandleBind(Pipeline pipeline);
 OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline);
 void* getPipelineHandle(Pipeline pipeline);
 

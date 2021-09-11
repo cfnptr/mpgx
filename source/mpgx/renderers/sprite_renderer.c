@@ -3,23 +3,23 @@
 #include <string.h>
 #include <assert.h>
 
-typedef struct SpriteRender
+typedef struct RenderHandle
 {
 	Vec4F color;
 	Mesh mesh;
-} SpriteRender;
+} RenderHandle;
 
-static void onSpriteRenderDestroy(void* render)
+static void onRenderHandleDestroy(void* handle)
 {
-	free((SpriteRender*)render);
+	free((RenderHandle*)handle);
 }
-static size_t onSpriteRenderDraw(
+static size_t onRenderHandleDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	SpriteRender* handle =
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
@@ -29,9 +29,9 @@ static size_t onSpriteRenderDraw(
 		mvp);
 	setSpritePipelineColor(
 		pipeline,
-		handle->color);
+		renderHandle->color);
 	return drawMesh(
-		handle->mesh,
+		renderHandle->mesh,
 		pipeline);
 }
 Renderer createSpriteRenderer(
@@ -48,15 +48,15 @@ Renderer createSpriteRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Sprite") == 0);
+		SPRITE_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		transform,
 		pipeline,
 		sortingType,
 		useCulling,
-		onSpriteRenderDestroy,
-		onSpriteRenderDraw,
+		onRenderHandleDestroy,
+		onRenderHandleDraw,
 		capacity);
 }
 Render createSpriteRender(
@@ -83,26 +83,26 @@ Render createSpriteRender(
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		"Sprite") == 0);
+		SPRITE_PIPELINE_NAME) == 0);
 
-	SpriteRender* handle = malloc(
-		sizeof(SpriteRender));
+	RenderHandle* renderHandle = malloc(
+		sizeof(RenderHandle));
 
-	if (handle == NULL)
+	if (renderHandle == NULL)
 		return NULL;
 
-	handle->color = color;
-	handle->mesh = mesh;
+	renderHandle->color = color;
+	renderHandle->mesh = mesh;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		handle);
+		renderHandle);
 
 	if (render == NULL)
 	{
-		free(handle);
+		free(renderHandle);
 		return NULL;
 	}
 
@@ -117,10 +117,10 @@ Vec4F getSpriteRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Sprite") == 0);
-	SpriteRender* handle =
+		SPRITE_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->color;
+	return renderHandle->color;
 }
 void setSpriteRenderColor(
 	Render render,
@@ -135,10 +135,10 @@ void setSpriteRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Sprite") == 0);
-	SpriteRender* handle =
+		SPRITE_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->color = color;
+	renderHandle->color = color;
 }
 
 Mesh getSpriteRenderMesh(
@@ -149,10 +149,10 @@ Mesh getSpriteRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Sprite") == 0);
-	SpriteRender* handle =
+		SPRITE_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->mesh;
+	return renderHandle->mesh;
 }
 void setSpriteRenderMesh(
 	Render render,
@@ -164,8 +164,8 @@ void setSpriteRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Sprite") == 0);
-	SpriteRender* handle =
+		SPRITE_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->mesh = mesh;
+	renderHandle->mesh = mesh;
 }

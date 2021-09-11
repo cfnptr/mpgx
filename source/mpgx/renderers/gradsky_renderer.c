@@ -3,23 +3,23 @@
 #include <string.h>
 #include <assert.h>
 
-typedef struct GradSkyRender
+typedef struct RenderHandle
 {
 	float sunHeight;
 	Mesh mesh;
-} GradSkyRender;
+} RenderHandle;
 
-static void onGradSkyRenderDestroy(void* render)
+static void onRenderHandleDestroy(void* handle)
 {
-	free((GradSkyRender*)render);
+	free((RenderHandle*)handle);
 }
-static size_t onGradSkyRenderDraw(
+static size_t onRenderHandleDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	GradSkyRender* handle =
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
@@ -29,9 +29,9 @@ static size_t onGradSkyRenderDraw(
 		mvp);
 	setGradSkyPipelineSunHeight(
 		pipeline,
-		handle->sunHeight);
+		renderHandle->sunHeight);
 	return drawMesh(
-		handle->mesh,
+		renderHandle->mesh,
 		pipeline);
 }
 Renderer createGradSkyRenderer(
@@ -48,15 +48,15 @@ Renderer createGradSkyRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"GradSky") == 0);
+		GRAD_SKY_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		transform,
 		pipeline,
 		sortingType,
 		useCulling,
-		onGradSkyRenderDestroy,
-		onGradSkyRenderDraw,
+		onRenderHandleDestroy,
+		onRenderHandleDraw,
 		capacity);
 }
 Render createGradSkyRender(
@@ -79,26 +79,26 @@ Render createGradSkyRender(
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		"GradSky") == 0);
+		GRAD_SKY_PIPELINE_NAME) == 0);
 
-	GradSkyRender* handle = malloc(
-		sizeof(GradSkyRender));
+	RenderHandle* renderHandle = malloc(
+		sizeof(RenderHandle));
 
-	if (handle == NULL)
+	if (renderHandle == NULL)
 		return NULL;
 
-	handle->sunHeight = sunHeight;
-	handle->mesh = mesh;
+	renderHandle->sunHeight = sunHeight;
+	renderHandle->mesh = mesh;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		handle);
+		renderHandle);
 
 	if (render == NULL)
 	{
-		free(handle);
+		free(renderHandle);
 		return NULL;
 	}
 
@@ -113,10 +113,10 @@ float getGradSkyRenderSunHeight(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"GradSky") == 0);
-	GradSkyRender* handle =
+		GRAD_SKY_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->sunHeight;
+	return renderHandle->sunHeight;
 }
 void setGradSkyRenderSunHeight(
 	Render render,
@@ -127,10 +127,10 @@ void setGradSkyRenderSunHeight(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"GradSky") == 0);
-	GradSkyRender* handle =
+		GRAD_SKY_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->sunHeight = sunHeight;
+	renderHandle->sunHeight = sunHeight;
 }
 
 Mesh getGradSkyRenderMesh(
@@ -141,10 +141,10 @@ Mesh getGradSkyRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"GradSky") == 0);
-	GradSkyRender* handle =
+		GRAD_SKY_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->mesh;
+	return renderHandle->mesh;
 }
 void setGradSkyRenderMesh(
 	Render render,
@@ -156,8 +156,8 @@ void setGradSkyRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"GradSky") == 0);
-	GradSkyRender* handle =
+		GRAD_SKY_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->mesh = mesh;
+	renderHandle->mesh = mesh;
 }

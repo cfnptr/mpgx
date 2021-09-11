@@ -22,8 +22,8 @@ struct Renderer
 	Pipeline pipeline;
 	uint8_t sortingType;
 	bool useCulling;
-	OnRenderDestroy onDestroy;
-	OnRenderDraw onDraw;
+	OnRenderHandleDestroy onHandleDestroy;
+	OnRenderHandleDraw onHandleDraw;
 	Render* renders;
 	RenderElement* renderElements;
 	size_t renderCapacity;
@@ -35,15 +35,15 @@ Renderer createRenderer(
 	Pipeline pipeline,
 	uint8_t sortingType,
 	bool useCulling,
-	OnRenderDestroy onDestroy,
-	OnRenderDraw onDraw,
+	OnRenderHandleDestroy onHandleDestroy,
+	OnRenderHandleDraw onHandleDraw,
 	size_t capacity)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
 	assert(sortingType < RENDER_SORTING_COUNT);
-	assert(onDestroy != NULL);
-	assert(onDraw != NULL);
+	assert(onHandleDestroy != NULL);
+	assert(onHandleDraw != NULL);
 	assert(capacity != 0);
 
 	Renderer renderer = malloc(
@@ -75,8 +75,8 @@ Renderer createRenderer(
 	renderer->pipeline = pipeline;
 	renderer->sortingType = sortingType;
 	renderer->useCulling = useCulling;
-	renderer->onDestroy = onDestroy;
-	renderer->onDraw = onDraw;
+	renderer->onHandleDestroy = onHandleDestroy;
+	renderer->onHandleDraw = onHandleDraw;
 	renderer->renders = renders;
 	renderer->renderElements = renderElements;
 	renderer->renderCapacity = capacity;
@@ -92,12 +92,14 @@ void destroyRenderer(Renderer renderer)
 
 	Render* renders = renderer->renders;
 	size_t renderCount = renderer->renderCount;
-	OnRenderDestroy onDestroy = renderer->onDestroy;
+
+	OnRenderHandleDestroy onHandleDestroy =
+		renderer->onHandleDestroy;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
 		Render render = renders[i];
-		onDestroy(render->handle);
+		onHandleDestroy(render->handle);
 		free(render);
 	}
 
@@ -120,15 +122,15 @@ Pipeline getRendererPipeline(Renderer renderer)
 	assert(renderer != NULL);
 	return renderer->pipeline;
 }
-OnRenderDestroy getRendererOnDestroy(Renderer renderer)
+OnRenderHandleDestroy getRendererOnHandleDestroy(Renderer renderer)
 {
 	assert(renderer != NULL);
-	return renderer->onDestroy;
+	return renderer->onHandleDestroy;
 }
-OnRenderDraw getRendererOnDraw(Renderer renderer)
+OnRenderHandleDraw getRendererOnHandleDraw(Renderer renderer)
 {
 	assert(renderer != NULL);
-	return renderer->onDraw;
+	return renderer->onHandleDraw;
 }
 
 uint8_t getRendererSortingType(
@@ -485,7 +487,9 @@ RenderResult drawRenderer(
 
 	Mat4F viewProj = data->viewProj;
 	Pipeline pipeline = renderer->pipeline;
-	OnRenderDraw onDraw = renderer->onDraw;
+
+	OnRenderHandleDraw onHandleDraw =
+		renderer->onHandleDraw;
 
 	bindPipeline(pipeline);
 
@@ -496,7 +500,7 @@ RenderResult drawRenderer(
 		Mat4F model = getTransformModel(
 			render->transform);
 
-		size_t indexCount = onDraw(
+		size_t indexCount = onHandleDraw(
 			render,
 			pipeline,
 			&model,
@@ -581,7 +585,9 @@ void destroyRender(Render render)
 	Renderer renderer = render->renderer;
 	Render* renders = renderer->renders;
 	size_t renderCount = renderer->renderCount;
-	OnRenderDestroy onDestroy = renderer->onDestroy;
+
+	OnRenderHandleDestroy onHandleDestroy =
+		renderer->onHandleDestroy;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
@@ -591,7 +597,7 @@ void destroyRender(Render render)
 		for (size_t j = i + 1; j < renderCount; j++)
 			renders[j - 1] = renders[j];
 
-		onDestroy(render->handle);
+		onHandleDestroy(render->handle);
 		free(render);
 		renderer->renderCount--;
 		return;

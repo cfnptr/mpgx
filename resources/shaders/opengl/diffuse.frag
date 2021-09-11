@@ -1,13 +1,13 @@
 in vec3 f_Normal;
 out vec4 o_Color;
 
-layout(std140) uniform FragmentBufferObject
+layout(std140) uniform UniformBuffer
 {
     vec4 objectColor;
     vec4 ambientColor;
     vec4 lightColor;
     vec4 lightDirection;
-} fbo;
+} u;
 
 float getDiffuse(vec3 normal, vec3 direction)
 {
@@ -16,8 +16,8 @@ float getDiffuse(vec3 normal, vec3 direction)
 
 void main()
 {
-    vec4 ambientColor = fbo.objectColor * fbo.ambientColor;
-    float diffuse = getDiffuse(f_Normal, fbo.lightDirection.xyz);
-    vec4 diffuseColor = fbo.lightColor * diffuse;
-    o_Color = (ambientColor + diffuseColor) * fbo.objectColor;
+    vec4 ambientColor = u.objectColor * u.ambientColor;
+    float diffuse = getDiffuse(f_Normal, u.lightDirection.xyz);
+    vec4 diffuseColor = u.lightColor * diffuse;
+    o_Color = (ambientColor + diffuseColor) * u.objectColor;
 }

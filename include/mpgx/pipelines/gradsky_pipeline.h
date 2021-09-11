@@ -1,6 +1,8 @@
 #pragma once
 #include "mpgx/window.h"
 
+#define GRAD_SKY_PIPELINE_NAME "GradSky"
+
 typedef struct GradSkyAmbient* GradSkyAmbient;
 
 GradSkyAmbient createGradSkyAmbient(ImageData gradient);

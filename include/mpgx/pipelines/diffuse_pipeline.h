@@ -1,6 +1,8 @@
 #pragma once
 #include "mpgx/window.h"
 
+#define DIFFUSE_PIPELINE_NAME "Diffuse"
+
 Pipeline createDiffusePipeline(
 	Window window,
 	Shader vertexShader,

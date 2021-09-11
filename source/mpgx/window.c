@@ -177,8 +177,8 @@ struct Pipeline
 	Window window;
 	const char* name;
 	uint8_t drawMode;
-	OnPipelineDestroy onDestroy;
-	OnPipelineBind onBind;
+	OnPipelineHandleDestroy onHandleDestroy;
+	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
 	void* handle;
 };
@@ -766,7 +766,7 @@ void destroyWindow(Window window)
 	{
 		Pipeline pipeline = pipelines[i];
 
-		pipeline->onDestroy(
+		pipeline->onHandleDestroy(
 			window,
 			pipeline->handle);
 	}
@@ -3769,16 +3769,16 @@ Pipeline createPipeline(
 	Window window,
 	const char* name,
 	uint8_t drawMode,
-	OnPipelineDestroy onDestroy,
-	OnPipelineBind onBind,
+	OnPipelineHandleDestroy onHandleDestroy,
+	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
 	void* handle)
 {
 	assert(window != NULL);
 	assert(name != NULL);
 	assert(drawMode < DRAW_MODE_COUNT);
-	assert(onDestroy != NULL);
-	assert(onBind != NULL);
+	assert(onHandleDestroy != NULL);
+	assert(onHandleBind != NULL);
 	assert(onUniformsSet != NULL);
 	assert(handle != NULL);
 	assert(window->isRecording == false);
@@ -3792,8 +3792,8 @@ Pipeline createPipeline(
 	pipeline->window = window;
 	pipeline->name = name;
 	pipeline->drawMode = drawMode;
-	pipeline->onDestroy = onDestroy;
-	pipeline->onBind = onBind;
+	pipeline->onHandleDestroy = onHandleDestroy;
+	pipeline->onHandleBind = onHandleBind;
 	pipeline->onUniformsSet = onUniformsSet;
 	pipeline->handle = handle;
 
@@ -3809,7 +3809,7 @@ Pipeline createPipeline(
 
 		if (pipelines == NULL)
 		{
-			onDestroy(
+			onHandleDestroy(
 				window,
 				handle);
 
@@ -3844,7 +3844,7 @@ void destroyPipeline(Pipeline pipeline)
 		for (size_t j = i + 1; j < pipelineCount; j++)
 			pipelines[j - 1] = pipelines[j];
 
-		pipeline->onDestroy(
+		pipeline->onHandleDestroy(
 			window,
 			pipeline->handle);
 		free(pipeline);
@@ -3865,15 +3865,15 @@ const char* getPipelineName(Pipeline pipeline)
 	assert(pipeline != NULL);
 	return pipeline->name;
 }
-OnPipelineDestroy getPipelineOnDestroy(Pipeline pipeline)
+OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->onDestroy;
+	return pipeline->onHandleDestroy;
 }
-OnPipelineBind getPipelineOnBind(Pipeline pipeline)
+OnPipelineHandleBind getPipelineOnHandleBind(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->onBind;
+	return pipeline->onHandleBind;
 }
 OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline)
 {
@@ -3905,5 +3905,5 @@ void bindPipeline(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(pipeline->window->isRecording == true);
-	pipeline->onBind(pipeline);
+	pipeline->onHandleBind(pipeline);
 }

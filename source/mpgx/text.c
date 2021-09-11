@@ -35,7 +35,7 @@ typedef struct Glyph
 	float advance;
 } Glyph;
 
-typedef struct VkTextPipeline
+typedef struct VkPipelineHandle
 {
 	Shader vertexShader;
 	Shader fragmentShader;
@@ -43,8 +43,8 @@ typedef struct VkTextPipeline
 	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
-} VkTextPipeline;
-typedef struct GlTextPipeline
+} VkPipelineHandle;
+typedef struct GlPipelineHandle
 {
 	Shader vertexShader;
 	Shader fragmentShader;
@@ -56,12 +56,12 @@ typedef struct GlTextPipeline
 	GLint mvpLocation;
 	GLint colorLocation;
 	GLint textureLocation;
-} GlTextPipeline;
-typedef union TextPipeline
+} GlPipelineHandle;
+typedef union PipelineHandle
 {
-	VkTextPipeline vk;
-	GlTextPipeline gl;
-} TextPipeline;
+	VkPipelineHandle vk;
+	GlPipelineHandle gl;
+} PipelineHandle;
 
 Font createFontFromFile(
 	const void* filePath)
@@ -1612,9 +1612,9 @@ size_t drawText(
 		getPipelineWindow(pipeline));
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Text") == 0);
+		TEXT_PIPELINE_NAME) == 0);
 
-	TextPipeline* textPipeline =
+	PipelineHandle* textPipeline =
 		getPipelineHandle(pipeline);
 
 	textPipeline->vk.texture =
@@ -1643,16 +1643,16 @@ Sampler createTextSampler(Window window)
 		DEFAULT_MAX_MIPMAP_LOD);
 }
 
-inline static TextPipeline* onGlTextPipelineCreate(
+inline static PipelineHandle* createGlPipelineHandle(
 	Window window,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler)
 {
-	TextPipeline* pipeline = malloc(
-		sizeof(TextPipeline));
+	PipelineHandle* pipelineHandle = malloc(
+		sizeof(PipelineHandle));
 
-	if (pipeline == NULL)
+	if (pipelineHandle == NULL)
 		return NULL;
 
 	Shader shaders[2] = {
@@ -1660,19 +1660,19 @@ inline static TextPipeline* onGlTextPipelineCreate(
 		fragmentShader,
 	};
 
-	GLuint handle = createGlPipeline(
+	GLuint glHandle = createGlPipeline(
 		window,
 		shaders,
 		2);
 
-	if (handle == GL_ZERO)
+	if (glHandle == GL_ZERO)
 	{
-		free(pipeline);
+		free(pipelineHandle);
 		return NULL;
 	}
 
 	GLint mvpLocation = glGetUniformLocation(
-		handle,
+		glHandle,
 		"u_MVP");
 
 	if (mvpLocation == -1)
@@ -1680,13 +1680,13 @@ inline static TextPipeline* onGlTextPipelineCreate(
 #ifndef NDEBUG
 		printf("Failed to get 'u_MVP' location\n");
 #endif
-		glDeleteProgram(handle);
-		free(pipeline);
+		glDeleteProgram(glHandle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
 	GLint colorLocation = glGetUniformLocation(
-		handle,
+		glHandle,
 		"u_Color");
 
 	if (colorLocation == -1)
@@ -1694,13 +1694,13 @@ inline static TextPipeline* onGlTextPipelineCreate(
 #ifndef NDEBUG
 		printf("Failed to get 'u_Color' location\n");
 #endif
-		glDeleteProgram(handle);
-		free(pipeline);
+		glDeleteProgram(glHandle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
 	GLint textureLocation = glGetUniformLocation(
-		handle,
+		glHandle,
 		"u_Texture");
 
 	if (textureLocation == -1)
@@ -1708,37 +1708,37 @@ inline static TextPipeline* onGlTextPipelineCreate(
 #ifndef NDEBUG
 		printf("Failed to get 'u_Texture' location\n");
 #endif
-		glDeleteProgram(handle);
-		free(pipeline);
+		glDeleteProgram(glHandle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
 	assertOpenGL();
 
-	pipeline->gl.vertexShader = vertexShader;
-	pipeline->gl.fragmentShader = fragmentShader;
-	pipeline->gl.texture = NULL;
-	pipeline->gl.sampler = sampler;
-	pipeline->gl.mvp = identMat4F();
-	pipeline->gl.color = valVec4F(1.0f);
-	pipeline->gl.handle = handle;
-	pipeline->gl.mvpLocation = mvpLocation;
-	pipeline->gl.colorLocation = colorLocation;
-	pipeline->gl.textureLocation = textureLocation;
-	return pipeline;
+	pipelineHandle->gl.vertexShader = vertexShader;
+	pipelineHandle->gl.fragmentShader = fragmentShader;
+	pipelineHandle->gl.texture = NULL;
+	pipelineHandle->gl.sampler = sampler;
+	pipelineHandle->gl.mvp = identMat4F();
+	pipelineHandle->gl.color = valVec4F(1.0f);
+	pipelineHandle->gl.handle = glHandle;
+	pipelineHandle->gl.mvpLocation = mvpLocation;
+	pipelineHandle->gl.colorLocation = colorLocation;
+	pipelineHandle->gl.textureLocation = textureLocation;
+	return pipelineHandle;
 }
-static void onGlTextPipelineDestroy(
+static void onGlPipelineHandleDestroy(
 	Window window,
-	void* pipeline)
+	void* handle)
 {
-	TextPipeline* handle =
-		(TextPipeline*)pipeline;
+	PipelineHandle* pipelineHandle =
+		(PipelineHandle*)handle;
 	destroyGlPipeline(
 		window,
-		handle->gl.handle);
-	free(handle);
+		pipelineHandle->gl.handle);
+	free(pipelineHandle);
 }
-static void onGlTextPipelineBind(
+static void onGlPipelineHandleBind(
 	Pipeline pipeline)
 {
 	Vec2U size = getWindowFramebufferSize(
@@ -1750,10 +1750,10 @@ static void onGlTextPipelineBind(
 		(GLsizei)size.x,
 		(GLsizei)size.y);
 
-	TextPipeline* handle =
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
 
-	glUseProgram(handle->gl.handle);
+	glUseProgram(pipelineHandle->gl.handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -1770,21 +1770,21 @@ static void onGlTextPipelineBind(
 
 	assertOpenGL();
 }
-static void onGlTextUniformsSet(
+static void onGlPipelineUniformsSet(
 	Pipeline pipeline)
 {
-	TextPipeline* handle =
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
 
 	glUniformMatrix4fv(
-		handle->gl.mvpLocation,
+		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const float*)&handle->gl.mvp);
+		(const float*)&pipelineHandle->gl.mvp);
 	glUniform4fv(
-		handle->gl.colorLocation,
+		pipelineHandle->gl.colorLocation,
 		1,
-		(const float*)&handle->gl.color);
+		(const float*)&pipelineHandle->gl.color);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -1805,15 +1805,15 @@ static void onGlTextUniformsSet(
 		(const void*)sizeof(Vec2F));
 
 	glUniform1i(
-		handle->gl.textureLocation,
+		pipelineHandle->gl.textureLocation,
 		0);
 
 	glActiveTexture(GL_TEXTURE0);
 
 	GLuint glTexture = *(const GLuint*)
-		getImageHandle(handle->gl.texture);
+		getImageHandle(pipelineHandle->gl.texture);
 	GLuint glSampler = *(const GLuint*)
-		getSamplerHandle(handle->gl.sampler);
+		getSamplerHandle(pipelineHandle->gl.sampler);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
@@ -1844,46 +1844,46 @@ Pipeline createTextPipeline(
 
 	uint8_t api = getWindowGraphicsAPI(window);
 
-	TextPipeline* handle;
-	OnPipelineDestroy onDestroy;
-	OnPipelineBind onBind;
+	PipelineHandle* pipelineHandle;
+	OnPipelineHandleDestroy onHandleDestroy;
+	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
 
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		handle = onGlTextPipelineCreate(
+		pipelineHandle = createGlPipelineHandle(
 			window,
 			vertexShader,
 			fragmentShader,
 			sampler);
 
-		onDestroy = onGlTextPipelineDestroy;
-		onBind = onGlTextPipelineBind;
-		onUniformsSet = onGlTextUniformsSet;
+		onHandleDestroy = onGlPipelineHandleDestroy;
+		onHandleBind = onGlPipelineHandleBind;
+		onUniformsSet = onGlPipelineUniformsSet;
 	}
 	else
 	{
 		return NULL;
 	}
 
-	if (handle == NULL)
+	if (pipelineHandle == NULL)
 		return NULL;
 
 	Pipeline pipeline = createPipeline(
 		window,
-		"Text",
+		TEXT_PIPELINE_NAME,
 		drawMode,
-		onDestroy,
-		onBind,
+		onHandleDestroy,
+		onHandleBind,
 		onUniformsSet,
-		handle);
+		pipelineHandle);
 
 	if (pipeline == NULL)
 	{
-		onDestroy(
+		onHandleDestroy(
 			window,
-			handle);
+			pipelineHandle);
 		return NULL;
 	}
 
@@ -1896,10 +1896,10 @@ Shader getTextPipelineVertexShader(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Text") == 0);
-	TextPipeline* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return handle->vk.vertexShader;
+	return pipelineHandle->vk.vertexShader;
 }
 Shader getTextPipelineFragmentShader(
 	Pipeline pipeline)
@@ -1907,10 +1907,10 @@ Shader getTextPipelineFragmentShader(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Text") == 0);
-	TextPipeline* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return handle->vk.fragmentShader;
+	return pipelineHandle->vk.fragmentShader;
 }
 Sampler getTextPipelineSampler(
 	Pipeline pipeline)
@@ -1918,10 +1918,10 @@ Sampler getTextPipelineSampler(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Text") == 0);
-	TextPipeline* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return handle->vk.sampler;
+	return pipelineHandle->vk.sampler;
 }
 
 Vec4F getTextPipelineColor(
@@ -1930,10 +1930,10 @@ Vec4F getTextPipelineColor(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Text") == 0);
-	TextPipeline* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return handle->vk.color;
+	return pipelineHandle->vk.color;
 }
 void setTextPipelineColor(
 	Pipeline pipeline,
@@ -1942,10 +1942,10 @@ void setTextPipelineColor(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Text") == 0);
-	TextPipeline* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	handle->vk.color = color;
+	pipelineHandle->vk.color = color;
 }
 
 Mat4F getTextPipelineMVP(
@@ -1954,10 +1954,10 @@ Mat4F getTextPipelineMVP(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Text") == 0);
-	TextPipeline* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return handle->vk.mvp;
+	return pipelineHandle->vk.mvp;
 }
 void setTextPipelineMVP(
 	Pipeline pipeline,
@@ -1966,8 +1966,8 @@ void setTextPipelineMVP(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Text") == 0);
-	TextPipeline* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	handle->vk.mvp = mvp;
+	pipelineHandle->vk.mvp = mvp;
 }

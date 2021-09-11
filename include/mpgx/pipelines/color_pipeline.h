@@ -1,6 +1,8 @@
 #pragma once
 #include "mpgx/window.h"
 
+#define COLOR_PIPELINE_NAME "Color"
+
 Pipeline createColorPipeline(
 	Window window,
 	Shader vertexShader,

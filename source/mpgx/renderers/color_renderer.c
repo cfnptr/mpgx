@@ -3,23 +3,23 @@
 #include <string.h>
 #include <assert.h>
 
-typedef struct ColorRender
+typedef struct RenderHandle
 {
 	Vec4F color;
 	Mesh mesh;
-} ColorRender;
+} RenderHandle;
 
-static void onColorRenderDestroy(void* render)
+static void onRenderHandleDestroy(void* handle)
 {
-	free((ColorRender*)render);
+	free((RenderHandle*)handle);
 }
-static size_t onColorRenderDraw(
+static size_t onRenderHandleDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	ColorRender* handle =
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
@@ -29,9 +29,9 @@ static size_t onColorRenderDraw(
 		mvp);
 	setColorPipelineColor(
 		pipeline,
-		handle->color);
+		renderHandle->color);
 	return drawMesh(
-		handle->mesh,
+		renderHandle->mesh,
 		pipeline);
 }
 Renderer createColorRenderer(
@@ -48,15 +48,15 @@ Renderer createColorRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Color") == 0);
+		COLOR_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		transform,
 		pipeline,
 		sortingType,
 		useCulling,
-		onColorRenderDestroy,
-		onColorRenderDraw,
+		onRenderHandleDestroy,
+		onRenderHandleDraw,
 		capacity);
 }
 Render createColorRender(
@@ -83,26 +83,26 @@ Render createColorRender(
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		"Color") == 0);
+		COLOR_PIPELINE_NAME) == 0);
 
-	ColorRender* colorRender = malloc(
-		sizeof(ColorRender));
+	RenderHandle* renderHandle = malloc(
+		sizeof(RenderHandle));
 
-	if (colorRender == NULL)
+	if (renderHandle == NULL)
 		return NULL;
 
-	colorRender->color = color;
-	colorRender->mesh = mesh;
+	renderHandle->color = color;
+	renderHandle->mesh = mesh;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		colorRender);
+		renderHandle);
 
 	if (render == NULL)
 	{
-		free(colorRender);
+		free(renderHandle);
 		return NULL;
 	}
 
@@ -117,10 +117,10 @@ Vec4F getColorRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Color") == 0);
-	ColorRender* colorRender =
+		COLOR_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return colorRender->color;
+	return renderHandle->color;
 }
 void setColorRenderColor(
 	Render render,
@@ -135,10 +135,10 @@ void setColorRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Color") == 0);
-	ColorRender* colorRender =
+		COLOR_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	colorRender->color = color;
+	renderHandle->color = color;
 }
 
 Mesh getColorRenderMesh(
@@ -149,10 +149,10 @@ Mesh getColorRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Color") == 0);
-	ColorRender* colorRender =
+		COLOR_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return colorRender->mesh;
+	return renderHandle->mesh;
 }
 void setColorRenderMesh(
 	Render render,
@@ -164,8 +164,8 @@ void setColorRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Color") == 0);
-	ColorRender* colorRender =
+		COLOR_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	colorRender->mesh = mesh;
+	renderHandle->mesh = mesh;
 }

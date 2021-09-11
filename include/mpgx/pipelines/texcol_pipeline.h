@@ -1,6 +1,8 @@
 #pragma once
 #include "mpgx/window.h"
 
+#define TEX_COL_PIPELINE_NAME "TexCol"
+
 Pipeline createTexColPipeline(
 	Window window,
 	Shader vertexShader,

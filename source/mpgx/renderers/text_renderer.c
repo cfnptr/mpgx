@@ -3,23 +3,23 @@
 #include <string.h>
 #include <assert.h>
 
-typedef struct TextRender
+typedef struct RenderHandle
 {
 	Vec4F color;
 	Text text;
-} TextRender;
+} RenderHandle;
 
-static void onTextRenderDestroy(void* render)
+static void onRenderHandleDestroy(void* handle)
 {
-	free((TextRender*)render);
+	free((RenderHandle*)handle);
 }
-static size_t onTextRenderDraw(
+static size_t onRenderHandleDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	TextRender* handle =
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
@@ -29,9 +29,9 @@ static size_t onTextRenderDraw(
 		mvp);
 	setTextPipelineColor(
 		pipeline,
-		handle->color);
+		renderHandle->color);
 	return drawText(
-		handle->text,
+		renderHandle->text,
 		pipeline);
 }
 Renderer createTextRenderer(
@@ -48,15 +48,15 @@ Renderer createTextRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Text") == 0);
+		TEXT_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		transform,
 		pipeline,
 		sortingType,
 		useCulling,
-		onTextRenderDestroy,
-		onTextRenderDraw,
+		onRenderHandleDestroy,
+		onRenderHandleDraw,
 		capacity);
 }
 Render createTextRender(
@@ -83,26 +83,26 @@ Render createTextRender(
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		"Text") == 0);
+		TEXT_PIPELINE_NAME) == 0);
 
-	TextRender* handle = malloc(
-		sizeof(TextRender));
+	RenderHandle* renderHandle = malloc(
+		sizeof(RenderHandle));
 
-	if (handle == NULL)
+	if (renderHandle == NULL)
 		return NULL;
 
-	handle->color = color;
-	handle->text = text;
+	renderHandle->color = color;
+	renderHandle->text = text;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		handle);
+		renderHandle);
 
 	if (render == NULL)
 	{
-		free(handle);
+		free(renderHandle);
 		return NULL;
 	}
 
@@ -117,10 +117,10 @@ Vec4F getTextRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Text") == 0);
-	TextRender* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->color;
+	return renderHandle->color;
 }
 void setTextRenderColor(
 	Render render,
@@ -135,10 +135,10 @@ void setTextRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Text") == 0);
-	TextRender* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->color = color;
+	renderHandle->color = color;
 }
 
 Text getTextRenderText(
@@ -149,10 +149,10 @@ Text getTextRenderText(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Text") == 0);
-	TextRender* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->text;
+	return renderHandle->text;
 }
 void setTextRenderText(
 	Render render,
@@ -164,8 +164,8 @@ void setTextRenderText(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"Text") == 0);
-	TextRender* handle =
+		TEXT_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->text = text;
+	renderHandle->text = text;
 }

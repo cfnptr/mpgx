@@ -1,6 +1,8 @@
 #pragma once
 #include "mpgx/window.h"
 
+#define TEX_SPR_PIPELINE_NAME "TexSpr"
+
 Pipeline createTexSprPipeline(
 	Window window,
 	Shader vertexShader,

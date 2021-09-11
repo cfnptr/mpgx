@@ -32,9 +32,9 @@ typedef struct RenderResult
 	size_t indexCount;
 } RenderResult;
 
-typedef void(*OnRenderDestroy)(
-	void* render);
-typedef size_t(*OnRenderDraw)(
+typedef void(*OnRenderHandleDestroy)(
+	void* handle);
+typedef size_t(*OnRenderHandleDraw)(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -45,16 +45,16 @@ Renderer createRenderer(
 	Pipeline pipeline,
 	uint8_t sortingType,
 	bool useCulling,
-	OnRenderDestroy onDestroy,
-	OnRenderDraw onDraw,
+	OnRenderHandleDestroy onHandleDestroy,
+	OnRenderHandleDraw onHandleDraw,
 	size_t capacity);
 void destroyRenderer(Renderer renderer);
 
 bool isRendererEmpty(Renderer renderer);
 Transform getRendererTransform(Renderer renderer);
 Pipeline getRendererPipeline(Renderer renderer);
-OnRenderDestroy getRendererOnDestroy(Renderer renderer);
-OnRenderDraw getRendererOnDraw(Renderer renderer);
+OnRenderHandleDestroy getRendererOnHandleDestroy(Renderer renderer);
+OnRenderHandleDraw getRendererOnHandleDraw(Renderer renderer);
 
 uint8_t getRendererSortingType(
 	Renderer renderer);

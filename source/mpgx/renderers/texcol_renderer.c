@@ -3,25 +3,25 @@
 #include <string.h>
 #include <assert.h>
 
-typedef struct TexColRender
+typedef struct RenderHandle
 {
 	Vec4F color;
 	Vec2F size;
 	Vec2F offset;
 	Mesh mesh;
-} TexColRender;
+} RenderHandle;
 
-static void onTexColRenderDestroy(void* render)
+static void onRenderHandleDestroy(void* handle)
 {
-	free((TexColRender*)render);
+	free((RenderHandle*)handle);
 }
-static size_t onTexColRenderDraw(
+static size_t onRenderHandleDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	TexColRender* handle =
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
@@ -31,15 +31,15 @@ static size_t onTexColRenderDraw(
 		mvp);
 	setTexColPipelineColor(
 		pipeline,
-		handle->color);
+		renderHandle->color);
 	setTexColPipelineSize(
 		pipeline,
-		handle->size);
+		renderHandle->size);
 	setTexColPipelineOffset(
 		pipeline,
-		handle->offset);
+		renderHandle->offset);
 	return drawMesh(
-		handle->mesh,
+		renderHandle->mesh,
 		pipeline);
 }
 Renderer createTexColRenderer(
@@ -56,15 +56,15 @@ Renderer createTexColRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"TexCol") == 0);
+		TEX_COL_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		transform,
 		pipeline,
 		sortingType,
 		useCulling,
-		onTexColRenderDestroy,
-		onTexColRenderDraw,
+		onRenderHandleDestroy,
+		onRenderHandleDraw,
 		capacity);
 }
 Render createTexColRender(
@@ -93,28 +93,28 @@ Render createTexColRender(
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		"TexCol") == 0);
+		TEX_COL_PIPELINE_NAME) == 0);
 
-	TexColRender* handle = malloc(
-		sizeof(TexColRender));
+	RenderHandle* renderHandle = malloc(
+		sizeof(RenderHandle));
 
-	if (handle == NULL)
+	if (renderHandle == NULL)
 		return NULL;
 
-	handle->color = color;
-	handle->size = size;
-	handle->offset = offset;
-	handle->mesh = mesh;
+	renderHandle->color = color;
+	renderHandle->size = size;
+	renderHandle->offset = offset;
+	renderHandle->mesh = mesh;
 
 	Render render = createRender(
 		renderer,
 		transform,
 		bounding,
-		handle);
+		renderHandle);
 
 	if (render == NULL)
 	{
-		free(handle);
+		free(renderHandle);
 		return NULL;
 	}
 
@@ -129,10 +129,10 @@ Vec4F getTexColRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"TexCol") == 0);
-	TexColRender* handle =
+		TEX_COL_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->color;
+	return renderHandle->color;
 }
 void setTexColRenderColor(
 	Render render,
@@ -147,10 +147,10 @@ void setTexColRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"TexCol") == 0);
-	TexColRender* handle =
+		TEX_COL_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->color = color;
+	renderHandle->color = color;
 }
 
 Vec2F getTexColRenderSize(
@@ -161,10 +161,10 @@ Vec2F getTexColRenderSize(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"TexCol") == 0);
-	TexColRender* handle =
+		TEX_COL_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->size;
+	return renderHandle->size;
 }
 void setTexColRenderSize(
 	Render render,
@@ -175,10 +175,10 @@ void setTexColRenderSize(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"TexCol") == 0);
-	TexColRender* handle =
+		TEX_COL_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->size = size;
+	renderHandle->size = size;
 }
 
 Vec2F getTexColRenderOffset(
@@ -189,10 +189,10 @@ Vec2F getTexColRenderOffset(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"TexCol") == 0);
-	TexColRender* handle =
+		TEX_COL_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->offset;
+	return renderHandle->offset;
 }
 void setTexColRenderOffset(
 	Render render,
@@ -203,10 +203,10 @@ void setTexColRenderOffset(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"TexCol") == 0);
-	TexColRender* handle =
+		TEX_COL_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->offset = offset;
+	renderHandle->offset = offset;
 }
 
 Mesh getTexColRenderMesh(
@@ -217,10 +217,10 @@ Mesh getTexColRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"TexCol") == 0);
-	TexColRender* handle =
+		TEX_COL_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	return handle->mesh;
+	return renderHandle->mesh;
 }
 void setTexColRenderMesh(
 	Render render,
@@ -232,8 +232,8 @@ void setTexColRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		"TexCol") == 0);
-	TexColRender* handle =
+		TEX_COL_PIPELINE_NAME) == 0);
+	RenderHandle* renderHandle =
 		getRenderHandle(render);
-	handle->mesh = mesh;
+	renderHandle->mesh = mesh;
 }

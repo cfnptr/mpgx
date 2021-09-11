@@ -1,6 +1,8 @@
 #pragma once
 #include "mpgx/window.h"
 
+#define SPRITE_PIPELINE_NAME "Sprite"
+
 Pipeline createSpritePipeline(
 	Window window,
 	Shader vertexShader,

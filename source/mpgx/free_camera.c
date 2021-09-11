@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+// TODO: make camera movement smooth
+
 struct FreeCamera
 {
 	Window window;

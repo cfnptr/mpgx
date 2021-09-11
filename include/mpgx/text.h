@@ -1,7 +1,8 @@
 #pragma once
 #include "mpgx/interface.h"
-
 #include <stdbool.h>
+
+#define TEXT_PIPELINE_NAME "Text"
 
 typedef struct Font* Font;
 typedef struct Text* Text;

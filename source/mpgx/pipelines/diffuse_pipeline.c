@@ -3,48 +3,48 @@
 
 #include <string.h>
 
-typedef struct DiffuseUniformBuffer
+typedef struct UniformBuffer
 {
 	Vec4F objectColor;
 	Vec4F ambientColor;
 	Vec4F lightColor;
 	Vec4F lightDirection;
-} DiffuseUniformBuffer;
-typedef struct VkDiffusePipeline
+} UniformBuffer;
+typedef struct VkPipelineHandle
 {
 	Shader vertexShader;
 	Shader fragmentShader;
 	Mat4F mvp;
 	Mat4F normal;
-	DiffuseUniformBuffer fbo;
-} VkDiffusePipeline;
-typedef struct GlDiffusePipeline
+	UniformBuffer u;
+} VkPipelineHandle;
+typedef struct GlPipelineHandle
 {
 	Shader vertexShader;
 	Shader fragmentShader;
 	Mat4F mvp;
 	Mat4F normal;
-	DiffuseUniformBuffer fbo;
+	UniformBuffer u;
 	GLuint handle;
 	GLint mvpLocation;
 	GLint normalLocation;
 	Buffer uniformBuffer;
-} GlDiffusePipeline;
-typedef union DiffusePipeline
+} GlPipelineHandle;
+typedef union PipelineHandle
 {
-	VkDiffusePipeline vk;
-	GlDiffusePipeline gl;
-} DiffusePipeline;
+	VkPipelineHandle vk;
+	GlPipelineHandle gl;
+} PipelineHandle;
 
-inline static DiffusePipeline* onGlDiffusePipelineCreate(
+inline static PipelineHandle* createGlPipelineHandle(
 	Window window,
 	Shader vertexShader,
 	Shader fragmentShader)
 {
-	DiffusePipeline* pipeline = malloc(
-		sizeof(DiffusePipeline));
+	PipelineHandle* pipelineHandle = malloc(
+		sizeof(PipelineHandle));
 
-	if (pipeline == NULL)
+	if (pipelineHandle == NULL)
 		return NULL;
 
 	Shader shaders[2] = {
@@ -52,52 +52,52 @@ inline static DiffusePipeline* onGlDiffusePipelineCreate(
 		fragmentShader,
 	};
 
-	GLuint handle = createGlPipeline(
+	GLuint glHandle = createGlPipeline(
 		window,
 		shaders,
 		2);
 
-	if (handle == GL_ZERO)
+	if (glHandle == GL_ZERO)
 	{
-		free(pipeline);
+		free(pipelineHandle);
 		return NULL;
 	}
 
 	GLint mvpLocation = getGlUniformLocation(
-		handle,
+		glHandle,
 		"u_MVP");
 
 	if (mvpLocation == NULL_UNIFORM_LOCATION)
 	{
-		glDeleteProgram(handle);
-		free(pipeline);
+		glDeleteProgram(glHandle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
 	GLint normalLocation = getGlUniformLocation(
-		handle,
+		glHandle,
 		"u_Normal");
 
 	if (normalLocation == NULL_UNIFORM_LOCATION)
 	{
-		glDeleteProgram(handle);
-		free(pipeline);
+		glDeleteProgram(glHandle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
 	GLuint uniformBlockIndex = getGlUniformBlockIndex(
-		handle,
-		"FragmentBufferObject");
+		glHandle,
+		"UniformBuffer");
 
 	if (uniformBlockIndex == GL_INVALID_INDEX)
 	{
-		glDeleteProgram(handle);
-		free(pipeline);
+		glDeleteProgram(glHandle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
 	glUniformBlockBinding(
-		handle,
+		glHandle,
 		uniformBlockIndex,
 		0);
 
@@ -107,51 +107,51 @@ inline static DiffusePipeline* onGlDiffusePipelineCreate(
 		window,
 		UNIFORM_BUFFER_TYPE,
 		NULL,
-		sizeof(DiffuseUniformBuffer),
+		sizeof(UniformBuffer),
 		false);
 
 	if (uniformBuffer == NULL)
 	{
-		glDeleteProgram(handle);
-		free(pipeline);
+		glDeleteProgram(glHandle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
 	Vec3F lightDirection = normVec3F(
 		vec3F(1.0f, 3.0f, 6.0f));
 
-	pipeline->gl.vertexShader = vertexShader;
-	pipeline->gl.fragmentShader = fragmentShader;
-	pipeline->gl.mvp = identMat4F();
-	pipeline->gl.normal = identMat4F();
-	pipeline->gl.fbo.objectColor = oneVec4F();
-	pipeline->gl.fbo.ambientColor = valVec4F(0.5f);
-	pipeline->gl.fbo.lightColor = oneVec4F();
-	pipeline->gl.fbo.lightDirection = vec4F(
+	pipelineHandle->gl.vertexShader = vertexShader;
+	pipelineHandle->gl.fragmentShader = fragmentShader;
+	pipelineHandle->gl.mvp = identMat4F();
+	pipelineHandle->gl.normal = identMat4F();
+	pipelineHandle->gl.u.objectColor = oneVec4F();
+	pipelineHandle->gl.u.ambientColor = valVec4F(0.5f);
+	pipelineHandle->gl.u.lightColor = oneVec4F();
+	pipelineHandle->gl.u.lightDirection = vec4F(
 		lightDirection.x,
 		lightDirection.y,
 		lightDirection.z,
 		0.0f);
-	pipeline->gl.handle = handle;
-	pipeline->gl.mvpLocation = mvpLocation;
-	pipeline->gl.normalLocation = normalLocation;
-	pipeline->gl.uniformBuffer = uniformBuffer;
-	return pipeline;
+	pipelineHandle->gl.handle = glHandle;
+	pipelineHandle->gl.mvpLocation = mvpLocation;
+	pipelineHandle->gl.normalLocation = normalLocation;
+	pipelineHandle->gl.uniformBuffer = uniformBuffer;
+	return pipelineHandle;
 }
-static void onGlDiffusePipelineDestroy(
+static void onGlPipelineHandleDestroy(
 	Window window,
-	void* pipeline)
+	void* handle)
 {
-	DiffusePipeline* handle =
-		(DiffusePipeline*)pipeline;
+	PipelineHandle* pipelineHandle =
+		(PipelineHandle*)handle;
 	destroyBuffer(
-		handle->gl.uniformBuffer);
+		pipelineHandle->gl.uniformBuffer);
 	destroyGlPipeline(
 		window,
-		handle->gl.handle);
-	free(handle);
+		pipelineHandle->gl.handle);
+	free(pipelineHandle);
 }
-static void onGlDiffusePipelineBind(
+static void onGlPipelineHandleBind(
 	Pipeline pipeline)
 {
 	Vec2U size = getWindowFramebufferSize(
@@ -163,10 +163,10 @@ static void onGlDiffusePipelineBind(
 		(GLsizei)size.x,
 		(GLsizei)size.y);
 
-	DiffusePipeline* handle =
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
 
-	glUseProgram(handle->gl.handle);
+	glUseProgram(pipelineHandle->gl.handle);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -178,39 +178,39 @@ static void onGlDiffusePipelineBind(
 	glCullFace(GL_BACK);
 
 	Buffer uniformBuffer =
-		handle->gl.uniformBuffer;
-	GLuint buffer = *(GLuint*)
+		pipelineHandle->gl.uniformBuffer;
+	GLuint glBuffer = *(GLuint*)
 		getBufferHandle(uniformBuffer);
 
 	glBindBufferBase(
 		GL_UNIFORM_BUFFER,
 		0,
-		buffer);
+		glBuffer);
 
 	assertOpenGL();
 
 	setBufferData(
 		uniformBuffer,
-		&handle->gl.fbo,
-		sizeof(DiffuseUniformBuffer),
+		&pipelineHandle->gl.u,
+		sizeof(UniformBuffer),
 		0);
 }
-static void onGlDiffusePipelineUniformsSet(
+static void onGlPipelineUniformsSet(
 	Pipeline pipeline)
 {
-	DiffusePipeline* diffusePipeline =
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
 
 	glUniformMatrix4fv(
-		diffusePipeline->gl.mvpLocation,
+		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&diffusePipeline->gl.mvp);
+		(const GLfloat*)&pipelineHandle->gl.mvp);
 	glUniformMatrix4fv(
-		diffusePipeline->gl.normalLocation,
+		pipelineHandle->gl.normalLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&diffusePipeline->gl.normal);
+		(const GLfloat*)&pipelineHandle->gl.normal);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -249,45 +249,45 @@ Pipeline createDiffusePipeline(
 
 	uint8_t api = getWindowGraphicsAPI(window);
 
-	DiffusePipeline* handle;
-	OnPipelineDestroy onDestroy;
-	OnPipelineBind onBind;
+	PipelineHandle* pipelineHandle;
+	OnPipelineHandleDestroy onHandleDestroy;
+	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
 
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		handle = onGlDiffusePipelineCreate(
+		pipelineHandle = createGlPipelineHandle(
 			window,
 			vertexShader,
 			fragmentShader);
 
-		onDestroy = onGlDiffusePipelineDestroy;
-		onBind = onGlDiffusePipelineBind;
-		onUniformsSet = onGlDiffusePipelineUniformsSet;
+		onHandleDestroy = onGlPipelineHandleDestroy;
+		onHandleBind = onGlPipelineHandleBind;
+		onUniformsSet = onGlPipelineUniformsSet;
 	}
 	else
 	{
 		return NULL;
 	}
 
-	if (handle == NULL)
+	if (pipelineHandle == NULL)
 		return NULL;
 
 	Pipeline pipeline = createPipeline(
 		window,
-		"Diffuse",
+		DIFFUSE_PIPELINE_NAME,
 		drawMode,
-		onDestroy,
-		onBind,
+		onHandleDestroy,
+		onHandleBind,
 		onUniformsSet,
-		handle);
+		pipelineHandle);
 
 	if (pipeline == NULL)
 	{
-		onDestroy(
+		onHandleDestroy(
 			window,
-			handle);
+			pipelineHandle);
 		return NULL;
 	}
 
@@ -300,10 +300,10 @@ Shader getDiffusePipelineVertexShader(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return diffusePipeline->vk.vertexShader;
+	return pipelineHandle->vk.vertexShader;
 }
 Shader getDiffusePipelineFragmentShader(
 	Pipeline pipeline)
@@ -311,10 +311,10 @@ Shader getDiffusePipelineFragmentShader(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return diffusePipeline->vk.fragmentShader;
+	return pipelineHandle->vk.fragmentShader;
 }
 
 Mat4F getDiffusePipelineMvp(
@@ -323,10 +323,10 @@ Mat4F getDiffusePipelineMvp(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return diffusePipeline->vk.mvp;
+	return pipelineHandle->vk.mvp;
 }
 void setDiffusePipelineMvp(
 	Pipeline pipeline,
@@ -335,10 +335,10 @@ void setDiffusePipelineMvp(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	diffusePipeline->vk.mvp = mvp;
+	pipelineHandle->vk.mvp = mvp;
 }
 
 Mat4F getDiffusePipelineNormal(
@@ -347,10 +347,10 @@ Mat4F getDiffusePipelineNormal(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return diffusePipeline->vk.normal;
+	return pipelineHandle->vk.normal;
 }
 void setDiffusePipelineNormal(
 	Pipeline pipeline,
@@ -359,10 +359,10 @@ void setDiffusePipelineNormal(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	diffusePipeline->vk.normal = normal;
+	pipelineHandle->vk.normal = normal;
 }
 
 Vec4F getDiffusePipelineObjectColor(
@@ -371,10 +371,10 @@ Vec4F getDiffusePipelineObjectColor(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return diffusePipeline->vk.fbo.objectColor;
+	return pipelineHandle->vk.u.objectColor;
 }
 void setDiffusePipelineObjectColor(
 	Pipeline pipeline,
@@ -387,10 +387,10 @@ void setDiffusePipelineObjectColor(
 		objectColor.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	diffusePipeline->vk.fbo.objectColor = objectColor;
+	pipelineHandle->vk.u.objectColor = objectColor;
 }
 
 Vec4F getDiffusePipelineAmbientColor(
@@ -399,10 +399,10 @@ Vec4F getDiffusePipelineAmbientColor(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return diffusePipeline->vk.fbo.ambientColor;
+	return pipelineHandle->vk.u.ambientColor;
 }
 void setDiffusePipelineAmbientColor(
 	Pipeline pipeline,
@@ -415,10 +415,10 @@ void setDiffusePipelineAmbientColor(
 		ambientColor.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	diffusePipeline->vk.fbo.ambientColor = ambientColor;
+	pipelineHandle->vk.u.ambientColor = ambientColor;
 }
 
 Vec4F getDiffusePipelineLightColor(
@@ -427,10 +427,10 @@ Vec4F getDiffusePipelineLightColor(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	return diffusePipeline->vk.fbo.lightColor;
+	return pipelineHandle->vk.u.lightColor;
 }
 void setDiffusePipelineLightColor(
 	Pipeline pipeline,
@@ -443,10 +443,10 @@ void setDiffusePipelineLightColor(
 		lightColor.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
-	diffusePipeline->vk.fbo.lightColor = lightColor;
+	pipelineHandle->vk.u.lightColor = lightColor;
 }
 
 Vec3F getDiffusePipelineLightDirection(
@@ -455,11 +455,11 @@ Vec3F getDiffusePipelineLightDirection(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
 	Vec4F lightDirection =
-		diffusePipeline->vk.fbo.lightDirection;
+		pipelineHandle->vk.u.lightDirection;
 	return vec3F(
 		-lightDirection.x,
 		-lightDirection.y,
@@ -472,11 +472,11 @@ void setDiffusePipelineLightDirection(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		"Diffuse") == 0);
-	DiffusePipeline* diffusePipeline =
+		DIFFUSE_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
 		getPipelineHandle(pipeline);
 	lightDirection = normVec3F(lightDirection);
-	diffusePipeline->vk.fbo.lightDirection = vec4F(
+	pipelineHandle->vk.u.lightDirection = vec4F(
 		-lightDirection.x,
 		-lightDirection.y,
 		-lightDirection.z,

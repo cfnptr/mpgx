@@ -1210,15 +1210,6 @@ inline static void beginGlWindowRender(Window window)
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,
 		GL_ZERO);
-	glColorMask(
-		GL_TRUE, GL_TRUE,
-		GL_TRUE, GL_TRUE);
-	glDepthMask(GL_TRUE);
-	glStencilMask(UINT32_MAX);
-	glClear(
-		GL_COLOR_BUFFER_BIT |
-		GL_DEPTH_BUFFER_BIT |
-		GL_STENCIL_BUFFER_BIT);
 	assertOpenGL();
 }
 void beginWindowRender(Window window)
@@ -3302,78 +3293,21 @@ Image getFramebufferDepthStencilAttachment(
 }
 
 inline static void beginVkFramebufferRender(
-	Framebuffer framebuffer,
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor)
+	Framebuffer framebuffer)
 {
 
 }
 inline static void beginGlFramebufferRender(
-	Framebuffer framebuffer,
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor)
+	Framebuffer framebuffer)
 {
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,
 		framebuffer->gl.handle);
-
-	if (clearColorBuffer == true ||
-		clearDepthBuffer == true ||
-		clearStencilBuffer == true)
-	{
-		glClearColor(
-			clearColor.x,
-			clearColor.y,
-			clearColor.z,
-			clearColor.w);
-
-		GLbitfield clearMask = 0;
-
-		if (clearColorBuffer == true)
-		{
-			glColorMask(
-				GL_TRUE, GL_TRUE,
-				GL_TRUE, GL_TRUE);
-			clearMask |= GL_COLOR_BUFFER_BIT;
-		}
-		if (clearDepthBuffer == true)
-		{
-			glDepthMask(GL_TRUE);
-			clearMask |= GL_DEPTH_BUFFER_BIT;
-		}
-		if (clearStencilBuffer == true)
-		{
-			glStencilMask(UINT32_MAX);
-			clearMask |= GL_STENCIL_BUFFER_BIT;
-		}
-
-		glClear(clearMask);
-	}
-
 	assertOpenGL();
 }
-void beginFramebufferRender(
-	Framebuffer framebuffer,
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor)
+void beginFramebufferRender(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	assert(
-		clearColor.x >= 0.0f &&
-		clearColor.y >= 0.0f &&
-		clearColor.z >= 0.0f &&
-		clearColor.w >= 0.0f);
-	assert(
-		clearColor.x <= 1.0f &&
-		clearColor.y <= 1.0f &&
-		clearColor.z <= 1.0f &&
-		clearColor.w <= 1.0f);
 	assert(framebuffer->vk.window->isRecording == true);
 	assert(framebuffer->vk.window->isRendering == false);
 
@@ -3382,22 +3316,12 @@ void beginFramebufferRender(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		beginVkFramebufferRender(
-			framebuffer,
-			clearColorBuffer,
-			clearDepthBuffer,
-			clearStencilBuffer,
-			clearColor);
+		beginVkFramebufferRender(framebuffer);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		beginGlFramebufferRender(
-			framebuffer,
-			clearColorBuffer,
-			clearDepthBuffer,
-			clearStencilBuffer,
-			clearColor);
+		beginGlFramebufferRender(framebuffer);
 	}
 	else
 	{
@@ -3441,6 +3365,97 @@ void endFramebufferRender(Window window)
 	}
 
 	window->isRendering = false;
+}
+
+inline static void clearVkFramebuffer(
+	bool clearColorBuffer,
+	bool clearDepthBuffer,
+	bool clearStencilBuffer,
+	Vec4F clearColor)
+{
+
+}
+inline static void clearGlFramebuffer(
+	bool clearColorBuffer,
+	bool clearDepthBuffer,
+	bool clearStencilBuffer,
+	Vec4F clearColor)
+{
+	GLbitfield clearMask = 0;
+
+	if (clearColorBuffer == true)
+	{
+		glClearColor(
+			clearColor.x,
+			clearColor.y,
+			clearColor.z,
+			clearColor.w);
+		glColorMask(
+			GL_TRUE, GL_TRUE,
+			GL_TRUE, GL_TRUE);
+		clearMask |= GL_COLOR_BUFFER_BIT;
+	}
+	if (clearDepthBuffer == true)
+	{
+		glDepthMask(GL_TRUE);
+		clearMask |= GL_DEPTH_BUFFER_BIT;
+	}
+	if (clearStencilBuffer == true)
+	{
+		glStencilMask(UINT32_MAX);
+		clearMask |= GL_STENCIL_BUFFER_BIT;
+	}
+
+	glClear(clearMask);
+	assertOpenGL();
+}
+void clearFramebuffer(
+	Window window,
+	bool clearColorBuffer,
+	bool clearDepthBuffer,
+	bool clearStencilBuffer,
+	Vec4F clearColor)
+{
+	assert(window != NULL);
+	assert(
+		clearColor.x >= 0.0f &&
+		clearColor.y >= 0.0f &&
+		clearColor.z >= 0.0f &&
+		clearColor.w >= 0.0f);
+	assert(
+		clearColor.x <= 1.0f &&
+		clearColor.y <= 1.0f &&
+		clearColor.z <= 1.0f &&
+		clearColor.w <= 1.0f);
+	assert(
+		clearColorBuffer == true ||
+		clearDepthBuffer == true ||
+		clearStencilBuffer == true);
+	assert(window->isRecording == true);
+
+	uint8_t api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		clearVkFramebuffer(
+			clearColorBuffer,
+			clearDepthBuffer,
+			clearStencilBuffer,
+			clearColor);
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+			 api == OPENGL_ES_GRAPHICS_API)
+	{
+		clearGlFramebuffer(
+			clearColorBuffer,
+			clearDepthBuffer,
+			clearStencilBuffer,
+			clearColor);
+	}
+	else
+	{
+		abort();
+	}
 }
 
 inline static Shader createVkShader(

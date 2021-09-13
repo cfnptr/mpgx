@@ -514,13 +514,15 @@ size_t getFramebufferColorAttachmentCount(
 Image getFramebufferDepthStencilAttachment(
 	Framebuffer framebuffer);
 
-void beginFramebufferRender(
-	Framebuffer framebuffer,
+void beginFramebufferRender(Framebuffer framebuffer);
+void endFramebufferRender(Window window);
+
+void clearFramebuffer(
+	Window window,
 	bool clearColorBuffer,
 	bool clearDepthBuffer,
 	bool clearStencilBuffer,
 	Vec4F clearColor);
-void endFramebufferRender(Window window);
 
 Shader createShader(
 	Window window,

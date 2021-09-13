@@ -173,12 +173,22 @@ static void onGlPipelineHandleBind(
 	glDisable(GL_STENCIL_TEST);
 	glEnable(GL_BLEND);
 
+	glColorMask(
+		GL_TRUE, GL_TRUE,
+		GL_TRUE, GL_TRUE);
+
+	glDepthFunc(GL_LESS);
+	glDepthMask(GL_TRUE);
+	glDepthRange(0.0f, 1.0f);
+	glPolygonOffset(0.0f, 0.0f);
+
 	glFrontFace(GL_CW);
 	glCullFace(GL_BACK);
 
 	glBlendFunc(
 		GL_SRC_ALPHA,
 		GL_ONE_MINUS_SRC_ALPHA);
+	glBlendEquation(GL_FUNC_ADD);
 
 	glUniform1i(
 		pipelineHandle->gl.textureLocation,

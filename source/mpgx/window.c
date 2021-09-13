@@ -1210,6 +1210,11 @@ inline static void beginGlWindowRender(Window window)
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,
 		GL_ZERO);
+	glColorMask(
+		GL_TRUE, GL_TRUE,
+		GL_TRUE, GL_TRUE);
+	glDepthMask(GL_TRUE);
+	glStencilMask(UINT32_MAX);
 	glClear(
 		GL_COLOR_BUFFER_BIT |
 		GL_DEPTH_BUFFER_BIT |
@@ -3329,11 +3334,22 @@ inline static void beginGlFramebufferRender(
 		GLbitfield clearMask = 0;
 
 		if (clearColorBuffer == true)
+		{
+			glColorMask(
+				GL_TRUE, GL_TRUE,
+				GL_TRUE, GL_TRUE);
 			clearMask |= GL_COLOR_BUFFER_BIT;
+		}
 		if (clearDepthBuffer == true)
+		{
+			glDepthMask(GL_TRUE);
 			clearMask |= GL_DEPTH_BUFFER_BIT;
+		}
 		if (clearStencilBuffer == true)
+		{
+			glStencilMask(UINT32_MAX);
 			clearMask |= GL_STENCIL_BUFFER_BIT;
+		}
 
 		glClear(clearMask);
 	}

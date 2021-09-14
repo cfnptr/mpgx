@@ -1,14 +1,13 @@
 #pragma once
+#include "mpgx/defines.h"
 
 #ifndef GL_INFO_LOG_OUT
 #define GL_INFO_LOG_OUT stderr
 #endif
 
-/*
 #if MPGX_VULKAN_SUPPORT
 #define GLFW_INCLUDE_VULKAN
 #endif
-*/
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"

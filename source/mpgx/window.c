@@ -1,176 +1,21 @@
 #include "mpgx/window.h"
 #include "mpgx/opengl.h"
 
+#include "mpgx/_source/buffer.h"
+#include "mpgx/_source/mesh.h"
+#include "mpgx/_source/image.h"
+#include "mpgx/_source/sampler.h"
+#include "mpgx/_source/framebuffer.h"
+#include "mpgx/_source/shader.h"
+
 #include "ft2build.h"
 #include FT_FREETYPE_H
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
+#include "cmmt/common.h"
 #include <stdio.h>
-
-#ifndef max
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#endif
-
-#define OPENGL_SHADER_HEADER \
-"#version 330 core\n"
-// TODO: possibly set default precision
-// or detect supported precisions
-#define OPENGL_ES_SHADER_HEADER \
-"#version 300 es\n"
-
-// TODO: Vulkan API implementation
-
-typedef struct VkBuffer_
-{
-	Window window;
-	uint8_t type;
-	size_t size;
-	bool isConstant;
-	int handle;
-} VkBuffer_;
-typedef struct GlBuffer
-{
-	Window window;
-	uint8_t type;
-	size_t size;
-	bool isConstant;
-	GLenum glType;
-	GLuint handle;
-} GlBuffer;
-union Buffer
-{
-	VkBuffer_ vk;
-	GlBuffer gl;
-};
-
-typedef struct VkMesh
-{
-	Window window;
-	uint8_t drawIndex;
-	size_t indexCount;
-	size_t indexOffset;
-	Buffer vertexBuffer;
-	Buffer indexBuffer;
-} VkMesh;
-typedef struct GlMesh
-{
-	Window window;
-	uint8_t drawIndex;
-	size_t indexCount;
-	size_t indexOffset;
-	Buffer vertexBuffer;
-	Buffer indexBuffer;
-	GLuint handle;
-} GlMesh;
-union Mesh
-{
-	VkMesh vk;
-	GlMesh gl;
-};
-
-typedef struct VkImage_
-{
-	Window window;
-	uint8_t type;
-	uint8_t format;
-	Vec3U size;
-	int handle;
-} VkImage_;
-typedef struct GlImage
-{
-	Window window;
-	uint8_t type;
-	uint8_t format;
-	Vec3U size;
-	GLenum glType;
-	GLenum dataType;
-	GLenum dataFormat;
-	GLuint handle;
-} GlImage;
-union Image
-{
-	VkImage_ vk;
-	GlImage gl;
-};
-
-typedef struct VkSampler_
-{
-	Window window;
-	uint8_t minImageFilter;
-	uint8_t magImageFilter;
-	uint8_t minMipmapFilter;
-	bool useMipmapping;
-	uint8_t imageWrapX;
-	uint8_t imageWrapY;
-	uint8_t imageWrapZ;
-	uint8_t imageCompare;
-	bool useCompare;
-	float minMipmapLod;
-	float maxMipmapLod;
-	int handle;
-} VkSampler_;
-typedef struct GlSampler
-{
-	Window window;
-	uint8_t minImageFilter;
-	uint8_t magImageFilter;
-	uint8_t minMipmapFilter;
-	bool useMipmapping;
-	uint8_t imageWrapX;
-	uint8_t imageWrapY;
-	uint8_t imageWrapZ;
-	uint8_t imageCompare;
-	bool useCompare;
-	float minMipmapLod;
-	float maxMipmapLod;
-	GLuint handle;
-} GlSampler;
-union Sampler
-{
-	VkSampler_ vk;
-	GlSampler gl;
-};
-
-typedef struct VkFramebuffer_
-{
-	Window window;
-	Image* colorAttachments;
-	size_t colorAttachmentCount;
-	Image depthStencilAttachment;
-} VkFramebuffer_;
-typedef struct GlFramebuffer
-{
-	Window window;
-	Image* colorAttachments;
-	size_t colorAttachmentCount;
-	Image depthStencilAttachment;
-	GLuint handle;
-} GlFramebuffer;
-union Framebuffer
-{
-	VkFramebuffer_ vk;
-	GlFramebuffer gl;
-};
-
-typedef struct VkShader
-{
-	Window window;
-	uint8_t type;
-	int handle;
-} VkShader;
-typedef struct GlShader
-{
-	Window window;
-	uint8_t type;
-	GLuint handle;
-} GlShader;
-union Shader
-{
-	GlShader gl;
-	VkShader vk;
-};
 
 struct Pipeline
 {
@@ -182,7 +27,6 @@ struct Pipeline
 	OnPipelineUniformsSet onUniformsSet;
 	void* handle;
 };
-
 struct ImageData
 {
 	uint8_t* pixels;
@@ -190,7 +34,7 @@ struct ImageData
 	uint8_t channelCount;
 };
 
-struct Window
+typedef struct _VkWindow
 {
 	uint8_t api;
 	uint32_t maxImageSize;
@@ -222,112 +66,52 @@ struct Window
 	double deltaTime;
 	bool isRecording;
 	bool isRendering;
+#if MPGX_VULKAN_SUPPORT
+	VkInstance vkInstance;
+#endif
+} _VkWindow;
+typedef struct _GlWindow
+{
+	uint8_t api;
+	uint32_t maxImageSize;
+	OnWindowUpdate onUpdate;
+	void* updateArgument;
+	GLFWwindow* handle;
+	Buffer* buffers;
+	size_t bufferCapacity;
+	size_t bufferCount;
+	Mesh* meshes;
+	size_t meshCapacity;
+	size_t meshCount;
+	Image* images;
+	size_t imageCapacity;
+	size_t imageCount;
+	Sampler* samplers;
+	size_t samplerCapacity;
+	size_t samplerCount;
+	Framebuffer* framebuffers;
+	size_t framebufferCapacity;
+	size_t framebufferCount;
+	Shader* shaders;
+	size_t shaderCapacity;
+	size_t shaderCount;
+	Pipeline* pipelines;
+	size_t pipelineCapacity;
+	size_t pipelineCount;
+	double updateTime;
+	double deltaTime;
+	bool isRecording;
+	bool isRendering;
+} _GlWindow;
+union Window
+{
+	_VkWindow vk;
+	_GlWindow gl;
 };
 
 static bool graphicsInitialized = false;
 static FT_Library ftLibrary = NULL;
 static Window currentWindow = NULL;
-
-inline static void destroyVkBuffer(Buffer buffer)
-{
-
-}
-inline static void destroyGlBuffer(Buffer buffer)
-{
-	makeWindowContextCurrent(
-		buffer->gl.window);
-
-	glDeleteBuffers(
-		GL_ONE,
-		&buffer->gl.handle);
-	assertOpenGL();
-
-	free(buffer);
-}
-
-inline static void destroyVkMesh(Mesh mesh)
-{
-
-}
-inline static void destroyGlMesh(Mesh mesh)
-{
-	makeWindowContextCurrent(
-		mesh->gl.window);
-
-	glDeleteVertexArrays(
-		GL_ONE,
-		&mesh->gl.handle);
-	assertOpenGL();
-
-	free(mesh);
-}
-
-inline static void destroyVkImage(Image image)
-{
-
-}
-inline static void destroyGlImage(Image image)
-{
-	makeWindowContextCurrent(
-		image->gl.window);
-
-	glDeleteTextures(
-		GL_ONE,
-		&image->gl.handle);
-	assertOpenGL();
-
-	free(image);
-}
-
-inline static void destroyVkSampler(Sampler sampler)
-{
-
-}
-inline static void destroyGlSampler(Sampler sampler)
-{
-	makeWindowContextCurrent(
-		sampler->gl.window);
-
-	glDeleteSamplers(
-		GL_ONE,
-		&sampler->gl.handle);
-	assertOpenGL();
-
-	free(sampler);
-}
-
-inline static void destroyVkFramebuffer(Framebuffer framebuffer)
-{
-
-}
-inline static void destroyGlFramebuffer(Framebuffer framebuffer)
-{
-	makeWindowContextCurrent(
-		framebuffer->gl.window);
-
-	glDeleteFramebuffers(
-		GL_ONE,
-		&framebuffer->gl.handle);
-	assertOpenGL();
-
-	free(framebuffer->gl.colorAttachments);
-	free(framebuffer);
-}
-
-inline static void destroyVkShader(Shader shader)
-{
-
-}
-inline static void destroyGlShader(Shader shader)
-{
-	makeWindowContextCurrent(
-		shader->gl.window);
-
-	glDeleteShader(shader->gl.handle);
-	assertOpenGL();
-
-	free(shader);
-}
 
 static void glfwErrorCallback(
 	int error,
@@ -337,7 +121,6 @@ static void glfwErrorCallback(
 		"GLFW error: %d, %s\n",
 		error,
 		description);
-
 	abort();
 }
 
@@ -378,6 +161,40 @@ void* getFtLibrary()
 	return ftLibrary;
 }
 
+#if MPGX_VULKAN_SUPPORT
+inline static VkInstance createVkInstance()
+{
+	VkInstanceCreateInfo createInfo = {
+		// TODO:
+	};
+
+	VkInstance vkInstance;
+
+	VkResult result = vkCreateInstance(
+		&createInfo,
+		NULL,
+		&vkInstance);
+
+	if (result != VK_SUCCESS)
+		return NULL;
+
+	return vkInstance;
+}
+inline static void destroyVkInstace(VkInstance vkInstance)
+{
+	if (vkInstance == NULL)
+		return;
+
+	vkDestroyInstance(
+		vkInstance,
+		NULL);
+}
+#endif
+
+// TODO: createVkWindow, createGlWindow...
+// #if MPGX_VULKAN_SUPPORT
+//	window->vk.vkInstance = vkInstance;
+//#endif
 Window createWindow(
 	uint8_t api,
 	Vec2U size,
@@ -408,7 +225,7 @@ Window createWindow(
 	assert(graphicsInitialized == true);
 
 	Window window = malloc(
-		sizeof(struct Window));
+		sizeof(union Window));
 
 	if (window == NULL)
 		return NULL;
@@ -502,6 +319,13 @@ Window createWindow(
 		return NULL;
 	}
 
+	glfwSetWindowSizeLimits(
+		handle,
+		1,
+		1,
+		GLFW_DONT_CARE,
+		GLFW_DONT_CARE);
+
 	if (glfwRawMouseMotionSupported() == GLFW_TRUE)
 	{
 		glfwSetInputMode(
@@ -509,6 +333,8 @@ Window createWindow(
 			GLFW_RAW_MOUSE_MOTION,
 			GLFW_TRUE);
 	}
+
+	uint32_t maxImageSize;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -526,14 +352,14 @@ Window createWindow(
 			return NULL;
 		}
 
-		GLint maxImageSize;
+		GLint glMaxImageSize;
 
 		glGetIntegerv(
 			GL_MAX_TEXTURE_SIZE,
-			&maxImageSize);
+			&glMaxImageSize);
 		assertOpenGL();
 
-		window->maxImageSize = maxImageSize;
+		maxImageSize = glMaxImageSize;
 	}
 
 	Buffer* buffers = malloc(
@@ -627,35 +453,54 @@ Window createWindow(
 		return NULL;
 	}
 
-	window->api = api;
-	window->onUpdate = onUpdate;
-	window->updateArgument = updateArgument;
-	window->handle = handle;
-	window->buffers = buffers;
-	window->bufferCapacity = bufferCapacity;
-	window->bufferCount = 0;
-	window->meshes = meshes;
-	window->meshCapacity = meshCapacity;
-	window->meshCount = 0;
-	window->images = images;
-	window->imageCapacity = imageCapacity;
-	window->imageCount = 0;
-	window->samplers = samplers;
-	window->samplerCapacity = samplerCapacity;
-	window->samplerCount = 0;
-	window->framebuffers = framebuffers;
-	window->framebufferCapacity = framebufferCapacity;
-	window->framebufferCount = 0;
-	window->shaders = shaders;
-	window->shaderCapacity = shaderCapacity;
-	window->shaderCount = 0;
-	window->pipelines = pipelines;
-	window->pipelineCapacity = pipelineCapacity;
-	window->pipelineCount = 0;
-	window->updateTime = 0.0;
-	window->deltaTime = 0.0;
-	window->isRecording = false;
-	window->isRendering = false;
+#if MPGX_VULKAN_SUPPORT
+	VkInstance vkInstance = createVkInstance();
+
+	if (vkInstance == NULL)
+	{
+		free(pipelines);
+		free(shaders);
+		free(framebuffers);
+		free(samplers);
+		free(images);
+		free(meshes);
+		free(buffers);
+		glfwDestroyWindow(handle);
+		free(window);
+		return NULL;
+	}
+#endif
+
+	window->vk.api = api;
+	window->vk.maxImageSize = maxImageSize;
+	window->vk.onUpdate = onUpdate;
+	window->vk.updateArgument = updateArgument;
+	window->vk.handle = handle;
+	window->vk.buffers = buffers;
+	window->vk.bufferCapacity = bufferCapacity;
+	window->vk.bufferCount = 0;
+	window->vk.meshes = meshes;
+	window->vk.meshCapacity = meshCapacity;
+	window->vk.meshCount = 0;
+	window->vk.images = images;
+	window->vk.imageCapacity = imageCapacity;
+	window->vk.imageCount = 0;
+	window->vk.samplers = samplers;
+	window->vk.samplerCapacity = samplerCapacity;
+	window->vk.samplerCount = 0;
+	window->vk.framebuffers = framebuffers;
+	window->vk.framebufferCapacity = framebufferCapacity;
+	window->vk.framebufferCount = 0;
+	window->vk.shaders = shaders;
+	window->vk.shaderCapacity = shaderCapacity;
+	window->vk.shaderCount = 0;
+	window->vk.pipelines = pipelines;
+	window->vk.pipelineCapacity = pipelineCapacity;
+	window->vk.pipelineCount = 0;
+	window->vk.updateTime = 0.0;
+	window->vk.deltaTime = 0.0;
+	window->vk.isRecording = false;
+	window->vk.isRendering = false;
 
 	currentWindow = window;
 	return window;
@@ -745,22 +590,22 @@ void destroyWindow(Window window)
 	if (window == NULL)
         return;
 
-	Pipeline* pipelines = window->pipelines;
-	size_t pipelineCount = window->pipelineCount;
-	Shader* shaders = window->shaders;
-	size_t shaderCount = window->shaderCount;
-	Framebuffer* framebuffers = window->framebuffers;
-	size_t framebufferCount = window->framebufferCount;
-	Sampler* samplers = window->samplers;
-	size_t samplerCount = window->samplerCount;
-	Image* images = window->images;
-	size_t imageCount = window->imageCount;
-	Mesh* meshes = window->meshes;
-	size_t meshCount = window->meshCount;
-	Buffer* buffers = window->buffers;
-	size_t bufferCount = window->bufferCount;
+	Pipeline* pipelines = window->vk.pipelines;
+	size_t pipelineCount = window->vk.pipelineCount;
+	Shader* shaders = window->vk.shaders;
+	size_t shaderCount = window->vk.shaderCount;
+	Framebuffer* framebuffers = window->vk.framebuffers;
+	size_t framebufferCount = window->vk.framebufferCount;
+	Sampler* samplers = window->vk.samplers;
+	size_t samplerCount = window->vk.samplerCount;
+	Image* images = window->vk.images;
+	size_t imageCount = window->vk.imageCount;
+	Mesh* meshes = window->vk.meshes;
+	size_t meshCount = window->vk.meshCount;
+	Buffer* buffers = window->vk.buffers;
+	size_t bufferCount = window->vk.bufferCount;
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
@@ -807,6 +652,10 @@ void destroyWindow(Window window)
     	abort();
 	}
 
+#if MPGX_VULKAN_SUPPORT
+	destroyVkInstace(window->vk.vkInstance);
+#endif
+
 	free(buffers);
 	free(meshes);
 	free(images);
@@ -814,7 +663,7 @@ void destroyWindow(Window window)
 	free(shaders);
 	free(pipelines);
 
-	glfwDestroyWindow(window->handle);
+	glfwDestroyWindow(window->vk.handle);
 	free(window);
 }
 
@@ -823,43 +672,43 @@ bool isWindowEmpty(Window window)
 	assert(window != NULL);
 
 	return
-		window->bufferCount == 0 &&
-		window->meshCount == 0 &&
-		window->imageCount == 0 &&
-		window->samplerCount == 0 &&
-		window->framebufferCount == 0 &&
-		window->shaderCount == 0 &&
-		window->pipelineCount == 0;
+		window->vk.bufferCount == 0 &&
+		window->vk.meshCount == 0 &&
+		window->vk.imageCount == 0 &&
+		window->vk.samplerCount == 0 &&
+		window->vk.framebufferCount == 0 &&
+		window->vk.shaderCount == 0 &&
+		window->vk.pipelineCount == 0;
 }
 uint8_t getWindowGraphicsAPI(Window window)
 {
 	assert(window != NULL);
-	return window->api;
+	return window->vk.api;
 }
 OnWindowUpdate getWindowOnUpdate(Window window)
 {
 	assert(window != NULL);
-	return window->onUpdate;
+	return window->vk.onUpdate;
 }
 void* getWindowUpdateArgument(Window window)
 {
 	assert(window != NULL);
-	return window->updateArgument;
+	return window->vk.updateArgument;
 }
 uint32_t getWindowMaxImageSize(Window window)
 {
 	assert(window != NULL);
-	return window->maxImageSize;
+	return window->vk.maxImageSize;
 }
 double getWindowUpdateTime(Window window)
 {
 	assert(window != NULL);
-	return window->updateTime;
+	return window->vk.updateTime;
 }
 double getWindowDeltaTime(Window window)
 {
 	assert(window != NULL);
-	return window->deltaTime;
+	return window->vk.deltaTime;
 }
 Vec2F getWindowContentScale(Window window)
 {
@@ -868,7 +717,7 @@ Vec2F getWindowContentScale(Window window)
 	Vec2F scale;
 
 	glfwGetWindowContentScale(
-		window->handle,
+		window->vk.handle,
 		&scale.x,
 		&scale.y);
 
@@ -881,7 +730,7 @@ Vec2U getWindowFramebufferSize(Window window)
 	int width, height;
 
 	glfwGetFramebufferSize(
-		window->handle,
+		window->vk.handle,
 		&width,
 		&height);
 
@@ -890,7 +739,7 @@ Vec2U getWindowFramebufferSize(Window window)
 const char* getWindowClipboard(Window window)
 {
 	assert(window != NULL);
-	return glfwGetClipboardString(window->handle);
+	return glfwGetClipboardString(window->vk.handle);
 }
 
 inline static const char* getVkWindowGpuName(Window window)
@@ -908,7 +757,7 @@ const char* getWindowGpuName(Window window)
 {
 	assert(window != NULL);
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -940,7 +789,7 @@ const char* getWindowGpuVendor(Window window)
 {
 	assert(window != NULL);
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -964,7 +813,7 @@ bool getWindowKeyboardKey(
 	assert(window != NULL);
 
 	return glfwGetKey(
-		window->handle,
+		window->vk.handle,
 		key) == GLFW_PRESS;
 }
 bool getWindowMouseButton(
@@ -974,7 +823,7 @@ bool getWindowMouseButton(
 	assert(window != NULL);
 
 	return glfwGetMouseButton(
-		window->handle,
+		window->vk.handle,
 		button) == GLFW_PRESS;
 }
 
@@ -986,7 +835,7 @@ Vec2U getWindowSize(
 	int width, height;
 
 	glfwGetWindowSize(
-		window->handle,
+		window->vk.handle,
 		&width,
 		&height);
 
@@ -999,7 +848,7 @@ void setWindowSize(
 	assert(window != NULL);
 
 	glfwSetWindowSize(
-		window->handle,
+		window->vk.handle,
 		(int)size.x,
 		(int)size.y);
 }
@@ -1012,7 +861,7 @@ Vec2I getWindowPosition(
 	Vec2I position;
 
 	glfwGetWindowPos(
-		window->handle,
+		window->vk.handle,
 		&position.x,
 		&position.y);
 
@@ -1025,7 +874,7 @@ void setWindowPosition(
 	assert(window != NULL);
 
 	glfwSetWindowPos(
-		window->handle,
+		window->vk.handle,
 		position.x,
 		position.y);
 }
@@ -1038,7 +887,7 @@ Vec2F getWindowCursorPosition(
 	double x, y;
 
 	glfwGetCursorPos(
-		window->handle,
+		window->vk.handle,
 		&x,
 		&y);
 
@@ -1051,7 +900,7 @@ void setWindowCursorPosition(
 	assert(window != NULL);
 
 	glfwSetCursorPos(
-		window->handle,
+		window->vk.handle,
 		(double)position.x,
 		(double)position.y);
 }
@@ -1062,7 +911,7 @@ uint8_t getWindowCursorMode(
 	assert(window != NULL);
 
 	return glfwGetInputMode(
-		window->handle,
+		window->vk.handle,
 		GLFW_CURSOR);
 }
 void setWindowCursorMode(
@@ -1084,7 +933,7 @@ void setWindowCursorMode(
 		abort();
 
 	glfwSetInputMode(
-		window->handle,
+		window->vk.handle,
 		GLFW_CURSOR,
 		value);
 }
@@ -1094,7 +943,7 @@ bool isWindowFocused(Window window)
 	assert(window != NULL);
 
 	return glfwGetWindowAttrib(
-		window->handle,
+		window->vk.handle,
 		GLFW_FOCUSED) == GLFW_TRUE;
 }
 bool isWindowIconified(Window window)
@@ -1102,7 +951,7 @@ bool isWindowIconified(Window window)
 	assert(window != NULL);
 
 	return glfwGetWindowAttrib(
-		window->handle,
+		window->vk.handle,
 		GLFW_ICONIFIED) == GLFW_TRUE;
 }
 bool isWindowMaximized(Window window)
@@ -1110,7 +959,7 @@ bool isWindowMaximized(Window window)
 	assert(window != NULL);
 
 	return glfwGetWindowAttrib(
-		window->handle,
+		window->vk.handle,
 		GLFW_MAXIMIZED) == GLFW_TRUE;
 }
 bool isWindowVisible(Window window)
@@ -1118,7 +967,7 @@ bool isWindowVisible(Window window)
 	assert(window != NULL);
 
 	return glfwGetWindowAttrib(
-		window->handle,
+		window->vk.handle,
 		GLFW_VISIBLE) == GLFW_TRUE;
 }
 bool isWindowHovered(Window window)
@@ -1126,67 +975,67 @@ bool isWindowHovered(Window window)
 	assert(window != NULL);
 
 	return glfwGetWindowAttrib(
-		window->handle,
+		window->vk.handle,
 		GLFW_HOVERED) == GLFW_TRUE;
 }
 
 void iconifyWindow(Window window)
 {
 	assert(window != NULL);
-	glfwIconifyWindow(window->handle);
+	glfwIconifyWindow(window->vk.handle);
 }
 void maximizeWindow(Window window)
 {
 	assert(window != NULL);
-	glfwMaximizeWindow(window->handle);
+	glfwMaximizeWindow(window->vk.handle);
 }
 void restoreWindow(Window window)
 {
 	assert(window != NULL);
-	glfwRestoreWindow(window->handle);
+	glfwRestoreWindow(window->vk.handle);
 }
 void showWindow(Window window)
 {
 	assert(window != NULL);
-	glfwShowWindow(window->handle);
+	glfwShowWindow(window->vk.handle);
 }
 void hideWindow(Window window)
 {
 	assert(window != NULL);
-	glfwHideWindow(window->handle);
+	glfwHideWindow(window->vk.handle);
 }
 void focusWindow(Window window)
 {
 	assert(window != NULL);
-	glfwFocusWindow(window->handle);
+	glfwFocusWindow(window->vk.handle);
 }
 void requestWindowAttention(Window window)
 {
 	assert(window != NULL);
-	glfwRequestWindowAttention(window->handle);
+	glfwRequestWindowAttention(window->vk.handle);
 }
 
 void makeWindowContextCurrent(Window window)
 {
 	assert(window != NULL);
-	assert(window->api == OPENGL_GRAPHICS_API ||
-		window->api == OPENGL_ES_GRAPHICS_API);
-	assert(window->isRecording == false);
+	assert(window->vk.api == OPENGL_GRAPHICS_API ||
+		window->vk.api == OPENGL_ES_GRAPHICS_API);
+	assert(window->vk.isRecording == false);
 
 	if (window != currentWindow)
 	{
-		glfwMakeContextCurrent(window->handle);
+		glfwMakeContextCurrent(window->vk.handle);
 		currentWindow = window;
 	}
 }
 void updateWindow(Window window)
 {
 	assert(window != NULL);
-	assert(window->isRecording == false);
+	assert(window->vk.isRecording == false);
 
-	GLFWwindow* handle = window->handle;
-	OnWindowUpdate onUpdate = window->onUpdate;
-	void* updateArgument = window->updateArgument;
+	GLFWwindow* handle = window->vk.handle;
+	OnWindowUpdate onUpdate = window->vk.onUpdate;
+	void* updateArgument = window->vk.updateArgument;
 
 	// TODO: add vsync off/on option
 
@@ -1195,8 +1044,8 @@ void updateWindow(Window window)
 		glfwPollEvents();
 
 		double time = glfwGetTime();
-		window->deltaTime = time - window->updateTime;
-		window->updateTime = time;
+		window->vk.deltaTime = time - window->vk.updateTime;
+		window->vk.updateTime = time;
 		onUpdate(updateArgument);
 	}
 }
@@ -1215,10 +1064,10 @@ inline static void beginGlWindowRender(Window window)
 void beginWindowRender(Window window)
 {
 	assert(window != NULL);
-	assert(window->isRecording == false);
-	assert(window->isRendering == false);
+	assert(window->vk.isRecording == false);
+	assert(window->vk.isRendering == false);
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1234,7 +1083,7 @@ void beginWindowRender(Window window)
 		abort();
 	}
 
-	window->isRecording = true;
+	window->vk.isRecording = true;
 }
 
 inline static void endVkWindowRender(Window window)
@@ -1243,15 +1092,15 @@ inline static void endVkWindowRender(Window window)
 }
 inline static void endGlWindowRender(Window window)
 {
-	glfwSwapBuffers(window->handle);
+	glfwSwapBuffers(window->vk.handle);
 }
 void endWindowRender(Window window)
 {
 	assert(window != NULL);
-	assert(window->isRecording == true);
-	assert(window->isRendering == false);
+	assert(window->vk.isRecording == true);
+	assert(window->vk.isRendering == false);
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1267,82 +1116,9 @@ void endWindowRender(Window window)
 		abort();
 	}
 
-	window->isRecording = false;
+	window->vk.isRecording = false;
 }
 
-inline static Buffer createVkBuffer(
-	Window window,
-	uint8_t type,
-	const void* data,
-	size_t size,
-	bool isConstant)
-{
-	return NULL;
-}
-inline static Buffer createGlBuffer(
-	Window window,
-	uint8_t type,
-	const void* data,
-	size_t size,
-	bool isConstant)
-{
-	Buffer buffer = malloc(
-		sizeof(union Buffer));
-
-	if (buffer == NULL)
-		return NULL;
-
-	GLenum glType;
-
-	if (type == VERTEX_BUFFER_TYPE)
-	{
-		glType = GL_ARRAY_BUFFER;
-	}
-	else if (type == INDEX_BUFFER_TYPE)
-	{
-		glType = GL_ELEMENT_ARRAY_BUFFER;
-	}
-	else if (type == UNIFORM_BUFFER_TYPE)
-	{
-		glType = GL_UNIFORM_BUFFER;
-	}
-	else
-	{
-		free(buffer);
-		return NULL;
-	}
-
-	makeWindowContextCurrent(window);
-
-	GLuint handle = GL_ZERO;
-
-	glGenBuffers(
-		GL_ONE,
-		&handle);
-
-	GLenum usage = isConstant ?
-		GL_STATIC_DRAW :
-		GL_DYNAMIC_DRAW;
-
-	glBindBuffer(
-		glType,
-		handle);
-	glBufferData(
-		glType,
-		(GLsizeiptr)(size),
-		data,
-		usage);
-
-	assertOpenGL();
-
-	buffer->gl.window = window;
-	buffer->gl.type = type;
-	buffer->gl.size = size;
-	buffer->gl.isConstant = isConstant;
-	buffer->gl.glType = glType;
-	buffer->gl.handle = handle;
-	return buffer;
-}
 Buffer createBuffer(
 	Window window,
 	uint8_t type,
@@ -1353,9 +1129,9 @@ Buffer createBuffer(
 	assert(window != NULL);
 	assert(type < BUFFER_TYPE_COUNT);
 	assert(size != 0);
-	assert(window->isRecording == false);
+	assert(window->vk.isRecording == false);
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	Buffer buffer;
 
@@ -1386,14 +1162,14 @@ Buffer createBuffer(
 	if (buffer == NULL)
 		return NULL;
 
-	size_t count = window->bufferCount;
+	size_t count = window->vk.bufferCount;
 
-	if (count == window->bufferCapacity)
+	if (count == window->vk.bufferCapacity)
 	{
-		size_t capacity = window->bufferCapacity * 2;
+		size_t capacity = window->vk.bufferCapacity * 2;
 
 		Buffer* buffers = realloc(
-			window->buffers,
+			window->vk.buffers,
 			sizeof(Buffer) * capacity);
 
 		if (buffers == NULL)
@@ -1415,12 +1191,12 @@ Buffer createBuffer(
 			return NULL;
 		}
 
-		window->buffers = buffers;
-		window->bufferCapacity = capacity;
+		window->vk.buffers = buffers;
+		window->vk.bufferCapacity = capacity;
 	}
 
-	window->buffers[count] = buffer;
-	window->bufferCount = count + 1;
+	window->vk.buffers[count] = buffer;
+	window->vk.bufferCount = count + 1;
 	return buffer;
 }
 void destroyBuffer(Buffer buffer)
@@ -1428,11 +1204,11 @@ void destroyBuffer(Buffer buffer)
 	if (buffer == NULL)
 		return;
 
-	assert(buffer->vk.window->isRecording == false);
+	assert(buffer->vk.window->vk.isRecording == false);
 
 	Window window = buffer->vk.window;
-	Buffer* buffers = window->buffers;
-	size_t bufferCount = window->bufferCount;
+	Buffer* buffers = window->vk.buffers;
+	size_t bufferCount = window->vk.bufferCount;
 
 	for (size_t i = 0; i < bufferCount; i++)
 	{
@@ -1442,7 +1218,7 @@ void destroyBuffer(Buffer buffer)
 		for (size_t j = i + 1; j < bufferCount; j++)
 			buffers[j - 1] = buffers[j];
 
-		uint8_t api = window->api;
+		uint8_t api = window->vk.api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -1458,7 +1234,7 @@ void destroyBuffer(Buffer buffer)
 			abort();
 		}
 
-		window->bufferCount--;
+		window->vk.bufferCount--;
 		return;
 	}
 
@@ -1489,7 +1265,7 @@ const void* getBufferHandle(Buffer buffer)
 {
 	assert(buffer != NULL);
 
-	uint8_t api = buffer->vk.window->api;
+	uint8_t api = buffer->vk.window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1506,30 +1282,6 @@ const void* getBufferHandle(Buffer buffer)
 	}
 }
 
-inline static void setVkBufferData(
-	Buffer buffer,
-	const void* data,
-	size_t size,
-	size_t offset)
-{
-
-}
-inline static void setGlBufferData(
-	Buffer buffer,
-	const void* data,
-	size_t size,
-	size_t offset)
-{
-	glBindBuffer(
-		buffer->gl.glType,
-		buffer->gl.handle);
-	glBufferSubData(
-		buffer->gl.glType,
-		(GLintptr)offset,
-		(GLsizeiptr)size,
-		data);
-	assertOpenGL();
-}
 void setBufferData(
 	Buffer buffer,
 	const void* data,
@@ -1542,7 +1294,7 @@ void setBufferData(
 	assert(buffer->vk.isConstant == false);
 	assert(size + offset <= buffer->vk.size);
 
-	uint8_t api = buffer->vk.window->api;
+	uint8_t api = buffer->vk.window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1567,48 +1319,6 @@ void setBufferData(
 	}
 }
 
-inline static Mesh createVkMesh(
-	Window window,
-	uint8_t drawIndex,
-	size_t indexCount,
-	size_t indexOffset,
-	Buffer vertexBuffer,
-	Buffer indexBuffer)
-{
-	return NULL;
-}
-inline static Mesh createGlMesh(
-	Window window,
-	uint8_t drawIndex,
-	size_t indexCount,
-	size_t indexOffset,
-	Buffer vertexBuffer,
-	Buffer indexBuffer)
-{
-	Mesh mesh = malloc(
-		sizeof(union Mesh));
-
-	if (mesh == NULL)
-		return NULL;
-
-	makeWindowContextCurrent(window);
-
-	GLuint handle = GL_ZERO;
-
-	glGenVertexArrays(
-		GL_ONE,
-		&handle);
-	assertOpenGL();
-
-	mesh->gl.window = window;
-	mesh->gl.drawIndex = drawIndex;
-	mesh->gl.indexCount = indexCount;
-	mesh->gl.indexOffset = indexOffset;
-	mesh->gl.vertexBuffer = vertexBuffer;
-	mesh->gl.indexBuffer = indexBuffer;
-	mesh->gl.handle = handle;
-	return mesh;
-}
 Mesh createMesh(
 	Window window,
 	uint8_t drawIndex,
@@ -1619,7 +1329,7 @@ Mesh createMesh(
 {
 	assert(window != NULL);
 	assert(drawIndex < DRAW_INDEX_COUNT);
-	assert(window->isRecording == false);
+	assert(window->vk.isRecording == false);
 
 #ifndef NDEBUG
 	if (vertexBuffer != NULL)
@@ -1651,7 +1361,7 @@ Mesh createMesh(
 	}
 #endif
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	Mesh mesh;
 
@@ -1684,14 +1394,14 @@ Mesh createMesh(
 	if (mesh == NULL)
 		return NULL;
 
-	size_t count = window->meshCount;
+	size_t count = window->vk.meshCount;
 
-	if (count == window->meshCapacity)
+	if (count == window->vk.meshCapacity)
 	{
-		size_t capacity = window->meshCapacity * 2;
+		size_t capacity = window->vk.meshCapacity * 2;
 
 		Mesh* meshes = realloc(
-			window->meshes,
+			window->vk.meshes,
 			sizeof(Mesh) * capacity);
 
 		if (meshes == NULL)
@@ -1713,12 +1423,12 @@ Mesh createMesh(
 			return NULL;
 		}
 
-		window->meshes = meshes;
-		window->meshCapacity = capacity;
+		window->vk.meshes = meshes;
+		window->vk.meshCapacity = capacity;
 	}
 
-	window->meshes[count] = mesh;
-	window->meshCount = count + 1;
+	window->vk.meshes[count] = mesh;
+	window->vk.meshCount = count + 1;
 	return mesh;
 }
 void destroyMesh(Mesh mesh)
@@ -1726,11 +1436,11 @@ void destroyMesh(Mesh mesh)
 	if (mesh == NULL)
 		return;
 
-	assert(mesh->vk.window->isRecording == false);
+	assert(mesh->vk.window->vk.isRecording == false);
 
 	Window window = mesh->vk.window;
-	Mesh* meshes = window->meshes;
-	size_t meshCount = window->meshCount;
+	Mesh* meshes = window->vk.meshes;
+	size_t meshCount = window->vk.meshCount;
 
 	for (size_t i = 0; i < meshCount; i++)
 	{
@@ -1740,7 +1450,7 @@ void destroyMesh(Mesh mesh)
 		for (size_t j = i + 1; j < meshCount; j++)
 			meshes[j - 1] = meshes[j];
 
-		uint8_t api = window->api;
+		uint8_t api = window->vk.api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -1756,7 +1466,7 @@ void destroyMesh(Mesh mesh)
 			abort();
 		}
 
-		window->meshCount--;
+		window->vk.meshCount--;
 		return;
 	}
 
@@ -1785,7 +1495,7 @@ void setMeshIndexCount(
 	size_t indexCount)
 {
 	assert(mesh != NULL);
-	assert(mesh->vk.window->isRecording == false);
+	assert(mesh->vk.window->vk.isRecording == false);
 
 #ifndef NDEBUG
 	if (mesh->vk.indexBuffer != NULL)
@@ -1823,7 +1533,7 @@ void setMeshIndexOffset(
 	size_t indexOffset)
 {
 	assert(mesh != NULL);
-	assert(mesh->vk.window->isRecording == false);
+	assert(mesh->vk.window->vk.isRecording == false);
 
 #ifndef NDEBUG
 	if (mesh->vk.indexBuffer != NULL)
@@ -1861,7 +1571,7 @@ void setMeshVertexBuffer(
 	Buffer vertexBuffer)
 {
 	assert(mesh != NULL);
-	assert(mesh->vk.window->isRecording == false);
+	assert(mesh->vk.window->vk.isRecording == false);
 
 #ifndef NDEBUG
 	if (vertexBuffer != NULL)
@@ -1889,7 +1599,7 @@ void setMeshIndexBuffer(
 {
 	assert(mesh != NULL);
 	assert(drawIndex < DRAW_INDEX_COUNT);
-	assert(mesh->vk.window->isRecording == false);
+	assert(mesh->vk.window->vk.isRecording == false);
 
 #ifndef NDEBUG
 	if (indexBuffer != NULL)
@@ -1922,88 +1632,6 @@ void setMeshIndexBuffer(
 	mesh->vk.indexBuffer = indexBuffer;
 }
 
-inline static void drawVkMesh(
-	Mesh mesh,
-	Pipeline pipeline)
-{
-}
-inline static void drawGlMesh(
-	Mesh mesh,
-	Pipeline pipeline)
-{
-	Buffer vertexBuffer = mesh->gl.vertexBuffer;
-	Buffer indexBuffer = mesh->gl.indexBuffer;
-
-	glBindVertexArray(
-		mesh->gl.handle);
-	glBindBuffer(
-		GL_ARRAY_BUFFER,
-		vertexBuffer->gl.handle);
-	glBindBuffer(
-		GL_ELEMENT_ARRAY_BUFFER,
-		indexBuffer->gl.handle);
-	assertOpenGL();
-
-	pipeline->onUniformsSet(pipeline);
-
-	GLenum glDrawMode;
-
-	switch (pipeline->drawMode)
-	{
-	default:
-		abort();
-	case POINTS_DRAW_MODE:
-		glDrawMode = GL_POINTS;
-		break;
-	case LINE_STRIP_DRAW_MODE:
-		glDrawMode = GL_LINE_STRIP;
-		break;
-	case LINE_LOOP_DRAW_MODE:
-		glDrawMode = GL_LINE_LOOP;
-		break;
-	case LINES_DRAW_MODE:
-		glDrawMode = GL_LINES;
-		break;
-	case TRIANGLE_STRIP_DRAW_MODE:
-		glDrawMode = GL_TRIANGLE_STRIP;
-		break;
-	case TRIANGLE_FAN_DRAW_MODE:
-		glDrawMode = GL_TRIANGLE_FAN;
-		break;
-	case TRIANGLES_DRAW_MODE:
-		glDrawMode = GL_TRIANGLES;
-		break;
-	}
-
-	uint8_t drawIndex = mesh->gl.drawIndex;
-
-	GLenum glDrawIndex;
-	size_t glIndexOffset;
-
-	if (drawIndex == UINT16_DRAW_INDEX)
-	{
-		glDrawIndex = GL_UNSIGNED_SHORT;
-		glIndexOffset = mesh->gl.indexOffset * sizeof(uint16_t);
-	}
-	else if (drawIndex == UINT32_DRAW_INDEX)
-	{
-		glDrawIndex = GL_UNSIGNED_INT;
-		glIndexOffset = mesh->gl.indexOffset * sizeof(uint32_t);
-	}
-	else
-	{
-		abort();
-	}
-
-	glDrawElements(
-		glDrawMode,
-		(GLsizei)mesh->gl.indexCount,
-		glDrawIndex,
-		(const void*)glIndexOffset);
-
-	assertOpenGL();
-}
-
 size_t drawMesh(
 	Mesh mesh,
 	Pipeline pipeline)
@@ -2011,7 +1639,7 @@ size_t drawMesh(
 	assert(mesh != NULL);
 	assert(pipeline != NULL);
 	assert(mesh->vk.window == pipeline->window);
-	assert(mesh->vk.window->isRecording == true);
+	assert(mesh->vk.window->vk.isRecording == true);
 
 	if (mesh->vk.vertexBuffer == NULL ||
 		mesh->vk.indexBuffer == NULL ||
@@ -2020,7 +1648,7 @@ size_t drawMesh(
 		return 0;
 	}
 
-	uint8_t api = pipeline->window->api;
+	uint8_t api = pipeline->window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2033,7 +1661,9 @@ size_t drawMesh(
 	{
 		drawGlMesh(
 			mesh,
-			pipeline);
+			pipeline,
+			pipeline->onUniformsSet,
+			pipeline->drawMode);
 	}
 	else
 	{
@@ -2110,204 +1740,6 @@ uint8_t getImageDataChannelCount(ImageData imageData)
 	return imageData->channelCount;
 }
 
-inline static Image createVkImage(
-	Window window,
-	uint8_t type,
-	uint8_t format,
-	Vec3U size,
-	const void** data,
-	uint8_t levelCount)
-{
-	return NULL;
-}
-inline static Image createGlImage(
-	Window window,
-	uint8_t type,
-	uint8_t format,
-	Vec3U size,
-	const void** data,
-	uint8_t levelCount)
-{
-	Image image = malloc(
-		sizeof(union Image));
-
-	if (image == NULL)
-		return NULL;
-
-	GLenum glType;
-	GLenum dataFormat;
-	GLenum dataType;
-
-	if (type == IMAGE_2D_TYPE)
-		glType = GL_TEXTURE_2D;
-	else if (type == IMAGE_3D_TYPE)
-		glType = GL_TEXTURE_3D;
-	else
-		abort();
-
-	GLint glFormat;
-
-	switch (format)
-	{
-	default:
-		free(image);
-		return NULL;
-	case R8G8B8A8_UNORM_IMAGE_FORMAT:
-		glFormat = GL_RGBA8;
-		dataFormat = GL_RGBA;
-		dataType = GL_UNSIGNED_BYTE;
-		break;
-	case R8G8B8A8_SRGB_IMAGE_FORMAT:
-		glFormat = GL_SRGB8_ALPHA8;
-		dataFormat = GL_RGBA;
-		dataType = GL_UNSIGNED_BYTE;
-		break;
-	case D16_UNORM_IMAGE_FORMAT:
-		glFormat = GL_DEPTH_COMPONENT16;
-		dataFormat = GL_DEPTH_COMPONENT;
-		dataType = GL_UNSIGNED_SHORT;
-		break;
-	case D32_SFLOAT_IMAGE_FORMAT:
-		glFormat = GL_DEPTH_COMPONENT32F;
-		dataFormat = GL_DEPTH_COMPONENT;
-		dataType = GL_FLOAT;
-		break;
-	case D24_UNORM_S8_UINT_IMAGE_FORMAT:
-		glFormat = GL_DEPTH24_STENCIL8;
-		dataFormat = GL_DEPTH_STENCIL;
-		dataType = GL_UNSIGNED_INT_24_8;
-		break;
-	case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
-		glFormat = GL_DEPTH32F_STENCIL8;
-		dataFormat = GL_DEPTH_STENCIL;
-		dataType = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
-		break;
-	}
-
-	makeWindowContextCurrent(window);
-
-	GLuint handle = GL_ZERO;
-
-	glGenTextures(
-		GL_ONE,
-		&handle);
-	glBindTexture(
-		glType,
-		handle);
-
-	if (type == IMAGE_2D_TYPE)
-	{
-		if (levelCount == 0)
-		{
-			glTexImage2D(
-				glType,
-				0,
-				glFormat,
-				(GLsizei)size.x,
-				(GLsizei)size.y,
-				0,
-				dataFormat,
-				dataType,
-				data[0]);
-			glGenerateMipmap(glType);
-		}
-		else
-		{
-			Vec2U mipSize = vec2U(size.x, size.y);
-
-			for (uint8_t i = 0; i < levelCount; i++)
-			{
-				glTexImage2D(
-					glType,
-					(GLint)i,
-					glFormat,
-					(GLsizei)mipSize.x,
-					(GLsizei)mipSize.y,
-					0,
-					dataFormat,
-					dataType,
-					data[i]);
-
-				mipSize = vec2U(
-					mipSize.x / 2,
-					mipSize.y / 2);
-			}
-
-			glTexParameteri(
-				GL_TEXTURE_2D,
-				GL_TEXTURE_BASE_LEVEL,
-				0);
-			glTexParameteri(
-				GL_TEXTURE_2D,
-				GL_TEXTURE_MAX_LEVEL,
-				levelCount - 1);
-		}
-	}
-	else
-	{
-		if (levelCount == 0)
-		{
-			glTexImage3D(
-				glType,
-				0,
-				glFormat,
-				(GLsizei)size.x,
-				(GLsizei)size.y,
-				(GLsizei)size.z,
-				0,
-				dataFormat,
-				dataType,
-				data[0]);
-			glGenerateMipmap(glType);
-		}
-		else
-		{
-			Vec3U mipSize = size;
-
-			for (uint8_t i = 0; i < levelCount; i++)
-			{
-				glTexImage3D(
-					glType,
-					(GLint)i,
-					glFormat,
-					(GLsizei)mipSize.x,
-					(GLsizei)mipSize.y,
-					(GLsizei)mipSize.z,
-					0,
-					dataFormat,
-					dataType,
-					data[i]);
-
-				mipSize = vec3U(
-					mipSize.x / 2,
-					mipSize.y / 2,
-					mipSize.z / 2);
-			}
-
-			glTexParameteri(
-				GL_TEXTURE_2D,
-				GL_TEXTURE_BASE_LEVEL,
-				0);
-			glTexParameteri(
-				GL_TEXTURE_2D,
-				GL_TEXTURE_MAX_LEVEL,
-				levelCount - 1);
-		}
-	}
-
-	assertOpenGL();
-
-	image->gl.window = window;
-	image->gl.type = type;
-	image->gl.format = format;
-	image->gl.size = size;
-	image->gl.handle = handle;
-	image->gl.glType = glType;
-	image->gl.dataType = dataType;
-	image->gl.dataFormat = dataFormat;
-	image->gl.handle = handle;
-	return image;
-}
 Image createImage(
 	Window window,
 	uint8_t type,
@@ -2325,9 +1757,9 @@ Image createImage(
 	assert(data != NULL);
 	assert(levelCount >= 0);
 	assert(levelCount <= getImageLevelCount(size));
-	assert(window->isRecording == false);
+	assert(window->vk.isRecording == false);
 
-	uint32_t maxImageSize = window->maxImageSize;
+	uint32_t maxImageSize = window->vk.maxImageSize;
 
 	if (size.x > maxImageSize ||
 		size.y > maxImageSize ||
@@ -2336,7 +1768,7 @@ Image createImage(
 		return NULL;
 	}
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	Image image;
 
@@ -2369,14 +1801,14 @@ Image createImage(
 	if (image == NULL)
 		return NULL;
 
-	size_t count = window->imageCount;
+	size_t count = window->vk.imageCount;
 
-	if (count == window->imageCapacity)
+	if (count == window->vk.imageCapacity)
 	{
-		size_t capacity = window->imageCapacity * 2;
+		size_t capacity = window->vk.imageCapacity * 2;
 
 		Image* images = realloc(
-			window->images,
+			window->vk.images,
 			sizeof(Image) * capacity);
 
 		if (images == NULL)
@@ -2398,12 +1830,12 @@ Image createImage(
 			return NULL;
 		}
 
-		window->images = images;
-		window->imageCapacity = capacity;
+		window->vk.images = images;
+		window->vk.imageCapacity = capacity;
 	}
 
-	window->images[count] = image;
-	window->imageCount = count + 1;
+	window->vk.images[count] = image;
+	window->vk.imageCount = count + 1;
 	return image;
 }
 Image createImageFromFile(
@@ -2414,7 +1846,7 @@ Image createImageFromFile(
 {
 	assert(window != NULL);
 	assert(filePath != NULL);
-	assert(window->isRecording == false);
+	assert(window->vk.isRecording == false);
 
 	if (format != R8G8B8A8_UNORM_IMAGE_FORMAT &&
 		format != R8G8B8A8_SRGB_IMAGE_FORMAT)
@@ -2452,11 +1884,11 @@ void destroyImage(Image image)
 	if (image == NULL)
 		return;
 
-	assert(image->vk.window->isRecording == false);
+	assert(image->vk.window->vk.isRecording == false);
 
 	Window window = image->vk.window;
-	Image* images = window->images;
-	size_t imageCount = window->imageCount;
+	Image* images = window->vk.images;
+	size_t imageCount = window->vk.imageCount;
 
 	for (size_t i = 0; i < imageCount; i++)
 	{
@@ -2466,7 +1898,7 @@ void destroyImage(Image image)
 		for (size_t j = i + 1; j < imageCount; j++)
 			images[j - 1] = images[j];
 
-		uint8_t api = window->api;
+		uint8_t api = window->vk.api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -2482,71 +1914,13 @@ void destroyImage(Image image)
 			abort();
 		}
 
-		window->imageCount--;
+		window->vk.imageCount--;
 		return;
 	}
 
 	abort();
 }
 
-inline static void setVkImageData(
-	Image image,
-	const void* data,
-	Vec3U size,
-	Vec3U offset)
-{
-
-}
-inline static void setGlImageData(
-	Image image,
-	const void* data,
-	Vec3U size,
-	Vec3U offset)
-{
-	makeWindowContextCurrent(
-		image->gl.window);
-
-	glBindTexture(
-		image->gl.glType,
-		image->gl.handle);
-
-	uint8_t type = image->gl.type;
-
-	if (type == IMAGE_2D_TYPE)
-	{
-		glTexSubImage2D(
-			image->gl.glType,
-			0,
-			(GLint)offset.x,
-			(GLint)offset.y,
-			(GLsizei)size.x,
-			(GLsizei)size.y,
-			image->gl.dataFormat,
-			image->gl.dataType,
-			data);
-	}
-	else if (type == IMAGE_3D_TYPE)
-	{
-		glTexSubImage3D(
-			image->gl.glType,
-			0,
-			(GLint)offset.x,
-			(GLint)offset.y,
-			(GLint)offset.z,
-			(GLsizei)size.x,
-			(GLsizei)size.y,
-			(GLsizei)size.z,
-			image->gl.dataFormat,
-			image->gl.dataType,
-			data);
-	}
-	else
-	{
-		abort();
-	}
-
-	assertOpenGL();
-}
 void setImageData(
 	Image image,
 	const void* data,
@@ -2560,11 +1934,11 @@ void setImageData(
 	assert(size.x + offset.x <= image->vk.size.x);
 	assert(size.y + offset.y <= image->vk.size.y);
 	assert(size.z + offset.z <= image->vk.size.z);
-	assert(image->vk.window->isRecording == false);
+	assert(image->vk.window->vk.isRecording == false);
 
 	// TODO: check for static image in Vulkan API
 
-	uint8_t api = image->vk.window->api;
+	uint8_t api = image->vk.window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2613,7 +1987,7 @@ const void* getImageHandle(Image image)
 {
 	assert(image != NULL);
 
-	uint8_t api = image->vk.window->api;
+	uint8_t api = image->vk.window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2638,115 +2012,6 @@ uint8_t getImageLevelCount(Vec3U imageSize)
 	return (uint8_t)floorf(log2f((float)size)) + 1;
 }
 
-inline static Sampler createVkSampler(
-	Window window,
-	uint8_t minImageFilter,
-	uint8_t magImageFilter,
-	uint8_t minMipmapFilter,
-	bool useMipmapping,
-	uint8_t imageWrapX,
-	uint8_t imageWrapY,
-	uint8_t imageWrapZ,
-	uint8_t imageCompare,
-	bool useCompare,
-	float minMipmapLod,
-	float maxMipmapLod)
-{
-	return NULL;
-}
-inline static Sampler createGlSampler(
-	Window window,
-	uint8_t minImageFilter,
-	uint8_t magImageFilter,
-	uint8_t minMipmapFilter,
-	bool useMipmapping,
-	uint8_t imageWrapX,
-	uint8_t imageWrapY,
-	uint8_t imageWrapZ,
-	uint8_t imageCompare,
-	bool useCompare,
-	float minMipmapLod,
-	float maxMipmapLod)
-{
-	Sampler sampler = malloc(
-		sizeof(union Sampler));
-
-	if (sampler == NULL)
-		return NULL;
-
-	makeWindowContextCurrent(window);
-
-	GLuint handle = GL_ZERO;
-
-	glGenSamplers(
-		GL_ONE,
-		&handle);
-
-	glSamplerParameteri(
-		handle,
-		GL_TEXTURE_MIN_FILTER,
-		(GLint)getGlImageFilter(
-			minImageFilter,
-			minMipmapFilter,
-			useMipmapping));
-	glSamplerParameteri(
-		handle,
-		GL_TEXTURE_MAG_FILTER,
-		(GLint)getGlImageFilter(
-			magImageFilter,
-			magImageFilter,
-			false));
-
-	glSamplerParameteri(
-		handle,
-		GL_TEXTURE_WRAP_S,
-		(GLint)getGlImageWrap(imageWrapX));
-	glSamplerParameteri(
-		handle,
-		GL_TEXTURE_WRAP_T,
-		(GLint)getGlImageWrap(imageWrapY));
-	glSamplerParameteri(
-		handle,
-		GL_TEXTURE_WRAP_R,
-		(GLint)getGlImageWrap(imageWrapZ));
-
-	glSamplerParameteri(
-		handle,
-		GL_TEXTURE_COMPARE_MODE,
-		useCompare ?
-			GL_COMPARE_REF_TO_TEXTURE :
-			GL_NONE);
-	glSamplerParameteri(
-		handle,
-		GL_TEXTURE_COMPARE_FUNC,
-		(GLint)getGlImageCompare(imageCompare));
-
-	glSamplerParameterf(
-		handle,
-		GL_TEXTURE_MIN_LOD,
-		(GLfloat)minMipmapLod);
-	glSamplerParameterf(
-		handle,
-		GL_TEXTURE_MAX_LOD,
-		(GLfloat)maxMipmapLod);
-
-	assertOpenGL();
-
-	sampler->gl.window = window;
-	sampler->gl.minImageFilter = minImageFilter;
-	sampler->gl.magImageFilter = magImageFilter;
-	sampler->gl.minMipmapFilter = minMipmapFilter;
-	sampler->gl.useMipmapping = useMipmapping;
-	sampler->gl.imageWrapX = imageWrapX;
-	sampler->gl.imageWrapY = imageWrapY;
-	sampler->gl.imageWrapZ = imageWrapZ;
-	sampler->gl.imageCompare = imageCompare;
-	sampler->gl.useCompare = useCompare;
-	sampler->gl.minMipmapLod = minMipmapLod;
-	sampler->gl.maxMipmapLod = maxMipmapLod;
-	sampler->gl.handle = handle;
-	return sampler;
-}
 Sampler createSampler(
 	Window window,
 	uint8_t minImageFilter,
@@ -2769,9 +2034,9 @@ Sampler createSampler(
 	assert(imageWrapY < IMAGE_WRAP_COUNT);
 	assert(imageWrapZ < IMAGE_WRAP_COUNT);
 	assert(imageCompare < IMAGE_COMPARE_COUNT);
-	assert(window->isRecording == false);
+	assert(window->vk.isRecording == false);
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	Sampler sampler;
 
@@ -2816,14 +2081,14 @@ Sampler createSampler(
 	if (sampler == NULL)
 		return NULL;
 
-	size_t count = window->samplerCount;
+	size_t count = window->vk.samplerCount;
 
-	if (count == window->samplerCapacity)
+	if (count == window->vk.samplerCapacity)
 	{
-		size_t capacity = window->samplerCapacity * 2;
+		size_t capacity = window->vk.samplerCapacity * 2;
 
 		Sampler* samplers = realloc(
-			window->samplers,
+			window->vk.samplers,
 			sizeof(Sampler) * capacity);
 
 		if (samplers == NULL)
@@ -2845,12 +2110,12 @@ Sampler createSampler(
 			return NULL;
 		}
 
-		window->samplers = samplers;
-		window->samplerCapacity = capacity;
+		window->vk.samplers = samplers;
+		window->vk.samplerCapacity = capacity;
 	}
 
-	window->samplers[count] = sampler;
-	window->samplerCount = count + 1;
+	window->vk.samplers[count] = sampler;
+	window->vk.samplerCount = count + 1;
 	return sampler;
 }
 void destroySampler(Sampler sampler)
@@ -2858,11 +2123,11 @@ void destroySampler(Sampler sampler)
 	if (sampler == NULL)
 		return;
 
-	assert(sampler->vk.window->isRecording == false);
+	assert(sampler->vk.window->vk.isRecording == false);
 
 	Window window = sampler->vk.window;
-	Sampler* samplers = window->samplers;
-	size_t samplerCount = window->samplerCount;
+	Sampler* samplers = window->vk.samplers;
+	size_t samplerCount = window->vk.samplerCount;
 
 	for (size_t i = 0; i < samplerCount; i++)
 	{
@@ -2872,7 +2137,7 @@ void destroySampler(Sampler sampler)
 		for (size_t j = i + 1; j < samplerCount; j++)
 			samplers[j - 1] = samplers[j];
 
-		uint8_t api = window->api;
+		uint8_t api = window->vk.api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -2888,7 +2153,7 @@ void destroySampler(Sampler sampler)
 			abort();
 		}
 
-		window->samplerCount--;
+		window->vk.samplerCount--;
 		return;
 	}
 
@@ -2959,7 +2224,7 @@ const void* getSamplerHandle(Sampler sampler)
 {
 	assert(sampler != NULL);
 
-	uint8_t api = sampler->vk.window->api;
+	uint8_t api = sampler->vk.window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2976,179 +2241,6 @@ const void* getSamplerHandle(Sampler sampler)
 	}
 }
 
-inline static Framebuffer createVkFramebuffer(
-	Window window,
-	Image* _colorAttachments,
-	size_t colorAttachmentCount,
-	Image depthStencilAttachment)
-{
-	return NULL;
-}
-inline static Framebuffer createGlFramebuffer(
-	Window window,
-	Image* _colorAttachments,
-	size_t colorAttachmentCount,
-	Image depthStencilAttachment)
-{
-	Framebuffer framebuffer = malloc(
-		sizeof(union Framebuffer));
-
-	if (framebuffer == NULL)
-		return NULL;
-
-	makeWindowContextCurrent(window);
-
-	GLuint handle = GL_ZERO;
-
-	glGenFramebuffers(
-		GL_ONE,
-		&handle);
-	glBindFramebuffer(
-		GL_FRAMEBUFFER,
-		handle);
-
-	Image* colorAttachments;
-
-	if (_colorAttachments != NULL)
-	{
-		colorAttachments = malloc(
-			sizeof(Image) * colorAttachmentCount);
-
-		if (colorAttachments == NULL)
-		{
-			glDeleteFramebuffers(
-				GL_ONE,
-				&handle);
-			free(framebuffer);
-			return NULL;
-		}
-
-		GLenum colorIndex = 0;
-
-		for (size_t i = 0; i < colorAttachmentCount; i++)
-		{
-			Image colorAttachment = _colorAttachments[i];
-			uint8_t format = colorAttachment->gl.format;
-
-			switch (format)
-			{
-			default:
-				glDeleteFramebuffers(
-					GL_ONE,
-					&handle);
-				free(colorAttachments);
-				free(framebuffer);
-				return NULL;
-			case R8G8B8A8_UNORM_IMAGE_FORMAT:
-			case R8G8B8A8_SRGB_IMAGE_FORMAT:
-				glFramebufferTexture2D(
-					GL_FRAMEBUFFER,
-					GL_COLOR_ATTACHMENT0 + colorIndex,
-					colorAttachment->gl.glType,
-					colorAttachment->gl.handle,
-					GL_ZERO);
-				colorIndex++;
-				break;
-			}
-
-			colorAttachments[i] = colorAttachment;
-		}
-	}
-	else
-	{
-		glDrawBuffer(GL_NONE);
-		glReadBuffer(GL_NONE);
-		colorAttachments = NULL;
-	}
-
-	if (depthStencilAttachment != NULL)
-	{
-		uint8_t format = depthStencilAttachment->gl.format;
-
-		switch (format)
-		{
-		default:
-			glDeleteFramebuffers(
-				GL_ONE,
-				&handle);
-			free(colorAttachments);
-			free(framebuffer);
-			return NULL;
-		case D16_UNORM_IMAGE_FORMAT:
-		case D32_SFLOAT_IMAGE_FORMAT:
-			glFramebufferTexture2D(
-				GL_FRAMEBUFFER,
-				GL_DEPTH_ATTACHMENT,
-				depthStencilAttachment->gl.glType,
-				depthStencilAttachment->gl.handle,
-				GL_ZERO);
-			break;
-		case D24_UNORM_S8_UINT_IMAGE_FORMAT:
-		case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
-			glFramebufferTexture2D(
-				GL_FRAMEBUFFER,
-				GL_DEPTH_STENCIL_ATTACHMENT,
-				depthStencilAttachment->gl.glType,
-				depthStencilAttachment->gl.handle,
-				GL_ZERO);
-			break;
-		}
-	}
-
-	GLenum status = glCheckFramebufferStatus(
-		GL_FRAMEBUFFER);
-
-	if (status != GL_FRAMEBUFFER_COMPLETE)
-	{
-#ifndef NDEBUG
-		const char* statusName;
-
-		switch (status)
-		{
-		default:
-			statusName = "UNKNOWN_STATUS";
-			break;
-		case GL_FRAMEBUFFER_UNDEFINED:
-			statusName = "GL_FRAMEBUFFER_UNDEFINED";
-			break;
-		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-			statusName = "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
-			break;
-		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-			statusName = "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
-			break;
-		case GL_FRAMEBUFFER_UNSUPPORTED:
-			statusName = "GL_FRAMEBUFFER_UNSUPPORTED";
-			break;
-		case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
-			statusName = "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE";
-			break;
-		}
-
-		fprintf(stderr,
-			"OpenGL framebuffer create error: %s\n",
-			statusName);
-#endif
-
-		assertOpenGL();
-
-		glDeleteFramebuffers(
-			GL_ONE,
-			&handle);
-		free(colorAttachments);
-		free(framebuffer);
-		return NULL;
-	}
-
-	assertOpenGL();
-
-	framebuffer->gl.window = window;
-	framebuffer->gl.handle = handle;
-	framebuffer->gl.colorAttachments = colorAttachments;
-	framebuffer->gl.colorAttachmentCount = colorAttachmentCount;
-	framebuffer->gl.depthStencilAttachment = depthStencilAttachment;
-	return framebuffer;
-}
 Framebuffer createFramebuffer(
 	Window window,
 	Image* colorAttachments,
@@ -3163,9 +2255,9 @@ Framebuffer createFramebuffer(
 	assert(colorAttachments != NULL ||
 		depthStencilAttachment != NULL);
 	assert(getImageWindow(depthStencilAttachment) == window);
-	assert(window->isRecording == false);
+	assert(window->vk.isRecording == false);
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	Framebuffer framebuffer;
 
@@ -3194,14 +2286,14 @@ Framebuffer createFramebuffer(
 	if (framebuffer == NULL)
 		return NULL;
 
-	size_t count = window->framebufferCount;
+	size_t count = window->vk.framebufferCount;
 
-	if (count == window->framebufferCapacity)
+	if (count == window->vk.framebufferCapacity)
 	{
-		size_t capacity = window->framebufferCapacity * 2;
+		size_t capacity = window->vk.framebufferCapacity * 2;
 
 		Framebuffer* framebuffers = realloc(
-			window->framebuffers,
+			window->vk.framebuffers,
 			sizeof(Framebuffer) * capacity);
 
 		if (framebuffers == NULL)
@@ -3223,12 +2315,12 @@ Framebuffer createFramebuffer(
 			return NULL;
 		}
 
-		window->framebuffers = framebuffers;
-		window->framebufferCapacity = capacity;
+		window->vk.framebuffers = framebuffers;
+		window->vk.framebufferCapacity = capacity;
 	}
 
-	window->framebuffers[count] = framebuffer;
-	window->framebufferCount = count + 1;
+	window->vk.framebuffers[count] = framebuffer;
+	window->vk.framebufferCount = count + 1;
 	return framebuffer;
 }
 void destroyFramebuffer(Framebuffer framebuffer)
@@ -3236,11 +2328,11 @@ void destroyFramebuffer(Framebuffer framebuffer)
 	if (framebuffer == NULL)
 		return;
 
-	assert(framebuffer->vk.window->isRecording == false);
+	assert(framebuffer->vk.window->vk.isRecording == false);
 
 	Window window = framebuffer->vk.window;
-	Framebuffer* framebuffers = window->framebuffers;
-	size_t framebufferCount = window->framebufferCount;
+	Framebuffer* framebuffers = window->vk.framebuffers;
+	size_t framebufferCount = window->vk.framebufferCount;
 
 	for (size_t i = 0; i < framebufferCount; i++)
 	{
@@ -3250,7 +2342,7 @@ void destroyFramebuffer(Framebuffer framebuffer)
 		for (size_t j = i + 1; j < framebufferCount; j++)
 			framebuffers[j - 1] = framebuffers[j];
 
-		uint8_t api = window->api;
+		uint8_t api = window->vk.api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -3266,7 +2358,7 @@ void destroyFramebuffer(Framebuffer framebuffer)
 			abort();
 		}
 
-		window->framebufferCount--;
+		window->vk.framebufferCount--;
 		return;
 	}
 
@@ -3292,27 +2384,14 @@ Image getFramebufferDepthStencilAttachment(
 	return framebuffer->vk.depthStencilAttachment;
 }
 
-inline static void beginVkFramebufferRender(
-	Framebuffer framebuffer)
-{
-
-}
-inline static void beginGlFramebufferRender(
-	Framebuffer framebuffer)
-{
-	glBindFramebuffer(
-		GL_FRAMEBUFFER,
-		framebuffer->gl.handle);
-	assertOpenGL();
-}
 void beginFramebufferRender(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	assert(framebuffer->vk.window->isRecording == true);
-	assert(framebuffer->vk.window->isRendering == false);
+	assert(framebuffer->vk.window->vk.isRecording == true);
+	assert(framebuffer->vk.window->vk.isRendering == false);
 
 	Window window = framebuffer->vk.window;
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -3328,27 +2407,16 @@ void beginFramebufferRender(Framebuffer framebuffer)
 		abort();
 	}
 
-	window->isRendering = true;
+	window->vk.isRendering = true;
 }
 
-inline static void endVkFramebufferRender(Window window)
-{
-
-}
-inline static void endGlFramebufferRender(Window window)
-{
-	glBindFramebuffer(
-		GL_FRAMEBUFFER,
-		GL_ZERO);
-	assertOpenGL();
-}
 void endFramebufferRender(Window window)
 {
 	assert(window != NULL);
-	assert(window->isRecording == true);
-	assert(window->isRendering == true);
+	assert(window->vk.isRecording == true);
+	assert(window->vk.isRendering == true);
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -3364,51 +2432,9 @@ void endFramebufferRender(Window window)
 		abort();
 	}
 
-	window->isRendering = false;
+	window->vk.isRendering = false;
 }
 
-inline static void clearVkFramebuffer(
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor)
-{
-
-}
-inline static void clearGlFramebuffer(
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor)
-{
-	GLbitfield clearMask = 0;
-
-	if (clearColorBuffer == true)
-	{
-		glClearColor(
-			clearColor.x,
-			clearColor.y,
-			clearColor.z,
-			clearColor.w);
-		glColorMask(
-			GL_TRUE, GL_TRUE,
-			GL_TRUE, GL_TRUE);
-		clearMask |= GL_COLOR_BUFFER_BIT;
-	}
-	if (clearDepthBuffer == true)
-	{
-		glDepthMask(GL_TRUE);
-		clearMask |= GL_DEPTH_BUFFER_BIT;
-	}
-	if (clearStencilBuffer == true)
-	{
-		glStencilMask(UINT32_MAX);
-		clearMask |= GL_STENCIL_BUFFER_BIT;
-	}
-
-	glClear(clearMask);
-	assertOpenGL();
-}
 void clearFramebuffer(
 	Window window,
 	bool clearColorBuffer,
@@ -3431,9 +2457,9 @@ void clearFramebuffer(
 		clearColorBuffer == true ||
 		clearDepthBuffer == true ||
 		clearStencilBuffer == true);
-	assert(window->isRecording == true);
+	assert(window->vk.isRecording == true);
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -3458,128 +2484,6 @@ void clearFramebuffer(
 	}
 }
 
-inline static Shader createVkShader(
-	Window window,
-	uint8_t type,
-	const void* code,
-	size_t size)
-{
-	return NULL;
-}
-inline static Shader createGlShader(
-	Window window,
-	uint8_t type,
-	const void* code,
-	size_t size)
-{
-	Shader shader = malloc(
-		sizeof(union Shader));
-
-	if (shader == NULL)
-		return NULL;
-
-	GLenum glType;
-
-	if (type == VERTEX_SHADER_TYPE)
-		glType = GL_VERTEX_SHADER;
-	else if (type == FRAGMENT_SHADER_TYPE)
-		glType = GL_FRAGMENT_SHADER;
-	else if (type == COMPUTE_SHADER_TYPE)
-		glType = GL_COMPUTE_SHADER;
-	else
-		abort();
-
-	uint8_t api = window->api;
-
-	const char* sources[2];
-
-	if (api == OPENGL_GRAPHICS_API)
-		sources[0] = OPENGL_SHADER_HEADER;
-	else if (api == OPENGL_ES_GRAPHICS_API)
-		sources[0] = OPENGL_ES_SHADER_HEADER;
-	else
-		abort();
-
-	sources[1] = (const char*)code;
-
-	makeWindowContextCurrent(window);
-
-	GLuint handle = glCreateShader(glType);
-
-	glShaderSource(
-		handle,
-		2,
-		sources,
-		NULL);
-
-	glCompileShader(handle);
-
-	GLint result;
-
-	glGetShaderiv(
-		handle,
-		GL_COMPILE_STATUS,
-		&result);
-
-	if (result == GL_FALSE)
-	{
-		GLint length = 0;
-
-		glGetShaderiv(
-			handle,
-			GL_INFO_LOG_LENGTH,
-			&length);
-
-		if (length > 0)
-		{
-			char* infoLog = malloc(
-				length * sizeof(char));
-
-			if (infoLog == NULL)
-			{
-				glDeleteShader(handle);
-				free(shader);
-				return NULL;
-			}
-
-			glGetShaderInfoLog(
-				handle,
-				length,
-				&length,
-				(GLchar*)infoLog);
-
-			const char* typeString;
-
-			if (type == VERTEX_SHADER_TYPE)
-				typeString = "vertex";
-			else if (type == FRAGMENT_SHADER_TYPE)
-				typeString = "fragment";
-			else if (type == COMPUTE_SHADER_TYPE)
-				typeString = "compute";
-			else
-				abort();
-
-			fprintf(GL_INFO_LOG_OUT,
-				"OpenGL %s shader compile error: %s\n",
-				typeString,
-				infoLog);
-			free(infoLog);
-		}
-
-		assertOpenGL();
-
-		glDeleteShader(handle);
-		free(shader);
-		return NULL;
-	}
-
-	assertOpenGL();
-
-	shader->gl.window = window;
-	shader->gl.type = type;
-	shader->gl.handle = handle;
-	return shader;
-}
 Shader createShader(
 	Window window,
 	uint8_t type,
@@ -3589,9 +2493,9 @@ Shader createShader(
 	assert(window != NULL);
 	assert(type < SHADER_TYPE_COUNT);
 	assert(code != NULL);
-	assert(window->isRecording == false);
+	assert(window->vk.isRecording == false);
 
-	uint8_t api = window->api;
+	uint8_t api = window->vk.api;
 
 	Shader shader;
 
@@ -3610,7 +2514,7 @@ Shader createShader(
 			window,
 			type,
 			code,
-			size);
+			window->vk.api);
 	}
 	else
 	{
@@ -3620,14 +2524,14 @@ Shader createShader(
 	if (shader == NULL)
 		return NULL;
 
-	size_t count = window->shaderCount;
+	size_t count = window->vk.shaderCount;
 
-	if (count == window->shaderCapacity)
+	if (count == window->vk.shaderCapacity)
 	{
-		size_t capacity = window->shaderCapacity * 2;
+		size_t capacity = window->vk.shaderCapacity * 2;
 
 		Shader* shaders = realloc(
-			window->shaders,
+			window->vk.shaders,
 			sizeof(Shader) * capacity);
 
 		if (shaders == NULL)
@@ -3650,12 +2554,12 @@ Shader createShader(
 			return NULL;
 		}
 
-		window->shaders = shaders;
-		window->shaderCapacity = capacity;
+		window->vk.shaders = shaders;
+		window->vk.shaderCapacity = capacity;
 	}
 
-	window->shaders[count] = shader;
-	window->shaderCount = count + 1;
+	window->vk.shaders[count] = shader;
+	window->vk.shaderCount = count + 1;
 	return shader;
 }
 Shader createShaderFromFile(
@@ -3728,11 +2632,11 @@ void destroyShader(Shader shader)
 	if (shader == NULL)
 		return;
 
-	assert(shader->vk.window->isRecording == false);
+	assert(shader->vk.window->vk.isRecording == false);
 
 	Window window = shader->vk.window;
-	Shader* shaders = window->shaders;
-	size_t shaderCount = window->shaderCount;
+	Shader* shaders = window->vk.shaders;
+	size_t shaderCount = window->vk.shaderCount;
 
 	for (size_t i = 0; i < shaderCount; i++)
 	{
@@ -3742,7 +2646,7 @@ void destroyShader(Shader shader)
 		for (size_t j = i + 1; j < shaderCount; j++)
 			shaders[j - 1] = shaders[j];
 
-		uint8_t api = window->api;
+		uint8_t api = window->vk.api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -3758,7 +2662,7 @@ void destroyShader(Shader shader)
 			abort();
 		}
 
-		window->shaderCount--;
+		window->vk.shaderCount--;
 		return;
 	}
 
@@ -3779,7 +2683,7 @@ const void* getShaderHandle(Shader shader)
 {
 	assert(shader != NULL);
 
-	uint8_t api = shader->vk.window->api;
+	uint8_t api = shader->vk.window->vk.api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -3812,7 +2716,7 @@ Pipeline createPipeline(
 	assert(onHandleBind != NULL);
 	assert(onUniformsSet != NULL);
 	assert(handle != NULL);
-	assert(window->isRecording == false);
+	assert(window->vk.isRecording == false);
 
 	Pipeline pipeline = malloc(
 		sizeof(struct Pipeline));
@@ -3828,14 +2732,14 @@ Pipeline createPipeline(
 	pipeline->onUniformsSet = onUniformsSet;
 	pipeline->handle = handle;
 
-	size_t count = window->pipelineCount;
+	size_t count = window->vk.pipelineCount;
 
-	if (count == window->pipelineCapacity)
+	if (count == window->vk.pipelineCapacity)
 	{
-		size_t capacity = window->pipelineCapacity * 2;
+		size_t capacity = window->vk.pipelineCapacity * 2;
 
 		Pipeline* pipelines = realloc(
-			window->pipelines,
+			window->vk.pipelines,
 			sizeof(Pipeline) * capacity);
 
 		if (pipelines == NULL)
@@ -3848,12 +2752,12 @@ Pipeline createPipeline(
 			return NULL;
 		}
 
-		window->pipelines = pipelines;
-		window->pipelineCapacity = capacity;
+		window->vk.pipelines = pipelines;
+		window->vk.pipelineCapacity = capacity;
 	}
 
-	window->pipelines[count] = pipeline;
-	window->pipelineCount = count + 1;
+	window->vk.pipelines[count] = pipeline;
+	window->vk.pipelineCount = count + 1;
 	return pipeline;
 }
 void destroyPipeline(Pipeline pipeline)
@@ -3861,11 +2765,11 @@ void destroyPipeline(Pipeline pipeline)
 	if (pipeline == NULL)
 		return;
 
-	assert(pipeline->window->isRecording == false);
+	assert(pipeline->window->vk.isRecording == false);
 
 	Window window = pipeline->window;
-	Pipeline* pipelines = window->pipelines;
-	size_t pipelineCount = window->pipelineCount;
+	Pipeline* pipelines = window->vk.pipelines;
+	size_t pipelineCount = window->vk.pipelineCount;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
@@ -3879,7 +2783,7 @@ void destroyPipeline(Pipeline pipeline)
 			window,
 			pipeline->handle);
 		free(pipeline);
-		window->pipelineCount--;
+		window->vk.pipelineCount--;
 		return;
 	}
 
@@ -3935,6 +2839,6 @@ void setPipelineDrawMode(
 void bindPipeline(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	assert(pipeline->window->isRecording == true);
+	assert(pipeline->window->vk.isRecording == true);
 	pipeline->onHandleBind(pipeline);
 }

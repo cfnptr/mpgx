@@ -7,6 +7,7 @@
 * C99 compiler
 * [CMake 3.10+](https://cmake.org/)
 * [X11](https://www.x.org/) (Linux only)
+* [Vulkan SDK 1.2+](https://vulkan.lunarg.com/) (Optional)
 
 ## X11 installation
 * Ubuntu: sudo apt install xorg-dev

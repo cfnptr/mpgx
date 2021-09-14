@@ -257,7 +257,7 @@ typedef enum DrawMode
 
 // TODO: OpenGL renderbuffer optimization
 
-typedef struct Window* Window;
+typedef union Window* Window;
 typedef union Buffer* Buffer;
 typedef union Mesh* Mesh;
 typedef union Image* Image;

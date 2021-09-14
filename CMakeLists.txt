@@ -13,6 +13,8 @@ project(mpgx
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 
+option(MPGX_BUILD_EXAMPLES "Build MPGX examples" ON)
+
 add_subdirectory(libraries/cmmt)
 
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -74,3 +76,23 @@ target_link_libraries(mpgx PUBLIC
 target_include_directories(mpgx PUBLIC
 	${PROJECT_BINARY_DIR}
 	${PROJECT_SOURCE_DIR}/include)
+
+if (MPGX_BUILD_EXAMPLES)
+	add_executable(mpgx-window-example
+		examples/window_example.c)
+	target_link_libraries(mpgx-window-example PRIVATE
+		mpgx)
+	target_include_directories(mpgx-window-example PRIVATE
+		${PROJECT_BINARY_DIR}
+		${PROJECT_SOURCE_DIR}/include)
+
+	set(WINDOW_EXAMPLE_RESOURCES
+		shaders/opengl/diffuse.frag
+		shaders/opengl/diffuse.vert)
+
+	foreach (FILE ${WINDOW_EXAMPLE_RESOURCES})
+		configure_file(
+			resources/${FILE}
+			resources/${FILE} COPYONLY)
+	endforeach (FILE)
+endif ()

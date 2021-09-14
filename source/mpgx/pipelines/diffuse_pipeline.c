@@ -118,7 +118,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 	}
 
 	Vec3F lightDirection = normVec3F(
-		vec3F(1.0f, 3.0f, 6.0f));
+		vec3F(1.0f, -3.0f, 6.0f));
 
 	pipelineHandle->gl.vertexShader = vertexShader;
 	pipelineHandle->gl.fragmentShader = fragmentShader;

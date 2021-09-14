@@ -11,6 +11,11 @@
 #define DEFAULT_MIN_MIPMAP_LOD -1000
 #define DEFAULT_MAX_MIPMAP_LOD 1000
 
+static const Vec2U defaultWindowSize = {
+	DEFAULT_WINDOW_WIDTH,
+	DEFAULT_WINDOW_HEIGHT
+};
+
 typedef enum KeyboardKey
 {
 	UNKNOWN_KEYBOARD_KEY = -1,

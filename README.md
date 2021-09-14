@@ -18,6 +18,12 @@ cd mpgx
 git submodule update --init --recursive
 ```
 
+## Building
+```
+cmake -DCMAKE_BUILD_TYPE=Release -S . -B build/
+cmake --build build/
+```
+
 ## Third-party
 * [cmmt](https://github.com/cfnptr/cmmt/) (BSD-3-Clause License)
 * [freetype](https://www.freetype.org/) (FreeType License)

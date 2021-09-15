@@ -364,5 +364,7 @@ int main()
 
 	updateClient(client);
 	destroyClient(client);
+
+	terminateGraphics();
 	return EXIT_SUCCESS;
 }

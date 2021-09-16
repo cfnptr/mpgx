@@ -71,22 +71,7 @@ struct Window
 	bool isRecording;
 	bool isRendering;
 #if MPGX_SUPPORT_VULKAN
-	VkSurfaceKHR vkSurface;
-	VkPhysicalDevice vkPhysicalDevice;
-	uint32_t vkGraphicsQueueFamilyIndex;
-	uint32_t vkPresentQueueFamilyIndex;
-	VkDevice vkDevice;
-	VmaAllocator vmaAllocator;
-	VkQueue vkGraphicsQueue;
-	VkQueue vkPresentQueue;
-	VkCommandPool vkGraphicsCommandPool;
-	VkCommandPool vkPresentCommandPool;
-	VkCommandPool vkTransferCommandPool;
-	VkFence vkFences[VK_FRAME_LAG];
-	VkSemaphore imageAcquiredSemaphores[VK_FRAME_LAG];
-	VkSemaphore drawCompleteSemaphores[VK_FRAME_LAG];
-	VkSemaphore imageOwnershipSemaphores[VK_FRAME_LAG];
-	// swapchain
+	VkWindow vkWindow;
 #endif
 };
 
@@ -136,10 +121,10 @@ bool initializeGraphics(
 	}
 
 #if MPGX_SUPPORT_VULKAN
-	const char* prefferedLayers[1] = {
+	const char* preferredLayers[1] = {
 		"VK_LAYER_KHRONOS_validation",
 	};
-	const char* prefferedExtensions[1] = {
+	const char* preferredExtensions[1] = {
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 	};
 
@@ -152,11 +137,11 @@ bool initializeGraphics(
 		appVersionPatch,
 		NULL,
 		0,
-		prefferedLayers,
+		preferredLayers,
 		1,
 		NULL,
 		0,
-		prefferedExtensions,
+		preferredExtensions,
 		1,
 		supportedExtensions);
 
@@ -345,92 +330,18 @@ Window createWindow(
 			GLFW_TRUE);
 	}
 
+	VkWindow vkWindow = NULL;
 	uint32_t maxImageSize;
-
-#if MPGX_SUPPORT_VULKAN
-	VkSurfaceKHR vkSurface = NULL;
-	VkPhysicalDevice vkPhysicalDevice = NULL;
-	uint32_t vkGraphicsQueueFamilyIndex = UINT32_MAX;
-	uint32_t vkPresentQueueFamilyIndex = UINT32_MAX;
-	VkDevice vkDevice = NULL;
-	VmaAllocator vmaAllocator = NULL;
-#endif
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		vkSurface = createVkSurface(
+		vkWindow = createVkWindow(
 			vkInstance,
 			handle);
 
-		if (vkSurface == NULL)
+		if (vkWindow == NULL)
 		{
-			glfwDestroyWindow(handle);
-			free(window);
-			return NULL;
-		}
-
-		vkPhysicalDevice = getBestVkPhysicalDevice(
-			vkInstance);
-
-		if (vkPhysicalDevice == NULL)
-		{
-			destroyVkSurface(vkInstance, vkSurface);
-			glfwDestroyWindow(handle);
-			free(window);
-			return NULL;
-		}
-
-		bool result = getVkQueueFamilyIndices(
-			vkPhysicalDevice,
-			vkSurface,
-			&vkGraphicsQueueFamilyIndex,
-			&vkPresentQueueFamilyIndex);
-
-		if (result == false)
-		{
-			destroyVkSurface(vkInstance, vkSurface);
-			glfwDestroyWindow(handle);
-			free(window);
-			return NULL;
-		}
-
-		const char* requiredExtensions[1] = {
-			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-		};
-		const char* preferredExtensions[3] = {
-			"VK_KHR_portability_subset",
-		};
-
-		bool supportedExtensions[1];
-
-		vkDevice = createVkDevice(
-			vkPhysicalDevice,
-			vkGraphicsQueueFamilyIndex,
-			vkPresentQueueFamilyIndex,
-			requiredExtensions,
-			1,
-			preferredExtensions,
-			1,
-			supportedExtensions);
-
-		if (vkDevice == NULL)
-		{
-			destroyVkSurface(vkInstance, vkSurface);
-			glfwDestroyWindow(handle);
-			free(window);
-			return NULL;
-		}
-
-		vmaAllocator = createVmaAllocator(
-			vkPhysicalDevice,
-			vkDevice,
-			vkInstance);
-
-		if (vmaAllocator == NULL)
-		{
-			destroyVkDevice(vkDevice);
-			destroyVkSurface(vkInstance, vkSurface);
 			glfwDestroyWindow(handle);
 			free(window);
 			return NULL;
@@ -467,9 +378,7 @@ Window createWindow(
 	if (buffers == NULL)
 	{
 #if MPGX_SUPPORT_VULKAN
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(vkDevice);
-		destroyVkSurface(vkInstance, vkSurface);
+		destroyVkWindow(vkInstance, vkWindow);
 #endif
 		glfwDestroyWindow(handle);
 		free(window);
@@ -483,9 +392,7 @@ Window createWindow(
 	{
 		free(buffers);
 #if MPGX_SUPPORT_VULKAN
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(vkDevice);
-		destroyVkSurface(vkInstance, vkSurface);
+		destroyVkWindow(vkInstance, vkWindow);
 #endif
 		glfwDestroyWindow(handle);
 		free(window);
@@ -500,9 +407,7 @@ Window createWindow(
 		free(meshes);
 		free(buffers);
 #if MPGX_SUPPORT_VULKAN
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(vkDevice);
-		destroyVkSurface(vkInstance, vkSurface);
+		destroyVkWindow(vkInstance, vkWindow);
 #endif
 		glfwDestroyWindow(handle);
 		free(window);
@@ -518,9 +423,7 @@ Window createWindow(
 		free(meshes);
 		free(buffers);
 #if MPGX_SUPPORT_VULKAN
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(vkDevice);
-		destroyVkSurface(vkInstance, vkSurface);
+		destroyVkWindow(vkInstance, vkWindow);
 #endif
 		glfwDestroyWindow(handle);
 		free(window);
@@ -537,9 +440,7 @@ Window createWindow(
 		free(meshes);
 		free(buffers);
 #if MPGX_SUPPORT_VULKAN
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(vkDevice);
-		destroyVkSurface(vkInstance, vkSurface);
+		destroyVkWindow(vkInstance, vkWindow);
 #endif
 		glfwDestroyWindow(handle);
 		free(window);
@@ -557,9 +458,7 @@ Window createWindow(
 		free(meshes);
 		free(buffers);
 #if MPGX_SUPPORT_VULKAN
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(vkDevice);
-		destroyVkSurface(vkInstance, vkSurface);
+		destroyVkWindow(vkInstance, vkWindow);
 #endif
 		glfwDestroyWindow(handle);
 		free(window);
@@ -578,9 +477,7 @@ Window createWindow(
 		free(meshes);
 		free(buffers);
 #if MPGX_SUPPORT_VULKAN
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(vkDevice);
-		destroyVkSurface(vkInstance, vkSurface);
+		destroyVkWindow(vkInstance, vkWindow);
 #endif
 		glfwDestroyWindow(handle);
 		free(window);
@@ -617,14 +514,8 @@ Window createWindow(
 	window->deltaTime = 0.0;
 	window->isRecording = false;
 	window->isRendering = false;
-
 #if MPGX_SUPPORT_VULKAN
-	window->vkSurface = vkSurface;
-	window->vkPhysicalDevice = vkPhysicalDevice;
-	window->vkGraphicsQueueFamilyIndex = vkGraphicsQueueFamilyIndex;
-	window->vkPresentQueueFamilyIndex = vkPresentQueueFamilyIndex;
-	window->vkDevice = vkDevice;
-	window->vmaAllocator = vmaAllocator;
+	window->vkWindow = vkWindow;
 #endif
 
 	currentWindow = window;
@@ -743,6 +634,10 @@ void destroyWindow(Window window)
 
     if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+		waitVkWindow(vkWindow);
+
 		for (size_t i = 0; i < shaderCount; i++)
 			destroyVkShader(shaders[i]);
 		for (size_t i = 0; i < framebufferCount; i++)
@@ -755,6 +650,11 @@ void destroyWindow(Window window)
 			destroyVkMesh(meshes[i]);
 		for (size_t i = 0; i < bufferCount; i++)
 			destroyVkBuffer(buffers[i]);
+
+		destroyVkWindow(
+			vkInstance,
+			vkWindow);
+#endif
 	}
     else if (api == OPENGL_GRAPHICS_API ||
     	api == OPENGL_ES_GRAPHICS_API)
@@ -776,15 +676,6 @@ void destroyWindow(Window window)
 	{
     	abort();
 	}
-
-#if MPGX_SUPPORT_VULKAN
-	destroyVmaAllocator(window->vmaAllocator);
-	destroyVkDevice(window->vkDevice);
-
-	destroyVkSurface(
-		vkInstance,
-		window->vkSurface);
-#endif
 
 	free(buffers);
 	free(meshes);

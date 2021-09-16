@@ -288,7 +288,6 @@ bool isGraphicsInitialized();
 
 void* getFtLibrary();
 
-// TODO: move api to the initializer
 Window createWindow(
 	uint8_t api,
 	Vec2U size,

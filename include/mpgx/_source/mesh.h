@@ -34,6 +34,7 @@ inline static Mesh createVkMesh(
 	Buffer indexBuffer)
 {
 	// TODO:
+	abort();
 }
 inline static Mesh createGlMesh(
 	Window window,

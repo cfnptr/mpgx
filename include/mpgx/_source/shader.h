@@ -32,6 +32,7 @@ inline static Shader createVkShader(
 	size_t size)
 {
 	// TODO:
+	abort();
 }
 inline static Shader createGlShader(
 	Window window,

@@ -53,6 +53,7 @@ inline static Sampler createVkSampler(
 	float maxMipmapLod)
 {
 	// TODO:
+	abort();
 }
 inline static Sampler createGlSampler(
 	Window window,

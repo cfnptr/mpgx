@@ -6,7 +6,9 @@ typedef struct _VkBuffer
 	uint8_t type;
 	size_t size;
 	bool isConstant;
+#if MPGX_VULKAN_SUPPORT
 	VkBuffer handle;
+#endif
 } _VkBuffer;
 typedef struct _GlBuffer
 {
@@ -30,7 +32,12 @@ inline static Buffer createVkBuffer(
 	size_t size,
 	bool isConstant)
 {
+#if MPGX_VULKAN_SUPPORT
 	// TODO:
+	abort();
+#else
+	abort();
+#endif
 }
 inline static Buffer createGlBuffer(
 	Window window,

@@ -257,7 +257,7 @@ typedef enum DrawMode
 
 // TODO: OpenGL renderbuffer optimization
 
-typedef union Window* Window;
+typedef struct Window* Window;
 typedef union Buffer* Buffer;
 typedef union Mesh* Mesh;
 typedef union Image* Image;
@@ -278,7 +278,11 @@ typedef void(*OnPipelineHandleBind)(
 typedef void(*OnPipelineUniformsSet)(
 	Pipeline pipeline);
 
-bool initializeGraphics();
+bool initializeGraphics(
+	const char* appName,
+	uint8_t appVersionMajor,
+	uint8_t appVersionMinor,
+	uint8_t appVersionPatch);
 void terminateGraphics();
 bool isGraphicsInitialized();
 

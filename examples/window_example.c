@@ -1,9 +1,12 @@
+#include "mpgx/defines.h"
 #include "mpgx/free_camera.h"
 #include "mpgx/renderers/diffuse_renderer.h"
 #include "mpgx/primitives/cube_primitive.h"
 
 #include "cmmt/angle.h"
 #include <string.h>
+
+#define APP_NAME "MPGX Window Example"
 
 // Camera fly: WASD + RMB
 
@@ -354,7 +357,13 @@ inline static void updateClient(Client* client)
 
 int main()
 {
-	if (initializeGraphics() == false)
+	bool result = initializeGraphics(
+		APP_NAME,
+		MPGX_VERSION_MAJOR,
+		MPGX_VERSION_MINOR,
+		MPGX_VERSION_PATCH);
+
+	if (result == false)
 		return EXIT_FAILURE;
 
 	Client* client = createClient();

@@ -28,6 +28,7 @@ inline static Framebuffer createVkFramebuffer(
 	Image depthStencilAttachment)
 {
 	// TODO:
+	abort();
 }
 inline static Framebuffer createGlFramebuffer(
 	Window window,

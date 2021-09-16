@@ -34,6 +34,7 @@ inline static Image createVkImage(
 	uint8_t levelCount)
 {
 	// TODO:
+	abort();
 }
 inline static Image createGlImage(
 	Window window,

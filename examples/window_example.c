@@ -249,7 +249,7 @@ inline static Client* createClient()
 
 	Window window = createAnyWindow(
 		defaultWindowSize,
-		"MPGX Window Example",
+		APP_NAME,
 		onWindowUpdate,
 		client,
 		false,

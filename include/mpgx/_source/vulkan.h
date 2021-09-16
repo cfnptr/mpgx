@@ -1,13 +1,16 @@
 #pragma once
-#if MPGX_SUPPORT_VULKAN
-
+#include "vk_mem_alloc.h"
 #include <string.h>
+
+#define ENGINE_NAME "MPGX"
+#define VK_VERSION VK_API_VERSION_1_2
+#define VK_FRAME_LAG 2
 
 static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	void* pUserData)
+	const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
+	void* userData)
 {
 	const char* severity;
 
@@ -23,7 +26,7 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	fprintf(stdout,
 		"%s: %s\n",
 		severity,
-		pCallbackData->pMessage);
+		callbackData->pMessage);
 	return VK_FALSE;
 }
 
@@ -39,7 +42,8 @@ inline static VkInstance createVkInstance(
 	const char** requiredExtensions,
 	uint32_t requiredExtensionCount,
 	const char** preferredExtensions,
-	uint32_t preferredExtensionCount)
+	uint32_t preferredExtensionCount,
+	bool* supportedExtensions)
 {
 	VkResult result;
 	uint32_t layerCount;
@@ -133,28 +137,29 @@ inline static VkInstance createVkInstance(
 	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(
 		&glfwExtensionCount);
 
-	if (glfwExtensionCount == 0)
+	if (glfwExtensionCount == 0 ||
+		glfwExtensions == NULL)
 	{
 		free(layers);
 		return NULL;
 	}
 
-	uint32_t extensionProperyCount;
+	uint32_t extensionPropertyCount;
 
 	result = vkEnumerateInstanceExtensionProperties(
 		NULL,
-		&extensionProperyCount,
+		&extensionPropertyCount,
 		NULL);
 
 	if (result != VK_SUCCESS ||
-		extensionProperyCount == 0)
+		extensionPropertyCount == 0)
 	{
 		free(layers);
 		return NULL;
 	}
 
 	VkExtensionProperties* extensionProperties = malloc(
-		extensionProperyCount * sizeof(VkLayerProperties));
+		extensionPropertyCount * sizeof(VkLayerProperties));
 
 	if (extensionProperties == NULL)
 	{
@@ -164,11 +169,11 @@ inline static VkInstance createVkInstance(
 
 	result = vkEnumerateInstanceExtensionProperties(
 		NULL,
-		&extensionProperyCount,
+		&extensionPropertyCount,
 		extensionProperties);
 
 	if (result != VK_SUCCESS ||
-		extensionProperyCount == 0)
+		extensionPropertyCount == 0)
 	{
 		free(extensionProperties);
 		free(layers);
@@ -176,7 +181,7 @@ inline static VkInstance createVkInstance(
 	}
 
 	uint32_t extensionSize = glfwExtensionCount +
-							 requiredExtensionCount + preferredExtensionCount;
+		requiredExtensionCount + preferredExtensionCount;
 
 	const char** extensions = malloc(
 		extensionSize * sizeof(const char*));
@@ -215,7 +220,7 @@ inline static VkInstance createVkInstance(
 	{
 		bool isExtensionFound = false;
 
-		for (uint32_t j = 0; j < extensionProperyCount; j++)
+		for (uint32_t j = 0; j < extensionPropertyCount; j++)
 		{
 			if (strcmp(preferredExtensions[i],
 				extensionProperties[j].extensionName) == 0)
@@ -242,6 +247,8 @@ inline static VkInstance createVkInstance(
 			if (isExtensionFound == false)
 				extensions[extensionCount++] = preferredExtensions[i];
 		}
+
+		supportedExtensions[i] = isExtensionFound;
 	}
 
 	free(extensionProperties);
@@ -261,9 +268,9 @@ inline static VkInstance createVkInstance(
 		NULL,
 		appName,
 		appVersion,
-		"MPGX",
+		ENGINE_NAME,
 		engineVersion,
-		VK_API_VERSION_1_0,
+		VK_VERSION,
 	};
 
 	VkInstanceCreateInfo instanceCreateInfo = {
@@ -283,7 +290,7 @@ inline static VkInstance createVkInstance(
 		if (strcmp(extensions[i],
 			VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
 		{
-			VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo = {
+			VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo = {
 				VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 				NULL,
 				0,
@@ -296,7 +303,7 @@ inline static VkInstance createVkInstance(
 				NULL,
 			};
 
-			instanceCreateInfo.pNext = &debugUtilsMessengerCreateInfo;
+			instanceCreateInfo.pNext = &messengerCreateInfo;
 			break;
 		}
 	}
@@ -330,7 +337,7 @@ inline static void destroyVkInstance(VkInstance instance)
 inline static VkDebugUtilsMessengerEXT createVkDebugUtilsMessenger(
 	VkInstance instance)
 {
-	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo = {
+	VkDebugUtilsMessengerCreateInfoEXT createInfo = {
 		VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 		NULL,
 		0,
@@ -343,26 +350,26 @@ inline static VkDebugUtilsMessengerEXT createVkDebugUtilsMessenger(
 		NULL,
 	};
 
-	PFN_vkCreateDebugUtilsMessengerEXT createDebugUtilsMessenger =
+	PFN_vkCreateDebugUtilsMessengerEXT createFunction =
 		(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
 			instance,
 			"vkCreateDebugUtilsMessengerEXT");
 
-	if (createDebugUtilsMessenger == NULL)
+	if (createFunction == NULL)
 		return NULL;
 
-	VkDebugUtilsMessengerEXT debugUtilsMessenger;
+	VkDebugUtilsMessengerEXT messenger;
 
-	VkResult result = createDebugUtilsMessenger(
+	VkResult result = createFunction(
 		instance,
-		&debugUtilsMessengerCreateInfo,
+		&createInfo,
 		NULL,
-		&debugUtilsMessenger);
+		&messenger);
 
 	if (result != VK_SUCCESS)
 		return NULL;
 
-	return debugUtilsMessenger;
+	return messenger;
 }
 inline static void destroyVkDebugUtilsMessenger(
 	VkInstance instance,
@@ -371,107 +378,109 @@ inline static void destroyVkDebugUtilsMessenger(
 	if (debugUtilsMessenger == NULL)
 		return;
 
-	PFN_vkDestroyDebugUtilsMessengerEXT destroyDebugUtilsMessenger =
+	PFN_vkDestroyDebugUtilsMessengerEXT destroyFunction =
 		(PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
 			instance,
 			"vkDestroyDebugUtilsMessengerEXT");
 
-	if (destroyDebugUtilsMessenger == NULL)
+	if (destroyFunction == NULL)
 		abort();
 
-	destroyDebugUtilsMessenger(
+	destroyFunction(
 		instance,
 		debugUtilsMessenger,
 		NULL);
 }
 
 inline static VkSurfaceKHR createVkSurface(
-	VkInstance vkInstance,
+	VkInstance instance,
 	GLFWwindow* glfwWindow)
 {
-	VkSurfaceKHR vkSurface;
+	VkSurfaceKHR surface;
 
 	VkResult result = glfwCreateWindowSurface(
-		vkInstance,
+		instance,
 		glfwWindow,
 		NULL,
-		&vkSurface);
+		&surface);
 
 	if (result != VK_SUCCESS)
 		return NULL;
 
-	return vkSurface;
+	return surface;
 }
 inline static void destroyVkSurface(
-	VkInstance vkInstance,
-	VkSurfaceKHR vkSurface)
+	VkInstance instance,
+	VkSurfaceKHR surface)
 {
 	vkDestroySurfaceKHR(
-		vkInstance,
-		vkSurface,
+		instance,
+		surface,
 		NULL);
 }
 
 inline static VkPhysicalDevice getBestVkPhysicalDevice(
-	VkInstance vkInstance)
+	VkInstance instance)
 {
-	uint32_t physicalDeviceCount;
+	uint32_t deviceCount;
 
 	VkResult result = vkEnumeratePhysicalDevices(
-		vkInstance,
-		&physicalDeviceCount,
+		instance,
+		&deviceCount,
 		NULL);
 
-	if (result != VK_SUCCESS)
+	if (result != VK_SUCCESS ||
+		deviceCount == 0)
 		return NULL;
 
-	VkPhysicalDevice* physicalDevices = malloc(
-		physicalDeviceCount * sizeof(VkPhysicalDevice));
+	VkPhysicalDevice* devices = malloc(
+		deviceCount * sizeof(VkPhysicalDevice));
 
-	if (physicalDevices == NULL)
+	if (devices == NULL)
 		return NULL;
 
 	result = vkEnumeratePhysicalDevices(
-		vkInstance,
-		&physicalDeviceCount,
-		physicalDevices);
+		instance,
+		&deviceCount,
+		devices);
 
-	if (result != VK_SUCCESS)
+	if (result != VK_SUCCESS ||
+		deviceCount == 0)
 	{
-		free(physicalDevices);
+		free(devices);
 		return NULL;
 	}
 
-	VkPhysicalDevice targetPhysicalDevice = NULL;
+	VkPhysicalDevice targetDevice = NULL;
 	uint32_t targetScore = 0;
 
-	for (uint32_t i = 0; i < physicalDeviceCount; i++)
+	for (uint32_t i = 0; i < deviceCount; i++)
 	{
-		VkPhysicalDevice physicalDevice = physicalDevices[i];
-		VkPhysicalDeviceProperties physicalDeviceProperties;
+		VkPhysicalDevice device = devices[i];
+		VkPhysicalDeviceProperties properties;
 
 		vkGetPhysicalDeviceProperties(
-			physicalDevice,
-			&physicalDeviceProperties);
+			device,
+			&properties);
 
 		uint32_t score = 0;
 
-		if (physicalDeviceProperties.deviceType ==
+		if (properties.deviceType ==
 			VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
 			score += 1000;
 		}
-		else if (physicalDeviceProperties.deviceType ==
+		else if (properties.deviceType ==
 			VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
 		{
 			score += 750;
 		}
-		else if (physicalDeviceProperties.deviceType ==
+		else if (properties.deviceType ==
 			VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 		{
 			score += 500;
 		}
-		else if (physicalDeviceProperties.deviceType ==
+		else if (properties.deviceType ==
 			VK_PHYSICAL_DEVICE_TYPE_CPU)
 		{
 			score += 250;
@@ -481,12 +490,296 @@ inline static VkPhysicalDevice getBestVkPhysicalDevice(
 
 		if (score > targetScore)
 		{
-			targetPhysicalDevice = physicalDevice;
+			targetDevice = device;
 			targetScore = score;
 		}
 	}
 
-	free(physicalDevices);
-	return targetPhysicalDevice;
+	free(devices);
+	return targetDevice;
 }
-#endif
+inline static bool getVkQueueFamilyIndices(
+	VkPhysicalDevice physicalDevice,
+	VkSurfaceKHR surface,
+	uint32_t* _graphicsQueueFamilyIndex,
+	uint32_t* _presentQueueFamilyIndex)
+{
+	uint32_t propertyCount;
+
+	vkGetPhysicalDeviceQueueFamilyProperties(
+		physicalDevice,
+		&propertyCount,
+		NULL);
+
+	if (propertyCount == 0)
+		return false;
+
+	VkQueueFamilyProperties* properties = malloc(
+		propertyCount * sizeof(VkQueueFamilyProperties));
+
+	if (properties == NULL)
+		return NULL;
+
+	vkGetPhysicalDeviceQueueFamilyProperties(
+		physicalDevice,
+		&propertyCount,
+		properties);
+
+	if (propertyCount == 0)
+	{
+		free(properties);
+		return false;
+	}
+
+	uint32_t graphicsQueueFamilyIndex = UINT32_MAX;
+	uint32_t presentQueueFamilyIndex = UINT32_MAX;
+
+	for (uint32_t i = 0; i < propertyCount; i++)
+	{
+		VkQueueFamilyProperties* property = &properties[i];
+
+		if (property->queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		{
+			if (graphicsQueueFamilyIndex == UINT32_MAX)
+				graphicsQueueFamilyIndex = i;
+		}
+
+		VkBool32 isSupported;
+
+		VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(
+			physicalDevice,
+			i,
+			surface,
+			&isSupported);
+
+		if (result != VK_SUCCESS)
+		{
+			free(properties);
+			return false;
+		}
+
+		if (isSupported == VK_TRUE)
+		{
+			if (presentQueueFamilyIndex == UINT32_MAX)
+				presentQueueFamilyIndex = i;
+		}
+
+		if (graphicsQueueFamilyIndex != UINT32_MAX &&
+			presentQueueFamilyIndex != UINT32_MAX)
+		{
+			*_graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
+			*_presentQueueFamilyIndex = presentQueueFamilyIndex;
+
+			free(properties);
+			return true;
+		}
+	}
+
+	free(properties);
+	return false;
+}
+
+inline static VkDevice createVkDevice(
+	VkPhysicalDevice physicalDevice,
+	uint32_t graphicsQueueFamilyIndex,
+	uint32_t presentQueueFamilyIndex,
+	const char** requiredExtensions,
+	uint32_t requiredExtensionCount,
+	const char** preferredExtensions,
+	uint32_t preferredExtensionCount,
+	bool* supportedExtensions)
+{
+	uint32_t propertyCount;
+
+	VkResult result = vkEnumerateDeviceExtensionProperties(
+		physicalDevice,
+		NULL,
+		&propertyCount,
+		NULL);
+
+	if (result != VK_SUCCESS ||
+		propertyCount == 0)
+	{
+		return NULL;
+	}
+
+	VkExtensionProperties* properties = malloc(
+		propertyCount * sizeof(VkExtensionProperties));
+
+	if (properties == NULL)
+		return NULL;
+
+	result = vkEnumerateDeviceExtensionProperties(
+		physicalDevice,
+		NULL,
+		&propertyCount,
+		properties);
+
+	if (result != VK_SUCCESS ||
+		propertyCount == 0)
+	{
+		free(properties);
+		return NULL;
+	}
+
+	uint32_t extensionSize =
+		requiredExtensionCount + preferredExtensionCount;
+	const char** extensions = malloc(
+		extensionSize * sizeof(const char*));
+
+	if (extensions == NULL)
+	{
+		free(properties);
+		return NULL;
+	}
+
+	uint32_t extensionCount = requiredExtensionCount;
+
+	for (uint32_t i = 0; i < requiredExtensionCount; i++)
+		extensions[i] = requiredExtensions[i];
+
+	for (uint32_t i = 0; i < preferredExtensionCount; i++)
+	{
+		bool isExtensionFound = false;
+
+		for (uint32_t j = 0; j < propertyCount; j++)
+		{
+			if (strcmp(preferredExtensions[i],
+				properties[j].extensionName) == 0)
+			{
+				isExtensionFound = true;
+				break;
+			}
+		}
+
+		if (isExtensionFound == true)
+		{
+			isExtensionFound = false;
+
+			for (uint32_t j = 0; j < extensionCount; j++)
+			{
+				if (strcmp(extensions[j],
+					preferredExtensions[i]) == 0)
+				{
+					isExtensionFound = true;
+					break;
+				}
+			}
+
+			if (isExtensionFound == false)
+				extensions[extensionCount++] = preferredExtensions[i];
+		}
+
+		supportedExtensions[i] = isExtensionFound;
+	}
+
+	free(properties);
+
+	float priority = 1.0f;
+
+	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = {
+		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+		NULL,
+		0,
+		graphicsQueueFamilyIndex,
+		1,
+		&priority,
+	};
+	VkDeviceQueueCreateInfo presentQueueCreateInfo = {
+		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+		NULL,
+		0,
+		presentQueueFamilyIndex,
+		1,
+		&priority,
+	};
+	const VkDeviceQueueCreateInfo oneCreateInfos[1] = {
+		graphicsQueueCreateInfo,
+	};
+	const VkDeviceQueueCreateInfo twoCreateInfos[2] = {
+		graphicsQueueCreateInfo,
+		presentQueueCreateInfo,
+	};
+
+	const VkDeviceQueueCreateInfo* queueCreateInfos;
+	uint32_t queueCreateInfoCount;
+
+	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
+	{
+		queueCreateInfos = oneCreateInfos;
+		queueCreateInfoCount = 1;
+	}
+	else
+	{
+		queueCreateInfos = twoCreateInfos;
+		queueCreateInfoCount = 2;
+	}
+
+	// TODO: enabled device features
+
+	VkDeviceCreateInfo deviceCreateInfo = {
+		VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+		NULL,
+		0,
+		queueCreateInfoCount,
+		queueCreateInfos,
+		0,
+		NULL,
+		extensionCount,
+		extensions,
+		NULL,
+	};
+
+	VkDevice device;
+
+	result = vkCreateDevice(
+		physicalDevice,
+		&deviceCreateInfo,
+		NULL,
+		&device);
+
+	free(extensions);
+
+	if (result != VK_SUCCESS)
+		return NULL;
+
+	return device;
+}
+inline static void destroyVkDevice(
+	VkDevice device)
+{
+	vkDestroyDevice(
+		device,
+		NULL);
+}
+
+inline static VmaAllocator createVmaAllocator(
+	VkPhysicalDevice physicalDevice,
+	VkDevice device,
+	VkInstance instance)
+{
+	// TODO: set other flags, for optimization
+
+	VmaAllocatorCreateInfo createInfo = {};
+	createInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
+	createInfo.physicalDevice = physicalDevice;
+	createInfo.device = device;
+	createInfo.instance = instance;
+	createInfo.vulkanApiVersion = VK_VERSION;
+
+	VmaAllocator allocator;
+
+	VkResult result = vmaCreateAllocator(
+		&createInfo,
+		&allocator);
+
+	if (result != VK_SUCCESS)
+		return NULL;
+
+	return allocator;
+}
+inline static void destroyVmaAllocator(
+	VmaAllocator allocator)
+{
+	vmaDestroyAllocator(allocator);
+}

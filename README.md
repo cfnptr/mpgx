@@ -7,7 +7,10 @@
 * C99 compiler
 * [CMake 3.10+](https://cmake.org/)
 * [X11](https://www.x.org/) (Linux only)
-* [Vulkan SDK 1.2+](https://vulkan.lunarg.com/) (Optional)
+
+### Vulkan API support (Optional)
+* C++11 compiler
+* [Vulkan SDK 1.2+](https://vulkan.lunarg.com/)
 
 ## X11 installation
 * Ubuntu: sudo apt install xorg-dev
@@ -37,3 +40,4 @@ cmake --build build/
 * [glad](https://glad.dav1d.de/) (MIT License)
 * [glfw](https://www.glfw.org/) (Zlib License)
 * [stb_image](https://nothings.org/) (MIT License)
+* [VulkanMemoryAllocator](https://gpuopen.com/vulkan-memory-allocator/) (MIT License)

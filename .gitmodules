@@ -7,3 +7,6 @@
 [submodule "libraries/cmmt"]
 	path = libraries/cmmt
 	url = https://github.com/cfnptr/cmmt
+[submodule "libraries/VulkanMemoryAllocator"]
+	path = libraries/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator

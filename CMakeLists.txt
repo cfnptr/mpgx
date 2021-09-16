@@ -4,17 +4,25 @@ if (${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
 	message(FATAL_ERROR "Prevented in-tree build")
 endif ()
 
-project(mpgx 
-	VERSION 0.1.0
-	DESCRIPTION "Multi-platform graphics library"
-	HOMEPAGE_URL "https://github.com/cfnptr/mpgx"
-	LANGUAGES C)
+option(MPGX_BUILD_EXAMPLES "Build MPGX usage examples" ON)
+option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
+
+set(MPGX_LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 
-option(MPGX_BUILD_EXAMPLES "Build MPGX usage examples" ON)
-option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
+if (MPGX_USE_VULKAN)
+	list(APPEND MPGX_LANGUAGES CXX)
+	set(CMAKE_CXX_STANDARD 11)
+	set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+endif ()
+
+project(mpgx 
+	VERSION 0.1.0
+	DESCRIPTION "Multi-platform graphics library"
+	HOMEPAGE_URL "https://github.com/cfnptr/mpgx"
+	LANGUAGES ${MPGX_LANGUAGES})
 
 add_subdirectory(libraries/cmmt)
 
@@ -37,9 +45,12 @@ if (MPGX_USE_VULKAN)
 	find_package(Vulkan)
 
 	if (Vulkan_FOUND)
-		list(APPEND MPGX_LINK_LIBRARIES
-			Vulkan::Vulkan)
 		set(MPGX_SUPPORT_VULKAN 1)
+		add_subdirectory(libraries/VulkanMemoryAllocator)
+
+		list(APPEND MPGX_LINK_LIBRARIES
+			Vulkan::Vulkan
+			VulkanMemoryAllocator)
 	else ()
 		set(MPGX_SUPPORT_VULKAN 0)
 	endif ()
@@ -69,7 +80,7 @@ add_library(mpgx STATIC
 	source/mpgx/renderers/texspr_renderer.c
 	source/mpgx/renderers/text_renderer.c
 
-    	source/mpgx/free_camera.c
+    source/mpgx/free_camera.c
 	source/mpgx/interface.c
 	source/mpgx/renderer.c
 	source/mpgx/text.c

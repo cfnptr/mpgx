@@ -1,5 +1,5 @@
 #include "mpgx/window.h"
-#include "mpgx/opengl.h"
+#include "mpgx/_source/opengl.h"
 
 #include "mpgx/_source/buffer.h"
 #include "mpgx/_source/mesh.h"
@@ -8,7 +8,7 @@
 #include "mpgx/_source/framebuffer.h"
 #include "mpgx/_source/shader.h"
 
-#if MPGX_VULKAN_SUPPORT
+#if MPGX_SUPPORT_VULKAN
 #include "mpgx/_source/vulkan.h"
 #endif
 
@@ -70,8 +70,9 @@ struct Window
 	double deltaTime;
 	bool isRecording;
 	bool isRendering;
-#if MPGX_VULKAN_SUPPORT
+#if MPGX_SUPPORT_VULKAN
 	VkSurfaceKHR vkSurface;
+	VkPhysicalDevice vkPhysicalDevice;
 #endif
 };
 
@@ -79,7 +80,7 @@ static bool graphicsInitialized = false;
 static FT_Library ftLibrary = NULL;
 static Window currentWindow = NULL;
 
-#if MPGX_VULKAN_SUPPORT
+#if MPGX_SUPPORT_VULKAN
 static VkInstance vkInstance = NULL;
 static VkDebugUtilsMessengerEXT vkDebugUtilsMessenger = NULL;
 #endif
@@ -120,7 +121,7 @@ bool initializeGraphics(
 		return false;
 	}
 
-#if MPGX_VULKAN_SUPPORT
+#if MPGX_SUPPORT_VULKAN
 	const char* prefferedLayers[] = {
 		"VK_LAYER_KHRONOS_validation",
 	};
@@ -168,7 +169,7 @@ void terminateGraphics()
 {
 	assert(graphicsInitialized == true);
 
-#if MPGX_VULKAN_SUPPORT
+#if MPGX_SUPPORT_VULKAN
 	destroyVkDebugUtilsMessenger(
 		vkInstance,
 		vkDebugUtilsMessenger);
@@ -219,32 +220,20 @@ Window createWindow(
 	assert(pipelineCapacity != 0);
 	assert(graphicsInitialized == true);
 
-	Window window = malloc(
-		sizeof(struct Window));
-
-	if (window == NULL)
-		return NULL;
-
 	glfwDefaultWindowHints();
-
-	glfwWindowHint(
-		GLFW_VISIBLE,
-		isVisible ? GLFW_TRUE : GLFW_FALSE);
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
 		if (glfwVulkanSupported() == GLFW_FALSE)
-		{
-			free(window);
 			return NULL;
-		}
 
 		glfwWindowHint(
 			GLFW_CLIENT_API,
 			GLFW_NO_API);
-
-		free(window);
+#else
 		return NULL;
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API)
 	{
@@ -301,6 +290,16 @@ Window createWindow(
 		abort();
 	}
 
+	glfwWindowHint(
+		GLFW_VISIBLE,
+		isVisible ? GLFW_TRUE : GLFW_FALSE);
+
+	Window window = malloc(
+		sizeof(struct Window));
+
+	if (window == NULL)
+		return NULL;
+
 	GLFWwindow* handle = glfwCreateWindow(
 		(int)size.x,
 		(int)size.y,
@@ -331,9 +330,38 @@ Window createWindow(
 
 	uint32_t maxImageSize;
 
+#if MPGX_SUPPORT_VULKAN
+	VkSurfaceKHR vkSurface = NULL;
+	VkPhysicalDevice vkPhysicalDevice = NULL;
+#endif
+
 	if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
+		vkSurface = createVkSurface(
+			vkInstance,
+			handle);
+
+		if (vkSurface == NULL)
+		{
+			glfwDestroyWindow(handle);
+			free(window);
+			return NULL;
+		}
+
+		vkPhysicalDevice = getBestVkPhysicalDevice(
+			vkInstance);
+
+		if (vkPhysicalDevice == NULL)
+		{
+			destroyVkSurface(vkInstance, vkSurface);
+			glfwDestroyWindow(handle);
+			free(window);
+			return NULL;
+		}
+#else
 		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -362,6 +390,9 @@ Window createWindow(
 
 	if (buffers == NULL)
 	{
+#if MPGX_SUPPORT_VULKAN
+		destroyVkSurface(vkInstance, vkSurface);
+#endif
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -373,6 +404,9 @@ Window createWindow(
 	if (meshes == NULL)
 	{
 		free(buffers);
+#if MPGX_SUPPORT_VULKAN
+		destroyVkSurface(vkInstance, vkSurface);
+#endif
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -385,6 +419,9 @@ Window createWindow(
 	{
 		free(meshes);
 		free(buffers);
+#if MPGX_SUPPORT_VULKAN
+		destroyVkSurface(vkInstance, vkSurface);
+#endif
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -398,6 +435,9 @@ Window createWindow(
 		free(images);
 		free(meshes);
 		free(buffers);
+#if MPGX_SUPPORT_VULKAN
+		destroyVkSurface(vkInstance, vkSurface);
+#endif
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -412,6 +452,9 @@ Window createWindow(
 		free(images);
 		free(meshes);
 		free(buffers);
+#if MPGX_SUPPORT_VULKAN
+		destroyVkSurface(vkInstance, vkSurface);
+#endif
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -427,6 +470,9 @@ Window createWindow(
 		free(images);
 		free(meshes);
 		free(buffers);
+#if MPGX_SUPPORT_VULKAN
+		destroyVkSurface(vkInstance, vkSurface);
+#endif
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -443,34 +489,13 @@ Window createWindow(
 		free(images);
 		free(meshes);
 		free(buffers);
-		glfwDestroyWindow(handle);
-		free(window);
-		return NULL;
-	}
-
-#if MPGX_VULKAN_SUPPORT
-	VkSurfaceKHR vkSurface;
-
-	VkResult result = glfwCreateWindowSurface(
-		vkInstance,
-		handle,
-		NULL,
-		&vkSurface);
-
-	if (result != VK_SUCCESS)
-	{
-		free(pipelines);
-		free(shaders);
-		free(framebuffers);
-		free(samplers);
-		free(images);
-		free(meshes);
-		free(buffers);
-		glfwDestroyWindow(handle);
-		free(window);
-		return NULL;
-	}
+#if MPGX_SUPPORT_VULKAN
+		destroyVkSurface(vkInstance, vkSurface);
 #endif
+		glfwDestroyWindow(handle);
+		free(window);
+		return NULL;
+	}
 
 	window->api = api;
 	window->maxImageSize = maxImageSize;
@@ -503,8 +528,9 @@ Window createWindow(
 	window->isRecording = false;
 	window->isRendering = false;
 
-#if MPGX_VULKAN_SUPPORT
+#if MPGX_SUPPORT_VULKAN
 	window->vkSurface = vkSurface;
+	window->vkPhysicalDevice = vkPhysicalDevice;
 #endif
 
 	currentWindow = window;
@@ -657,11 +683,10 @@ void destroyWindow(Window window)
     	abort();
 	}
 
-#if MPGX_VULKAN_SUPPORT
-	vkDestroySurfaceKHR(
+#if MPGX_SUPPORT_VULKAN
+	destroyVkSurface(
 		vkInstance,
-		window->vkSurface,
-		NULL);
+		window->vkSurface);
 #endif
 
 	free(buffers);
@@ -1277,7 +1302,11 @@ const void* getBufferHandle(Buffer buffer)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
 		return &buffer->vk.handle;
+#else
+		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)

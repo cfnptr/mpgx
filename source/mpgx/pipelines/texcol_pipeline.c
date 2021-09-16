@@ -1,5 +1,5 @@
 #include "mpgx/pipelines/texcol_pipeline.h"
-#include "mpgx/opengl.h"
+#include "mpgx/_source/opengl.h"
 
 #include <string.h>
 

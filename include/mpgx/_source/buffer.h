@@ -6,10 +6,8 @@ typedef struct _VkBuffer
 	uint8_t type;
 	size_t size;
 	bool isConstant;
-#if MPGX_VULKAN_SUPPORT
+#if MPGX_SUPPORT_VULKAN
 	VkBuffer handle;
-#else
-	void* handle;
 #endif
 } _VkBuffer;
 typedef struct _GlBuffer

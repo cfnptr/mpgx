@@ -1,5 +1,5 @@
 #pragma once
-#if MPGX_VULKAN_SUPPORT
+#if MPGX_SUPPORT_VULKAN
 
 #include <string.h>
 
@@ -26,6 +26,7 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 		pCallbackData->pMessage);
 	return VK_FALSE;
 }
+
 inline static VkInstance createVkInstance(
 	const char* appName,
 	uint8_t appVersionMajor,
@@ -384,5 +385,108 @@ inline static void destroyVkDebugUtilsMessenger(
 		NULL);
 }
 
+inline static VkSurfaceKHR createVkSurface(
+	VkInstance vkInstance,
+	GLFWwindow* glfwWindow)
+{
+	VkSurfaceKHR vkSurface;
 
+	VkResult result = glfwCreateWindowSurface(
+		vkInstance,
+		glfwWindow,
+		NULL,
+		&vkSurface);
+
+	if (result != VK_SUCCESS)
+		return NULL;
+
+	return vkSurface;
+}
+inline static void destroyVkSurface(
+	VkInstance vkInstance,
+	VkSurfaceKHR vkSurface)
+{
+	vkDestroySurfaceKHR(
+		vkInstance,
+		vkSurface,
+		NULL);
+}
+
+inline static VkPhysicalDevice getBestVkPhysicalDevice(
+	VkInstance vkInstance)
+{
+	uint32_t physicalDeviceCount;
+
+	VkResult result = vkEnumeratePhysicalDevices(
+		vkInstance,
+		&physicalDeviceCount,
+		NULL);
+
+	if (result != VK_SUCCESS)
+		return NULL;
+
+	VkPhysicalDevice* physicalDevices = malloc(
+		physicalDeviceCount * sizeof(VkPhysicalDevice));
+
+	if (physicalDevices == NULL)
+		return NULL;
+
+	result = vkEnumeratePhysicalDevices(
+		vkInstance,
+		&physicalDeviceCount,
+		physicalDevices);
+
+	if (result != VK_SUCCESS)
+	{
+		free(physicalDevices);
+		return NULL;
+	}
+
+	VkPhysicalDevice targetPhysicalDevice = NULL;
+	uint32_t targetScore = 0;
+
+	for (uint32_t i = 0; i < physicalDeviceCount; i++)
+	{
+		VkPhysicalDevice physicalDevice = physicalDevices[i];
+		VkPhysicalDeviceProperties physicalDeviceProperties;
+
+		vkGetPhysicalDeviceProperties(
+			physicalDevice,
+			&physicalDeviceProperties);
+
+		uint32_t score = 0;
+
+		if (physicalDeviceProperties.deviceType ==
+			VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		{
+			score += 1000;
+		}
+		else if (physicalDeviceProperties.deviceType ==
+			VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
+		{
+			score += 750;
+		}
+		else if (physicalDeviceProperties.deviceType ==
+			VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+		{
+			score += 500;
+		}
+		else if (physicalDeviceProperties.deviceType ==
+			VK_PHYSICAL_DEVICE_TYPE_CPU)
+		{
+			score += 250;
+		}
+
+		// TODO: add other tests
+
+		if (score > targetScore)
+		{
+			targetPhysicalDevice = physicalDevice;
+			targetScore = score;
+		}
+	}
+
+	free(physicalDevices);
+	return targetPhysicalDevice;
+}
 #endif

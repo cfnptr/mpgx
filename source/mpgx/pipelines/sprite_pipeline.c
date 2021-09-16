@@ -1,5 +1,5 @@
 #include "mpgx/pipelines/sprite_pipeline.h"
-#include "mpgx/opengl.h"
+#include "mpgx/_source/opengl.h"
 
 #include <string.h>
 

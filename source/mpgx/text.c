@@ -1,5 +1,5 @@
 #include "mpgx/text.h"
-#include "mpgx/opengl.h"
+#include "mpgx/_source/opengl.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H

@@ -5,7 +5,7 @@
 #define GL_INFO_LOG_OUT stderr
 #endif
 
-#if MPGX_VULKAN_SUPPORT
+#if MPGX_SUPPORT_VULKAN
 #define GLFW_INCLUDE_VULKAN
 #endif
 

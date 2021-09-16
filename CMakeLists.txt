@@ -13,7 +13,8 @@ project(mpgx
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 
-option(MPGX_BUILD_EXAMPLES "Build MPGX examples" ON)
+option(MPGX_BUILD_EXAMPLES "Build MPGX usage examples" ON)
+option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
 
 add_subdirectory(libraries/cmmt)
 
@@ -27,20 +28,23 @@ set(CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz ON CACHE BOOL "" FORCE)
 set(CMAKE_DISABLE_FIND_PACKAGE_BrotliDec ON CACHE BOOL "" FORCE)
 add_subdirectory(libraries/freetype)
 
-find_package(Vulkan)
-
 set(MPGX_LINK_LIBRARIES
 	cmmt
 	glfw
 	freetype)
 
-if (Vulkan_FOUND)
-	set(MPGX_VULKAN_SUPPORT 1)
+if (MPGX_USE_VULKAN)
+	find_package(Vulkan)
 
-	list(APPEND MPGX_LINK_LIBRARIES
-		Vulkan::Vulkan)
+	if (Vulkan_FOUND)
+		list(APPEND MPGX_LINK_LIBRARIES
+			Vulkan::Vulkan)
+		set(MPGX_SUPPORT_VULKAN 1)
+	else ()
+		set(MPGX_SUPPORT_VULKAN 0)
+	endif ()
 else ()
-	set(MPGX_VULKAN_SUPPORT 0)
+	set(MPGX_SUPPORT_VULKAN 0)
 endif ()
 
 configure_file(

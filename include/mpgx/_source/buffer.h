@@ -25,6 +25,7 @@ union Buffer
 	_GlBuffer gl;
 };
 
+#if MPGX_SUPPORT_VULKAN
 inline static Buffer createVkBuffer(
 	Window window,
 	uint8_t type,
@@ -32,13 +33,10 @@ inline static Buffer createVkBuffer(
 	size_t size,
 	bool isConstant)
 {
-#if MPGX_VULKAN_SUPPORT
-	// TODO:
-	abort();
-#else
-	abort();
-#endif
+
 }
+#endif
+
 inline static Buffer createGlBuffer(
 	Window window,
 	uint8_t type,
@@ -104,10 +102,13 @@ inline static Buffer createGlBuffer(
 	return buffer;
 }
 
+#if MPGX_SUPPORT_VULKAN
 inline static void destroyVkBuffer(Buffer buffer)
 {
 	// TODO:
 }
+#endif
+
 inline static void destroyGlBuffer(Buffer buffer)
 {
 	makeWindowContextCurrent(

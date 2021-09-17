@@ -7,7 +7,6 @@
 #include "mpgx/_source/sampler.h"
 #include "mpgx/_source/framebuffer.h"
 #include "mpgx/_source/shader.h"
-#include "mpgx/_source/swapchain.h"
 
 #if MPGX_SUPPORT_VULKAN
 #include "mpgx/_source/vulkan.h"
@@ -387,10 +386,10 @@ Window createWindow(
 			&width,
 			&height);
 
-		Vec2U framebufferSize = {
-			width, height,
-		};
+		Vec2U framebufferSize =
+			vec2U(width, height);
 		vkWindow = createVkWindow(
+			window,
 			vkInstance,
 			handle,
 			useStencilBuffer,
@@ -701,6 +700,8 @@ void destroyWindow(Window window)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
+		VmaAllocator vmaAllocator = vkWindow->vmaAllocator;
+
 		waitVkWindow(vkWindow);
 
 		for (size_t i = 0; i < shaderCount; i++)
@@ -710,7 +711,7 @@ void destroyWindow(Window window)
 		for (size_t i = 0; i < samplerCount; i++)
 			destroyVkSampler(samplers[i]);
 		for (size_t i = 0; i < imageCount; i++)
-			destroyVkImage(images[i]);
+			destroyVkImage(vmaAllocator, images[i]);
 		for (size_t i = 0; i < meshCount; i++)
 			destroyVkMesh(meshes[i]);
 		for (size_t i = 0; i < bufferCount; i++)
@@ -1228,12 +1229,16 @@ Buffer createBuffer(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
 		buffer = createVkBuffer(
 			window,
 			type,
 			data,
 			size,
 			isConstant);
+#else
+	abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -1869,13 +1874,18 @@ Image createImage(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
 		image = createVkImage(
+			window->vkWindow->vmaAllocator,
+			0,
+			VK_FORMAT_UNDEFINED,
 			window,
 			type,
 			format,
-			size,
-			data,
-			levelCount);
+			size);
+#else
+		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -1910,7 +1920,13 @@ Image createImage(
 		{
 			if (api == VULKAN_GRAPHICS_API)
 			{
-				destroyVkImage(image);
+#if MPGX_SUPPORT_VULKAN
+				destroyVkImage(
+					window->vkWindow->vmaAllocator,
+					image);
+#else
+				abort();
+#endif
 			}
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
@@ -1997,7 +2013,13 @@ void destroyImage(Image image)
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
-			destroyVkImage(image);
+#if MPGX_SUPPORT_VULKAN
+			destroyVkImage(
+				window->vkWindow->vmaAllocator,
+				image);
+#else
+			abort();
+#endif
 		}
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
@@ -2086,7 +2108,11 @@ const void* getImageHandle(Image image)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
 		return &image->vk.handle;
+#else
+		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -2323,7 +2349,11 @@ const void* getSamplerHandle(Sampler sampler)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
 		return &sampler->vk.handle;
+#else
+		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -2784,7 +2814,11 @@ const void* getShaderHandle(Shader shader)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
 		return &shader->vk.handle;
+#else
+		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)

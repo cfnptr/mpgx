@@ -193,9 +193,10 @@ typedef enum DrawIndex
 
 typedef enum ImageType
 {
-	IMAGE_2D_TYPE = 0,
-	IMAGE_3D_TYPE = 1,
-	IMAGE_TYPE_COUNT = 2,
+	IMAGE_1D_TYPE = 0,
+	IMAGE_2D_TYPE = 1,
+	IMAGE_3D_TYPE = 2,
+	IMAGE_TYPE_COUNT = 3,
 } ImageType;
 
 typedef enum ImageFormat

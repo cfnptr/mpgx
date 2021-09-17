@@ -38,6 +38,7 @@ union Sampler
 	_GlSampler gl;
 };
 
+#if MPGX_SUPPORT_VULKAN
 inline static Sampler createVkSampler(
 	Window window,
 	uint8_t minImageFilter,
@@ -55,6 +56,8 @@ inline static Sampler createVkSampler(
 	// TODO:
 	abort();
 }
+#endif
+
 inline static Sampler createGlSampler(
 	Window window,
 	uint8_t minImageFilter,
@@ -149,10 +152,13 @@ inline static Sampler createGlSampler(
 	return sampler;
 }
 
+#if MPGX_SUPPORT_VULKAN
 inline static void destroyVkSampler(Sampler sampler)
 {
 	// TODO:
 }
+#endif
+
 inline static void destroyGlSampler(Sampler sampler)
 {
 	makeWindowContextCurrent(

@@ -21,6 +21,7 @@ union Framebuffer
 	_GlFramebuffer gl;
 };
 
+#if MPGX_SUPPORT_VULKAN
 inline static Framebuffer createVkFramebuffer(
 	Window window,
 	Image* _colorAttachments,
@@ -30,6 +31,8 @@ inline static Framebuffer createVkFramebuffer(
 	// TODO:
 	abort();
 }
+#endif
+
 inline static Framebuffer createGlFramebuffer(
 	Window window,
 	Image* _colorAttachments,
@@ -196,10 +199,13 @@ inline static Framebuffer createGlFramebuffer(
 	return framebuffer;
 }
 
+#if MPGX_SUPPORT_VULKAN
 inline static void destroyVkFramebuffer(Framebuffer framebuffer)
 {
 	// TODO:
 }
+#endif
+
 inline static void destroyGlFramebuffer(Framebuffer framebuffer)
 {
 	makeWindowContextCurrent(

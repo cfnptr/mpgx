@@ -25,6 +25,7 @@ union Mesh
 	_GlMesh gl;
 };
 
+#if MPGX_SUPPORT_VULKAN
 inline static Mesh createVkMesh(
 	Window window,
 	uint8_t drawIndex,
@@ -36,6 +37,8 @@ inline static Mesh createVkMesh(
 	// TODO:
 	abort();
 }
+#endif
+
 inline static Mesh createGlMesh(
 	Window window,
 	uint8_t drawIndex,
@@ -86,12 +89,15 @@ inline static void destroyGlMesh(Mesh mesh)
 	free(mesh);
 }
 
+#if MPGX_SUPPORT_VULKAN
 inline static void drawVkMesh(
 	Mesh mesh,
 	Pipeline pipeline)
 {
 	// TODO:
 }
+#endif
+
 inline static void drawGlMesh(
 	Mesh mesh,
 	Pipeline pipeline,

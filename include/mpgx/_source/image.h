@@ -1,12 +1,19 @@
 #pragma once
 
+#if MPGX_SUPPORT_VULKAN
+#include "vk_mem_alloc.h"
+#endif
+
 typedef struct _VkImage
 {
 	Window window;
 	uint8_t type;
 	uint8_t format;
 	Vec3U size;
-	int handle;
+#if MPGX_SUPPORT_VULKAN
+	VkImage handle;
+	VmaAllocation allocation;
+#endif
 } _VkImage;
 typedef struct _GlImage
 {
@@ -25,17 +32,130 @@ union Image
 	_GlImage gl;
 };
 
+#if MPGX_SUPPORT_VULKAN
 inline static Image createVkImage(
+	VmaAllocator vmaAllocator,
+	VkImageUsageFlags _vkUsage,
+	VkFormat _vkFormat,
 	Window window,
 	uint8_t type,
 	uint8_t format,
-	Vec3U size,
-	const void** data,
-	uint8_t levelCount)
+	Vec3U size)
 {
-	// TODO:
-	abort();
+	// TODO: mipmap generation, multisampling
+
+	Image image = malloc(
+		sizeof(union Image));
+
+	if (image == NULL)
+		return NULL;
+
+	VkImageType vkType;
+
+	if (type == IMAGE_1D_TYPE)
+		vkType = VK_IMAGE_TYPE_1D;
+	else if (type == IMAGE_2D_TYPE)
+		vkType = VK_IMAGE_TYPE_2D;
+	else if (type == IMAGE_3D_TYPE)
+		vkType = VK_IMAGE_TYPE_3D;
+	else
+		abort();
+
+	VkFormat vkFormat;
+	VkImageUsageFlags vkUsage;
+
+	if (_vkFormat == VK_FORMAT_UNDEFINED)
+	{
+		switch (format)
+		{
+		default:
+			free(image);
+			return NULL;
+		case R8G8B8A8_UNORM_IMAGE_FORMAT:
+			vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
+			vkUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			break;
+		case R8G8B8A8_SRGB_IMAGE_FORMAT:
+			vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
+			vkUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			break;
+		case D16_UNORM_IMAGE_FORMAT:
+			vkFormat = VK_FORMAT_D16_UNORM;
+			vkUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			break;
+		case D32_SFLOAT_IMAGE_FORMAT:
+			vkFormat = VK_FORMAT_D32_SFLOAT;
+			vkUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			break;
+		case D24_UNORM_S8_UINT_IMAGE_FORMAT:
+			vkFormat = VK_FORMAT_D24_UNORM_S8_UINT;
+			vkUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			break;
+		case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
+			vkFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
+			vkUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			break;
+		}
+
+		vkUsage |= _vkUsage;
+	}
+	else
+	{
+		vkFormat = _vkFormat;
+		vkUsage = _vkUsage;
+	}
+
+	VkImageCreateInfo imageCreateInfo = {
+		VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		NULL,
+		0,
+		vkType,
+		vkFormat,
+		{ size.x, size.y, size.z, },
+		1,
+		1,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_TILING_OPTIMAL,
+		vkUsage,
+		VK_SHARING_MODE_EXCLUSIVE,
+		0,
+		NULL,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+	};
+
+	VmaAllocationCreateInfo allocationCreateInfo = {};
+	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
+	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
+
+	VkImage handle;
+	VmaAllocation allocation;
+
+	VkResult result = vmaCreateImage(
+		vmaAllocator,
+		&imageCreateInfo,
+		&allocationCreateInfo,
+		&handle,
+		&allocation,
+		NULL);
+
+	if (result != VK_SUCCESS)
+	{
+		free(image);
+		return NULL;
+	}
+
+	image->vk.window = window;
+	image->vk.type = type;
+	image->vk.format = format;
+	image->vk.size = size;
+	image->vk.handle = handle;
+	image->vk.handle = handle;
+	image->vk.allocation = allocation;
+	return image;
 }
+#endif
+
 inline static Image createGlImage(
 	Window window,
 	uint8_t type,
@@ -55,11 +175,18 @@ inline static Image createGlImage(
 	GLenum dataType;
 
 	if (type == IMAGE_2D_TYPE)
+	{
 		glType = GL_TEXTURE_2D;
+	}
 	else if (type == IMAGE_3D_TYPE)
+	{
 		glType = GL_TEXTURE_3D;
+	}
 	else
-		abort();
+	{
+		free(image);
+		return NULL;
+	}
 
 	GLint glFormat;
 
@@ -201,11 +328,11 @@ inline static Image createGlImage(
 			}
 
 			glTexParameteri(
-				GL_TEXTURE_2D,
+				GL_TEXTURE_3D,
 				GL_TEXTURE_BASE_LEVEL,
 				0);
 			glTexParameteri(
-				GL_TEXTURE_2D,
+				GL_TEXTURE_3D,
 				GL_TEXTURE_MAX_LEVEL,
 				levelCount - 1);
 		}
@@ -225,10 +352,18 @@ inline static Image createGlImage(
 	return image;
 }
 
-inline static void destroyVkImage(Image image)
+#if MPGX_SUPPORT_VULKAN
+inline static void destroyVkImage(
+	VmaAllocator vmaAllocator,
+	Image image)
 {
-	// TODO:
+	vmaDestroyImage(
+		vmaAllocator,
+		image->vk.handle,
+		image->vk.allocation);
 }
+#endif
+
 inline static void destroyGlImage(Image image)
 {
 	makeWindowContextCurrent(

@@ -1,11 +1,25 @@
 #pragma once
 #include "cmmt/common.h"
-#include "vk_mem_alloc.h"
+#include "mpgx/_source/image.h"
+
+struct VkSwapchainFrame
+{
+	VkImage image;
+	VkImageView imageView;
+	VkFramebuffer framebuffer;
+	VkCommandPool graphicsCommandPool;
+	VkCommandPool presentCommandPool;
+	VkCommandBuffer graphicsCommandBuffer;
+	VkCommandBuffer presentCommandBuffer;
+	VkDescriptorSet descriptorSet;
+};
+
+typedef struct VkSwapchainFrame* VkSwapchainFrame;
 
 struct VkSwapchain
 {
-	VkDevice device;
 	VkSwapchainKHR handle;
+	VkSwapchainFrame* frames;
 };
 
 typedef struct VkSwapchain* VkSwapchain;
@@ -356,6 +370,7 @@ inline static bool getBestVkDepthFormat(
 
 	return false;
 }
+
 inline static VkImageView createVkDepthImageView(
 	VkDevice device,
 	VkImage image,
@@ -391,6 +406,15 @@ inline static VkImageView createVkDepthImageView(
 		return NULL;
 
 	return imageView;
+}
+inline static void destroyVkImageView(
+	VkDevice device,
+	VkImageView imageView)
+{
+	vkDestroyImageView(
+		device,
+		imageView,
+		NULL);
 }
 /* vk::RenderPass VkGpuSwapchain::createRenderPass(
 	vk::Device device,
@@ -506,6 +530,7 @@ std::vector<std::shared_ptr<VkSwapchainData>> VkGpuSwapchain::createDatas(
  */
 
 inline static VkSwapchain createVkSwapchain(
+	Window window,
 	VkPhysicalDevice physicalDevice,
 	VkSurfaceKHR surface,
 	VkDevice device,
@@ -613,20 +638,39 @@ inline static VkSwapchain createVkSwapchain(
 		return NULL;
 	}
 
-	/*depthImage = std::make_shared<VkGpuImage>(
-		allocator,
-		vk::ImageUsageFlagBits::eDepthStencilAttachment,
-		GpuImageType::Image2D,
+	Image depthImage = createVkImage(
+		vmaAllocator,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		depthFormat,
-		SizeVector3(
-			extent.width,
-			extent.height,
+		window,
+		IMAGE_2D_TYPE,
+		IMAGE_FORMAT_COUNT,
+		vec3U(
+			surfaceExtent.width,
+			surfaceExtent.height,
 			1));
-	depthImageView = createDepthImageView(
-		_device,
-		depthImage->getImage(),
-		vkDepthFormat);
 
+	if (depthImage == NULL)
+	{
+		_destroyVkSwapchain(device, handle);
+		free(swapchain);
+		return NULL;
+	}
+
+	VkImageView depthImageView = createVkDepthImageView(
+		device,
+		depthImage->vk.handle,
+		depthFormat);
+
+	if (depthImageView == NULL)
+	{
+		destroyVkImage(vmaAllocator, depthImage);
+		_destroyVkSwapchain(device, handle);
+		free(swapchain);
+		return NULL;
+	}
+
+	/*
 	 renderPass = createRenderPass(
 			_device,
 			surfaceFormat.format,
@@ -643,18 +687,18 @@ inline static VkSwapchain createVkSwapchain(
 			extent);
 	 */
 
-	swapchain->device = device;
 	swapchain->handle = handle;
 	return swapchain;
 }
 inline static void destroyVkSwapchain(
+	VkDevice device,
 	VkSwapchain swapchain)
 {
 	if (swapchain == NULL)
 		return;
 
 	_destroyVkSwapchain(
-		swapchain->device,
+		device,
 		swapchain->handle);
 	free(swapchain);
 }

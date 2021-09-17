@@ -25,6 +25,7 @@ union Shader
 	_VkShader vk;
 };
 
+#if MPGX_SUPPORT_VULKAN
 inline static Shader createVkShader(
 	Window window,
 	uint8_t type,
@@ -34,6 +35,8 @@ inline static Shader createVkShader(
 	// TODO:
 	abort();
 }
+#endif
+
 inline static Shader createGlShader(
 	Window window,
 	uint8_t type,
@@ -147,10 +150,13 @@ inline static Shader createGlShader(
 	return shader;
 }
 
+#if MPGX_SUPPORT_VULKAN
 inline static void destroyVkShader(Shader shader)
 {
 	// TODO:
 }
+#endif
+
 inline static void destroyGlShader(Shader shader)
 {
 	makeWindowContextCurrent(

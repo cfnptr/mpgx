@@ -1,3 +1,11 @@
+# Work in Progress!
+
+## Features
+* Vulkan API and OpenGL rendering backends
+* Window creation, manipulation (using GLFW)
+* Optimized text rendering (using FreeType)
+* Color, diffuse, sprite, texture, sky shaders
+
 ## Supported operating systems
 * Ubuntu
 * MacOS

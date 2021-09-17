@@ -24,6 +24,7 @@ struct VkWindow
 	VkSemaphore drawCompleteSemaphores[VK_FRAME_LAG];
 	VkSemaphore imageOwnershipSemaphores[VK_FRAME_LAG];
 	VkSwapchain swapchain;
+	uint32_t frameIndex;
 };
 
 typedef struct VkWindow* VkWindow;
@@ -919,15 +920,16 @@ inline static void destroyVkSemaphore(
 }
 
 inline static VkWindow createVkWindow(
+	Window window,
 	VkInstance instance,
 	GLFWwindow* handle,
 	bool useStencilBuffer,
 	Vec2U framebufferSize)
 {
-	VkWindow window = malloc(
+	VkWindow vkWindow = malloc(
 		sizeof(struct VkWindow));
 
-	if (window == NULL)
+	if (vkWindow == NULL)
 		return NULL;
 
 	VkSurfaceKHR surface = createVkSurface(
@@ -936,7 +938,7 @@ inline static VkWindow createVkWindow(
 
 	if (surface == NULL)
 	{
-		free(window);
+		free(vkWindow);
 		return NULL;
 	}
 
@@ -946,7 +948,7 @@ inline static VkWindow createVkWindow(
 	if (physicalDevice == NULL)
 	{
 		destroyVkSurface(instance, surface);
-		free(window);
+		free(vkWindow);
 		return NULL;
 	}
 
@@ -963,7 +965,7 @@ inline static VkWindow createVkWindow(
 	if (result == false)
 	{
 		destroyVkSurface(instance, surface);
-		free(window);
+		free(vkWindow);
 		return NULL;
 	}
 
@@ -989,7 +991,7 @@ inline static VkWindow createVkWindow(
 	if (device == NULL)
 	{
 		destroyVkSurface(instance, surface);
-		free(window);
+		free(vkWindow);
 		return NULL;
 	}
 
@@ -1002,7 +1004,7 @@ inline static VkWindow createVkWindow(
 	{
 		destroyVkDevice(device);
 		destroyVkSurface(instance, surface);
-		free(window);
+		free(vkWindow);
 		return NULL;
 	}
 
@@ -1030,7 +1032,7 @@ inline static VkWindow createVkWindow(
 		destroyVmaAllocator(vmaAllocator);
 		destroyVkDevice(device);
 		destroyVkSurface(instance, surface);
-		free(window);
+		free(vkWindow);
 		return NULL;
 	}
 
@@ -1063,7 +1065,7 @@ inline static VkWindow createVkWindow(
 		destroyVmaAllocator(vmaAllocator);
 		destroyVkDevice(device);
 		destroyVkSurface(instance, surface);
-		free(window);
+		free(vkWindow);
 		return NULL;
 	}
 
@@ -1088,11 +1090,12 @@ inline static VkWindow createVkWindow(
 		destroyVmaAllocator(vmaAllocator);
 		destroyVkDevice(device);
 		destroyVkSurface(instance, surface);
-		free(window);
+		free(vkWindow);
 		return NULL;
 	}
 
 	VkSwapchain swapchain = createVkSwapchain(
+		window,
 		physicalDevice,
 		surface,
 		device,
@@ -1103,26 +1106,49 @@ inline static VkWindow createVkWindow(
 		framebufferSize,
 		NULL);
 
-	window->surface = surface;
-	window->physicalDevice = physicalDevice;
-	window->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
-	window->presentQueueFamilyIndex = presentQueueFamilyIndex;
-	window->device = device;
-	window->vmaAllocator = vmaAllocator;
-	window->graphicsQueue = graphicsQueue;
-	window->presentQueue = presentQueue;
-	window->graphicsCommandPool = graphicsCommandPool;
-	window->presentCommandPool = presentCommandPool;
-	window->transferCommandPool = transferCommandPool;
+	if (swapchain == NULL)
+	{
+		destroyVkCommandPool(device, transferCommandPool);
 
-	VkFence* fences = window->fences;
+		if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
+		{
+			destroyVkCommandPool(device, graphicsCommandPool);
+		}
+		else
+		{
+			destroyVkCommandPool(device, graphicsCommandPool);
+			destroyVkCommandPool(device, presentCommandPool);
+		}
+
+		destroyVmaAllocator(vmaAllocator);
+		destroyVkDevice(device);
+		destroyVkSurface(instance, surface);
+		free(vkWindow);
+		return NULL;
+	}
+
+	vkWindow->surface = surface;
+	vkWindow->physicalDevice = physicalDevice;
+	vkWindow->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
+	vkWindow->presentQueueFamilyIndex = presentQueueFamilyIndex;
+	vkWindow->device = device;
+	vkWindow->vmaAllocator = vmaAllocator;
+	vkWindow->graphicsQueue = graphicsQueue;
+	vkWindow->presentQueue = presentQueue;
+	vkWindow->graphicsCommandPool = graphicsCommandPool;
+	vkWindow->presentCommandPool = presentCommandPool;
+	vkWindow->transferCommandPool = transferCommandPool;
+	vkWindow->swapchain = swapchain;
+	vkWindow->frameIndex = 0;
+
+	VkFence* fences = vkWindow->fences;
 
 	VkSemaphore* imageAcquiredSemaphores =
-		window->imageAcquiredSemaphores;
+		vkWindow->imageAcquiredSemaphores;
 	VkSemaphore* drawCompleteSemaphores =
-		window->drawCompleteSemaphores;
+		vkWindow->drawCompleteSemaphores;
 	VkSemaphore* imageOwnershipSemaphores =
-		window->imageOwnershipSemaphores;
+		vkWindow->imageOwnershipSemaphores;
 
 	for (uint8_t i = 0; i < VK_FRAME_LAG; i++)
 	{
@@ -1144,6 +1170,9 @@ inline static VkWindow createVkWindow(
 			destroyVkSemaphore(device, drawCompleteSemaphores[i]);
 			destroyVkSemaphore(device, imageOwnershipSemaphores[i]);
 
+			destroyVkSwapchain(device, swapchain);
+			destroyVkCommandPool(device, transferCommandPool);
+
 			if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
 			{
 				destroyVkCommandPool(device, graphicsCommandPool);
@@ -1157,12 +1186,12 @@ inline static VkWindow createVkWindow(
 			destroyVmaAllocator(vmaAllocator);
 			destroyVkDevice(device);
 			destroyVkSurface(instance, surface);
-			free(window);
+			free(vkWindow);
 			return NULL;
 		}
 	}
 
-	return window;
+	return vkWindow;
 }
 inline static void destroyVkWindow(
 	VkInstance instance,
@@ -1172,6 +1201,11 @@ inline static void destroyVkWindow(
 		return;
 
 	VkDevice device = window->device;
+
+	destroyVkSwapchain(
+		device,
+		window->swapchain);
+
 	VkFence* fences = window->fences;
 
 	VkSemaphore* imageAcquiredSemaphores =

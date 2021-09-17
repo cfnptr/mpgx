@@ -247,7 +247,9 @@ inline static Client* createClient()
 	if (client == NULL)
 		return NULL;
 
-	Window window = createAnyWindow(
+	Window window = createWindow(
+		OPENGL_GRAPHICS_API,
+		false,
 		defaultWindowSize,
 		APP_NAME,
 		onWindowUpdate,

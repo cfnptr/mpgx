@@ -7,6 +7,7 @@
 #include "mpgx/_source/sampler.h"
 #include "mpgx/_source/framebuffer.h"
 #include "mpgx/_source/shader.h"
+#include "mpgx/_source/swapchain.h"
 
 #if MPGX_SUPPORT_VULKAN
 #include "mpgx/_source/vulkan.h"
@@ -41,6 +42,7 @@ struct ImageData
 struct Window
 {
 	uint8_t api;
+	bool useStencilBuffer;
 	uint32_t maxImageSize;
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
@@ -195,6 +197,7 @@ void* getFtLibrary()
 
 Window createWindow(
 	uint8_t api,
+	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
@@ -254,6 +257,28 @@ Window createWindow(
 		glfwWindowHint(
 			GLFW_OPENGL_PROFILE,
 			GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(
+			GLFW_SRGB_CAPABLE,
+			GLFW_TRUE);
+
+		if (useStencilBuffer == true)
+		{
+			glfwWindowHint(
+				GLFW_DEPTH_BITS,
+				32);
+			glfwWindowHint(
+				GLFW_STENCIL_BITS,
+				8);
+		}
+		else
+		{
+			glfwWindowHint(
+				GLFW_DEPTH_BITS,
+				32);
+			glfwWindowHint(
+				GLFW_STENCIL_BITS,
+				0);
+		}
 
 #ifndef NDEBUG
 		glfwWindowHint(
@@ -261,8 +286,8 @@ Window createWindow(
 			GLFW_TRUE);
 #else
 		glfwWindowHint(
-			GLFW_OPENGL_DEBUG_CONTEXT,
-			GLFW_FALSE);
+			GLFW_CONTEXT_NO_ERROR,
+			GLFW_TRUE);
 #endif
 	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
@@ -277,14 +302,33 @@ Window createWindow(
 			GLFW_CONTEXT_VERSION_MINOR,
 			0);
 
+		if (useStencilBuffer == true)
+		{
+			glfwWindowHint(
+				GLFW_DEPTH_BITS,
+				32);
+			glfwWindowHint(
+				GLFW_STENCIL_BITS,
+				8);
+		}
+		else
+		{
+			glfwWindowHint(
+				GLFW_DEPTH_BITS,
+				32);
+			glfwWindowHint(
+				GLFW_STENCIL_BITS,
+				0);
+		}
+
 #ifndef NDEBUG
 		glfwWindowHint(
 			GLFW_OPENGL_DEBUG_CONTEXT,
 			GLFW_TRUE);
 #else
 		glfwWindowHint(
-			GLFW_OPENGL_DEBUG_CONTEXT,
-			GLFW_FALSE);
+			GLFW_CONTEXT_NO_ERROR,
+			GLFW_TRUE);
 #endif
 	}
 	else
@@ -317,8 +361,8 @@ Window createWindow(
 
 	glfwSetWindowSizeLimits(
 		handle,
-		1,
-		1,
+		2,
+		2,
 		GLFW_DONT_CARE,
 		GLFW_DONT_CARE);
 
@@ -336,9 +380,21 @@ Window createWindow(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
+		int width, height;
+
+		glfwGetFramebufferSize(
+			handle,
+			&width,
+			&height);
+
+		Vec2U framebufferSize = {
+			width, height,
+		};
 		vkWindow = createVkWindow(
 			vkInstance,
-			handle);
+			handle,
+			useStencilBuffer,
+			framebufferSize);
 
 		if (vkWindow == NULL)
 		{
@@ -346,6 +402,8 @@ Window createWindow(
 			free(window);
 			return NULL;
 		}
+
+		// TODO: maxImageSize
 #else
 		abort();
 #endif
@@ -361,6 +419,8 @@ Window createWindow(
 			free(window);
 			return NULL;
 		}
+
+		glEnable(GL_FRAMEBUFFER_SRGB);
 
 		GLint glMaxImageSize;
 
@@ -485,6 +545,7 @@ Window createWindow(
 	}
 
 	window->api = api;
+	window->useStencilBuffer = useStencilBuffer;
 	window->maxImageSize = maxImageSize;
 	window->onUpdate = onUpdate;
 	window->updateArgument = updateArgument;
@@ -522,6 +583,7 @@ Window createWindow(
 	return window;
 }
 Window createAnyWindow(
+	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate updateFunction,
@@ -550,6 +612,7 @@ Window createAnyWindow(
 
 	Window window = createWindow(
 		VULKAN_GRAPHICS_API,
+		useStencilBuffer,
 		size,
 		title,
 		updateFunction,
@@ -568,6 +631,7 @@ Window createAnyWindow(
 
 	window = createWindow(
 		OPENGL_GRAPHICS_API,
+		useStencilBuffer,
 		size,
 		title,
 		updateFunction,
@@ -586,6 +650,7 @@ Window createAnyWindow(
 
 	window = createWindow(
 		OPENGL_ES_GRAPHICS_API,
+		useStencilBuffer,
 		size,
 		title,
 		updateFunction,
@@ -705,6 +770,11 @@ uint8_t getWindowGraphicsAPI(Window window)
 {
 	assert(window != NULL);
 	return window->api;
+}
+bool isWindowUseStencilBuffer(Window window)
+{
+	assert(window != NULL);
+	return window->useStencilBuffer;
 }
 OnWindowUpdate getWindowOnUpdate(Window window)
 {
@@ -2482,6 +2552,8 @@ void clearFramebuffer(
 		clearColorBuffer == true ||
 		clearDepthBuffer == true ||
 		clearStencilBuffer == true);
+	assert(window->useStencilBuffer == true ||
+		clearStencilBuffer == false);
 	assert(window->isRecording == true);
 
 	uint8_t api = window->api;

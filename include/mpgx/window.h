@@ -11,6 +11,8 @@
 #define DEFAULT_MIN_MIPMAP_LOD -1000
 #define DEFAULT_MAX_MIPMAP_LOD 1000
 
+// TODO: fix a new framebuffer sRGB difference
+
 static const Vec2U defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
 	DEFAULT_WINDOW_HEIGHT
@@ -290,6 +292,7 @@ void* getFtLibrary();
 
 Window createWindow(
 	uint8_t api,
+	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
@@ -303,6 +306,7 @@ Window createWindow(
 	size_t shaderCapacity,
 	size_t pipelineCapacity);
 Window createAnyWindow(
+	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
@@ -319,6 +323,7 @@ void destroyWindow(Window window);
 
 bool isWindowEmpty(Window window);
 uint8_t getWindowGraphicsAPI(Window window);
+bool isWindowUseStencilBuffer(Window window);
 OnWindowUpdate getWindowOnUpdate(Window window);
 void* getWindowUpdateArgument(Window window);
 uint32_t getWindowMaxImageSize(Window window);

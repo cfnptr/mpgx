@@ -1,5 +1,5 @@
 #pragma once
-#include "vk_mem_alloc.h"
+#include "mpgx/_source/swapchain.h"
 #include <string.h>
 
 #define ENGINE_NAME "MPGX"
@@ -23,7 +23,7 @@ struct VkWindow
 	VkSemaphore imageAcquiredSemaphores[VK_FRAME_LAG];
 	VkSemaphore drawCompleteSemaphores[VK_FRAME_LAG];
 	VkSemaphore imageOwnershipSemaphores[VK_FRAME_LAG];
-	// swapchain
+	VkSwapchain swapchain;
 };
 
 typedef struct VkWindow* VkWindow;
@@ -920,7 +920,9 @@ inline static void destroyVkSemaphore(
 
 inline static VkWindow createVkWindow(
 	VkInstance instance,
-	GLFWwindow* handle)
+	GLFWwindow* handle,
+	bool useStencilBuffer,
+	Vec2U framebufferSize)
 {
 	VkWindow window = malloc(
 		sizeof(struct VkWindow));
@@ -1089,6 +1091,17 @@ inline static VkWindow createVkWindow(
 		free(window);
 		return NULL;
 	}
+
+	VkSwapchain swapchain = createVkSwapchain(
+		physicalDevice,
+		surface,
+		device,
+		vmaAllocator,
+		graphicsCommandPool,
+		presentCommandPool,
+		useStencilBuffer,
+		framebufferSize,
+		NULL);
 
 	window->surface = surface;
 	window->physicalDevice = physicalDevice;

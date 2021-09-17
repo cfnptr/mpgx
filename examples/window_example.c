@@ -248,7 +248,7 @@ inline static Client* createClient()
 		return NULL;
 
 	Window window = createWindow(
-		OPENGL_GRAPHICS_API,
+		VULKAN_GRAPHICS_API,
 		false,
 		defaultWindowSize,
 		APP_NAME,

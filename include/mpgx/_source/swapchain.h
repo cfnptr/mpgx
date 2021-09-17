@@ -2,24 +2,24 @@
 #include "cmmt/common.h"
 #include "mpgx/_source/image.h"
 
-struct VkSwapchainFrame
+typedef struct VkSwapchainFrame
 {
 	VkImage image;
 	VkImageView imageView;
 	VkFramebuffer framebuffer;
-	VkCommandPool graphicsCommandPool;
-	VkCommandPool presentCommandPool;
 	VkCommandBuffer graphicsCommandBuffer;
 	VkCommandBuffer presentCommandBuffer;
 	VkDescriptorSet descriptorSet;
-};
-
-typedef struct VkSwapchainFrame* VkSwapchainFrame;
+} VkSwapchainFrame;
 
 struct VkSwapchain
 {
 	VkSwapchainKHR handle;
+	Image depthImage;
+	VkImageView depthImageView;
+	VkRenderPass renderPass;
 	VkSwapchainFrame* frames;
+	uint32_t frameCount;
 };
 
 typedef struct VkSwapchain* VkSwapchain;
@@ -159,7 +159,7 @@ inline static VkExtent2D getBestVkSurfaceExtent(
 {
 	if (surfaceCapabilities->currentExtent.width == UINT32_MAX)
 	{
-		VkExtent2D extent = {
+		VkExtent2D surfaceExtent = {
 			clamp(framebufferSize.x,
 				surfaceCapabilities->minImageExtent.width,
 				surfaceCapabilities->maxImageExtent.width),
@@ -168,7 +168,7 @@ inline static VkExtent2D getBestVkSurfaceExtent(
 				surfaceCapabilities->maxImageExtent.height),
 		};
 
-		return extent;
+		return surfaceExtent;
 	}
 	else
 	{
@@ -240,7 +240,7 @@ inline static bool getBestVkCompositeAlpha(
 	}
 }
 
-inline static VkSwapchainKHR _createVkSwapchain(
+inline static VkSwapchainKHR createVkSwapchainHandle(
 	VkDevice device,
 	VkSurfaceKHR surface,
 	uint32_t imageCount,
@@ -284,15 +284,6 @@ inline static VkSwapchainKHR _createVkSwapchain(
 		return NULL;
 
 	return swapchain;
-}
-inline static void _destroyVkSwapchain(
-	VkDevice device,
-	VkSwapchainKHR swapchain)
-{
-	vkDestroySwapchainKHR(
-		device,
-		swapchain,
-		NULL);
 }
 
 inline static bool getBestVkDepthFormat(
@@ -376,22 +367,26 @@ inline static VkImageView createVkDepthImageView(
 	VkImage image,
 	VkFormat format)
 {
-	VkImageSubresourceRange subresourceRange = {
-		VK_IMAGE_ASPECT_DEPTH_BIT,
-		0,
-		1,
-		0,
-		1,
-	};
 	VkImageViewCreateInfo createInfo = {
-		VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 		NULL,
 		0,
 		image,
 		VK_IMAGE_VIEW_TYPE_2D,
 		format,
-		{0, 0, 0, 0},
-		subresourceRange,
+		{
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY
+		},
+		{
+			VK_IMAGE_ASPECT_DEPTH_BIT,
+			0,
+			1,
+			0,
+			1,
+		}
 	};
 
 	VkImageView imageView;
@@ -407,127 +402,373 @@ inline static VkImageView createVkDepthImageView(
 
 	return imageView;
 }
-inline static void destroyVkImageView(
+
+inline static VkRenderPass createVkRenderPass(
 	VkDevice device,
-	VkImageView imageView)
+	VkFormat colorFormat,
+	VkFormat depthFormat)
 {
-	vkDestroyImageView(
-		device,
-		imageView,
-		NULL);
-}
-/* vk::RenderPass VkGpuSwapchain::createRenderPass(
-	vk::Device device,
-	vk::Format colorFormat,
-	vk::Format depthFormat)
-{
-	vk::RenderPass renderPass;
-
-	vk::AttachmentDescription attachmentDescriptions[2] =
+	VkAttachmentDescription attachmentDescriptions[2] = {
 		{
-			vk::AttachmentDescription(
-				vk::AttachmentDescriptionFlags(),
-				colorFormat,
-				vk::SampleCountFlagBits::e1,
-				vk::AttachmentLoadOp::eClear,
-				vk::AttachmentStoreOp::eStore,
-				vk::AttachmentLoadOp::eDontCare,
-				vk::AttachmentStoreOp::eDontCare,
-				vk::ImageLayout::eUndefined,
-				vk::ImageLayout::ePresentSrcKHR),
-			vk::AttachmentDescription(
-				vk::AttachmentDescriptionFlags(),
-				depthFormat,
-				vk::SampleCountFlagBits::e1,
-				vk::AttachmentLoadOp::eClear,
-				vk::AttachmentStoreOp::eDontCare,
-				vk::AttachmentLoadOp::eDontCare,
-				vk::AttachmentStoreOp::eDontCare,
-				vk::ImageLayout::eUndefined,
-				vk::ImageLayout::eDepthStencilAttachmentOptimal),
-		};
+			0,
+			colorFormat,
+			VK_SAMPLE_COUNT_1_BIT,
+			VK_ATTACHMENT_LOAD_OP_CLEAR,
+			VK_ATTACHMENT_STORE_OP_STORE,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		},
+		{
+			0,
+			depthFormat,
+			VK_SAMPLE_COUNT_1_BIT,
+			VK_ATTACHMENT_LOAD_OP_CLEAR,
+			VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			// TODO: change if depth only framebuffer?
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		},
+	};
 
-	auto colorAttachmentReference = vk::AttachmentReference(
+	VkAttachmentReference colorAttachmentReference = {
 		0,
-		vk::ImageLayout::eColorAttachmentOptimal);
-	auto depthAttachmentReference = vk::AttachmentReference(
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+	};
+	VkAttachmentReference depthAttachmentReference = {
 		1,
-		vk::ImageLayout::eDepthStencilAttachmentOptimal);
+		// TODO: change if depth only framebuffer?
+		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+	};
 
-	auto subpassDescription = vk::SubpassDescription(
-		vk::SubpassDescriptionFlags(),
-		vk::PipelineBindPoint::eGraphics,
+	VkSubpassDescription subpassDescription = {
 		0,
-		nullptr,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		0,
+		NULL,
 		1,
 		&colorAttachmentReference,
-		nullptr,
+		NULL,
 		&depthAttachmentReference,
 		0,
-		nullptr);
-
-	auto subpassDependency = vk::SubpassDependency(
+		NULL
+	};
+	VkSubpassDependency subpassDependency = {
 		VK_SUBPASS_EXTERNAL,
 		0,
-		vk::PipelineStageFlagBits::eColorAttachmentOutput,
-		vk::PipelineStageFlagBits::eColorAttachmentOutput,
-		vk::AccessFlags(),
-		vk::AccessFlagBits::eColorAttachmentWrite,
-		vk::DependencyFlags());
-
-	auto renderPassCreateInfo = vk::RenderPassCreateInfo(
-		vk::RenderPassCreateFlags(),
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		0,
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		0,
+	};
+	VkRenderPassCreateInfo createInfo = {
+		VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		NULL,
+		0,
 		2,
 		attachmentDescriptions,
 		1,
 		&subpassDescription,
 		1,
-		&subpassDependency);
+		&subpassDependency
+	};
 
-	auto result = device.createRenderPass(
-		&renderPassCreateInfo,
-		nullptr,
+	VkRenderPass renderPass;
+
+	VkResult result = vkCreateRenderPass(
+		device,
+		&createInfo,
+		NULL,
 		&renderPass);
 
-	if (result != vk::Result::eSuccess)
-	{
-		throw Exception(
-			THIS_FUNCTION_NAME,
-		"Failed to create render pass");
-	}
+	if (result != VK_SUCCESS)
+		return NULL;
 
 	return renderPass;
 }
 
-std::vector<std::shared_ptr<VkSwapchainData>> VkGpuSwapchain::createDatas(
-		vk::Device device,
-		vk::SwapchainKHR swapchain,
-		vk::RenderPass renderPass,
-		vk::CommandPool graphicsCommandPool,
-		vk::CommandPool presentCommandPool,
-		vk::Format format,
-		vk::ImageView depthImageView,
-		const vk::Extent2D& extent)
+inline static void destroyVkFrames(
+	VkDevice device,
+	VkCommandPool graphicsCommandPool,
+	VkCommandPool presentCommandPool,
+	VkSwapchainFrame* frames,
+	uint32_t frameCount)
+{
+	for (uint32_t i = 0; i < frameCount; i++)
 	{
-		auto images = device.getSwapchainImagesKHR(swapchain);
-		auto datas = std::vector<std::shared_ptr<VkSwapchainData>>(images.size());
+		VkSwapchainFrame* frame = &frames[i];
 
-		for (size_t i = 0; i < images.size(); i++)
+		if (graphicsCommandPool != presentCommandPool)
 		{
-			datas[i] = std::make_shared<VkSwapchainData>(
+			vkFreeCommandBuffers(
 				device,
-				images[i],
-				renderPass,
 				graphicsCommandPool,
-				presentCommandPool,
-				format,
-				depthImageView,
-				extent);
+				1,
+				&frame->presentCommandBuffer);
+			vkFreeCommandBuffers(
+				device,
+				graphicsCommandPool,
+				1,
+				&frame->graphicsCommandBuffer);
+		}
+		else
+		{
+			vkFreeCommandBuffers(
+				device,
+				graphicsCommandPool,
+				1,
+				&frame->graphicsCommandBuffer);
 		}
 
-		return std::move(datas);
+		vkDestroyFramebuffer(
+			device,
+			frame->framebuffer,
+			NULL);
+		vkDestroyImageView(
+			device,
+			frame->imageView,
+			NULL);
 	}
- */
+
+	free(frames);
+}
+inline static bool createVkFrames(
+	VkDevice device,
+	VkSwapchainKHR swapchain,
+	VkRenderPass renderPass,
+	VkCommandPool graphicsCommandPool,
+	VkCommandPool presentCommandPool,
+	VkFormat surfaceFormat,
+	VkImageView depthImageView,
+	VkExtent2D surfaceExtent,
+	VkSwapchainFrame** _frames,
+	uint32_t* frameCount)
+{
+	uint32_t imageCount;
+
+	VkResult result = vkGetSwapchainImagesKHR(
+		device,
+		swapchain,
+		&imageCount,
+		NULL);
+
+	if (result != VK_SUCCESS ||
+		imageCount == 0)
+	{
+		return false;
+	}
+
+	VkImage* images = malloc(
+		imageCount * sizeof(VkImage));
+
+	if (images == NULL)
+		return false;
+
+	result = vkGetSwapchainImagesKHR(
+		device,
+		swapchain,
+		&imageCount,
+		images);
+
+	if (result != VK_SUCCESS ||
+		imageCount == 0)
+	{
+		free(images);
+		return false;
+	}
+
+	VkSwapchainFrame* frames = malloc(
+		imageCount * sizeof(VkSwapchainFrame));
+
+	if (frames == NULL)
+	{
+		free(images);
+		return false;
+	}
+
+	for (uint32_t i = 0; i < imageCount; i++)
+	{
+		VkImageViewCreateInfo imageViewCreateInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			NULL,
+			0,
+			images[i],
+			VK_IMAGE_VIEW_TYPE_2D,
+			surfaceFormat,
+			{
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY
+			},
+			{
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				0,
+				1,
+				0,
+				1,
+			},
+		};
+
+		VkImageView imageView;
+
+		result = vkCreateImageView(
+			device,
+			&imageViewCreateInfo,
+			NULL,
+			&imageView);
+
+		if (result != VK_SUCCESS)
+		{
+			destroyVkFrames(
+				device,
+				graphicsCommandPool,
+				presentCommandPool,
+				frames,
+				i);
+			free(frames);
+			free(images);
+			return false;
+		}
+
+		VkImageView imageViews[2] = {
+			imageView,
+			depthImageView,
+		};
+
+		VkFramebufferCreateInfo framebufferCreateInfo = {
+			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+			NULL,
+			0,
+			renderPass,
+			2,
+			imageViews,
+			surfaceExtent.width,
+			surfaceExtent.height,
+			1,
+		};
+
+		VkFramebuffer framebuffer;
+
+		result = vkCreateFramebuffer(
+			device,
+			&framebufferCreateInfo,
+			NULL,
+			&framebuffer);
+
+		if (result != VK_SUCCESS)
+		{
+			vkDestroyImageView(
+				device,
+				imageView,
+				NULL);
+			destroyVkFrames(
+				device,
+				graphicsCommandPool,
+				presentCommandPool,
+				frames,
+				i);
+			free(frames);
+			free(images);
+			return false;
+		}
+
+		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			NULL,
+			graphicsCommandPool,
+			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			1,
+		};
+
+		VkCommandBuffer graphicsCommandBuffer;
+		VkCommandBuffer presentCommandBuffer;
+
+		result = vkAllocateCommandBuffers(
+			device,
+			&commandBufferAllocateInfo,
+			&graphicsCommandBuffer);
+
+		if (result != VK_SUCCESS)
+		{
+			vkDestroyFramebuffer(
+				device,
+				framebuffer,
+				NULL);
+			vkDestroyImageView(
+				device,
+				imageView,
+				NULL);
+			destroyVkFrames(
+				device,
+				graphicsCommandPool,
+				presentCommandPool,
+				frames,
+				i);
+			free(frames);
+			free(images);
+			return false;
+		}
+
+		if (graphicsCommandPool != presentCommandPool)
+		{
+			commandBufferAllocateInfo.commandPool = presentCommandPool;
+
+			result = vkAllocateCommandBuffers(
+				device,
+				&commandBufferAllocateInfo,
+				&graphicsCommandBuffer);
+
+			if (result != VK_SUCCESS)
+			{
+				vkFreeCommandBuffers(
+					device,
+					graphicsCommandPool,
+					1,
+					&graphicsCommandBuffer);
+				vkDestroyFramebuffer(
+					device,
+					framebuffer,
+					NULL);
+				vkDestroyImageView(
+					device,
+					imageView,
+					NULL);
+				destroyVkFrames(
+					device,
+					graphicsCommandPool,
+					presentCommandPool,
+					frames,
+					i);
+				free(frames);
+				free(images);
+				return false;
+			}
+		}
+		else
+		{
+			presentCommandBuffer = graphicsCommandBuffer;
+		}
+
+		VkSwapchainFrame* frame = &frames[i];
+		frame->image = images[i]; // TODO: possibly remove?
+		frame->imageView = imageView;
+		frame->framebuffer = framebuffer;
+		frame->graphicsCommandBuffer = graphicsCommandBuffer;
+		frame->presentCommandBuffer = presentCommandBuffer;
+		// TODO: remove descriptor set?
+	}
+
+	free(images);
+
+	*_frames = frames;
+	*frameCount = imageCount;
+	return true;
+}
 
 inline static VkSwapchain createVkSwapchain(
 	Window window,
@@ -607,7 +848,7 @@ inline static VkSwapchain createVkSwapchain(
 		return NULL;
 	}
 
-	VkSwapchainKHR handle = _createVkSwapchain(
+	VkSwapchainKHR handle = createVkSwapchainHandle(
 		device,
 		surface,
 		imageCount,
@@ -633,10 +874,18 @@ inline static VkSwapchain createVkSwapchain(
 
 	if (result == false)
 	{
-		_destroyVkSwapchain(device, handle);
+		vkDestroySwapchainKHR(
+			device,
+			handle,
+			NULL);
 		free(swapchain);
 		return NULL;
 	}
+
+	Vec3U imageSize = vec3U(
+		surfaceExtent.width,
+		surfaceExtent.height,
+		1);
 
 	Image depthImage = createVkImage(
 		vmaAllocator,
@@ -645,14 +894,14 @@ inline static VkSwapchain createVkSwapchain(
 		window,
 		IMAGE_2D_TYPE,
 		IMAGE_FORMAT_COUNT,
-		vec3U(
-			surfaceExtent.width,
-			surfaceExtent.height,
-			1));
+		imageSize);
 
 	if (depthImage == NULL)
 	{
-		_destroyVkSwapchain(device, handle);
+		vkDestroySwapchainKHR(
+			device,
+			handle,
+			NULL);
 		free(swapchain);
 		return NULL;
 	}
@@ -664,41 +913,187 @@ inline static VkSwapchain createVkSwapchain(
 
 	if (depthImageView == NULL)
 	{
-		destroyVkImage(vmaAllocator, depthImage);
-		_destroyVkSwapchain(device, handle);
+		destroyVkImage(
+			vmaAllocator,
+			depthImage);
+		vkDestroySwapchainKHR(
+			device,
+			handle,
+			NULL);
 		free(swapchain);
 		return NULL;
 	}
 
-	/*
-	 renderPass = createRenderPass(
-			_device,
-			surfaceFormat.format,
-			vkDepthFormat);
+	VkRenderPass renderPass = createVkRenderPass(
+		device,
+		surfaceFormat.format,
+		depthFormat);
 
-		datas = createDatas(
-			_device,
-			swapchain,
-			renderPass,
-			graphicsCommandPool,
-			presentCommandPool,
-			surfaceFormat.format,
+	if (renderPass == NULL)
+	{
+		vkDestroyImageView(
+			device,
 			depthImageView,
-			extent);
-	 */
+			NULL);
+		destroyVkImage(
+			vmaAllocator,
+			depthImage);
+		vkDestroySwapchainKHR(
+			device,
+			handle,
+			NULL);
+		free(swapchain);
+		return NULL;
+	}
+
+	VkSwapchainFrame* frames;
+	uint32_t frameCount;
+
+	bool success = createVkFrames(
+		device,
+		handle,
+		renderPass,
+		graphicsCommandPool,
+		presentCommandPool,
+		surfaceFormat.format,
+		depthImageView,
+		surfaceExtent,
+		&frames,
+		&frameCount);
+
+	if (success == false)
+	{
+		vkDestroyRenderPass(
+			device,
+			renderPass,
+			NULL);
+		vkDestroyImageView(
+			device,
+			depthImageView,
+			NULL);
+		destroyVkImage(
+			vmaAllocator,
+			depthImage);
+		vkDestroySwapchainKHR(
+			device,
+			handle,
+			NULL);
+		free(swapchain);
+		return NULL;
+	}
 
 	swapchain->handle = handle;
+	swapchain->depthImage = depthImage;
+	swapchain->depthImageView = depthImageView;
+	swapchain->renderPass = renderPass;
+	swapchain->frames = frames;
+	swapchain->frameCount = frameCount;
 	return swapchain;
 }
 inline static void destroyVkSwapchain(
 	VkDevice device,
+	VmaAllocator vmaAllocator,
+	VkCommandPool graphicsCommandPool,
+	VkCommandPool presentCommandPool,
 	VkSwapchain swapchain)
 {
 	if (swapchain == NULL)
 		return;
 
-	_destroyVkSwapchain(
+	destroyVkFrames(
 		device,
-		swapchain->handle);
+		graphicsCommandPool,
+		presentCommandPool,
+		swapchain->frames,
+		swapchain->frameCount);
+	vkDestroyRenderPass(
+		device,
+		swapchain->renderPass,
+		NULL);
+	vkDestroyImageView(
+		device,
+		swapchain->depthImageView,
+		NULL);
+	destroyVkImage(
+		vmaAllocator,
+		swapchain->depthImage);
+	vkDestroySwapchainKHR(
+		device,
+		swapchain->handle,
+		NULL);
 	free(swapchain);
+}
+
+inline static bool resizeVkSwapchain(
+	VkSwapchain swapchain)
+{
+	// TODO:
+	/*datas.clear();
+
+	device.destroyRenderPass(renderPass);
+	device.destroyImageView(depthImageView);
+
+	auto surfaceFormat = getBestSurfaceFormat(
+		physicalDevice,
+		surface);
+	auto presentMode = getBestPresentMode(
+		physicalDevice,
+		surface);
+
+	auto capabilities =
+	physicalDevice.getSurfaceCapabilitiesKHR(surface);
+
+	extent = getBestExtent(
+		capabilities,
+		size);
+
+	auto imageCount = getBestImageCount(capabilities);
+	auto transform = getBestTransform(capabilities);
+	auto compositeAlpha = getBestCompositeAlpha(capabilities);
+
+	auto newSwapchain = createSwapchain(
+		device,
+		surface,
+		imageCount,
+		surfaceFormat,
+		extent,
+		transform,
+		compositeAlpha,
+		presentMode,
+		swapchain);
+
+	device.destroySwapchainKHR(swapchain);
+	swapchain = newSwapchain;
+
+	auto depthFormat = getBestDepthFormat(physicalDevice);
+	auto vkDepthFormat = toVkGpuImageFormat(depthFormat);
+
+	depthImage = std::make_shared<VkGpuImage>(
+		allocator,
+		vk::ImageUsageFlagBits::eDepthStencilAttachment,
+		GpuImageType::Image2D,
+		depthFormat,
+		SizeVector3(
+			size.x,
+			size.y,
+			1));
+	depthImageView = createDepthImageView(
+		device,
+		depthImage->getImage(),
+		vkDepthFormat);
+
+	renderPass = createRenderPass(
+		device,
+		surfaceFormat.format,
+		vkDepthFormat);
+
+	datas = createDatas(
+		device,
+		swapchain,
+		renderPass,
+		graphicsCommandPool,
+		presentCommandPool,
+		surfaceFormat.format,
+		depthImageView,
+		extent);*/
 }

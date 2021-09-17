@@ -6,6 +6,9 @@
 #define VK_VERSION VK_API_VERSION_1_2
 #define VK_FRAME_LAG 2
 
+// TODO: compile vulkan shaders using cmake
+// and do not store them into the git
+
 struct VkWindow
 {
 	VkSurfaceKHR surface;
@@ -347,15 +350,6 @@ inline static VkInstance createVkInstance(
 
 	return instance;
 }
-inline static void destroyVkInstance(VkInstance instance)
-{
-	if (instance == NULL)
-		return;
-
-	vkDestroyInstance(
-		instance,
-		NULL);
-}
 
 inline static VkDebugUtilsMessengerEXT createVkDebugUtilsMessenger(
 	VkInstance instance)
@@ -412,33 +406,6 @@ inline static void destroyVkDebugUtilsMessenger(
 	destroyFunction(
 		instance,
 		debugUtilsMessenger,
-		NULL);
-}
-
-inline static VkSurfaceKHR createVkSurface(
-	VkInstance instance,
-	GLFWwindow* glfwWindow)
-{
-	VkSurfaceKHR surface;
-
-	VkResult result = glfwCreateWindowSurface(
-		instance,
-		glfwWindow,
-		NULL,
-		&surface);
-
-	if (result != VK_SUCCESS)
-		return NULL;
-
-	return surface;
-}
-inline static void destroyVkSurface(
-	VkInstance instance,
-	VkSurfaceKHR surface)
-{
-	vkDestroySurfaceKHR(
-		instance,
-		surface,
 		NULL);
 }
 
@@ -768,13 +735,6 @@ inline static VkDevice createVkDevice(
 
 	return device;
 }
-inline static void destroyVkDevice(
-	VkDevice device)
-{
-	vkDestroyDevice(
-		device,
-		NULL);
-}
 
 inline static VmaAllocator createVmaAllocator(
 	VkPhysicalDevice physicalDevice,
@@ -798,26 +758,6 @@ inline static VmaAllocator createVmaAllocator(
 		return NULL;
 
 	return allocator;
-}
-inline static void destroyVmaAllocator(
-	VmaAllocator allocator)
-{
-	vmaDestroyAllocator(allocator);
-}
-
-inline static VkQueue getVkQueue(
-	VkDevice device,
-	uint32_t queueFamilyIndex)
-{
-	VkQueue queue;
-
-	vkGetDeviceQueue(
-		device,
-		queueFamilyIndex,
-		0,
-		&queue);
-
-	return queue;
 }
 
 inline static VkCommandPool createVkCommandPool(
@@ -845,15 +785,6 @@ inline static VkCommandPool createVkCommandPool(
 
 	return commandPool;
 }
-inline static void destroyVkCommandPool(
-	VkDevice device,
-	VkCommandPool commandPool)
-{
-	vkDestroyCommandPool(
-		device,
-		commandPool,
-		NULL);
-}
 
 inline static VkFence createVkFence(
 	VkDevice device,
@@ -878,15 +809,6 @@ inline static VkFence createVkFence(
 
 	return fence;
 }
-inline static void destroyVkFence(
-	VkDevice device,
-	VkFence fence)
-{
-	vkDestroyFence(
-		device,
-		fence,
-		NULL);
-}
 
 inline static VkSemaphore createVkSemaphore(VkDevice device)
 {
@@ -909,15 +831,6 @@ inline static VkSemaphore createVkSemaphore(VkDevice device)
 
 	return semaphore;
 }
-inline static void destroyVkSemaphore(
-	VkDevice device,
-	VkSemaphore semaphore)
-{
-	vkDestroySemaphore(
-		device,
-		semaphore,
-		NULL);
-}
 
 inline static VkWindow createVkWindow(
 	Window window,
@@ -932,11 +845,15 @@ inline static VkWindow createVkWindow(
 	if (vkWindow == NULL)
 		return NULL;
 
-	VkSurfaceKHR surface = createVkSurface(
-		instance,
-		handle);
+	VkSurfaceKHR surface;
 
-	if (surface == NULL)
+	VkResult vkResult = glfwCreateWindowSurface(
+		instance,
+		handle,
+		NULL,
+		&surface);
+
+	if (vkResult != VK_SUCCESS)
 	{
 		free(vkWindow);
 		return NULL;
@@ -947,7 +864,10 @@ inline static VkWindow createVkWindow(
 
 	if (physicalDevice == NULL)
 	{
-		destroyVkSurface(instance, surface);
+		vkDestroySurfaceKHR(
+			instance,
+			surface,
+			NULL);
 		free(vkWindow);
 		return NULL;
 	}
@@ -964,7 +884,10 @@ inline static VkWindow createVkWindow(
 
 	if (result == false)
 	{
-		destroyVkSurface(instance, surface);
+		vkDestroySurfaceKHR(
+			instance,
+			surface,
+			NULL);
 		free(vkWindow);
 		return NULL;
 	}
@@ -990,7 +913,10 @@ inline static VkWindow createVkWindow(
 
 	if (device == NULL)
 	{
-		destroyVkSurface(instance, surface);
+		vkDestroySurfaceKHR(
+			instance,
+			surface,
+			NULL);
 		free(vkWindow);
 		return NULL;
 	}
@@ -1002,71 +928,91 @@ inline static VkWindow createVkWindow(
 
 	if (vmaAllocator == NULL)
 	{
-		destroyVkDevice(device);
-		destroyVkSurface(instance, surface);
+		vkDestroyDevice(
+			device,
+			NULL);
+		vkDestroySurfaceKHR(
+			instance,
+			surface,
+			NULL);
 		free(vkWindow);
 		return NULL;
 	}
 
 	VkQueue graphicsQueue, presentQueue;
-	VkCommandPool graphicsCommandPool, presentCommandPool;
+
+	vkGetDeviceQueue(
+		device,
+		graphicsQueueFamilyIndex,
+		0,
+		&graphicsQueue);
 
 	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
 	{
-		graphicsQueue = presentQueue = getVkQueue(
-			device,
-			graphicsQueueFamilyIndex);
+		presentQueue = graphicsQueue;
 	}
 	else
 	{
-		graphicsQueue = getVkQueue(
+		vkGetDeviceQueue(
 			device,
-			graphicsQueueFamilyIndex);
-		presentQueue = getVkQueue(
-			device,
-			graphicsQueueFamilyIndex);
+			graphicsQueueFamilyIndex,
+			0,
+			&presentQueue);
 	}
 
-	if (graphicsQueue == NULL || presentQueue == NULL)
+	VkCommandPool graphicsCommandPool = createVkCommandPool(
+		device,
+		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		graphicsQueueFamilyIndex);
+
+	if (graphicsCommandPool == NULL)
 	{
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(device);
-		destroyVkSurface(instance, surface);
+		vmaDestroyAllocator(
+			vmaAllocator);
+		vkDestroyDevice(
+			device,
+			NULL);
+		vkDestroySurfaceKHR(
+			instance,
+			surface,
+			NULL);
 		free(vkWindow);
 		return NULL;
 	}
 
+	VkCommandPool presentCommandPool;
+
 	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
 	{
-		graphicsCommandPool = presentCommandPool = createVkCommandPool(
-			device,
-			VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			graphicsQueueFamilyIndex);
+		presentCommandPool = graphicsCommandPool;
 	}
 	else
 	{
-		graphicsCommandPool = createVkCommandPool(
-			device,
-			VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			graphicsQueueFamilyIndex);
 		presentCommandPool = createVkCommandPool(
 			device,
 			VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
 				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 			presentQueueFamilyIndex);
-	}
 
-	if (graphicsCommandPool == NULL || presentCommandPool == NULL)
-	{
-		destroyVkCommandPool(device, graphicsCommandPool);
-		destroyVkCommandPool(device, presentCommandPool);
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(device);
-		destroyVkSurface(instance, surface);
-		free(vkWindow);
-		return NULL;
+		if (presentCommandPool == NULL)
+		{
+			vkDestroyCommandPool(
+				device,
+				graphicsCommandPool,
+				NULL);
+			vmaDestroyAllocator(
+				vmaAllocator);
+			vkDestroyDevice(
+				device,
+				NULL);
+			vkDestroySurfaceKHR(
+				instance,
+				surface,
+				NULL);
+			free(vkWindow);
+			return NULL;
+		}
 	}
 
 	// TODO: investigate why we require separated transfer pool
@@ -1079,17 +1025,32 @@ inline static VkWindow createVkWindow(
 	{
 		if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
 		{
-			destroyVkCommandPool(device, graphicsCommandPool);
+			vkDestroyCommandPool(
+				device,
+				graphicsCommandPool,
+				NULL);
 		}
 		else
 		{
-			destroyVkCommandPool(device, graphicsCommandPool);
-			destroyVkCommandPool(device, presentCommandPool);
+			vkDestroyCommandPool(
+				device,
+				graphicsCommandPool,
+				NULL);
+			vkDestroyCommandPool(
+				device,
+				presentCommandPool,
+				NULL);
 		}
 
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(device);
-		destroyVkSurface(instance, surface);
+		vmaDestroyAllocator(
+			vmaAllocator);
+		vkDestroyDevice(
+			device,
+			NULL);
+		vkDestroySurfaceKHR(
+			instance,
+			surface,
+			NULL);
 		free(vkWindow);
 		return NULL;
 	}
@@ -1108,21 +1069,39 @@ inline static VkWindow createVkWindow(
 
 	if (swapchain == NULL)
 	{
-		destroyVkCommandPool(device, transferCommandPool);
+		vkDestroyCommandPool(
+			device,
+			transferCommandPool,
+			NULL);
 
 		if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
 		{
-			destroyVkCommandPool(device, graphicsCommandPool);
+			vkDestroyCommandPool(
+				device,
+				graphicsCommandPool,
+				NULL);
 		}
 		else
 		{
-			destroyVkCommandPool(device, graphicsCommandPool);
-			destroyVkCommandPool(device, presentCommandPool);
+			vkDestroyCommandPool(
+				device,
+				graphicsCommandPool,
+				NULL);
+			vkDestroyCommandPool(
+				device,
+				presentCommandPool,
+				NULL);
 		}
 
-		destroyVmaAllocator(vmaAllocator);
-		destroyVkDevice(device);
-		destroyVkSurface(instance, surface);
+		vmaDestroyAllocator(
+			vmaAllocator);
+		vkDestroyDevice(
+			device,
+			NULL);
+		vkDestroySurfaceKHR(
+			instance,
+			surface,
+			NULL);
 		free(vkWindow);
 		return NULL;
 	}
@@ -1165,27 +1144,62 @@ inline static VkWindow createVkWindow(
 			drawCompleteSemaphores[i] == NULL ||
 			imageOwnershipSemaphores[i] == NULL)
 		{
-			destroyVkFence(device, fences[i]);
-			destroyVkSemaphore(device, imageAcquiredSemaphores[i]);
-			destroyVkSemaphore(device, drawCompleteSemaphores[i]);
-			destroyVkSemaphore(device, imageOwnershipSemaphores[i]);
+			vkDestroyFence(
+				device,
+				fences[i],
+				NULL);
+			vkDestroySemaphore(
+				device,
+				imageAcquiredSemaphores[i],
+				NULL);
+			vkDestroySemaphore(
+				device,
+				drawCompleteSemaphores[i],
+				NULL);
+			vkDestroySemaphore(
+				device,
+				imageOwnershipSemaphores[i],
+				NULL);
 
-			destroyVkSwapchain(device, swapchain);
-			destroyVkCommandPool(device, transferCommandPool);
+			destroyVkSwapchain(
+				device,
+				vmaAllocator,
+				graphicsCommandPool,
+				presentCommandPool,
+				swapchain);
+			vkDestroyCommandPool(
+				device,
+				transferCommandPool,
+				NULL);
 
 			if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
 			{
-				destroyVkCommandPool(device, graphicsCommandPool);
+				vkDestroyCommandPool(
+					device,
+					graphicsCommandPool,
+					NULL);
 			}
 			else
 			{
-				destroyVkCommandPool(device, graphicsCommandPool);
-				destroyVkCommandPool(device, presentCommandPool);
+				vkDestroyCommandPool(
+					device,
+					graphicsCommandPool,
+					NULL);
+				vkDestroyCommandPool(
+					device,
+					presentCommandPool,
+					NULL);
 			}
 
-			destroyVmaAllocator(vmaAllocator);
-			destroyVkDevice(device);
-			destroyVkSurface(instance, surface);
+			vmaDestroyAllocator(
+				vmaAllocator);
+			vkDestroyDevice(
+				device,
+				NULL);
+			vkDestroySurfaceKHR(
+				instance,
+				surface,
+				NULL);
 			free(vkWindow);
 			return NULL;
 		}
@@ -1201,9 +1215,18 @@ inline static void destroyVkWindow(
 		return;
 
 	VkDevice device = window->device;
+	VmaAllocator vmaAllocator = window->vmaAllocator;
+
+	VkCommandPool graphicsCommandPool =
+		window->graphicsCommandPool;
+	VkCommandPool presentCommandPool =
+		window->presentCommandPool;
 
 	destroyVkSwapchain(
 		device,
+		vmaAllocator,
+		graphicsCommandPool,
+		presentCommandPool,
 		window->swapchain);
 
 	VkFence* fences = window->fences;
@@ -1227,47 +1250,58 @@ inline static void destroyVkWindow(
 		if(result != VK_SUCCESS)
 			abort();
 
-		destroyVkFence(device, fences[i]);
-		destroyVkSemaphore(device, imageAcquiredSemaphores[i]);
-		destroyVkSemaphore(device, drawCompleteSemaphores[i]);
-		destroyVkSemaphore(device, imageOwnershipSemaphores[i]);
+		vkDestroyFence(
+			device,
+			fences[i],
+			NULL);
+		vkDestroySemaphore(
+			device,
+			imageAcquiredSemaphores[i],
+			NULL);
+		vkDestroySemaphore(
+			device,
+			drawCompleteSemaphores[i],
+			NULL);
+		vkDestroySemaphore(
+			device,
+			imageOwnershipSemaphores[i],
+			NULL);
 	}
 
-	destroyVkCommandPool(
+	vkDestroyCommandPool(
 		device,
-		window->transferCommandPool);
+		window->transferCommandPool,
+		NULL);
 
 	if (window->graphicsQueueFamilyIndex ==
 		window->presentQueueFamilyIndex)
 	{
-		destroyVkCommandPool(
+		vkDestroyCommandPool(
 			device,
-			window->graphicsCommandPool);
+			graphicsCommandPool,
+			NULL);
 	}
 	else
 	{
-		destroyVkCommandPool(
+		vkDestroyCommandPool(
 			device,
-			window->graphicsCommandPool);
-		destroyVkCommandPool(
+			graphicsCommandPool,
+			NULL);
+		vkDestroyCommandPool(
 			device,
-			window->presentCommandPool);
+			presentCommandPool,
+			NULL);
 	}
 
-	destroyVmaAllocator(window->vmaAllocator);
-	destroyVkDevice(device);
-
-	destroyVkSurface(
+	vmaDestroyAllocator(
+		vmaAllocator);
+	vkDestroyDevice(
+		device,
+		NULL);
+	vkDestroySurfaceKHR(
 		instance,
-		window->surface);
+		window->surface,
+		NULL);
 
 	free(window);
-}
-inline static void waitVkWindow(VkWindow window)
-{
-	VkResult result = vkDeviceWaitIdle(
-		window->device);
-
-	if (result != VK_SUCCESS)
-		abort();
 }

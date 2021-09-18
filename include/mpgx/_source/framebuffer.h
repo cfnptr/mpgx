@@ -250,7 +250,9 @@ inline static void clearVkFramebuffer(
 	bool clearColorBuffer,
 	bool clearDepthBuffer,
 	bool clearStencilBuffer,
-	Vec4F clearColor)
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
 {
 
 }
@@ -258,7 +260,9 @@ inline static void clearGlFramebuffer(
 	bool clearColorBuffer,
 	bool clearDepthBuffer,
 	bool clearStencilBuffer,
-	Vec4F clearColor)
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
 {
 	GLbitfield clearMask = 0;
 
@@ -276,11 +280,13 @@ inline static void clearGlFramebuffer(
 	}
 	if (clearDepthBuffer == true)
 	{
+		glClearDepth(clearDepth);
 		glDepthMask(GL_TRUE);
 		clearMask |= GL_DEPTH_BUFFER_BIT;
 	}
 	if (clearStencilBuffer == true)
 	{
+		glClearStencil((GLint)clearStencil);
 		glStencilMask(UINT32_MAX);
 		clearMask |= GL_STENCIL_BUFFER_BIT;
 	}

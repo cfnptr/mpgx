@@ -28,6 +28,7 @@ struct VkWindow
 	VkSemaphore imageOwnershipSemaphores[VK_FRAME_LAG];
 	VkSwapchain swapchain;
 	uint32_t frameIndex;
+	uint32_t imageIndex;
 };
 
 typedef struct VkWindow* VkWindow;
@@ -1064,8 +1065,7 @@ inline static VkWindow createVkWindow(
 		graphicsCommandPool,
 		presentCommandPool,
 		useStencilBuffer,
-		framebufferSize,
-		NULL);
+		framebufferSize);
 
 	if (swapchain == NULL)
 	{
@@ -1119,6 +1119,7 @@ inline static VkWindow createVkWindow(
 	vkWindow->transferCommandPool = transferCommandPool;
 	vkWindow->swapchain = swapchain;
 	vkWindow->frameIndex = 0;
+	vkWindow->imageIndex = 0;
 
 	VkFence* fences = vkWindow->fences;
 
@@ -1250,13 +1251,9 @@ inline static void destroyVkWindow(
 		if(result != VK_SUCCESS)
 			abort();
 
-		vkDestroyFence(
-			device,
-			fences[i],
-			NULL);
 		vkDestroySemaphore(
 			device,
-			imageAcquiredSemaphores[i],
+			imageOwnershipSemaphores[i],
 			NULL);
 		vkDestroySemaphore(
 			device,
@@ -1264,7 +1261,11 @@ inline static void destroyVkWindow(
 			NULL);
 		vkDestroySemaphore(
 			device,
-			imageOwnershipSemaphores[i],
+			imageAcquiredSemaphores[i],
+			NULL);
+		vkDestroyFence(
+			device,
+			fences[i],
 			NULL);
 	}
 
@@ -1285,11 +1286,11 @@ inline static void destroyVkWindow(
 	{
 		vkDestroyCommandPool(
 			device,
-			graphicsCommandPool,
+			presentCommandPool,
 			NULL);
 		vkDestroyCommandPool(
 			device,
-			presentCommandPool,
+			graphicsCommandPool,
 			NULL);
 	}
 
@@ -1304,4 +1305,423 @@ inline static void destroyVkWindow(
 		NULL);
 
 	free(window);
+}
+
+inline static const char* getVkWindowGpuName()
+{
+	return NULL;
+}
+inline static const char* getVkWindowGpuVendor()
+{
+	return NULL;
+}
+
+inline static bool beginVkWindowRender(
+	Window window,
+	VkWindow vkWindow,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
+{
+	VkSwapchain swapchain = vkWindow->swapchain;
+	VkDevice device = vkWindow->device;
+
+	Vec2U framebufferSize =
+		getWindowFramebufferSize(window);
+	Vec2U currentFramebufferSize =
+		swapchain->framebufferSize;
+
+	if (framebufferSize.x != currentFramebufferSize.x ||
+		framebufferSize.y != currentFramebufferSize.y)
+	{
+		bool useStencilBuffer =
+			isWindowUseStencilBuffer(window);
+
+		bool result = resizeVkSwapchain(
+			window,
+			vkWindow->physicalDevice,
+			vkWindow->surface,
+			device,
+			vkWindow->vmaAllocator,
+			vkWindow->graphicsCommandPool,
+			vkWindow->presentCommandPool,
+			swapchain,
+			useStencilBuffer,
+			framebufferSize);
+
+		if (result == false)
+			return false;
+	}
+
+	uint32_t frameIndex = vkWindow->frameIndex;
+	VkFence fence = vkWindow->fences[frameIndex];
+
+	VkResult vkResult = vkWaitForFences(
+		device,
+		1,
+		&fence,
+		VK_TRUE,
+		UINT64_MAX);
+
+	if (vkResult != VK_SUCCESS &&
+		vkResult != VK_TIMEOUT)
+	{
+		return false;
+	}
+
+	vkResult = vkResetFences(
+		device,
+		1,
+		&fence);
+
+	if (vkResult != VK_SUCCESS)
+		return false;
+
+	VkSemaphore imageAcquiredSemaphore =
+		vkWindow->imageAcquiredSemaphores[frameIndex];
+	VkSwapchainKHR handle = swapchain->handle;
+
+	uint32_t imageIndex;
+
+	do
+	{
+		vkResult = vkAcquireNextImageKHR(
+			device,
+			handle,
+			UINT64_MAX,
+			imageAcquiredSemaphore,
+			NULL,
+			&imageIndex);
+
+		if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			bool useStencilBuffer =
+				isWindowUseStencilBuffer(window);
+
+			bool result = resizeVkSwapchain(
+				window,
+				vkWindow->physicalDevice,
+				vkWindow->surface,
+				device,
+				vkWindow->vmaAllocator,
+				vkWindow->graphicsCommandPool,
+				vkWindow->presentCommandPool,
+				swapchain,
+				useStencilBuffer,
+				framebufferSize);
+
+			if (result == false)
+				return false;
+
+			vkWindow->frameIndex = 0;
+			printf("Resized framebuffer!\n");
+		}
+		else if (vkResult == VK_ERROR_SURFACE_LOST_KHR)
+		{
+			// TODO: recreate surface
+
+			/*instance.destroySurfaceKHR(
+				surface);
+			surface = createSurface(
+				instance,
+				window);
+
+			auto size = getFramebufferSize();
+			onFramebufferResize(size);
+
+			std::cout << "Engine Vulkan: Recreated lost surface and swapchain";*/
+		}
+		else if (vkResult != VK_SUCCESS &&
+			vkResult != VK_SUBOPTIMAL_KHR)
+		{
+			return false;
+		}
+	} while (vkResult != VK_SUCCESS);
+
+	vmaSetCurrentFrameIndex(
+		vkWindow->vmaAllocator,
+		imageIndex);
+	vkWindow->imageIndex = imageIndex;
+
+	VkSwapchainFrame frame =
+		swapchain->frames[imageIndex];
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		NULL,
+		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+		NULL,
+	};
+
+	VkCommandBuffer graphicsCommandBuffer =
+		frame.graphicsCommandBuffer;
+
+	vkResult = vkBeginCommandBuffer(
+		graphicsCommandBuffer,
+		&commandBufferBeginInfo);
+
+	if (vkResult != VK_SUCCESS)
+		return false;
+
+	VkClearValue clearValues[2];
+	clearValues[0].color.float32[0] = clearColor.x;
+	clearValues[0].color.float32[1] = clearColor.y;
+	clearValues[0].color.float32[2] = clearColor.z;
+	clearValues[0].color.float32[3] = clearColor.w;
+	clearValues[1].depthStencil.depth = clearDepth;
+	clearValues[1].depthStencil.stencil = clearStencil;
+
+	VkRect2D renderArea = {
+		{
+			0,
+			0,
+		},
+		{
+			framebufferSize.x,
+			framebufferSize.y,
+		},
+	};
+
+	VkRenderPassBeginInfo renderPassBeginInfo = {
+		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+		NULL,
+		swapchain->renderPass,
+		frame.framebuffer,
+		renderArea,
+		2,
+		clearValues,
+	};
+
+	vkCmdBeginRenderPass(
+		graphicsCommandBuffer,
+		&renderPassBeginInfo,
+		VK_SUBPASS_CONTENTS_INLINE);
+	return true;
+}
+inline static bool endVkWindowRender(
+	Window window,
+	VkWindow vkWindow)
+{
+	VkSwapchain swapchain = vkWindow->swapchain;
+	uint32_t imageIndex = vkWindow->imageIndex;
+
+	VkSwapchainFrame* frame =
+		&swapchain->frames[imageIndex];
+	VkImage frameImage = frame->image;
+
+	VkCommandBuffer graphicsCommandBuffer =
+		frame->graphicsCommandBuffer;
+
+	vkCmdEndRenderPass(graphicsCommandBuffer);
+
+	uint32_t graphicsQueueFamilyIndex =
+		vkWindow->graphicsQueueFamilyIndex;
+	uint32_t presentQueueFamilyIndex =
+		vkWindow->presentQueueFamilyIndex;
+
+	if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
+	{
+		VkImageMemoryBarrier imageMemoryBarrier = {
+			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			NULL,
+			0,
+			0,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			graphicsQueueFamilyIndex,
+			presentQueueFamilyIndex,
+			frameImage,
+			{
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				0,
+				1,
+				0,
+				1,
+			},
+		};
+
+		vkCmdPipelineBarrier(
+			graphicsCommandBuffer,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			0,
+			0,
+			NULL,
+			0,
+			NULL,
+			1,
+			&imageMemoryBarrier);
+	}
+
+	vkEndCommandBuffer(graphicsCommandBuffer);
+
+	VkResult vkResult;
+
+	if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
+	{
+		VkCommandBuffer presentCommandBuffer =
+			frame->presentCommandBuffer;
+
+		VkCommandBufferBeginInfo commandBufferBeginInfo = {
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			NULL,
+			VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT, // TODO: change to one time use?
+			NULL,
+		};
+
+		vkResult = vkBeginCommandBuffer(
+			presentCommandBuffer,
+			&commandBufferBeginInfo);
+
+		if (vkResult != VK_SUCCESS)
+			return false;
+
+		VkImageMemoryBarrier imageMemoryBarrier = {
+			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			NULL,
+			0,
+			0,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			graphicsQueueFamilyIndex,
+			presentQueueFamilyIndex,
+			frameImage,
+			{
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				0,
+				1,
+				0,
+				1,
+			},
+		};
+
+		vkCmdPipelineBarrier(
+			presentCommandBuffer,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			0,
+			0,
+			NULL,
+			0,
+			NULL,
+			1,
+			&imageMemoryBarrier);
+		vkEndCommandBuffer(presentCommandBuffer);
+	}
+
+	uint32_t frameIndex = vkWindow->frameIndex;
+
+	VkSemaphore drawCompleteSemaphore =
+		vkWindow->drawCompleteSemaphores[frameIndex];
+
+	VkPipelineStageFlags pipelineStage =
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	VkSubmitInfo submitInfo = {
+		VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		NULL,
+		1,
+		&vkWindow->imageAcquiredSemaphores[frameIndex],
+		&pipelineStage,
+		1,
+		&graphicsCommandBuffer,
+		1,
+		&drawCompleteSemaphore,
+	};
+
+	vkResult = vkQueueSubmit(
+		vkWindow->graphicsQueue,
+		1,
+		&submitInfo,
+		vkWindow->fences[frameIndex]);
+
+	if (vkResult != VK_SUCCESS)
+		return false;
+
+	VkSwapchainKHR handle = swapchain->handle;
+
+	VkPresentInfoKHR presentInfo = {
+		VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		NULL,
+		1,
+		&drawCompleteSemaphore,
+		1,
+		&handle,
+		&imageIndex,
+		NULL,
+	};
+
+	VkSemaphore imageOwnershipSemaphore =
+		vkWindow->imageOwnershipSemaphores[frameIndex];
+	VkQueue presentQueue = vkWindow->presentQueue;
+
+	if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
+	{
+		submitInfo.pWaitSemaphores =
+			&drawCompleteSemaphore;
+		submitInfo.pCommandBuffers =
+			&frame->presentCommandBuffer;
+		submitInfo.pSignalSemaphores =
+			&imageOwnershipSemaphore;
+
+		vkResult = vkQueueSubmit(
+			presentQueue,
+			1,
+			&submitInfo,
+			NULL);
+
+		if (vkResult != VK_SUCCESS)
+			return false;
+
+		presentInfo.pWaitSemaphores =
+			&imageOwnershipSemaphore;
+	}
+
+	vkWindow->frameIndex =
+		(frameIndex + 1) % VK_FRAME_LAG;
+
+	vkResult = vkQueuePresentKHR(
+		presentQueue,
+		&presentInfo);
+
+	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		bool useStencilBuffer =
+			isWindowUseStencilBuffer(window);
+		Vec2U framebufferSize =
+			getWindowFramebufferSize(window);
+
+		bool result = resizeVkSwapchain(
+			window,
+			vkWindow->physicalDevice,
+			vkWindow->surface,
+			vkWindow->device,
+			vkWindow->vmaAllocator,
+			vkWindow->graphicsCommandPool,
+			vkWindow->presentCommandPool,
+			swapchain,
+			useStencilBuffer,
+			framebufferSize);
+
+		if (result == false)
+			return false;
+
+		vkWindow->frameIndex = 0;
+		printf("Resized framebuffer!\n");
+	}
+	else if (vkResult == VK_ERROR_SURFACE_LOST_KHR)
+	{
+		// TODO: recreate surface
+		/*instance.destroySurfaceKHR(surface);
+		surface = createSurface(instance, window);
+
+		auto size = getFramebufferSize();
+		onFramebufferResize(size);*/
+	}
+	else if (vkResult != VK_SUCCESS &&
+		vkResult != VK_SUBOPTIMAL_KHR)
+	{
+		return false;
+	}
+
+	return true;
 }

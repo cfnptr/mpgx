@@ -9,11 +9,11 @@ typedef struct VkSwapchainFrame
 	VkFramebuffer framebuffer;
 	VkCommandBuffer graphicsCommandBuffer;
 	VkCommandBuffer presentCommandBuffer;
-	VkDescriptorSet descriptorSet;
 } VkSwapchainFrame;
 
 struct VkSwapchain
 {
+	Vec2U framebufferSize;
 	VkSwapchainKHR handle;
 	Image depthImage;
 	VkImageView depthImageView;
@@ -241,8 +241,8 @@ inline static bool getBestVkCompositeAlpha(
 }
 
 inline static VkSwapchainKHR createVkSwapchainHandle(
-	VkDevice device,
 	VkSurfaceKHR surface,
+	VkDevice device,
 	uint32_t imageCount,
 	VkSurfaceFormatKHR surfaceFormat,
 	VkExtent2D extent,
@@ -755,12 +755,11 @@ inline static bool createVkFrames(
 		}
 
 		VkSwapchainFrame* frame = &frames[i];
-		frame->image = images[i]; // TODO: possibly remove?
+		frame->image = images[i];
 		frame->imageView = imageView;
 		frame->framebuffer = framebuffer;
 		frame->graphicsCommandBuffer = graphicsCommandBuffer;
 		frame->presentCommandBuffer = presentCommandBuffer;
-		// TODO: remove descriptor set?
 	}
 
 	free(images);
@@ -779,8 +778,7 @@ inline static VkSwapchain createVkSwapchain(
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
 	bool useStencilBuffer,
-	Vec2U framebufferSize,
-	VkSwapchainKHR oldSwapchain)
+	Vec2U framebufferSize)
 {
 	VkSwapchain swapchain = malloc(
 		sizeof(struct VkSwapchain));
@@ -803,7 +801,7 @@ inline static VkSwapchain createVkSwapchain(
 
 	VkPresentModeKHR presentMode;
 
-	 result = getBestVkPresentMode(
+	result = getBestVkPresentMode(
 		physicalDevice,
 		surface,
 		&presentMode);
@@ -849,15 +847,15 @@ inline static VkSwapchain createVkSwapchain(
 	}
 
 	VkSwapchainKHR handle = createVkSwapchainHandle(
-		device,
 		surface,
+		device,
 		imageCount,
 		surfaceFormat,
 		surfaceExtent,
 		surfaceTransform,
 		compositeAlpha,
 		presentMode,
-		oldSwapchain);
+		NULL);
 
 	if (handle == NULL)
 	{
@@ -887,6 +885,7 @@ inline static VkSwapchain createVkSwapchain(
 		surfaceExtent.height,
 		1);
 
+	// TODO: possibly optimize with fully dedicated memory block
 	Image depthImage = createVkImage(
 		vmaAllocator,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -949,7 +948,7 @@ inline static VkSwapchain createVkSwapchain(
 	VkSwapchainFrame* frames;
 	uint32_t frameCount;
 
-	bool success = createVkFrames(
+	result = createVkFrames(
 		device,
 		handle,
 		renderPass,
@@ -961,7 +960,7 @@ inline static VkSwapchain createVkSwapchain(
 		&frames,
 		&frameCount);
 
-	if (success == false)
+	if (result == false)
 	{
 		vkDestroyRenderPass(
 			device,
@@ -982,6 +981,7 @@ inline static VkSwapchain createVkSwapchain(
 		return NULL;
 	}
 
+	swapchain->framebufferSize = framebufferSize;
 	swapchain->handle = handle;
 	swapchain->depthImage = depthImage;
 	swapchain->depthImageView = depthImageView;
@@ -1025,75 +1025,207 @@ inline static void destroyVkSwapchain(
 }
 
 inline static bool resizeVkSwapchain(
-	VkSwapchain swapchain)
+	Window window,
+	VkPhysicalDevice physicalDevice,
+	VkSurfaceKHR surface,
+	VkDevice device,
+	VmaAllocator vmaAllocator,
+	VkCommandPool graphicsCommandPool,
+	VkCommandPool presentCommandPool,
+	VkSwapchain swapchain,
+	bool useStencilBuffer,
+	Vec2U framebufferSize)
 {
-	// TODO:
-	/*datas.clear();
+	vkDeviceWaitIdle(device);
 
-	device.destroyRenderPass(renderPass);
-	device.destroyImageView(depthImageView);
-
-	auto surfaceFormat = getBestSurfaceFormat(
-		physicalDevice,
-		surface);
-	auto presentMode = getBestPresentMode(
-		physicalDevice,
-		surface);
-
-	auto capabilities =
-	physicalDevice.getSurfaceCapabilitiesKHR(surface);
-
-	extent = getBestExtent(
-		capabilities,
-		size);
-
-	auto imageCount = getBestImageCount(capabilities);
-	auto transform = getBestTransform(capabilities);
-	auto compositeAlpha = getBestCompositeAlpha(capabilities);
-
-	auto newSwapchain = createSwapchain(
+	destroyVkFrames(
 		device,
+		graphicsCommandPool,
+		presentCommandPool,
+		swapchain->frames,
+		swapchain->frameCount);
+	vkDestroyRenderPass(
+		device,
+		swapchain->renderPass,
+		NULL);
+	vkDestroyImageView(
+		device,
+		swapchain->depthImageView,
+		NULL);
+	destroyVkImage(
+		vmaAllocator,
+		swapchain->depthImage);
+
+	swapchain->frameCount = 0;
+	swapchain->frames = NULL;
+	swapchain->renderPass = NULL;
+	swapchain->depthImageView = NULL;
+	swapchain->depthImage = NULL;
+
+	VkSurfaceFormatKHR surfaceFormat;
+
+	bool result = getBestVkSurfaceFormat(
+		physicalDevice,
 		surface,
+		&surfaceFormat);
+
+	if (result == false)
+		return false;
+
+	VkPresentModeKHR presentMode;
+
+	result = getBestVkPresentMode(
+		physicalDevice,
+		surface,
+		&presentMode);
+
+	if (result == false)
+		return false;
+
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+
+	result = getVkSurfaceCapabilities(
+		physicalDevice,
+		surface,
+		&surfaceCapabilities);
+
+	if (result == false)
+		return false;
+
+	VkExtent2D surfaceExtent = getBestVkSurfaceExtent(
+		&surfaceCapabilities,
+		framebufferSize);
+
+	uint32_t imageCount =
+		getBestVkImageCount(&surfaceCapabilities);
+	VkSurfaceTransformFlagBitsKHR surfaceTransform =
+		getBestVkSurfaceTransform(&surfaceCapabilities);
+
+	VkCompositeAlphaFlagBitsKHR compositeAlpha;
+
+	result = getBestVkCompositeAlpha(
+		&surfaceCapabilities,
+		&compositeAlpha);
+
+	if (result == false)
+		return false;
+
+	VkSwapchainKHR oldHandle = swapchain->handle;
+
+	VkSwapchainKHR handle = createVkSwapchainHandle(
+		surface,
+		device,
 		imageCount,
 		surfaceFormat,
-		extent,
-		transform,
+		surfaceExtent,
+		surfaceTransform,
 		compositeAlpha,
 		presentMode,
-		swapchain);
+		oldHandle);
 
-	device.destroySwapchainKHR(swapchain);
-	swapchain = newSwapchain;
+	if (handle == NULL)
+		return false;
 
-	auto depthFormat = getBestDepthFormat(physicalDevice);
-	auto vkDepthFormat = toVkGpuImageFormat(depthFormat);
-
-	depthImage = std::make_shared<VkGpuImage>(
-		allocator,
-		vk::ImageUsageFlagBits::eDepthStencilAttachment,
-		GpuImageType::Image2D,
-		depthFormat,
-		SizeVector3(
-			size.x,
-			size.y,
-			1));
-	depthImageView = createDepthImageView(
+	vkDestroySwapchainKHR(
 		device,
-		depthImage->getImage(),
-		vkDepthFormat);
+		oldHandle,
+		NULL);
+	swapchain->handle = handle;
 
-	renderPass = createRenderPass(
+	VkFormat depthFormat;
+
+	result = getBestVkDepthFormat(
+		physicalDevice,
+		useStencilBuffer,
+		&depthFormat);
+
+	if (result == false)
+		return false;
+
+	Vec3U imageSize = vec3U(
+		surfaceExtent.width,
+		surfaceExtent.height,
+		1);
+
+	// TODO: possibly optimize with fully dedicated memory block
+	Image depthImage = createVkImage(
+		vmaAllocator,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		depthFormat,
+		window,
+		IMAGE_2D_TYPE,
+		IMAGE_FORMAT_COUNT,
+		imageSize);
+
+	if (depthImage == NULL)
+		return false;
+
+	VkImageView depthImageView = createVkDepthImageView(
+		device,
+		depthImage->vk.handle,
+		depthFormat);
+
+	if (depthImageView == NULL)
+	{
+		destroyVkImage(
+			vmaAllocator,
+			depthImage);
+		return false;
+	}
+
+	VkRenderPass renderPass = createVkRenderPass(
 		device,
 		surfaceFormat.format,
-		vkDepthFormat);
+		depthFormat);
 
-	datas = createDatas(
+	if (renderPass == NULL)
+	{
+		vkDestroyImageView(
+			device,
+			depthImageView,
+			NULL);
+		destroyVkImage(
+			vmaAllocator,
+			depthImage);
+		return false;
+	}
+
+	VkSwapchainFrame* frames;
+	uint32_t frameCount;
+
+	result = createVkFrames(
 		device,
-		swapchain,
+		handle,
 		renderPass,
 		graphicsCommandPool,
 		presentCommandPool,
 		surfaceFormat.format,
 		depthImageView,
-		extent);*/
+		surfaceExtent,
+		&frames,
+		&frameCount);
+
+	if (result == false)
+	{
+		vkDestroyRenderPass(
+			device,
+			renderPass,
+			NULL);
+		vkDestroyImageView(
+			device,
+			depthImageView,
+			NULL);
+		destroyVkImage(
+			vmaAllocator,
+			depthImage);
+		return false;
+	}
+
+	swapchain->framebufferSize = framebufferSize;
+	swapchain->depthImage = depthImage;
+	swapchain->depthImageView = depthImageView;
+	swapchain->renderPass = renderPass;
+	swapchain->frames = frames;
+	swapchain->frameCount = frameCount;
+	return true;
 }

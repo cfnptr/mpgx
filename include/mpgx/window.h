@@ -384,7 +384,11 @@ void requestWindowAttention(Window window);
 void makeWindowContextCurrent(Window window);
 void updateWindow(Window window);
 
-void beginWindowRender(Window window);
+void beginWindowRender(
+	Window window,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil);
 void endWindowRender(Window window);
 
 Buffer createBuffer(
@@ -537,7 +541,9 @@ void clearFramebuffer(
 	bool clearColorBuffer,
 	bool clearDepthBuffer,
 	bool clearStencilBuffer,
-	Vec4F clearColor);
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil);
 
 Shader createShader(
 	Window window,

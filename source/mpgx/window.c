@@ -377,7 +377,10 @@ Window createWindow(
 			GLFW_TRUE);
 	}
 
+#if MPGX_SUPPORT_VULKAN
 	VkWindow vkWindow = NULL;
+#endif
+
 	uint32_t maxImageSize;
 
 	if (api == VULKAN_GRAPHICS_API)
@@ -842,10 +845,6 @@ const char* getWindowClipboard(Window window)
 	return glfwGetClipboardString(window->handle);
 }
 
-inline static const char* getVkWindowGpuName(Window window)
-{
-	return NULL;
-}
 inline static const char* getGlWindowGpuName()
 {
 	const char* name = (const char*)
@@ -861,7 +860,11 @@ const char* getWindowGpuName(Window window)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		return getVkWindowGpuName(window);
+#if MPGX_SUPPORT_VULKAN
+		return getVkWindowGpuName();
+#else
+		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -874,10 +877,6 @@ const char* getWindowGpuName(Window window)
 	}
 }
 
-inline static const char* getVkWindowGpuVendor(Window window)
-{
-	return NULL;
-}
 inline static const char* getGlWindowGpuVendor()
 {
 	const char* vendor = (const char*)
@@ -893,7 +892,11 @@ const char* getWindowGpuVendor(Window window)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		return getVkWindowGpuVendor(window);
+#if MPGX_SUPPORT_VULKAN
+		return getVkWindowGpuVendor();
+#else
+		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -1150,20 +1153,62 @@ void updateWindow(Window window)
 	}
 }
 
-inline static void beginVkWindowRender(Window window)
-{
-
-}
-inline static void beginGlWindowRender(Window window)
+inline static void beginGlWindowRender(
+	bool useStencilBuffer,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
 {
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,
 		GL_ZERO);
+
+	glClearColor(
+		clearColor.x,
+		clearColor.y,
+		clearColor.z,
+		clearColor.w);
+	glColorMask(
+		GL_TRUE, GL_TRUE,
+		GL_TRUE, GL_TRUE);
+
+	glClearDepth(clearDepth);
+	glDepthMask(GL_TRUE);
+
+	GLbitfield clearMask =
+		GL_COLOR_BUFFER_BIT |
+		GL_DEPTH_BUFFER_BIT;
+
+	if (useStencilBuffer == true)
+	{
+		glClearStencil((GLint)clearStencil);
+		glStencilMask(UINT32_MAX);
+		clearMask |= GL_STENCIL_BUFFER_BIT;
+	}
+
+	glClear(clearMask);
 	assertOpenGL();
 }
-void beginWindowRender(Window window)
+void beginWindowRender(
+	Window window,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
 {
 	assert(window != NULL);
+	assert(
+		clearColor.x >= 0.0f &&
+		clearColor.y >= 0.0f &&
+		clearColor.z >= 0.0f &&
+		clearColor.w >= 0.0f);
+	assert(
+		clearColor.x <= 1.0f &&
+		clearColor.y <= 1.0f &&
+		clearColor.z <= 1.0f &&
+		clearColor.w <= 1.0f);
+	assert(
+		clearDepth >= 0.0f &&
+		clearDepth <= 1.0f);
 	assert(window->isRecording == false);
 	assert(window->isRendering == false);
 
@@ -1171,12 +1216,28 @@ void beginWindowRender(Window window)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		beginVkWindowRender(window);
+#if MPGX_SUPPORT_VULKAN
+		bool result = beginVkWindowRender(
+			window,
+			window->vkWindow,
+			clearColor,
+			clearDepth,
+			clearStencil);
+
+		if (result == false)
+			abort();
+#else
+		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		beginGlWindowRender(window);
+		beginGlWindowRender(
+			window->useStencilBuffer,
+			clearColor,
+			clearDepth,
+			clearStencil);
 	}
 	else
 	{
@@ -1186,13 +1247,9 @@ void beginWindowRender(Window window)
 	window->isRecording = true;
 }
 
-inline static void endVkWindowRender(Window window)
+inline static void endGlWindowRender(GLFWwindow* window)
 {
-
-}
-inline static void endGlWindowRender(Window window)
-{
-	glfwSwapBuffers(window->handle);
+	glfwSwapBuffers(window);
 }
 void endWindowRender(Window window)
 {
@@ -1204,12 +1261,21 @@ void endWindowRender(Window window)
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		endVkWindowRender(window);
+#if MPGX_SUPPORT_VULKAN
+		bool result = endVkWindowRender(
+			window,
+			window->vkWindow);
+
+		if (result == false)
+			abort();
+#else
+		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		endGlWindowRender(window);
+		endGlWindowRender(window->handle);
 	}
 	else
 	{
@@ -2637,9 +2703,17 @@ void clearFramebuffer(
 	bool clearColorBuffer,
 	bool clearDepthBuffer,
 	bool clearStencilBuffer,
-	Vec4F clearColor)
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
 {
 	assert(window != NULL);
+	assert(
+		clearColorBuffer == true ||
+		clearDepthBuffer == true ||
+		clearStencilBuffer == true);
+	assert(window->useStencilBuffer == true ||
+		clearStencilBuffer == false);
 	assert(
 		clearColor.x >= 0.0f &&
 		clearColor.y >= 0.0f &&
@@ -2651,11 +2725,8 @@ void clearFramebuffer(
 		clearColor.z <= 1.0f &&
 		clearColor.w <= 1.0f);
 	assert(
-		clearColorBuffer == true ||
-		clearDepthBuffer == true ||
-		clearStencilBuffer == true);
-	assert(window->useStencilBuffer == true ||
-		clearStencilBuffer == false);
+		clearDepth >= 0.0f &&
+		clearDepth <= 1.0f);
 	assert(window->isRecording == true);
 
 	uint8_t api = window->api;
@@ -2667,7 +2738,9 @@ void clearFramebuffer(
 			clearColorBuffer,
 			clearDepthBuffer,
 			clearStencilBuffer,
-			clearColor);
+			clearColor,
+			clearDepth,
+			clearStencil);
 #else
 		abort();
 #endif
@@ -2679,7 +2752,9 @@ void clearFramebuffer(
 			clearColorBuffer,
 			clearDepthBuffer,
 			clearStencilBuffer,
-			clearColor);
+			clearColor,
+			clearDepth,
+			clearStencil);
 	}
 	else
 	{

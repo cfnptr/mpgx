@@ -1,6 +1,5 @@
 #include "mpgx/window.h"
 #include "mpgx/_source/opengl.h"
-
 #include "mpgx/_source/buffer.h"
 #include "mpgx/_source/mesh.h"
 #include "mpgx/_source/image.h"
@@ -707,7 +706,7 @@ void destroyWindow(Window window)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
-		VmaAllocator vmaAllocator = vkWindow->vmaAllocator;
+		VmaAllocator allocator = vkWindow->allocator;
 
 		VkResult result = vkDeviceWaitIdle(
 			vkWindow->device);
@@ -722,11 +721,11 @@ void destroyWindow(Window window)
 		for (size_t i = 0; i < samplerCount; i++)
 			destroyVkSampler(samplers[i]);
 		for (size_t i = 0; i < imageCount; i++)
-			destroyVkImage(vmaAllocator, images[i]);
+			destroyVkImage(allocator, images[i]);
 		for (size_t i = 0; i < meshCount; i++)
 			destroyVkMesh(meshes[i]);
 		for (size_t i = 0; i < bufferCount; i++)
-			destroyVkBuffer(buffers[i]);
+			destroyVkBuffer(allocator, buffers[i]);
 
 		destroyVkWindow(
 			vkInstance,
@@ -1304,7 +1303,14 @@ Buffer createBuffer(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+
 		buffer = createVkBuffer(
+			vkWindow->device,
+			vkWindow->allocator,
+			vkWindow->graphicsQueue,
+			vkWindow->transferCommandPool,
+			0,
 			window,
 			type,
 			data,
@@ -1347,7 +1353,9 @@ Buffer createBuffer(
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
-				destroyVkBuffer(buffer);
+				destroyVkBuffer(
+					window->vkWindow->allocator,
+					buffer);
 #else
 				abort();
 #endif
@@ -1397,7 +1405,9 @@ void destroyBuffer(Buffer buffer)
 		if (api == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
-			destroyVkBuffer(buffer);
+			destroyVkBuffer(
+				window->vkWindow->allocator,
+				buffer);
 #else
 			abort();
 #endif
@@ -1482,7 +1492,8 @@ void setBufferData(
 	{
 #if MPGX_SUPPORT_VULKAN
 		setVkBufferData(
-			buffer,
+			buffer->vk.window->vkWindow->allocator,
+			buffer->vk.allocation,
 			data,
 			size,
 			offset);
@@ -1494,7 +1505,8 @@ void setBufferData(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		setGlBufferData(
-			buffer,
+			buffer->gl.glType,
+			buffer->gl.handle,
 			data,
 			size,
 			offset);
@@ -1978,7 +1990,7 @@ Image createImage(
 	{
 #if MPGX_SUPPORT_VULKAN
 		image = createVkImage(
-			window->vkWindow->vmaAllocator,
+			window->vkWindow->allocator,
 			0,
 			VK_FORMAT_UNDEFINED,
 			window,
@@ -2024,7 +2036,7 @@ Image createImage(
 			{
 #if MPGX_SUPPORT_VULKAN
 				destroyVkImage(
-					window->vkWindow->vmaAllocator,
+					window->vkWindow->allocator,
 					image);
 #else
 				abort();
@@ -2117,7 +2129,7 @@ void destroyImage(Image image)
 		{
 #if MPGX_SUPPORT_VULKAN
 			destroyVkImage(
-				window->vkWindow->vmaAllocator,
+				window->vkWindow->allocator,
 				image);
 #else
 			abort();
@@ -2688,7 +2700,7 @@ void endFramebufferRender(Window window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		endGlFramebufferRender(window);
+		endGlFramebufferRender();
 	}
 	else
 	{

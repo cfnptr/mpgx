@@ -238,7 +238,7 @@ inline static void endVkFramebufferRender(Window window)
 {
 	// TODO:
 }
-inline static void endGlFramebufferRender(Window window)
+inline static void endGlFramebufferRender()
 {
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,

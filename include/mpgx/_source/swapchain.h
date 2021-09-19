@@ -429,7 +429,6 @@ inline static VkRenderPass createVkRenderPass(
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			VK_IMAGE_LAYOUT_UNDEFINED,
-			// TODO: change if depth only framebuffer?
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 		},
 	};
@@ -440,7 +439,6 @@ inline static VkRenderPass createVkRenderPass(
 	};
 	VkAttachmentReference depthAttachmentReference = {
 		1,
-		// TODO: change if depth only framebuffer?
 		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 	};
 
@@ -506,7 +504,7 @@ inline static void destroyVkFrames(
 		{
 			vkFreeCommandBuffers(
 				device,
-				graphicsCommandPool,
+				presentCommandPool,
 				1,
 				&frame->presentCommandBuffer);
 			vkFreeCommandBuffers(
@@ -537,6 +535,8 @@ inline static void destroyVkFrames(
 	free(frames);
 }
 inline static bool createVkFrames(
+	uint32_t graphicsQueueFamilyIndex,
+	uint32_t presentQueueFamilyIndex,
 	VkDevice device,
 	VkSwapchainKHR swapchain,
 	VkRenderPass renderPass,
@@ -721,10 +721,116 @@ inline static bool createVkFrames(
 			result = vkAllocateCommandBuffers(
 				device,
 				&commandBufferAllocateInfo,
-				&graphicsCommandBuffer);
+				&presentCommandBuffer);
 
 			if (result != VK_SUCCESS)
 			{
+				vkFreeCommandBuffers(
+					device,
+					graphicsCommandPool,
+					1,
+					&graphicsCommandBuffer);
+				vkDestroyFramebuffer(
+					device,
+					framebuffer,
+					NULL);
+				vkDestroyImageView(
+					device,
+					imageView,
+					NULL);
+				destroyVkFrames(
+					device,
+					graphicsCommandPool,
+					presentCommandPool,
+					frames,
+					i);
+				free(frames);
+				free(images);
+				return false;
+			}
+
+			VkCommandBufferBeginInfo commandBufferBeginInfo = {
+				VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+				NULL,
+				VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+				NULL,
+			};
+
+			result = vkBeginCommandBuffer(
+				presentCommandBuffer,
+				&commandBufferBeginInfo);
+
+			if (result != VK_SUCCESS)
+			{
+				vkFreeCommandBuffers(
+					device,
+					presentCommandPool,
+					1,
+					&presentCommandBuffer);
+				vkFreeCommandBuffers(
+					device,
+					graphicsCommandPool,
+					1,
+					&graphicsCommandBuffer);
+				vkDestroyFramebuffer(
+					device,
+					framebuffer,
+					NULL);
+				vkDestroyImageView(
+					device,
+					imageView,
+					NULL);
+				destroyVkFrames(
+					device,
+					graphicsCommandPool,
+					presentCommandPool,
+					frames,
+					i);
+				free(frames);
+				free(images);
+				return false;
+			}
+
+			VkImageMemoryBarrier imageMemoryBarrier = {
+				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+				NULL,
+				0,
+				0,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				graphicsQueueFamilyIndex,
+				presentQueueFamilyIndex,
+				images[i],
+				{
+					VK_IMAGE_ASPECT_COLOR_BIT,
+					0,
+					1,
+					0,
+					1,
+				},
+			};
+
+			vkCmdPipelineBarrier(
+				presentCommandBuffer,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				0,
+				0,
+				NULL,
+				0,
+				NULL,
+				1,
+				&imageMemoryBarrier);
+
+			result = vkEndCommandBuffer(presentCommandBuffer);
+
+			if (result != VK_SUCCESS)
+			{
+				vkFreeCommandBuffers(
+					device,
+					presentCommandPool,
+					1,
+					&presentCommandBuffer);
 				vkFreeCommandBuffers(
 					device,
 					graphicsCommandPool,
@@ -771,10 +877,12 @@ inline static bool createVkFrames(
 
 inline static VkSwapchain createVkSwapchain(
 	Window window,
-	VkPhysicalDevice physicalDevice,
 	VkSurfaceKHR surface,
+	VkPhysicalDevice physicalDevice,
+	uint32_t graphicsQueueFamilyIndex,
+	uint32_t presentQueueFamilyIndex,
 	VkDevice device,
-	VmaAllocator vmaAllocator,
+	VmaAllocator allocator,
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
 	bool useStencilBuffer,
@@ -887,7 +995,7 @@ inline static VkSwapchain createVkSwapchain(
 
 	// TODO: possibly optimize with fully dedicated memory block
 	Image depthImage = createVkImage(
-		vmaAllocator,
+		allocator,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		depthFormat,
 		window,
@@ -913,7 +1021,7 @@ inline static VkSwapchain createVkSwapchain(
 	if (depthImageView == NULL)
 	{
 		destroyVkImage(
-			vmaAllocator,
+			allocator,
 			depthImage);
 		vkDestroySwapchainKHR(
 			device,
@@ -935,7 +1043,7 @@ inline static VkSwapchain createVkSwapchain(
 			depthImageView,
 			NULL);
 		destroyVkImage(
-			vmaAllocator,
+			allocator,
 			depthImage);
 		vkDestroySwapchainKHR(
 			device,
@@ -949,6 +1057,8 @@ inline static VkSwapchain createVkSwapchain(
 	uint32_t frameCount;
 
 	result = createVkFrames(
+		graphicsQueueFamilyIndex,
+		presentQueueFamilyIndex,
 		device,
 		handle,
 		renderPass,
@@ -971,7 +1081,7 @@ inline static VkSwapchain createVkSwapchain(
 			depthImageView,
 			NULL);
 		destroyVkImage(
-			vmaAllocator,
+			allocator,
 			depthImage);
 		vkDestroySwapchainKHR(
 			device,
@@ -992,7 +1102,7 @@ inline static VkSwapchain createVkSwapchain(
 }
 inline static void destroyVkSwapchain(
 	VkDevice device,
-	VmaAllocator vmaAllocator,
+	VmaAllocator allocator,
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
 	VkSwapchain swapchain)
@@ -1015,7 +1125,7 @@ inline static void destroyVkSwapchain(
 		swapchain->depthImageView,
 		NULL);
 	destroyVkImage(
-		vmaAllocator,
+		allocator,
 		swapchain->depthImage);
 	vkDestroySwapchainKHR(
 		device,
@@ -1026,10 +1136,12 @@ inline static void destroyVkSwapchain(
 
 inline static bool resizeVkSwapchain(
 	Window window,
-	VkPhysicalDevice physicalDevice,
 	VkSurfaceKHR surface,
+	VkPhysicalDevice physicalDevice,
+	uint32_t graphicsQueueFamilyIndex,
+	uint32_t presentQueueFamilyIndex,
 	VkDevice device,
-	VmaAllocator vmaAllocator,
+	VmaAllocator allocator,
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
 	VkSwapchain swapchain,
@@ -1053,7 +1165,7 @@ inline static bool resizeVkSwapchain(
 		swapchain->depthImageView,
 		NULL);
 	destroyVkImage(
-		vmaAllocator,
+		allocator,
 		swapchain->depthImage);
 
 	swapchain->frameCount = 0;
@@ -1149,7 +1261,7 @@ inline static bool resizeVkSwapchain(
 
 	// TODO: possibly optimize with fully dedicated memory block
 	Image depthImage = createVkImage(
-		vmaAllocator,
+		allocator,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		depthFormat,
 		window,
@@ -1168,7 +1280,7 @@ inline static bool resizeVkSwapchain(
 	if (depthImageView == NULL)
 	{
 		destroyVkImage(
-			vmaAllocator,
+			allocator,
 			depthImage);
 		return false;
 	}
@@ -1185,7 +1297,7 @@ inline static bool resizeVkSwapchain(
 			depthImageView,
 			NULL);
 		destroyVkImage(
-			vmaAllocator,
+			allocator,
 			depthImage);
 		return false;
 	}
@@ -1194,6 +1306,8 @@ inline static bool resizeVkSwapchain(
 	uint32_t frameCount;
 
 	result = createVkFrames(
+		graphicsQueueFamilyIndex,
+		presentQueueFamilyIndex,
 		device,
 		handle,
 		renderPass,
@@ -1216,7 +1330,7 @@ inline static bool resizeVkSwapchain(
 			depthImageView,
 			NULL);
 		destroyVkImage(
-			vmaAllocator,
+			allocator,
 			depthImage);
 		return false;
 	}

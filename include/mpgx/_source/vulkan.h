@@ -16,7 +16,7 @@ struct VkWindow
 	uint32_t graphicsQueueFamilyIndex;
 	uint32_t presentQueueFamilyIndex;
 	VkDevice device;
-	VmaAllocator vmaAllocator;
+	VmaAllocator allocator;
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 	VkCommandPool graphicsCommandPool;
@@ -543,6 +543,9 @@ inline static bool getVkQueueFamilyIndices(
 			surface,
 			&isSupported);
 
+		// TESTING PURPOSE:
+		//if (graphicsQueueFamilyIndex == i) continue;
+
 		if (result != VK_SUCCESS)
 		{
 			free(properties);
@@ -896,9 +899,14 @@ inline static VkWindow createVkWindow(
 	const char* requiredExtensions[1] = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	};
-	const char* preferredExtensions[3] = {
-		"VK_KHR_portability_subset",
-	};
+
+	const char* preferredExtensions[1];
+	uint32_t preferredExtensionCount = 0;
+
+#if __APPLE__
+	preferredExtensions[preferredExtensionCount++] =
+		"VK_KHR_portability_subset";
+#endif
 
 	bool supportedExtensions[1];
 
@@ -909,7 +917,7 @@ inline static VkWindow createVkWindow(
 		requiredExtensions,
 		1,
 		preferredExtensions,
-		1,
+		preferredExtensionCount,
 		supportedExtensions);
 
 	if (device == NULL)
@@ -922,12 +930,12 @@ inline static VkWindow createVkWindow(
 		return NULL;
 	}
 
-	VmaAllocator vmaAllocator = createVmaAllocator(
+	VmaAllocator allocator = createVmaAllocator(
 		physicalDevice,
 		device,
 		instance);
 
-	if (vmaAllocator == NULL)
+	if (allocator == NULL)
 	{
 		vkDestroyDevice(
 			device,
@@ -956,7 +964,7 @@ inline static VkWindow createVkWindow(
 	{
 		vkGetDeviceQueue(
 			device,
-			graphicsQueueFamilyIndex,
+			presentQueueFamilyIndex,
 			0,
 			&presentQueue);
 	}
@@ -970,7 +978,7 @@ inline static VkWindow createVkWindow(
 	if (graphicsCommandPool == NULL)
 	{
 		vmaDestroyAllocator(
-			vmaAllocator);
+			allocator);
 		vkDestroyDevice(
 			device,
 			NULL);
@@ -1003,7 +1011,7 @@ inline static VkWindow createVkWindow(
 				graphicsCommandPool,
 				NULL);
 			vmaDestroyAllocator(
-				vmaAllocator);
+				allocator);
 			vkDestroyDevice(
 				device,
 				NULL);
@@ -1044,7 +1052,7 @@ inline static VkWindow createVkWindow(
 		}
 
 		vmaDestroyAllocator(
-			vmaAllocator);
+			allocator);
 		vkDestroyDevice(
 			device,
 			NULL);
@@ -1058,10 +1066,12 @@ inline static VkWindow createVkWindow(
 
 	VkSwapchain swapchain = createVkSwapchain(
 		window,
-		physicalDevice,
 		surface,
+		physicalDevice,
+		graphicsQueueFamilyIndex,
+		presentQueueFamilyIndex,
 		device,
-		vmaAllocator,
+		allocator,
 		graphicsCommandPool,
 		presentCommandPool,
 		useStencilBuffer,
@@ -1094,7 +1104,7 @@ inline static VkWindow createVkWindow(
 		}
 
 		vmaDestroyAllocator(
-			vmaAllocator);
+			allocator);
 		vkDestroyDevice(
 			device,
 			NULL);
@@ -1111,7 +1121,7 @@ inline static VkWindow createVkWindow(
 	vkWindow->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
 	vkWindow->presentQueueFamilyIndex = presentQueueFamilyIndex;
 	vkWindow->device = device;
-	vkWindow->vmaAllocator = vmaAllocator;
+	vkWindow->allocator = allocator;
 	vkWindow->graphicsQueue = graphicsQueue;
 	vkWindow->presentQueue = presentQueue;
 	vkWindow->graphicsCommandPool = graphicsCommandPool;
@@ -1164,7 +1174,7 @@ inline static VkWindow createVkWindow(
 
 			destroyVkSwapchain(
 				device,
-				vmaAllocator,
+				allocator,
 				graphicsCommandPool,
 				presentCommandPool,
 				swapchain);
@@ -1193,7 +1203,7 @@ inline static VkWindow createVkWindow(
 			}
 
 			vmaDestroyAllocator(
-				vmaAllocator);
+				allocator);
 			vkDestroyDevice(
 				device,
 				NULL);
@@ -1216,7 +1226,7 @@ inline static void destroyVkWindow(
 		return;
 
 	VkDevice device = window->device;
-	VmaAllocator vmaAllocator = window->vmaAllocator;
+	VmaAllocator allocator = window->allocator;
 
 	VkCommandPool graphicsCommandPool =
 		window->graphicsCommandPool;
@@ -1225,7 +1235,7 @@ inline static void destroyVkWindow(
 
 	destroyVkSwapchain(
 		device,
-		vmaAllocator,
+		allocator,
 		graphicsCommandPool,
 		presentCommandPool,
 		window->swapchain);
@@ -1295,7 +1305,7 @@ inline static void destroyVkWindow(
 	}
 
 	vmaDestroyAllocator(
-		vmaAllocator);
+		allocator);
 	vkDestroyDevice(
 		device,
 		NULL);
@@ -1339,10 +1349,12 @@ inline static bool beginVkWindowRender(
 
 		bool result = resizeVkSwapchain(
 			window,
-			vkWindow->physicalDevice,
 			vkWindow->surface,
+			vkWindow->physicalDevice,
+			vkWindow->graphicsQueueFamilyIndex,
+			vkWindow->presentQueueFamilyIndex,
 			device,
-			vkWindow->vmaAllocator,
+			vkWindow->allocator,
 			vkWindow->graphicsCommandPool,
 			vkWindow->presentCommandPool,
 			swapchain,
@@ -1400,10 +1412,12 @@ inline static bool beginVkWindowRender(
 
 			bool result = resizeVkSwapchain(
 				window,
-				vkWindow->physicalDevice,
 				vkWindow->surface,
+				vkWindow->physicalDevice,
+				vkWindow->graphicsQueueFamilyIndex,
+				vkWindow->presentQueueFamilyIndex,
 				device,
-				vkWindow->vmaAllocator,
+				vkWindow->allocator,
 				vkWindow->graphicsCommandPool,
 				vkWindow->presentCommandPool,
 				swapchain,
@@ -1439,7 +1453,7 @@ inline static bool beginVkWindowRender(
 	} while (vkResult != VK_SUCCESS);
 
 	vmaSetCurrentFrameIndex(
-		vkWindow->vmaAllocator,
+		vkWindow->allocator,
 		imageIndex);
 	vkWindow->imageIndex = imageIndex;
 
@@ -1511,6 +1525,8 @@ inline static bool endVkWindowRender(
 
 	VkCommandBuffer graphicsCommandBuffer =
 		frame->graphicsCommandBuffer;
+	VkCommandBuffer presentCommandBuffer =
+		frame->presentCommandBuffer;
 
 	vkCmdEndRenderPass(graphicsCommandBuffer);
 
@@ -1522,7 +1538,7 @@ inline static bool endVkWindowRender(
 	if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
 	{
 		VkImageMemoryBarrier imageMemoryBarrier = {
-			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 			NULL,
 			0,
 			0,
@@ -1553,61 +1569,11 @@ inline static bool endVkWindowRender(
 			&imageMemoryBarrier);
 	}
 
-	vkEndCommandBuffer(graphicsCommandBuffer);
+	VkResult vkResult = vkEndCommandBuffer(
+		graphicsCommandBuffer);
 
-	VkResult vkResult;
-
-	if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
-	{
-		VkCommandBuffer presentCommandBuffer =
-			frame->presentCommandBuffer;
-
-		VkCommandBufferBeginInfo commandBufferBeginInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			NULL,
-			VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT, // TODO: change to one time use?
-			NULL,
-		};
-
-		vkResult = vkBeginCommandBuffer(
-			presentCommandBuffer,
-			&commandBufferBeginInfo);
-
-		if (vkResult != VK_SUCCESS)
-			return false;
-
-		VkImageMemoryBarrier imageMemoryBarrier = {
-			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-			NULL,
-			0,
-			0,
-			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			graphicsQueueFamilyIndex,
-			presentQueueFamilyIndex,
-			frameImage,
-			{
-				VK_IMAGE_ASPECT_COLOR_BIT,
-				0,
-				1,
-				0,
-				1,
-			},
-		};
-
-		vkCmdPipelineBarrier(
-			presentCommandBuffer,
-			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-			0,
-			0,
-			NULL,
-			0,
-			NULL,
-			1,
-			&imageMemoryBarrier);
-		vkEndCommandBuffer(presentCommandBuffer);
-	}
+	if (vkResult != VK_SUCCESS)
+		return false;
 
 	uint32_t frameIndex = vkWindow->frameIndex;
 
@@ -1656,12 +1622,9 @@ inline static bool endVkWindowRender(
 
 	if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
 	{
-		submitInfo.pWaitSemaphores =
-			&drawCompleteSemaphore;
-		submitInfo.pCommandBuffers =
-			&frame->presentCommandBuffer;
-		submitInfo.pSignalSemaphores =
-			&imageOwnershipSemaphore;
+		submitInfo.pWaitSemaphores = &drawCompleteSemaphore;
+		submitInfo.pCommandBuffers = &frame->presentCommandBuffer;
+		submitInfo.pSignalSemaphores = &imageOwnershipSemaphore;
 
 		vkResult = vkQueueSubmit(
 			presentQueue,
@@ -1676,12 +1639,12 @@ inline static bool endVkWindowRender(
 			&imageOwnershipSemaphore;
 	}
 
-	vkWindow->frameIndex =
-		(frameIndex + 1) % VK_FRAME_LAG;
-
 	vkResult = vkQueuePresentKHR(
 		presentQueue,
 		&presentInfo);
+
+	vkWindow->frameIndex =
+		(frameIndex + 1) % VK_FRAME_LAG;
 
 	if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -1692,10 +1655,12 @@ inline static bool endVkWindowRender(
 
 		bool result = resizeVkSwapchain(
 			window,
-			vkWindow->physicalDevice,
 			vkWindow->surface,
+			vkWindow->physicalDevice,
+			graphicsQueueFamilyIndex,
+			presentQueueFamilyIndex,
 			vkWindow->device,
-			vkWindow->vmaAllocator,
+			vkWindow->allocator,
 			vkWindow->graphicsCommandPool,
 			vkWindow->presentCommandPool,
 			swapchain,
@@ -1725,3 +1690,8 @@ inline static bool endVkWindowRender(
 
 	return true;
 }
+
+// TODO: implement DemoUpdateTargetIPD (VK_GOOGLE) from cube.c
+// also VK_KHR_incremental_present
+
+// TODO: investigate if we should use (demo_flush_init_cmd) from cube.c

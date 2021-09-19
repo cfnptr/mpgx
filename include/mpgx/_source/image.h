@@ -4,6 +4,10 @@
 #include "vk_mem_alloc.h"
 #endif
 
+// TODO: handle Vulkan unsupported formats on platforms
+// VkGetPhysicalDeviceImageFormatProperties
+// https://stackoverflow.com/questions/38396578/vulkan-vkcreateimage-with-3-components
+
 typedef struct _VkImage
 {
 	Window window;
@@ -34,7 +38,7 @@ union Image
 
 #if MPGX_SUPPORT_VULKAN
 inline static Image createVkImage(
-	VmaAllocator vmaAllocator,
+	VmaAllocator allocator,
 	VkImageUsageFlags _vkUsage,
 	VkFormat _vkFormat,
 	Window window,
@@ -132,7 +136,7 @@ inline static Image createVkImage(
 	VmaAllocation allocation;
 
 	VkResult result = vmaCreateImage(
-		vmaAllocator,
+		allocator,
 		&imageCreateInfo,
 		&allocationCreateInfo,
 		&handle,
@@ -354,11 +358,11 @@ inline static Image createGlImage(
 
 #if MPGX_SUPPORT_VULKAN
 inline static void destroyVkImage(
-	VmaAllocator vmaAllocator,
+	VmaAllocator allocator,
 	Image image)
 {
 	vmaDestroyImage(
-		vmaAllocator,
+		allocator,
 		image->vk.handle,
 		image->vk.allocation);
 }

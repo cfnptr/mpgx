@@ -1640,7 +1640,8 @@ Sampler createTextSampler(Window window)
 		NEVER_IMAGE_COMPARE,
 		false,
 		DEFAULT_MIN_MIPMAP_LOD,
-		DEFAULT_MAX_MIPMAP_LOD);
+		DEFAULT_MAX_MIPMAP_LOD,
+		DEFAULT_MIPMAP_LOD_BIAS);
 }
 
 inline static PipelineHandle* createGlPipelineHandle(

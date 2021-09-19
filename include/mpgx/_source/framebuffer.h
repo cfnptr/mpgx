@@ -234,7 +234,8 @@ inline static void beginGlFramebufferRender(
 	assertOpenGL();
 }
 
-inline static void endVkFramebufferRender(Window window)
+inline static void endVkFramebufferRender(
+	Window window)
 {
 	// TODO:
 }

@@ -56,69 +56,122 @@ inline static void assertOpenGL()
 #endif
 }
 
-inline static GLenum getGlImageFilter(
+inline static bool getGlImageFilter(
 	uint8_t imageFilter,
 	uint8_t mipmapFilter,
-	bool useMipmapping)
+	bool useMipmapping,
+	GLenum* glImageFilter)
 {
 	if (imageFilter == NEAREST_IMAGE_FILTER)
 	{
 		if (useMipmapping == true)
 		{
-			if(mipmapFilter == NEAREST_IMAGE_FILTER)
-				return GL_NEAREST_MIPMAP_NEAREST;
+			if (mipmapFilter == NEAREST_IMAGE_FILTER)
+			{
+				*glImageFilter = GL_NEAREST_MIPMAP_NEAREST;
+				return true;
+			}
+			else if (mipmapFilter == LINEAR_IMAGE_FILTER)
+			{
+				*glImageFilter = GL_NEAREST_MIPMAP_LINEAR;
+				return true;
+			}
 			else
-				return GL_NEAREST_MIPMAP_LINEAR;
+			{
+				return false;
+			}
 		}
 		else
 		{
-			return GL_NEAREST;
+			*glImageFilter = GL_NEAREST;
+			return true;
 		}
 	}
-	else
+	else if (imageFilter == LINEAR_IMAGE_FILTER)
 	{
 		if (useMipmapping == true)
 		{
 			if (mipmapFilter == NEAREST_IMAGE_FILTER)
-				return GL_LINEAR_MIPMAP_NEAREST;
+			{
+				*glImageFilter = GL_LINEAR_MIPMAP_NEAREST;
+				return true;
+			}
+			else if (mipmapFilter == LINEAR_IMAGE_FILTER)
+			{
+				*glImageFilter = GL_LINEAR_MIPMAP_LINEAR;
+				return true;
+			}
 			else
-				return GL_LINEAR_MIPMAP_LINEAR;
+			{
+				return false;
+			}
 		}
 		else
 		{
-			return GL_LINEAR;
+			*glImageFilter = GL_LINEAR;
+			return true;
 		}
 	}
-}
-inline static GLenum getGlImageWrap(uint8_t wrap)
-{
-	if (wrap == CLAMP_TO_EDGE_IMAGE_WRAP)
-		return GL_CLAMP_TO_EDGE;
-	else if (wrap == MIRRORED_REPEAT_IMAGE_WRAP)
-		return GL_MIRRORED_REPEAT;
 	else
-		return GL_REPEAT;
+	{
+		return false;
+	}
 }
-inline static GLenum getGlImageCompare(uint8_t compare)
+inline static bool getGlImageWrap(
+	uint8_t imageWrap,
+	GLenum* glImageWrap)
 {
-	switch (compare)
+	if (imageWrap == CLAMP_TO_EDGE_IMAGE_WRAP)
+	{
+		*glImageWrap = GL_CLAMP_TO_EDGE;
+		return true;
+	}
+	else if (imageWrap == MIRRORED_REPEAT_IMAGE_WRAP)
+	{
+		*glImageWrap = GL_MIRRORED_REPEAT;
+		return true;
+	}
+	else if (imageWrap == REPEAT_IMAGE_WRAP)
+	{
+		*glImageWrap = GL_REPEAT;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+inline static bool getGlImageCompare(
+	uint8_t imageCompare,
+	GLenum* glImageCompare)
+{
+	switch (imageCompare)
 	{
 	default:
+		return false;
 	case LESS_IMAGE_COMPARE:
-		return GL_LESS;
-	case LESS_EQUAL_IMAGE_COMPARE:
-		return GL_LEQUAL;
-	case GREATER_EQUAL_IMAGE_COMPARE:
-		return GL_GEQUAL;
+		*glImageCompare = GL_LESS;
+		return true;
+	case LESS_OR_EQUAL_IMAGE_COMPARE:
+		*glImageCompare = GL_LEQUAL;
+		return true;
+	case GREATER_OR_EQUAL_IMAGE_COMPARE:
+		*glImageCompare = GL_GEQUAL;
+		return true;
 	case GREATER_IMAGE_COMPARE:
-		return GL_GREATER;
+		*glImageCompare = GL_GREATER;
+		return true;
 	case EQUAL_IMAGE_COMPARE:
-		return GL_EQUAL;
+		*glImageCompare = GL_EQUAL;
+		return true;
 	case NOT_EQUAL_IMAGE_COMPARE:
-		return GL_NOTEQUAL;
+		*glImageCompare = GL_NOTEQUAL;
+		return true;
 	case ALWAYS_IMAGE_COMPARE:
-		return GL_ALWAYS;
+		*glImageCompare = GL_ALWAYS;
+		return true;
 	case NEVER_IMAGE_COMPARE:
-		return GL_NEVER;
+		*glImageCompare = GL_NEVER;
+		return true;
 	}
 }

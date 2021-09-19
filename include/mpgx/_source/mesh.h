@@ -84,13 +84,15 @@ inline static Mesh createGlMesh(
 }
 
 #if MPGX_SUPPORT_VULKAN
-inline static void destroyVkMesh(Mesh mesh)
+inline static void destroyVkMesh(
+	Mesh mesh)
 {
 	free(mesh);
 }
 #endif
 
-inline static void destroyGlMesh(Mesh mesh)
+inline static void destroyGlMesh(
+	Mesh mesh)
 {
 	makeWindowContextCurrent(
 		mesh->gl.window);

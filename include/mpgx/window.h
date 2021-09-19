@@ -10,6 +10,7 @@
 
 #define DEFAULT_MIN_MIPMAP_LOD -1000
 #define DEFAULT_MAX_MIPMAP_LOD 1000
+#define DEFAULT_MIPMAP_LOD_BIAS 0
 
 // TODO: fix a new framebuffer sRGB difference
 
@@ -227,8 +228,8 @@ typedef enum ImageWrap
 
 typedef enum ImageCompare
 {
-	LESS_EQUAL_IMAGE_COMPARE = 0,
-	GREATER_EQUAL_IMAGE_COMPARE = 1,
+	LESS_OR_EQUAL_IMAGE_COMPARE = 0,
+	GREATER_OR_EQUAL_IMAGE_COMPARE = 1,
 	LESS_IMAGE_COMPARE = 2,
 	GREATER_IMAGE_COMPARE = 3,
 	EQUAL_IMAGE_COMPARE = 4,
@@ -502,7 +503,8 @@ Sampler createSampler(
 	uint8_t imageCompare,
 	bool useCompare,
 	float minMipmapLod,
-	float maxMipmapLod);
+	float maxMipmapLod,
+	float mipmapLodBias);
 void destroySampler(Sampler sampler);
 
 Window getSamplerWindow(Sampler sampler);

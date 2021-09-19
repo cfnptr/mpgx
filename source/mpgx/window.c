@@ -721,7 +721,7 @@ void destroyWindow(Window window)
 		for (size_t i = 0; i < framebufferCount; i++)
 			destroyVkFramebuffer(framebuffers[i]);
 		for (size_t i = 0; i < samplerCount; i++)
-			destroyVkSampler(samplers[i]);
+			destroyVkSampler(device, samplers[i]);
 		for (size_t i = 0; i < imageCount; i++)
 			destroyVkImage(allocator, images[i]);
 		for (size_t i = 0; i < meshCount; i++)
@@ -1494,12 +1494,15 @@ void setBufferData(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		setVkBufferData(
+		bool result = setVkBufferData(
 			buffer->vk.window->vkWindow->allocator,
 			buffer->vk.allocation,
 			data,
 			size,
 			offset);
+
+		if (result == false)
+			abort();
 #else
 		abort();
 #endif
@@ -1869,8 +1872,7 @@ size_t drawMesh(
 		VkWindow vkWindow =
 			mesh->vk.window->vkWindow;
 		VkCommandBuffer commandBuffer =
-			vkWindow->swapchain->frames[
-			vkWindow->imageIndex].graphicsCommandBuffer;
+			vkWindow->currenCommandBuffer;
 		pipeline->onUniformsSet(
 			pipeline);
 		drawVkMesh(
@@ -2273,7 +2275,8 @@ Sampler createSampler(
 	uint8_t imageCompare,
 	bool useCompare,
 	float minMipmapLod,
-	float maxMipmapLod)
+	float maxMipmapLod,
+	float mipmapLodBias)
 {
 	assert(window != NULL);
 	assert(minImageFilter < IMAGE_FILTER_COUNT);
@@ -2293,6 +2296,7 @@ Sampler createSampler(
 	{
 #if MPGX_SUPPORT_VULKAN
 		sampler = createVkSampler(
+			window->vkWindow->device,
 			window,
 			minImageFilter,
 			magImageFilter,
@@ -2304,7 +2308,8 @@ Sampler createSampler(
 			imageCompare,
 			useCompare,
 			minMipmapLod,
-			maxMipmapLod);
+			maxMipmapLod,
+			mipmapLodBias);
 #else
 		abort();
 #endif
@@ -2312,6 +2317,8 @@ Sampler createSampler(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+		assert(mipmapLodBias == 0.0f);
+
 		sampler = createGlSampler(
 			window,
 			minImageFilter,
@@ -2349,7 +2356,9 @@ Sampler createSampler(
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
-				destroyVkSampler(sampler);
+				destroyVkSampler(
+					window->vkWindow->device,
+					sampler);
 #else
 				abort();
 #endif
@@ -2399,7 +2408,9 @@ void destroySampler(Sampler sampler)
 		if (api == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
-			destroyVkSampler(sampler);
+			destroyVkSampler(
+				window->vkWindow->device,
+				sampler);
 #else
 			abort();
 #endif

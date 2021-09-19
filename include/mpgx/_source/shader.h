@@ -42,7 +42,7 @@ inline static Shader createVkShader(
 	if (shader == NULL)
 		return NULL;
 
-	VkShaderModuleCreateInfo shaderModuleCreateInfo = {
+	VkShaderModuleCreateInfo createInfo = {
 		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
 		NULL,
 		0,
@@ -54,7 +54,7 @@ inline static Shader createVkShader(
 
 	VkResult result = vkCreateShaderModule(
 		device,
-		&shaderModuleCreateInfo,
+		&createInfo,
 		NULL,
 		&handle);
 

@@ -369,7 +369,8 @@ inline static void destroyVkImage(
 }
 #endif
 
-inline static void destroyGlImage(Image image)
+inline static void destroyGlImage(
+	Image image)
 {
 	makeWindowContextCurrent(
 		image->gl.window);

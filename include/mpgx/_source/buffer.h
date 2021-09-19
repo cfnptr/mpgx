@@ -36,7 +36,7 @@ union Buffer
 };
 
 #if MPGX_SUPPORT_VULKAN
-inline static void setVkBufferData(
+inline static bool setVkBufferData(
 	VmaAllocator allocator,
 	VmaAllocation allocation,
 	const void* data,
@@ -51,11 +51,12 @@ inline static void setVkBufferData(
 		&mappedData);
 
 	if (result != VK_SUCCESS)
+		return false;
 
-		memcpy(
-			mappedData + offset,
-			data,
-			size);
+	memcpy(
+		mappedData + offset,
+		data,
+		size);
 
 	result = vmaFlushAllocation(
 		allocator,
@@ -64,11 +65,12 @@ inline static void setVkBufferData(
 		size);
 
 	if (result != VK_SUCCESS)
-		abort();
+		return false;
 
 	vmaUnmapMemory(
 		allocator,
 		allocation);
+	return true;
 }
 #endif
 
@@ -143,8 +145,6 @@ inline static Buffer createVkBuffer(
 		NULL,
 	};
 
-	VmaMemoryUsage vmaUsage;
-
 	VmaAllocationCreateInfo allocationCreateInfo = {};
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
@@ -157,7 +157,7 @@ inline static Buffer createVkBuffer(
 	VkBuffer handle;
 	VmaAllocation allocation;
 
-	VkResult result = vmaCreateBuffer(
+	VkResult vkResult = vmaCreateBuffer(
 		allocator,
 		&bufferCreateInfo,
 		&allocationCreateInfo,
@@ -165,67 +165,235 @@ inline static Buffer createVkBuffer(
 		&allocation,
 		NULL);
 
-	if (result != VK_SUCCESS)
+	if (vkResult != VK_SUCCESS)
 	{
 		free(buffer);
 		return NULL;
 	}
 
-	// TODO: possibly optimize with stage buffer caching
-	if (isConstant == true && data != NULL)
+	if (data != NULL)
 	{
-		bufferCreateInfo.usage = vkUsage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-
-		VkBuffer stagingBuffer;
-		VmaAllocation stagingAllocation;
-
-		result = vmaCreateBuffer(
-			allocator,
-			&bufferCreateInfo,
-			&allocationCreateInfo,
-			&stagingBuffer,
-			&stagingAllocation,
-			NULL);
-
-		if (result != VK_SUCCESS)
+		// TODO: possibly optimize with stage buffer caching
+		if (isConstant == true)
 		{
+			bufferCreateInfo.usage = vkUsage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+			allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+
+			VkBuffer stagingBuffer;
+			VmaAllocation stagingAllocation;
+
+			vkResult = vmaCreateBuffer(
+				allocator,
+				&bufferCreateInfo,
+				&allocationCreateInfo,
+				&stagingBuffer,
+				&stagingAllocation,
+				NULL);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
+
+			bool result = setVkBufferData(
+				allocator,
+				stagingAllocation,
+				data,
+				size,
+				0);
+
+			if (result == false)
+			{
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
+
+			VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+				VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+				NULL,
+				transferCommandPool,
+				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				1,
+			};
+
+			VkCommandBuffer commandBuffer;
+
+			vkResult = vkAllocateCommandBuffers(
+				device,
+				&commandBufferAllocateInfo,
+				&commandBuffer);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
+
+			VkCommandBufferBeginInfo commandBufferBeginInfo = {
+				VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+				NULL,
+				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+				NULL,
+			};
+
+			vkResult = vkBeginCommandBuffer(
+				commandBuffer,
+				&commandBufferBeginInfo);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vkFreeCommandBuffers(
+					device,
+					transferCommandPool,
+					1,
+					&commandBuffer);
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
+
+			VkBufferCopy bufferCopy = {
+				0,
+				0,
+				size,
+			};
+
+			vkCmdCopyBuffer(
+				commandBuffer,
+				stagingBuffer,
+				handle,
+				1,
+				&bufferCopy);
+
+			vkResult = vkEndCommandBuffer(commandBuffer);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vkFreeCommandBuffers(
+					device,
+					transferCommandPool,
+					1,
+					&commandBuffer);
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
+
+			VkSubmitInfo submitInfo = {
+				VK_STRUCTURE_TYPE_SUBMIT_INFO,
+				NULL,
+				0,
+				NULL,
+				NULL,
+				1,
+				&commandBuffer,
+				0,
+				NULL,
+			};
+
+			vkResult = vkQueueSubmit(
+				transferQueue,
+				1,
+				&submitInfo,
+				NULL);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vkFreeCommandBuffers(
+					device,
+					transferCommandPool,
+					1,
+					&commandBuffer);
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
+
+			vkResult = vkQueueWaitIdle(transferQueue);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vkFreeCommandBuffers(
+					device,
+					transferCommandPool,
+					1,
+					&commandBuffer);
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
+
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
 			vmaDestroyBuffer(
 				allocator,
-				handle,
-				allocation);
-			free(buffer);
-			return NULL;
+				stagingBuffer,
+				stagingAllocation);
 		}
-
-		setVkBufferData(
+	}
+	else
+	{
+		bool result = setVkBufferData(
 			allocator,
-			stagingAllocation,
+			allocation,
 			data,
 			size,
 			0);
 
-		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			NULL,
-			transferCommandPool,
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			1,
-		};
-
-		VkCommandBuffer commandBuffer;
-
-		result = vkAllocateCommandBuffers(
-			device,
-			&commandBufferAllocateInfo,
-			&commandBuffer);
-
-		if (result != VK_SUCCESS)
+		if (result == false)
 		{
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
 			vmaDestroyBuffer(
 				allocator,
 				handle,
@@ -233,138 +401,6 @@ inline static Buffer createVkBuffer(
 			free(buffer);
 			return NULL;
 		}
-
-		VkCommandBufferBeginInfo commandBufferBeginInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			NULL,
-			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-			NULL,
-		};
-
-		result = vkBeginCommandBuffer(
-			commandBuffer,
-			&commandBufferBeginInfo);
-
-		if (result != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
-			vmaDestroyBuffer(
-				allocator,
-				handle,
-				allocation);
-			free(buffer);
-			return NULL;
-		}
-
-		VkBufferCopy bufferCopy = {
-			0,
-			0,
-			size,
-		};
-
-		vkCmdCopyBuffer(
-			commandBuffer,
-			stagingBuffer,
-			handle,
-			1,
-			&bufferCopy);
-
-		result = vkEndCommandBuffer(commandBuffer);
-
-		if (result != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
-			vmaDestroyBuffer(
-				allocator,
-				handle,
-				allocation);
-			free(buffer);
-			return NULL;
-		}
-
-		VkSubmitInfo submitInfo = {
-			VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			NULL,
-			0,
-			NULL,
-			NULL,
-			1,
-			&commandBuffer,
-			0,
-			NULL,
-		};
-
-		result = vkQueueSubmit(
-			transferQueue,
-			1,
-			&submitInfo,
-			NULL);
-
-		if (result != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
-			vmaDestroyBuffer(
-				allocator,
-				handle,
-				allocation);
-			free(buffer);
-			return NULL;
-		}
-
-		result = vkQueueWaitIdle(transferQueue);
-
-		if (result != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
-			vmaDestroyBuffer(
-				allocator,
-				handle,
-				allocation);
-			free(buffer);
-			return NULL;
-		}
-
-		vkFreeCommandBuffers(
-			device,
-			transferCommandPool,
-			1,
-			&commandBuffer);
-		vmaDestroyBuffer(
-			allocator,
-			stagingBuffer,
-			stagingAllocation);
 	}
 
 	buffer->vk.window = window;
@@ -454,7 +490,8 @@ inline static void destroyVkBuffer(
 }
 #endif
 
-inline static void destroyGlBuffer(Buffer buffer)
+inline static void destroyGlBuffer(
+	Buffer buffer)
 {
 	makeWindowContextCurrent(
 		buffer->gl.window);

@@ -31,6 +31,7 @@ struct VkWindow
 	VkSwapchain swapchain;
 	uint32_t frameIndex;
 	uint32_t imageIndex;
+	VkCommandBuffer currenCommandBuffer;
 };
 
 typedef struct VkWindow* VkWindow;
@@ -261,6 +262,7 @@ inline static VkInstance createVkInstance(
 
 		if (isExtensionFound == true)
 		{
+			supportedExtensions[i] = isExtensionFound;
 			isExtensionFound = false;
 
 			for (uint32_t j = 0; j < extensionCount; j++)
@@ -276,8 +278,6 @@ inline static VkInstance createVkInstance(
 			if (isExtensionFound == false)
 				extensions[extensionCount++] = preferredExtensions[i];
 		}
-
-		supportedExtensions[i] = isExtensionFound;
 	}
 
 	free(extensionProperties);
@@ -650,6 +650,7 @@ inline static VkDevice createVkDevice(
 
 		if (isExtensionFound == true)
 		{
+			supportedExtensions[i] = isExtensionFound;
 			isExtensionFound = false;
 
 			for (uint32_t j = 0; j < extensionCount; j++)
@@ -665,8 +666,6 @@ inline static VkDevice createVkDevice(
 			if (isExtensionFound == false)
 				extensions[extensionCount++] = preferredExtensions[i];
 		}
-
-		supportedExtensions[i] = isExtensionFound;
 	}
 
 	free(properties);
@@ -1131,6 +1130,7 @@ inline static VkWindow createVkWindow(
 	vkWindow->swapchain = swapchain;
 	vkWindow->frameIndex = 0;
 	vkWindow->imageIndex = 0;
+	vkWindow->currenCommandBuffer = NULL;
 
 	VkFence* fences = vkWindow->fences;
 
@@ -1391,8 +1391,8 @@ inline static bool beginVkWindowRender(
 	if (vkResult != VK_SUCCESS)
 		return false;
 
-	VkSemaphore imageAcquiredSemaphore =
-		vkWindow->imageAcquiredSemaphores[frameIndex];
+	VkSemaphore* imageAcquiredSemaphores =
+		vkWindow->imageAcquiredSemaphores;
 	VkSwapchainKHR handle = swapchain->handle;
 
 	uint32_t imageIndex;
@@ -1403,7 +1403,7 @@ inline static bool beginVkWindowRender(
 			device,
 			handle,
 			UINT64_MAX,
-			imageAcquiredSemaphore,
+			imageAcquiredSemaphores[frameIndex],
 			NULL,
 			&imageIndex);
 
@@ -1439,13 +1439,15 @@ inline static bool beginVkWindowRender(
 		}
 	} while (vkResult != VK_SUCCESS);
 
+	VkSwapchainFrame frame =
+		swapchain->frames[imageIndex];
+
 	vmaSetCurrentFrameIndex(
 		vkWindow->allocator,
 		imageIndex);
-	vkWindow->imageIndex = imageIndex;
 
-	VkSwapchainFrame frame =
-		swapchain->frames[imageIndex];
+	vkWindow->imageIndex = imageIndex;
+	vkWindow->currenCommandBuffer = frame.graphicsCommandBuffer;
 
 	VkCommandBufferBeginInfo commandBufferBeginInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -1512,8 +1514,6 @@ inline static bool endVkWindowRender(
 
 	VkCommandBuffer graphicsCommandBuffer =
 		frame->graphicsCommandBuffer;
-	VkCommandBuffer presentCommandBuffer =
-		frame->presentCommandBuffer;
 
 	vkCmdEndRenderPass(graphicsCommandBuffer);
 
@@ -1669,7 +1669,102 @@ inline static bool endVkWindowRender(
 	return true;
 }
 
-// TODO: implement DemoUpdateTargetIPD (VK_GOOGLE) from cube.c
-// also VK_KHR_incremental_present
+inline static bool getVkImageFilter(
+	uint8_t imageFilter,
+	VkFilter* vkImageFilter)
+{
+	if (imageFilter == NEAREST_IMAGE_FILTER)
+	{
+		*vkImageFilter = VK_FILTER_NEAREST;
+		return true;
+	}
+	else if (imageFilter == LINEAR_IMAGE_FILTER)
+	{
+		*vkImageFilter = VK_FILTER_LINEAR;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+inline static bool getVkMipmapFilter(
+	uint8_t mipmapFilter,
+	VkSamplerMipmapMode* vkMipmapFilter)
+{
+	if (mipmapFilter == NEAREST_IMAGE_FILTER)
+	{
+		*vkMipmapFilter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		return true;
+	}
+	else if (mipmapFilter == LINEAR_IMAGE_FILTER)
+	{
+		*vkMipmapFilter = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+inline static bool getVkImageWrap(
+	uint8_t imageWrap,
+	VkSamplerAddressMode* vkImageWrap)
+{
+	if (imageWrap == CLAMP_TO_EDGE_IMAGE_WRAP)
+	{
+		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		return true;
+	}
+	else if (imageWrap == MIRRORED_REPEAT_IMAGE_WRAP)
+	{
+		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		return true;
+	}
+	else if (imageWrap == REPEAT_IMAGE_WRAP)
+	{
+		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+inline static bool getVkImageCompare(
+	uint8_t imageCompare,
+	VkCompareOp* vkImageCompare)
+{
+	switch (imageCompare)
+	{
+	default:
+		return false;
+	case LESS_IMAGE_COMPARE:
+		*vkImageCompare = VK_COMPARE_OP_LESS;
+		return true;
+	case LESS_OR_EQUAL_IMAGE_COMPARE:
+		*vkImageCompare = VK_COMPARE_OP_LESS_OR_EQUAL;
+		return true;
+	case GREATER_OR_EQUAL_IMAGE_COMPARE:
+		*vkImageCompare = VK_COMPARE_OP_GREATER_OR_EQUAL;
+		return true;
+	case GREATER_IMAGE_COMPARE:
+		*vkImageCompare = VK_COMPARE_OP_GREATER;
+		return true;
+	case EQUAL_IMAGE_COMPARE:
+		*vkImageCompare = VK_COMPARE_OP_EQUAL;
+		return true;
+	case NOT_EQUAL_IMAGE_COMPARE:
+		*vkImageCompare = VK_COMPARE_OP_NOT_EQUAL;
+		return true;
+	case ALWAYS_IMAGE_COMPARE:
+		*vkImageCompare = VK_COMPARE_OP_ALWAYS;
+		return true;
+	case NEVER_IMAGE_COMPARE:
+		*vkImageCompare = VK_COMPARE_OP_NEVER;
+		return true;
+	}
+}
 
+// TODO: implement DemoUpdateTargetIPD (VK_GOOGLE) from cube.c
 // TODO: investigate if we should use (demo_flush_init_cmd) from cube.c

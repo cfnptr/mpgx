@@ -34,8 +34,19 @@ inline static Mesh createVkMesh(
 	Buffer vertexBuffer,
 	Buffer indexBuffer)
 {
-	// TODO:
-	abort();
+	Mesh mesh = malloc(
+		sizeof(union Mesh));
+
+	if (mesh == NULL)
+		return NULL;
+
+	mesh->gl.window = window;
+	mesh->gl.drawIndex = drawIndex;
+	mesh->gl.indexCount = indexCount;
+	mesh->gl.indexOffset = indexOffset;
+	mesh->gl.vertexBuffer = vertexBuffer;
+	mesh->gl.indexBuffer = indexBuffer;
+	return mesh;
 }
 #endif
 
@@ -72,10 +83,13 @@ inline static Mesh createGlMesh(
 	return mesh;
 }
 
+#if MPGX_SUPPORT_VULKAN
 inline static void destroyVkMesh(Mesh mesh)
 {
-	// TODO:
+	free(mesh);
 }
+#endif
+
 inline static void destroyGlMesh(Mesh mesh)
 {
 	makeWindowContextCurrent(
@@ -91,10 +105,50 @@ inline static void destroyGlMesh(Mesh mesh)
 
 #if MPGX_SUPPORT_VULKAN
 inline static void drawVkMesh(
-	Mesh mesh,
-	Pipeline pipeline)
+	VkCommandBuffer commandBuffer,
+	Mesh mesh)
 {
-	// TODO:
+	uint8_t drawIndex = mesh->vk.drawIndex;
+
+	VkIndexType vkDrawIndex;
+	VkDeviceSize vkIndexOffset;
+
+	if (drawIndex == UINT16_DRAW_INDEX)
+	{
+		vkDrawIndex = VK_INDEX_TYPE_UINT16;
+		vkIndexOffset = mesh->vk.indexOffset * sizeof(uint16_t);
+	}
+	else if (drawIndex == UINT32_DRAW_INDEX)
+	{
+		vkDrawIndex = VK_INDEX_TYPE_UINT32;
+		vkIndexOffset = mesh->vk.indexOffset * sizeof(uint32_t);
+	}
+	else
+	{
+		abort();
+	}
+
+	VkBuffer buffer = mesh->vk.vertexBuffer->vk.handle;
+	const VkDeviceSize offset = 0;
+
+	vkCmdBindVertexBuffers(
+		commandBuffer,
+		0,
+		1,
+		&buffer,
+		&offset);
+	vkCmdBindIndexBuffer(
+		commandBuffer,
+		mesh->vk.indexBuffer->vk.handle,
+		vkIndexOffset,
+		vkDrawIndex);
+	vkCmdDrawIndexed(
+		commandBuffer,
+		mesh->vk.indexCount,
+		1,
+		0,
+		0,
+		0);
 }
 #endif
 
@@ -104,17 +158,14 @@ inline static void drawGlMesh(
 	OnPipelineUniformsSet onUniformsSet,
 	uint8_t drawMode)
 {
-	Buffer vertexBuffer = mesh->gl.vertexBuffer;
-	Buffer indexBuffer = mesh->gl.indexBuffer;
-
 	glBindVertexArray(
 		mesh->gl.handle);
 	glBindBuffer(
 		GL_ARRAY_BUFFER,
-		vertexBuffer->gl.handle);
+		mesh->gl.vertexBuffer->gl.handle);
 	glBindBuffer(
 		GL_ELEMENT_ARRAY_BUFFER,
-		indexBuffer->gl.handle);
+		mesh->gl.indexBuffer->gl.handle);
 	assertOpenGL();
 
 	onUniformsSet(pipeline);

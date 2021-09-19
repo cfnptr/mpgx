@@ -226,11 +226,11 @@ inline static void beginVkFramebufferRender(
 	// TODO:
 }
 inline static void beginGlFramebufferRender(
-	Framebuffer framebuffer)
+	GLuint framebuffer)
 {
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,
-		framebuffer->gl.handle);
+		framebuffer);
 	assertOpenGL();
 }
 

@@ -365,6 +365,7 @@ inline static void destroyVkImage(
 		allocator,
 		image->vk.handle,
 		image->vk.allocation);
+	free(image);
 }
 #endif
 
@@ -381,6 +382,7 @@ inline static void destroyGlImage(Image image)
 	free(image);
 }
 
+#if MPGX_SUPPORT_VULKAN
 inline static void setVkImageData(
 	Image image,
 	const void* data,
@@ -389,6 +391,8 @@ inline static void setVkImageData(
 {
 	// TODO:
 }
+#endif
+
 inline static void setGlImageData(
 	Image image,
 	const void* data,

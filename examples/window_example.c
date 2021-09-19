@@ -42,13 +42,13 @@ static void onWindowUpdate(void* handle)
 
 	beginWindowRender(
 		window,
-		valVec4F(0.5f),
+		valVec4F(0.25f),
 		1.0f,
 		0);
 
-	/*drawRenderer(
+	drawRenderer(
 		client->diffuseRenderer,
-		renderData);*/
+		renderData);
 
 	endWindowRender(window);
 }
@@ -245,7 +245,7 @@ inline static Client* createClient()
 		return NULL;
 
 	Window window = createWindow(
-		VULKAN_GRAPHICS_API,
+		OPENGL_GRAPHICS_API,
 		false,
 		defaultWindowSize,
 		APP_NAME,
@@ -294,7 +294,7 @@ inline static Client* createClient()
 
 	Transform cameraTransform = getFreeCameraTransform(freeCamera);
 
-	/*Renderer diffuseRenderer = createDiffuseRendererInstance(
+	Renderer diffuseRenderer = createDiffuseRendererInstance(
 		window,
 		cameraTransform);
 
@@ -320,13 +320,13 @@ inline static Client* createClient()
 		destroyWindow(window);
 		free(client);
 		return NULL;
-	}*/
+	}
 
 	client->window = window;
 	client->transformer = transformer;
 	client->freeCamera = freeCamera;
-	/*client->diffuseRenderer = diffuseRenderer;
-	client->diffuseRender = diffuseRender;*/
+	client->diffuseRenderer = diffuseRenderer;
+	client->diffuseRender = diffuseRender;
 
 	memset(
 		&client->renderData,
@@ -341,8 +341,8 @@ inline static void destroyClient(Client* client)
 	if (client == NULL)
 		return;
 
-	/*destroyDiffuseRenderInstance(client->diffuseRender);
-	destroyDiffuseRendererInstance(client->diffuseRenderer);*/
+	destroyDiffuseRenderInstance(client->diffuseRender);
+	destroyDiffuseRendererInstance(client->diffuseRenderer);
 	destroyFreeCamera(client->freeCamera);
 	destroyTransformer(client->transformer);
 	destroyWindow(client->window);

@@ -1,17 +1,20 @@
 #pragma once
 
-#define OPENGL_SHADER_HEADER \
-"#version 330 core\n"
 // TODO: possibly set default precision
 // or detect supported precisions
+
+#define OPENGL_SHADER_HEADER \
+	"#version 330 core\n"
 #define OPENGL_ES_SHADER_HEADER \
-"#version 300 es\n"
+	"#version 300 es\n"
 
 typedef struct _VkShader
 {
 	Window window;
 	uint8_t type;
-	int handle;
+#if MPGX_SUPPORT_VULKAN
+	VkShaderModule handle;
+#endif
 } _VkShader;
 typedef struct _GlShader
 {
@@ -27,13 +30,44 @@ union Shader
 
 #if MPGX_SUPPORT_VULKAN
 inline static Shader createVkShader(
+	VkDevice device,
 	Window window,
 	uint8_t type,
 	const void* code,
 	size_t size)
 {
-	// TODO:
-	abort();
+	Shader shader = malloc(
+		sizeof(union Shader));
+
+	if (shader == NULL)
+		return NULL;
+
+	VkShaderModuleCreateInfo shaderModuleCreateInfo = {
+		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+		NULL,
+		0,
+		size,
+		code,
+	};
+
+	VkShaderModule handle;
+
+	VkResult result = vkCreateShaderModule(
+		device,
+		&shaderModuleCreateInfo,
+		NULL,
+		&handle);
+
+	if (result != VK_SUCCESS)
+	{
+		free(shader);
+		return NULL;
+	}
+
+	shader->vk.window = window;
+	shader->vk.type = type;
+	shader->vk.handle = handle;
+	return shader;
 }
 #endif
 
@@ -52,13 +86,22 @@ inline static Shader createGlShader(
 	GLenum glType;
 
 	if (type == VERTEX_SHADER_TYPE)
+	{
 		glType = GL_VERTEX_SHADER;
+	}
 	else if (type == FRAGMENT_SHADER_TYPE)
+	{
 		glType = GL_FRAGMENT_SHADER;
+	}
 	else if (type == COMPUTE_SHADER_TYPE)
+	{
 		glType = GL_COMPUTE_SHADER;
+	}
 	else
-		abort();
+	{
+		free(shader);
+		return NULL;
+	}
 
 	const char* sources[2];
 
@@ -151,13 +194,20 @@ inline static Shader createGlShader(
 }
 
 #if MPGX_SUPPORT_VULKAN
-inline static void destroyVkShader(Shader shader)
+inline static void destroyVkShader(
+	VkDevice device,
+	Shader shader)
 {
-	// TODO:
+	vkDestroyShaderModule(
+		device,
+		shader->vk.handle,
+		NULL);
+	free(shader);
 }
 #endif
 
-inline static void destroyGlShader(Shader shader)
+inline static void destroyGlShader(
+	Shader shader)
 {
 	makeWindowContextCurrent(
 		shader->gl.window);

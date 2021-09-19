@@ -1,5 +1,5 @@
 #include "mpgx/pipelines/gradsky_pipeline.h"
-#include "mpgx/_source/opengl.h"
+#include "mpgx/_source/pipeline.h"
 
 #include <string.h>
 
@@ -273,9 +273,9 @@ static void onGlPipelineHandleBind(
 
 	glActiveTexture(GL_TEXTURE0);
 
-	GLuint glTexture= *(const GLuint*)
+	GLuint glTexture= (GLuint)(uintptr_t)
 		getImageHandle(pipelineHandle->gl.texture);
-	GLuint glSampler = *(const GLuint*)
+	GLuint glSampler = (GLuint)(uintptr_t)
 		getSamplerHandle(pipelineHandle->gl.sampler);
 
 	glBindTexture(

@@ -1107,9 +1107,6 @@ inline static void destroyVkSwapchain(
 	VkCommandPool presentCommandPool,
 	VkSwapchain swapchain)
 {
-	if (swapchain == NULL)
-		return;
-
 	destroyVkFrames(
 		device,
 		graphicsCommandPool,

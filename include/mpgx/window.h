@@ -403,7 +403,7 @@ Window getBufferWindow(Buffer buffer);
 uint8_t getBufferType(Buffer buffer);
 size_t getBufferSize(Buffer buffer);
 bool isBufferConstant(Buffer buffer);
-const void* getBufferHandle(Buffer buffer);
+void* getBufferHandle(Buffer buffer);
 
 void setBufferData(
 	Buffer buffer,
@@ -487,7 +487,7 @@ Window getImageWindow(Image image);
 uint8_t getImageType(Image image);
 uint8_t getImageFormat(Image image);
 Vec3U getImageSize(Image image);
-const void* getImageHandle(Image image);
+void* getImageHandle(Image image);
 uint8_t getImageLevelCount(Vec3U imageSize);
 
 Sampler createSampler(
@@ -517,7 +517,7 @@ uint8_t getSamplerImageCompare(Sampler sampler);
 bool isSamplerUseCompare(Sampler sampler);
 float getSamplerMinMipmapLod(Sampler sampler);
 float getSamplerMaxMipmapLod(Sampler sampler);
-const void* getSamplerHandle(Sampler sampler);
+void* getSamplerHandle(Sampler sampler);
 
 Framebuffer createFramebuffer(
 	Window window,
@@ -558,7 +558,7 @@ void destroyShader(Shader shader);
 
 Window getShaderWindow(Shader shader);
 uint8_t getShaderType(Shader shader);
-const void* getShaderHandle(Shader shader);
+void* getShaderHandle(Shader shader);
 
 Pipeline createPipeline(
 	Window window,

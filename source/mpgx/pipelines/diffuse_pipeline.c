@@ -1,5 +1,5 @@
 #include "mpgx/pipelines/diffuse_pipeline.h"
-#include "mpgx/_source/opengl.h"
+#include "mpgx/_source/pipeline.h"
 
 #include <string.h>
 
@@ -188,7 +188,7 @@ static void onGlPipelineHandleBind(
 
 	Buffer uniformBuffer =
 		pipelineHandle->gl.uniformBuffer;
-	GLuint glBuffer = *(GLuint*)
+	GLuint glBuffer = (GLuint)(uintptr_t)
 		getBufferHandle(uniformBuffer);
 
 	glBindBufferBase(

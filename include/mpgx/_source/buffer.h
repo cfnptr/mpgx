@@ -6,6 +6,9 @@
 
 #include <string.h>
 
+// TODO: possibly add buffer map/unmap functions
+// https://github.com/InjectorGames/InjectorEngine/blob/master/Source/Graphics/Vulkan/VkGpuBuffer.cpp
+
 typedef struct _VkBuffer
 {
 	Window window;
@@ -447,6 +450,7 @@ inline static void destroyVkBuffer(
 		allocator,
 		buffer->vk.handle,
 		buffer->vk.allocation);
+	free(buffer);
 }
 #endif
 

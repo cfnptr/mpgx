@@ -1,5 +1,5 @@
 #include "mpgx/pipelines/color_pipeline.h"
-#include "mpgx/_source/opengl.h"
+#include "mpgx/_source/pipeline.h"
 
 #include <string.h>
 

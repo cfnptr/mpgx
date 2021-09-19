@@ -1,5 +1,7 @@
 #pragma once
+#include "mpgx/_source/graphics.h"
 #include "mpgx/_source/swapchain.h"
+
 #include <string.h>
 
 #define ENGINE_NAME "MPGX"
@@ -1024,7 +1026,6 @@ inline static VkWindow createVkWindow(
 		}
 	}
 
-	// TODO: investigate why we require separated transfer pool
 	VkCommandPool transferCommandPool = createVkCommandPool(
 		device,
 		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
@@ -1327,6 +1328,7 @@ inline static const char* getVkWindowGpuVendor()
 }
 
 inline static bool beginVkWindowRender(
+	VkInstance vkInstance,
 	Window window,
 	VkWindow vkWindow,
 	Vec4F clearColor,
@@ -1428,25 +1430,10 @@ inline static bool beginVkWindowRender(
 				return false;
 
 			vkWindow->frameIndex = 0;
-			printf("Resized framebuffer!\n");
-		}
-		else if (vkResult == VK_ERROR_SURFACE_LOST_KHR)
-		{
-			// TODO: recreate surface
-
-			/*instance.destroySurfaceKHR(
-				surface);
-			surface = createSurface(
-				instance,
-				window);
-
-			auto size = getFramebufferSize();
-			onFramebufferResize(size);
-
-			std::cout << "Engine Vulkan: Recreated lost surface and swapchain";*/
 		}
 		else if (vkResult != VK_SUCCESS &&
-			vkResult != VK_SUBOPTIMAL_KHR)
+			vkResult != VK_SUBOPTIMAL_KHR &&
+			vkResult == VK_ERROR_SURFACE_LOST_KHR)
 		{
 			return false;
 		}
@@ -1671,19 +1658,10 @@ inline static bool endVkWindowRender(
 			return false;
 
 		vkWindow->frameIndex = 0;
-		printf("Resized framebuffer!\n");
-	}
-	else if (vkResult == VK_ERROR_SURFACE_LOST_KHR)
-	{
-		// TODO: recreate surface
-		/*instance.destroySurfaceKHR(surface);
-		surface = createSurface(instance, window);
-
-		auto size = getFramebufferSize();
-		onFramebufferResize(size);*/
 	}
 	else if (vkResult != VK_SUCCESS &&
-		vkResult != VK_SUBOPTIMAL_KHR)
+		vkResult != VK_SUBOPTIMAL_KHR &&
+		vkResult == VK_ERROR_SURFACE_LOST_KHR)
 	{
 		return false;
 	}

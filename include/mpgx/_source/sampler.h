@@ -14,6 +14,7 @@ typedef struct _VkSampler
 	bool useCompare;
 	float minMipmapLod;
 	float maxMipmapLod;
+
 	int handle;
 } _VkSampler;
 typedef struct _GlSampler

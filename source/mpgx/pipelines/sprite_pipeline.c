@@ -57,7 +57,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 		glHandle,
 		"u_MVP");
 
-	if (mvpLocation == NULL_UNIFORM_LOCATION)
+	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(glHandle);
 		free(pipelineHandle);
@@ -68,7 +68,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 		glHandle,
 		"u_Color");
 
-	if (colorLocation == NULL_UNIFORM_LOCATION)
+	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(glHandle);
 		free(pipelineHandle);

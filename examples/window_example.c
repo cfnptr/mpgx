@@ -96,7 +96,7 @@ inline static Renderer createDiffuseRendererInstance(
 		window,
 		vertexShader,
 		fragmentShader,
-		TRIANGLES_DRAW_MODE);
+		TRIANGLE_LIST_DRAW_MODE);
 
 	if (pipeline == NULL)
 	{

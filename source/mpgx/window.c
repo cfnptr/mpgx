@@ -5,12 +5,11 @@
 #include "mpgx/_source/vulkan.h"
 #endif
 
-#include "mpgx/_source/buffer.h"
 #include "mpgx/_source/mesh.h"
 #include "mpgx/_source/image.h"
 #include "mpgx/_source/sampler.h"
 #include "mpgx/_source/framebuffer.h"
-#include "mpgx/_source/shader.h"
+#include "mpgx/_source/pipeline.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
@@ -21,16 +20,14 @@
 #include "cmmt/common.h"
 #include <stdio.h>
 
-struct Pipeline
-{
-	Window window;
-	const char* name;
-	uint8_t drawMode;
-	OnPipelineHandleDestroy onHandleDestroy;
-	OnPipelineHandleBind onHandleBind;
-	OnPipelineUniformsSet onUniformsSet;
-	void* handle;
-};
+// TODO: OpenGL renderbuffer optimization
+
+// TODO: add isIntegratedGpu,
+// and if true use cpu only buffers/images
+
+// Move as much as possible pipeline funciton to the parent
+// object into the constructor
+
 struct ImageData
 {
 	uint8_t* pixels;

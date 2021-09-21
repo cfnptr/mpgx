@@ -70,7 +70,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 		glHandle,
 		"u_MVP");
 
-	if (mvpLocation == NULL_UNIFORM_LOCATION)
+	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(glHandle);
 		free(pipelineHandle);
@@ -81,7 +81,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 		glHandle,
 		"u_Color");
 
-	if (colorLocation == NULL_UNIFORM_LOCATION)
+	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(glHandle);
 		free(pipelineHandle);
@@ -92,7 +92,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 		glHandle,
 		"u_Size");
 
-	if (sizeLocation == NULL_UNIFORM_LOCATION)
+	if (sizeLocation == GL_NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(glHandle);
 		free(pipelineHandle);
@@ -103,7 +103,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 		glHandle,
 		"u_Offset");
 
-	if (offsetLocation == NULL_UNIFORM_LOCATION)
+	if (offsetLocation == GL_NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(glHandle);
 		free(pipelineHandle);
@@ -114,7 +114,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 		glHandle,
 		"u_Texture");
 
-	if (textureLocation == NULL_UNIFORM_LOCATION)
+	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(glHandle);
 		free(pipelineHandle);

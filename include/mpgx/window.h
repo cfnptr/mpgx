@@ -249,17 +249,15 @@ typedef enum ShaderType
 
 typedef enum DrawMode
 {
-	POINTS_DRAW_MODE = 0,
+	POINT_LIST_DRAW_MODE = 0,
 	LINE_STRIP_DRAW_MODE = 1,
 	LINE_LOOP_DRAW_MODE = 2,
-	LINES_DRAW_MODE = 3,
+	LINE_LIST_DRAW_MODE = 3,
 	TRIANGLE_STRIP_DRAW_MODE = 4,
 	TRIANGLE_FAN_DRAW_MODE = 5,
-	TRIANGLES_DRAW_MODE = 6,
+	TRIANGLE_LIST_DRAW_MODE = 6,
 	DRAW_MODE_COUNT = 7,
 } DrawMode;
-
-// TODO: OpenGL renderbuffer optimization
 
 typedef struct Window* Window;
 typedef union Buffer* Buffer;
@@ -268,7 +266,7 @@ typedef union Image* Image;
 typedef union Sampler* Sampler;
 typedef union Framebuffer* Framebuffer;
 typedef union Shader* Shader;
-typedef struct Pipeline* Pipeline;
+typedef union Pipeline* Pipeline;
 typedef struct ImageData* ImageData;
 
 typedef void(*OnWindowUpdate)(

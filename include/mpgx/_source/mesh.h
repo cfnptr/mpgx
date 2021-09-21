@@ -1,4 +1,5 @@
 #pragma once
+#include "mpgx/_source/buffer.h"
 
 typedef struct _VkMesh
 {
@@ -178,7 +179,7 @@ inline static void drawGlMesh(
 	{
 	default:
 		abort();
-	case POINTS_DRAW_MODE:
+	case POINT_LIST_DRAW_MODE:
 		glDrawMode = GL_POINTS;
 		break;
 	case LINE_STRIP_DRAW_MODE:
@@ -187,7 +188,7 @@ inline static void drawGlMesh(
 	case LINE_LOOP_DRAW_MODE:
 		glDrawMode = GL_LINE_LOOP;
 		break;
-	case LINES_DRAW_MODE:
+	case LINE_LIST_DRAW_MODE:
 		glDrawMode = GL_LINES;
 		break;
 	case TRIANGLE_STRIP_DRAW_MODE:
@@ -196,7 +197,7 @@ inline static void drawGlMesh(
 	case TRIANGLE_FAN_DRAW_MODE:
 		glDrawMode = GL_TRIANGLE_FAN;
 		break;
-	case TRIANGLES_DRAW_MODE:
+	case TRIANGLE_LIST_DRAW_MODE:
 		glDrawMode = GL_TRIANGLES;
 		break;
 	}

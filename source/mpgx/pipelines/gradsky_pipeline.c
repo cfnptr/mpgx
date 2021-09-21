@@ -173,7 +173,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 		glHandle,
 		"u_MVP");
 
-	if (mvpLocation == NULL_UNIFORM_LOCATION)
+	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(glHandle);
 		free(pipelineHandle);
@@ -184,7 +184,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 		glHandle,
 		"u_SunHeight");
 
-	if (sunHeightLocation == NULL_UNIFORM_LOCATION)
+	if (sunHeightLocation == GL_NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(glHandle);
 		free(pipelineHandle);
@@ -195,7 +195,7 @@ inline static PipelineHandle* createGlPipelineHandle(
 		glHandle,
 		"u_Texture");
 
-	if (textureLocation == NULL_UNIFORM_LOCATION)
+	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
 	{
 		glDeleteProgram(glHandle);
 		free(pipelineHandle);

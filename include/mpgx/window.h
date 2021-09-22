@@ -581,7 +581,9 @@ Mesh createMesh(
 	size_t indexOffset,
 	Buffer vertexBuffer,
 	Buffer indexBuffer);
-void destroyMesh(Mesh mesh);
+void destroyMesh(
+	Mesh mesh,
+	bool destroyBuffers);
 
 Window getMeshWindow(Mesh mesh);
 uint8_t getMeshDrawIndex(Mesh mesh);

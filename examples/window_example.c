@@ -129,11 +129,8 @@ inline static void destroyDiffuseRendererInstance(
 	if (diffuseRenderer == NULL)
 		return;
 
-	Pipeline pipeline = getRendererPipeline(
-		diffuseRenderer);
-
 	destroyPipeline(
-		pipeline,
+		getRendererPipeline(diffuseRenderer),
 		true);
 	destroyRenderer(diffuseRenderer);
 }
@@ -211,9 +208,9 @@ inline static Render createDiffuseRenderInstance(
 
 	if (render == NULL)
 	{
-		destroyMesh(mesh);
-		destroyBuffer(indexBuffer);
-		destroyBuffer(vertexBuffer);
+		destroyMesh(
+			mesh,
+			true);
 		destroyTransform(transform);
 		return NULL;
 	}
@@ -226,13 +223,9 @@ inline static void destroyDiffuseRenderInstance(
 	if (diffuseRender == NULL)
 		return;
 
-	Mesh mesh = getDiffuseRenderMesh(diffuseRender);
-	Buffer indexBuffer = getMeshIndexBuffer(mesh);
-	Buffer vertexBuffer = getMeshVertexBuffer(mesh);
-
-	destroyMesh(mesh);
-	destroyBuffer(indexBuffer);
-	destroyBuffer(vertexBuffer);
+	destroyMesh(
+		getDiffuseRenderMesh(diffuseRender),
+		true);
 	destroyRender(diffuseRender);
 }
 

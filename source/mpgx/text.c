@@ -812,17 +812,12 @@ void destroyText(Text text)
 	if (text == NULL)
 		return;
 
-	Mesh mesh = text->mesh;
-	Buffer vertexBuffer = getMeshVertexBuffer(mesh);
-	Buffer indexBuffer = getMeshIndexBuffer(mesh);
-
-	destroyMesh(mesh);
-	destroyBuffer(indexBuffer);
-	destroyBuffer(vertexBuffer);
-
+	destroyMesh(
+		text->mesh,
+		true);
 	destroyImage(text->texture);
-	free(text->data);
 
+	free(text->data);
 	free(text);
 }
 
@@ -1383,14 +1378,9 @@ bool bakeText(
 				return false;
 			}
 
-			Mesh _mesh = text->mesh;
-			vertexBuffer = getMeshVertexBuffer(_mesh);
-			indexBuffer = getMeshIndexBuffer(_mesh);
-
-			destroyMesh(_mesh);
-			destroyBuffer(vertexBuffer);
-			destroyBuffer(indexBuffer);
-
+			destroyMesh(
+				text->mesh,
+				true);
 			destroyImage(text->texture);
 			free(text->data);
 
@@ -1575,14 +1565,9 @@ bool bakeText(
 				return false;
 			}
 
-			Mesh _mesh = text->mesh;
-			vertexBuffer = getMeshVertexBuffer(_mesh);
-			indexBuffer = getMeshIndexBuffer(_mesh);
-
-			destroyMesh(_mesh);
-			destroyBuffer(vertexBuffer);
-			destroyBuffer(indexBuffer);
-
+			destroyMesh(
+				text->mesh,
+				true);
 			destroyImage(text->texture);
 			free(text->data);
 

@@ -3014,7 +3014,9 @@ Mesh createMesh(
 	window->meshCount = count + 1;
 	return mesh;
 }
-void destroyMesh(Mesh mesh)
+void destroyMesh(
+	Mesh mesh,
+	bool destroyBuffers)
 {
 	if (mesh == NULL)
 		return;
@@ -3032,6 +3034,12 @@ void destroyMesh(Mesh mesh)
 
 		for (size_t j = i + 1; j < meshCount; j++)
 			meshes[j - 1] = meshes[j];
+
+		if (destroyBuffers == true)
+		{
+			destroyBuffer(mesh->vk.vertexBuffer);
+			destroyBuffer(mesh->vk.indexBuffer);
+		}
 
 		uint8_t api = window->api;
 

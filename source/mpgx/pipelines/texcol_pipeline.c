@@ -1,5 +1,6 @@
 #include "mpgx/pipelines/texcol_pipeline.h"
 #include "mpgx/_source/pipeline.h"
+#include "mpgx/_source/image.h"
 #include "mpgx/_source/sampler.h"
 
 #include <string.h>

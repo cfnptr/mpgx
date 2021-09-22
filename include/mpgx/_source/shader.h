@@ -1,4 +1,9 @@
 #pragma once
+#include "mpgx/_source/opengl.h"
+
+#if MPGX_SUPPORT_VULKAN
+#include "mpgx/_source/vulkan.h"
+#endif
 
 // TODO: possibly set default precision
 // or detect supported precisions

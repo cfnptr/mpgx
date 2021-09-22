@@ -1,10 +1,4 @@
 #include "mpgx/window.h"
-#include "mpgx/_source/opengl.h"
-
-#if MPGX_SUPPORT_VULKAN
-#include "mpgx/_source/vulkan.h"
-#endif
-
 #include "mpgx/_source/mesh.h"
 #include "mpgx/_source/sampler.h"
 #include "mpgx/_source/framebuffer.h"

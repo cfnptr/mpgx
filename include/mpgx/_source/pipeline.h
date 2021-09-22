@@ -1,6 +1,4 @@
 #pragma once
-#include "mpgx/_source/opengl.h"
-#include "mpgx/_source/vulkan.h"
 #include "mpgx/_source/shader.h"
 
 #include <assert.h>

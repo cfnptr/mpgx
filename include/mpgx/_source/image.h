@@ -1,4 +1,5 @@
 #pragma once
+#include "mpgx/_source/opengl.h"
 
 #if MPGX_SUPPORT_VULKAN
 #include "vk_mem_alloc.h"

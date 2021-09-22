@@ -5,18 +5,13 @@
 
 typedef struct VkPipelineHandle
 {
-	Shader vertexShader;
-	Shader fragmentShader;
 	Mat4F mvp;
 	Vec4F color;
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
-	Shader vertexShader;
-	Shader fragmentShader;
 	Mat4F mvp;
 	Vec4F color;
-	GLuint handle;
 	GLint mvpLocation;
 	GLint colorLocation;
 } GlPipelineHandle;
@@ -26,129 +21,26 @@ typedef union PipelineHandle
 	GlPipelineHandle gl;
 } PipelineHandle;
 
-inline static PipelineHandle* createGlPipelineHandle(
-	Window window,
-	Shader vertexShader,
-	Shader fragmentShader)
-{
-	PipelineHandle* pipelineHandle = malloc(
-		sizeof(PipelineHandle));
-
-	if (pipelineHandle == NULL)
-		return NULL;
-
-	Shader shaders[2] = {
-		vertexShader,
-		fragmentShader,
-	};
-
-	GLuint glHandle = createGlPipeline(
-		window,
-		shaders,
-		2);
-
-	if (glHandle == GL_ZERO)
-	{
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	GLint mvpLocation = getGlUniformLocation(
-		glHandle,
-		"u_MVP");
-
-	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(glHandle);
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	GLint colorLocation = getGlUniformLocation(
-		glHandle,
-		"u_Color");
-
-	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(glHandle);
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	assertOpenGL();
-
-	pipelineHandle->gl.vertexShader = vertexShader;
-	pipelineHandle->gl.fragmentShader = fragmentShader;
-	pipelineHandle->gl.mvp = identMat4F();
-	pipelineHandle->gl.color = oneVec4F();
-	pipelineHandle->gl.handle = glHandle;
-	pipelineHandle->gl.mvpLocation = mvpLocation;
-	pipelineHandle->gl.colorLocation = colorLocation;
-	return pipelineHandle;
-}
-static void onGlPipelineHandleDestroy(
-	Window window,
-	void* handle)
+static void onGlPipelineHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle =
 		(PipelineHandle*)handle;
-	destroyGlPipeline(
-		window,
-		pipelineHandle->gl.handle);
 	free(pipelineHandle);
 }
-static void onGlPipelineHandleBind(
-	Pipeline pipeline)
+static void onGlPipelineUniformsSet(Pipeline pipeline)
 {
-	Vec2U size = getWindowFramebufferSize(
-		getPipelineWindow(pipeline));
-
-	glViewport(
-		0,
-		0,
-		(GLsizei)size.x,
-		(GLsizei)size.y);
-
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-
-	glUseProgram(pipelineHandle->gl.handle);
-
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glDisable(GL_SCISSOR_TEST);
-	glDisable(GL_STENCIL_TEST);
-	glDisable(GL_BLEND);
-
-	glColorMask(
-		GL_TRUE, GL_TRUE,
-		GL_TRUE, GL_TRUE);
-
-	glDepthFunc(GL_LESS);
-	glDepthMask(GL_TRUE);
-	glDepthRange(0.0f, 1.0f);
-	glPolygonOffset(0.0f, 0.0f);
-
-	glFrontFace(GL_CW);
-	glCullFace(GL_BACK);
-
-	assertOpenGL();
-}
-static void onGlPipelineUniformsSet(
-	Pipeline pipeline)
-{
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+	PipelineHandle* handle =
+		pipeline->gl.handle;
 
 	glUniformMatrix4fv(
-		pipelineHandle->gl.mvpLocation,
+		handle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&pipelineHandle->gl.mvp);
+		(const GLfloat*)&handle->gl.mvp);
 	glUniform4fv(
-		pipelineHandle->gl.colorLocation,
+		handle->gl.colorLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.color);
+		(const GLfloat*)&handle->gl.color);
 
 	glEnableVertexAttribArray(0);
 
@@ -162,16 +54,95 @@ static void onGlPipelineUniformsSet(
 
 	assertOpenGL();
 }
+inline static Pipeline createGlPipelineHandle(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader)
+{
+	PipelineHandle* handle = malloc(
+		sizeof(PipelineHandle));
+
+	if (handle == NULL)
+		return NULL;
+
+	Shader shaders[2] = {
+		vertexShader,
+		fragmentShader,
+	};
+
+	Pipeline pipeline = createPipeline(
+		window,
+		COLOR_PIPELINE_NAME,
+		shaders,
+		2,
+		TRIANGLE_LIST_DRAW_MODE,
+		FILL_POLYGON_MODE,
+		BACK_CULL_MODE,
+		LESS_COMPARE_OPERATION,
+		true,
+		true,
+		true,
+		true,
+		false,
+		false,
+		false,
+		DEFAULT_LINE_WIDTH,
+		onGlPipelineHandleDestroy,
+		NULL,
+		onGlPipelineUniformsSet,
+		handle,
+		NULL);
+
+	if (pipeline == NULL)
+	{
+		free(handle);
+		return NULL;
+	}
+
+	GLuint glHandle = pipeline->gl.glHandle;
+
+	GLint mvpLocation = getGlUniformLocation(
+		glHandle,
+		"u_MVP");
+
+	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		free(handle);
+		return NULL;
+	}
+
+	GLint colorLocation = getGlUniformLocation(
+		glHandle,
+		"u_Color");
+
+	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		free(handle);
+		return NULL;
+	}
+
+	assertOpenGL();
+
+	handle->gl.mvp = identMat4F();
+	handle->gl.color = oneVec4F();
+	handle->gl.mvpLocation = mvpLocation;
+	handle->gl.colorLocation = colorLocation;
+	return pipeline;
+}
 Pipeline createColorPipeline(
 	Window window,
 	Shader vertexShader,
-	Shader fragmentShader,
-	uint8_t drawMode)
+	Shader fragmentShader)
 {
 	assert(window != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
-	assert(drawMode < DRAW_MODE_COUNT);
 	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
 	assert(getShaderWindow(vertexShader) == window);
@@ -179,72 +150,25 @@ Pipeline createColorPipeline(
 
 	uint8_t api = getWindowGraphicsAPI(window);
 
-	PipelineHandle* pipelineHandle;
-	OnPipelineHandleDestroy onPipelineHandleDestroy;
-	OnPipelineHandleBind onPipelineHandleBind;
-	OnPipelineUniformsSet onPipelineUniformsSet;
+	Pipeline pipeline;
 
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		pipelineHandle = createGlPipelineHandle(
+		pipeline = createGlPipelineHandle(
 			window,
 			vertexShader,
 			fragmentShader);
-
-		onPipelineHandleDestroy = onGlPipelineHandleDestroy;
-		onPipelineHandleBind = onGlPipelineHandleBind;
-		onPipelineUniformsSet = onGlPipelineUniformsSet;
 	}
 	else
 	{
 		return NULL;
 	}
 
-	if (pipelineHandle == NULL)
-		return NULL;
-
-	Pipeline pipeline = createPipeline(
-		window,
-		COLOR_PIPELINE_NAME,
-		drawMode,
-		onPipelineHandleDestroy,
-		onPipelineHandleBind,
-		onPipelineUniformsSet,
-		pipelineHandle);
-
 	if (pipeline == NULL)
-	{
-		onPipelineHandleDestroy(
-			window,
-			pipelineHandle);
 		return NULL;
-	}
 
 	return pipeline;
-}
-
-Shader getColorPipelineVertexShader(
-	Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		getPipelineName(pipeline),
-		COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-	return pipelineHandle->vk.vertexShader;
-}
-Shader getColorPipelineFragmentShader(
-	Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		getPipelineName(pipeline),
-		COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-	return pipelineHandle->vk.fragmentShader;
 }
 
 Mat4F getColorPipelineMvp(
@@ -255,7 +179,7 @@ Mat4F getColorPipelineMvp(
 		getPipelineName(pipeline),
 		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.mvp;
 }
 void setColorPipelineMvp(
@@ -267,7 +191,7 @@ void setColorPipelineMvp(
 		getPipelineName(pipeline),
 		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	pipelineHandle->vk.mvp = mvp;
 }
 
@@ -279,7 +203,7 @@ Vec4F getColorPipelineColor(
 		getPipelineName(pipeline),
 		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.color;
 }
 void setColorPipelineColor(
@@ -295,6 +219,6 @@ void setColorPipelineColor(
 		getPipelineName(pipeline),
 		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	pipelineHandle->vk.color = color;
 }

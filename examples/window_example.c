@@ -4,7 +4,9 @@
 #include "mpgx/primitives/cube_primitive.h"
 
 #include "cmmt/angle.h"
+
 #include <string.h>
+#include <assert.h>
 
 #define APP_NAME "MPGX Window Example"
 
@@ -95,8 +97,7 @@ inline static Renderer createDiffuseRendererInstance(
 	Pipeline pipeline = createDiffusePipeline(
 		window,
 		vertexShader,
-		fragmentShader,
-		TRIANGLE_LIST_DRAW_MODE);
+		fragmentShader);
 
 	if (pipeline == NULL)
 	{
@@ -114,9 +115,9 @@ inline static Renderer createDiffuseRendererInstance(
 
 	if (renderer == NULL)
 	{
-		destroyPipeline(pipeline);
-		destroyShader(fragmentShader);
-		destroyShader(vertexShader);
+		destroyPipeline(
+			pipeline,
+			true);
 		return NULL;
 	}
 
@@ -128,13 +129,12 @@ inline static void destroyDiffuseRendererInstance(
 	if (diffuseRenderer == NULL)
 		return;
 
-	Pipeline pipeline = getRendererPipeline(diffuseRenderer);
-	Shader fragmentShader = getDiffusePipelineFragmentShader(pipeline);
-	Shader vertexShader = getDiffusePipelineVertexShader(pipeline);
+	Pipeline pipeline = getRendererPipeline(
+		diffuseRenderer);
 
-	destroyPipeline(pipeline);
-	destroyShader(fragmentShader);
-	destroyShader(vertexShader);
+	destroyPipeline(
+		pipeline,
+		true);
 	destroyRenderer(diffuseRenderer);
 }
 
@@ -345,7 +345,10 @@ inline static void destroyClient(Client* client)
 	destroyDiffuseRendererInstance(client->diffuseRenderer);
 	destroyFreeCamera(client->freeCamera);
 	destroyTransformer(client->transformer);
+
+	assert(isWindowEmpty(client->window) == true);
 	destroyWindow(client->window);
+
 	free(client);
 }
 

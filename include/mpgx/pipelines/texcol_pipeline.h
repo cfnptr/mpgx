@@ -8,13 +8,8 @@ Pipeline createTexColPipeline(
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
-	Sampler sampler,
-	uint8_t drawMode);
+	Sampler sampler);
 
-Shader getTexColPipelineVertexShader(
-	Pipeline pipeline);
-Shader getTexColPipelineFragmentShader(
-	Pipeline pipeline);
 Image getTexColPipelineTexture(
 	Pipeline pipeline);
 Sampler getTexColPipelineSampler(

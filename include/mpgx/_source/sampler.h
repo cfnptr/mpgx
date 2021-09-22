@@ -10,7 +10,7 @@ typedef struct _VkSampler
 	uint8_t imageWrapX;
 	uint8_t imageWrapY;
 	uint8_t imageWrapZ;
-	uint8_t imageCompare;
+	uint8_t compareOperation;
 	bool useCompare;
 	float minMipmapLod;
 	float maxMipmapLod;
@@ -29,7 +29,7 @@ typedef struct _GlSampler
 	uint8_t imageWrapX;
 	uint8_t imageWrapY;
 	uint8_t imageWrapZ;
-	uint8_t imageCompare;
+	uint8_t compareOperation;
 	bool useCompare;
 	float minMipmapLod;
 	float maxMipmapLod;
@@ -43,6 +43,69 @@ union Sampler
 };
 
 #if MPGX_SUPPORT_VULKAN
+inline static bool getVkImageFilter(
+	uint8_t imageFilter,
+	VkFilter* vkImageFilter)
+{
+	if (imageFilter == NEAREST_IMAGE_FILTER)
+	{
+		*vkImageFilter = VK_FILTER_NEAREST;
+		return true;
+	}
+	else if (imageFilter == LINEAR_IMAGE_FILTER)
+	{
+		*vkImageFilter = VK_FILTER_LINEAR;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+inline static bool getVkMipmapFilter(
+	uint8_t mipmapFilter,
+	VkSamplerMipmapMode* vkMipmapFilter)
+{
+	if (mipmapFilter == NEAREST_IMAGE_FILTER)
+	{
+		*vkMipmapFilter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		return true;
+	}
+	else if (mipmapFilter == LINEAR_IMAGE_FILTER)
+	{
+		*vkMipmapFilter = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+inline static bool getVkImageWrap(
+	uint8_t imageWrap,
+	VkSamplerAddressMode* vkImageWrap)
+{
+	if (imageWrap == CLAMP_TO_EDGE_IMAGE_WRAP)
+	{
+		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		return true;
+	}
+	else if (imageWrap == MIRRORED_REPEAT_IMAGE_WRAP)
+	{
+		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		return true;
+	}
+	else if (imageWrap == REPEAT_IMAGE_WRAP)
+	{
+		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 inline static Sampler createVkSampler(
 	VkDevice device,
 	Window window,
@@ -53,7 +116,7 @@ inline static Sampler createVkSampler(
 	uint8_t imageWrapX,
 	uint8_t imageWrapY,
 	uint8_t imageWrapZ,
-	uint8_t imageCompare,
+	uint8_t compareOperation,
 	bool useCompare,
 	float minMipmapLod,
 	float maxMipmapLod,
@@ -88,8 +151,8 @@ inline static Sampler createVkSampler(
 	result &= getVkImageWrap(
 		imageWrapZ,
 		&wrapZ);
-	result &= getVkImageCompare(
-		imageCompare,
+	result &= getVkCompareOperation(
+		compareOperation,
 		&compare);
 
 	if (result == false)
@@ -141,7 +204,7 @@ inline static Sampler createVkSampler(
 	sampler->gl.imageWrapX = imageWrapX;
 	sampler->gl.imageWrapY = imageWrapY;
 	sampler->gl.imageWrapZ = imageWrapZ;
-	sampler->gl.imageCompare = imageCompare;
+	sampler->gl.compareOperation = compareOperation;
 	sampler->gl.useCompare = useCompare;
 	sampler->gl.minMipmapLod = minMipmapLod;
 	sampler->gl.maxMipmapLod = maxMipmapLod;
@@ -150,6 +213,92 @@ inline static Sampler createVkSampler(
 	return sampler;
 }
 #endif
+
+inline static bool getGlImageFilter(
+	uint8_t imageFilter,
+	uint8_t mipmapFilter,
+	bool useMipmapping,
+	GLenum* glImageFilter)
+{
+	if (imageFilter == NEAREST_IMAGE_FILTER)
+	{
+		if (useMipmapping == true)
+		{
+			if (mipmapFilter == NEAREST_IMAGE_FILTER)
+			{
+				*glImageFilter = GL_NEAREST_MIPMAP_NEAREST;
+				return true;
+			}
+			else if (mipmapFilter == LINEAR_IMAGE_FILTER)
+			{
+				*glImageFilter = GL_NEAREST_MIPMAP_LINEAR;
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
+		{
+			*glImageFilter = GL_NEAREST;
+			return true;
+		}
+	}
+	else if (imageFilter == LINEAR_IMAGE_FILTER)
+	{
+		if (useMipmapping == true)
+		{
+			if (mipmapFilter == NEAREST_IMAGE_FILTER)
+			{
+				*glImageFilter = GL_LINEAR_MIPMAP_NEAREST;
+				return true;
+			}
+			else if (mipmapFilter == LINEAR_IMAGE_FILTER)
+			{
+				*glImageFilter = GL_LINEAR_MIPMAP_LINEAR;
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
+		{
+			*glImageFilter = GL_LINEAR;
+			return true;
+		}
+	}
+	else
+	{
+		return false;
+	}
+}
+inline static bool getGlImageWrap(
+	uint8_t imageWrap,
+	GLenum* glImageWrap)
+{
+	if (imageWrap == CLAMP_TO_EDGE_IMAGE_WRAP)
+	{
+		*glImageWrap = GL_CLAMP_TO_EDGE;
+		return true;
+	}
+	else if (imageWrap == MIRRORED_REPEAT_IMAGE_WRAP)
+	{
+		*glImageWrap = GL_MIRRORED_REPEAT;
+		return true;
+	}
+	else if (imageWrap == REPEAT_IMAGE_WRAP)
+	{
+		*glImageWrap = GL_REPEAT;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
 
 inline static Sampler createGlSampler(
 	Window window,
@@ -160,7 +309,7 @@ inline static Sampler createGlSampler(
 	uint8_t imageWrapX,
 	uint8_t imageWrapY,
 	uint8_t imageWrapZ,
-	uint8_t imageCompare,
+	uint8_t compareOperation,
 	bool useCompare,
 	float minMipmapLod,
 	float maxMipmapLod)
@@ -201,8 +350,8 @@ inline static Sampler createGlSampler(
 	result &= getGlImageWrap(
 		imageWrapZ,
 		&wrapZ);
-	result &= getGlImageCompare(
-		imageCompare,
+	result &= getGlCompareOperation(
+		compareOperation,
 		&compare);
 
 	if (result == false)
@@ -213,6 +362,9 @@ inline static Sampler createGlSampler(
 		free(sampler);
 		return NULL;
 	}
+
+	GLint glCompareMode = useCompare ?
+		GL_COMPARE_REF_TO_TEXTURE : GL_NONE;
 
 	glSamplerParameteri(
 		handle,
@@ -237,9 +389,7 @@ inline static Sampler createGlSampler(
 	glSamplerParameteri(
 		handle,
 		GL_TEXTURE_COMPARE_MODE,
-		useCompare ?
-		GL_COMPARE_REF_TO_TEXTURE :
-		GL_NONE);
+		glCompareMode);
 	glSamplerParameteri(
 		handle,
 		GL_TEXTURE_COMPARE_FUNC,
@@ -263,7 +413,7 @@ inline static Sampler createGlSampler(
 	sampler->gl.imageWrapX = imageWrapX;
 	sampler->gl.imageWrapY = imageWrapY;
 	sampler->gl.imageWrapZ = imageWrapZ;
-	sampler->gl.imageCompare = imageCompare;
+	sampler->gl.compareOperation = compareOperation;
 	sampler->gl.useCompare = useCompare;
 	sampler->gl.minMipmapLod = minMipmapLod;
 	sampler->gl.maxMipmapLod = maxMipmapLod;

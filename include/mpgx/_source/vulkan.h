@@ -1669,99 +1669,37 @@ inline static bool endVkWindowRender(
 	return true;
 }
 
-inline static bool getVkImageFilter(
-	uint8_t imageFilter,
-	VkFilter* vkImageFilter)
+inline static bool getVkCompareOperation(
+	uint8_t compareOperation,
+	VkCompareOp* vkCompareOperation)
 {
-	if (imageFilter == NEAREST_IMAGE_FILTER)
-	{
-		*vkImageFilter = VK_FILTER_NEAREST;
-		return true;
-	}
-	else if (imageFilter == LINEAR_IMAGE_FILTER)
-	{
-		*vkImageFilter = VK_FILTER_LINEAR;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-inline static bool getVkMipmapFilter(
-	uint8_t mipmapFilter,
-	VkSamplerMipmapMode* vkMipmapFilter)
-{
-	if (mipmapFilter == NEAREST_IMAGE_FILTER)
-	{
-		*vkMipmapFilter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-		return true;
-	}
-	else if (mipmapFilter == LINEAR_IMAGE_FILTER)
-	{
-		*vkMipmapFilter = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-inline static bool getVkImageWrap(
-	uint8_t imageWrap,
-	VkSamplerAddressMode* vkImageWrap)
-{
-	if (imageWrap == CLAMP_TO_EDGE_IMAGE_WRAP)
-	{
-		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		return true;
-	}
-	else if (imageWrap == MIRRORED_REPEAT_IMAGE_WRAP)
-	{
-		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		return true;
-	}
-	else if (imageWrap == REPEAT_IMAGE_WRAP)
-	{
-		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-inline static bool getVkImageCompare(
-	uint8_t imageCompare,
-	VkCompareOp* vkImageCompare)
-{
-	switch (imageCompare)
+	switch (compareOperation)
 	{
 	default:
 		return false;
-	case LESS_IMAGE_COMPARE:
-		*vkImageCompare = VK_COMPARE_OP_LESS;
+	case LESS_COMPARE_OPERATION:
+		*vkCompareOperation = VK_COMPARE_OP_LESS;
 		return true;
-	case LESS_OR_EQUAL_IMAGE_COMPARE:
-		*vkImageCompare = VK_COMPARE_OP_LESS_OR_EQUAL;
+	case LESS_OR_EQUAL_COMPARE_OPERATION:
+		*vkCompareOperation = VK_COMPARE_OP_LESS_OR_EQUAL;
 		return true;
-	case GREATER_OR_EQUAL_IMAGE_COMPARE:
-		*vkImageCompare = VK_COMPARE_OP_GREATER_OR_EQUAL;
+	case GREATER_OR_EQUAL_COMPARE_OPERATION:
+		*vkCompareOperation = VK_COMPARE_OP_GREATER_OR_EQUAL;
 		return true;
-	case GREATER_IMAGE_COMPARE:
-		*vkImageCompare = VK_COMPARE_OP_GREATER;
+	case GREATER_COMPARE_OPERATION:
+		*vkCompareOperation = VK_COMPARE_OP_GREATER;
 		return true;
-	case EQUAL_IMAGE_COMPARE:
-		*vkImageCompare = VK_COMPARE_OP_EQUAL;
+	case EQUAL_COMPARE_OPERATION:
+		*vkCompareOperation = VK_COMPARE_OP_EQUAL;
 		return true;
-	case NOT_EQUAL_IMAGE_COMPARE:
-		*vkImageCompare = VK_COMPARE_OP_NOT_EQUAL;
+	case NOT_EQUAL_COMPARE_OPERATION:
+		*vkCompareOperation = VK_COMPARE_OP_NOT_EQUAL;
 		return true;
-	case ALWAYS_IMAGE_COMPARE:
-		*vkImageCompare = VK_COMPARE_OP_ALWAYS;
+	case ALWAYS_COMPARE_OPERATION:
+		*vkCompareOperation = VK_COMPARE_OP_ALWAYS;
 		return true;
-	case NEVER_IMAGE_COMPARE:
-		*vkImageCompare = VK_COMPARE_OP_NEVER;
+	case NEVER_COMPARE_OPERATION:
+		*vkCompareOperation = VK_COMPARE_OP_NEVER;
 		return true;
 	}
 }

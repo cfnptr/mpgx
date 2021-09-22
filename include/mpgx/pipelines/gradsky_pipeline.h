@@ -19,8 +19,7 @@ Pipeline createGradSkyPipeline(
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
-	Sampler sampler,
-	uint8_t drawMode);
+	Sampler sampler);
 
 Shader getGradSkyPipelineVertexShader(
 	Pipeline pipeline);

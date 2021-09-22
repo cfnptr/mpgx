@@ -6,13 +6,7 @@
 Pipeline createDiffusePipeline(
 	Window window,
 	Shader vertexShader,
-	Shader fragmentShader,
-	uint8_t drawMode);
-
-Shader getDiffusePipelineVertexShader(
-	Pipeline pipeline);
-Shader getDiffusePipelineFragmentShader(
-	Pipeline pipeline);
+	Shader fragmentShader);
 
 Mat4F getDiffusePipelineMvp(
 	Pipeline pipeline);

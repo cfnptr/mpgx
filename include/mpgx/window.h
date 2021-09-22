@@ -11,6 +11,7 @@
 #define DEFAULT_MIN_MIPMAP_LOD -1000
 #define DEFAULT_MAX_MIPMAP_LOD 1000
 #define DEFAULT_MIPMAP_LOD_BIAS 0
+#define DEFAULT_LINE_WIDTH 1
 
 // TODO: fix a new framebuffer sRGB difference
 
@@ -226,18 +227,18 @@ typedef enum ImageWrap
 	IMAGE_WRAP_COUNT = 3,
 } ImageWrap;
 
-typedef enum ImageCompare
+typedef enum CompareOperation
 {
-	LESS_OR_EQUAL_IMAGE_COMPARE = 0,
-	GREATER_OR_EQUAL_IMAGE_COMPARE = 1,
-	LESS_IMAGE_COMPARE = 2,
-	GREATER_IMAGE_COMPARE = 3,
-	EQUAL_IMAGE_COMPARE = 4,
-	NOT_EQUAL_IMAGE_COMPARE = 5,
-	ALWAYS_IMAGE_COMPARE = 6,
-	NEVER_IMAGE_COMPARE = 7,
-	IMAGE_COMPARE_COUNT = 8,
-} ImageCompare;
+	LESS_OR_EQUAL_COMPARE_OPERATION = 0,
+	GREATER_OR_EQUAL_COMPARE_OPERATION = 1,
+	LESS_COMPARE_OPERATION = 2,
+	GREATER_COMPARE_OPERATION = 3,
+	EQUAL_COMPARE_OPERATION = 4,
+	NOT_EQUAL_COMPARE_OPERATION = 5,
+	ALWAYS_COMPARE_OPERATION = 6,
+	NEVER_COMPARE_OPERATION = 7,
+	COMPARE_OPERATION_COUNT = 8,
+} CompareOperation;
 
 typedef enum ShaderType
 {
@@ -259,6 +260,22 @@ typedef enum DrawMode
 	DRAW_MODE_COUNT = 7,
 } DrawMode;
 
+typedef enum PolygonMode
+{
+	POINT_POLYGON_MODE = 0,
+	LINE_POLYGON_MODE = 1,
+	FILL_POLYGON_MODE = 2,
+	POLYGON_MODE_COUNT = 3,
+} PolygonMode;
+
+typedef enum CullMode
+{
+	FRONT_CULL_MODE = 0,
+	BACK_CULL_MODE = 1,
+	FRONT_AND_BACK_CULL_MODE = 2,
+	CULL_MODE_COUNT = 3,
+} CullMode;
+
 typedef struct Window* Window;
 typedef union Buffer* Buffer;
 typedef union Mesh* Mesh;
@@ -269,16 +286,10 @@ typedef union Shader* Shader;
 typedef union Pipeline* Pipeline;
 typedef struct ImageData* ImageData;
 
-typedef void(*OnWindowUpdate)(
-	void* argument);
-
-typedef void(*OnPipelineHandleDestroy)(
-	Window window,
-	void* handle);
-typedef void(*OnPipelineHandleBind)(
-	Pipeline pipeline);
-typedef void(*OnPipelineUniformsSet)(
-	Pipeline pipeline);
+typedef void(*OnWindowUpdate)(void* argument);
+typedef void(*OnPipelineHandleDestroy)(void* handle);
+typedef void(*OnPipelineHandleBind)(Pipeline pipeline);
+typedef void(*OnPipelineUniformsSet)(Pipeline pipeline);
 
 bool initializeGraphics(
 	const char* appName,
@@ -299,12 +310,12 @@ Window createWindow(
 	void* updateArgument,
 	bool isVisible,
 	size_t bufferCapacity,
-	size_t meshCapacity,
 	size_t imageCapacity,
 	size_t samplerCapacity,
 	size_t framebufferCapacity,
 	size_t shaderCapacity,
-	size_t pipelineCapacity);
+	size_t pipelineCapacity,
+	size_t meshCapacity);
 Window createAnyWindow(
 	bool useStencilBuffer,
 	Vec2U size,
@@ -402,13 +413,166 @@ Window getBufferWindow(Buffer buffer);
 uint8_t getBufferType(Buffer buffer);
 size_t getBufferSize(Buffer buffer);
 bool isBufferConstant(Buffer buffer);
-void* getBufferHandle(Buffer buffer);
 
 void setBufferData(
 	Buffer buffer,
 	const void* data,
 	size_t size,
 	size_t offset);
+
+ImageData createImageDataFromFile(
+	const char* filePath,
+	uint8_t channelCount);
+void destroyImageData(ImageData imageData);
+
+const uint8_t* getImageDataPixels(ImageData imageData);
+Vec2U getImageDataSize(ImageData imageData);
+uint8_t getImageDataChannelCount(ImageData imageData);
+
+Image createImage(
+	Window window,
+	uint8_t type,
+	uint8_t format,
+	Vec3U size,
+	const void** data,
+	uint8_t levelCount);
+Image createImageFromFile(
+	Window window,
+	uint8_t format,
+	const char* filePath,
+	bool generateMipmap);
+void destroyImage(Image image);
+
+void setImageData(
+	Image image,
+	const void* data,
+	Vec3U size,
+	Vec3U offset);
+
+Window getImageWindow(Image image);
+uint8_t getImageType(Image image);
+uint8_t getImageFormat(Image image);
+Vec3U getImageSize(Image image);
+uint8_t getImageLevelCount(Vec3U imageSize);
+
+Sampler createSampler(
+	Window window,
+	uint8_t minImageFilter,
+	uint8_t magImageFilter,
+	uint8_t minMipmapFilter,
+	bool useMipmapping,
+	uint8_t imageWrapX,
+	uint8_t imageWrapY,
+	uint8_t imageWrapZ,
+	uint8_t compareOperation,
+	bool useCompare,
+	float minMipmapLod,
+	float maxMipmapLod,
+	float mipmapLodBias);
+void destroySampler(Sampler sampler);
+
+Window getSamplerWindow(Sampler sampler);
+uint8_t getSamplerMinImageFilter(Sampler sampler);
+uint8_t getSamplerMagImageFilter(Sampler sampler);
+uint8_t getSamplerMinMipmapFilter(Sampler sampler);
+bool isSamplerUseMipmapping(Sampler sampler);
+uint8_t getSamplerImageWrapX(Sampler sampler);
+uint8_t getSamplerImageWrapY(Sampler sampler);
+uint8_t getSamplerImageWrapZ(Sampler sampler);
+uint8_t getSamplerCompareOperation(Sampler sampler);
+bool isSamplerUseCompare(Sampler sampler);
+float getSamplerMinMipmapLod(Sampler sampler);
+float getSamplerMaxMipmapLod(Sampler sampler);
+float getSamplerMipmapLodBias(Sampler sampler);
+
+Framebuffer createFramebuffer(
+	Window window,
+	Image* colorAttachments,
+	size_t colorAttachmentCount,
+	Image depthStencilAttachment);
+void destroyFramebuffer(Framebuffer framebuffer);
+
+Image* getFramebufferColorAttachments(
+	Framebuffer framebuffer);
+size_t getFramebufferColorAttachmentCount(
+	Framebuffer framebuffer);
+Image getFramebufferDepthStencilAttachment(
+	Framebuffer framebuffer);
+
+void beginFramebufferRender(Framebuffer framebuffer);
+void endFramebufferRender(Window window);
+
+void clearFramebuffer(
+	Window window,
+	bool clearColorBuffer,
+	bool clearDepthBuffer,
+	bool clearStencilBuffer,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil);
+
+Shader createShader(
+	Window window,
+	uint8_t type,
+	const void* code,
+	size_t size);
+Shader createShaderFromFile(
+	Window window,
+	uint8_t type,
+	const char* filePath);
+void destroyShader(Shader shader);
+
+Window getShaderWindow(Shader shader);
+uint8_t getShaderType(Shader shader);
+
+Pipeline createPipeline(
+	Window window,
+	const char* name,
+	Shader* shaders,
+	uint8_t shaderCount,
+	uint8_t drawMode,
+	uint8_t polygonMode,
+	uint8_t cullMode,
+	uint8_t depthCompare,
+	bool cullFace,
+	bool clockwiseFrontFace,
+	bool testDepth,
+	bool writeDepth,
+	bool clampDepth,
+	bool restartPrimitive,
+	bool discardRasterizer,
+	float lineWidth,
+	OnPipelineHandleDestroy onHandleDestroy,
+	OnPipelineHandleBind onHandleBind,
+	OnPipelineUniformsSet onUniformsSet,
+	void* handle,
+	void* createInfo);
+void destroyPipeline(
+	Pipeline pipeline,
+	bool destroyShaders);
+
+Window getPipelineWindow(Pipeline pipeline);
+const char* getPipelineName(Pipeline pipeline);
+Shader* getPipelineShaders(Pipeline pipeline);
+uint8_t getPipelineShaderCount(Pipeline pipeline);
+uint8_t getPipelineDrawMode(Pipeline pipeline);
+uint8_t getPipelinePolygonMode(Pipeline pipeline);
+uint8_t getPipelineCullMode(Pipeline pipeline);
+uint8_t getPipelineDepthCompare(Pipeline pipeline);
+bool isPipelineCullFace(Pipeline pipeline);
+bool isPipelineClockwiseFrontFace(Pipeline pipeline);
+bool isPipelineTestDepth(Pipeline pipeline);
+bool isPipelineWriteDepth(Pipeline pipeline);
+bool isPipelineClampDepth(Pipeline pipeline);
+bool isPipelineRestartPrimitive(Pipeline pipeline);
+bool isPipelineDiscardRasterizer(Pipeline pipeline);
+float getPipelineLineWidth(Pipeline pipeline);
+OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline);
+OnPipelineHandleBind getPipelineOnHandleBind(Pipeline pipeline);
+OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline);
+void* getPipelineHandle(Pipeline pipeline);
+
+void bindPipeline(Pipeline pipeline);
 
 Mesh createMesh(
 	Window window,
@@ -452,135 +616,3 @@ void setMeshIndexBuffer(
 size_t drawMesh(
 	Mesh mesh,
 	Pipeline pipeline);
-
-ImageData createImageDataFromFile(
-	const char* filePath,
-	uint8_t channelCount);
-void destroyImageData(ImageData imageData);
-
-const uint8_t* getImageDataPixels(ImageData imageData);
-Vec2U getImageDataSize(ImageData imageData);
-uint8_t getImageDataChannelCount(ImageData imageData);
-
-Image createImage(
-	Window window,
-	uint8_t type,
-	uint8_t format,
-	Vec3U size,
-	const void** data,
-	uint8_t levelCount);
-Image createImageFromFile(
-	Window window,
-	uint8_t format,
-	const char* filePath,
-	bool generateMipmap);
-void destroyImage(Image image);
-
-void setImageData(
-	Image image,
-	const void* data,
-	Vec3U size,
-	Vec3U offset);
-
-Window getImageWindow(Image image);
-uint8_t getImageType(Image image);
-uint8_t getImageFormat(Image image);
-Vec3U getImageSize(Image image);
-void* getImageHandle(Image image);
-uint8_t getImageLevelCount(Vec3U imageSize);
-
-Sampler createSampler(
-	Window window,
-	uint8_t minImageFilter,
-	uint8_t magImageFilter,
-	uint8_t minMipmapFilter,
-	bool useMipmapping,
-	uint8_t imageWrapX,
-	uint8_t imageWrapY,
-	uint8_t imageWrapZ,
-	uint8_t imageCompare,
-	bool useCompare,
-	float minMipmapLod,
-	float maxMipmapLod,
-	float mipmapLodBias);
-void destroySampler(Sampler sampler);
-
-Window getSamplerWindow(Sampler sampler);
-uint8_t getSamplerMinImageFilter(Sampler sampler);
-uint8_t getSamplerMagImageFilter(Sampler sampler);
-uint8_t getSamplerMinMipmapFilter(Sampler sampler);
-bool isSamplerUseMipmapping(Sampler sampler);
-uint8_t getSamplerImageWrapX(Sampler sampler);
-uint8_t getSamplerImageWrapY(Sampler sampler);
-uint8_t getSamplerImageWrapZ(Sampler sampler);
-uint8_t getSamplerImageCompare(Sampler sampler);
-bool isSamplerUseCompare(Sampler sampler);
-float getSamplerMinMipmapLod(Sampler sampler);
-float getSamplerMaxMipmapLod(Sampler sampler);
-void* getSamplerHandle(Sampler sampler);
-
-Framebuffer createFramebuffer(
-	Window window,
-	Image* colorAttachments,
-	size_t colorAttachmentCount,
-	Image depthStencilAttachment);
-void destroyFramebuffer(Framebuffer framebuffer);
-
-Image* getFramebufferColorAttachments(
-	Framebuffer framebuffer);
-size_t getFramebufferColorAttachmentCount(
-	Framebuffer framebuffer);
-Image getFramebufferDepthStencilAttachment(
-	Framebuffer framebuffer);
-
-void beginFramebufferRender(Framebuffer framebuffer);
-void endFramebufferRender(Window window);
-
-void clearFramebuffer(
-	Window window,
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil);
-
-Shader createShader(
-	Window window,
-	uint8_t type,
-	const void* code,
-	size_t size);
-Shader createShaderFromFile(
-	Window window,
-	uint8_t type,
-	const char* filePath);
-void destroyShader(Shader shader);
-
-Window getShaderWindow(Shader shader);
-uint8_t getShaderType(Shader shader);
-void* getShaderHandle(Shader shader);
-
-Pipeline createPipeline(
-	Window window,
-	const char* name,
-	uint8_t drawMode,
-	OnPipelineHandleDestroy onHandleDestroy,
-	OnPipelineHandleBind onHandleBind,
-	OnPipelineUniformsSet onUniformsSet,
-	void* handle);
-void destroyPipeline(Pipeline pipeline);
-
-Window getPipelineWindow(Pipeline pipeline);
-const char* getPipelineName(Pipeline pipeline);
-OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline);
-OnPipelineHandleBind getPipelineOnHandleBind(Pipeline pipeline);
-OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline);
-void* getPipelineHandle(Pipeline pipeline);
-
-uint8_t getPipelineDrawMode(
-	Pipeline pipeline);
-void setPipelineDrawMode(
-	Pipeline pipeline,
-	uint8_t drawMode);
-
-void bindPipeline(Pipeline pipeline);

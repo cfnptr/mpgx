@@ -1,4 +1,5 @@
 #pragma once
+#include "mpgx/_source/image.h"
 
 typedef struct _VkFramebuffer
 {

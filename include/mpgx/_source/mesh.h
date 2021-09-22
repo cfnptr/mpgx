@@ -1,5 +1,6 @@
 #pragma once
 #include "mpgx/_source/buffer.h"
+#include "mpgx/_source/pipeline.h"
 
 typedef struct _VkMesh
 {
@@ -157,9 +158,7 @@ inline static void drawVkMesh(
 
 inline static void drawGlMesh(
 	Mesh mesh,
-	Pipeline pipeline,
-	OnPipelineUniformsSet onUniformsSet,
-	uint8_t drawMode)
+	Pipeline pipeline)
 {
 	glBindVertexArray(
 		mesh->gl.handle);
@@ -171,36 +170,8 @@ inline static void drawGlMesh(
 		mesh->gl.indexBuffer->gl.handle);
 	assertOpenGL();
 
-	onUniformsSet(pipeline);
-
-	GLenum glDrawMode;
-
-	switch (drawMode)
-	{
-	default:
-		abort();
-	case POINT_LIST_DRAW_MODE:
-		glDrawMode = GL_POINTS;
-		break;
-	case LINE_STRIP_DRAW_MODE:
-		glDrawMode = GL_LINE_STRIP;
-		break;
-	case LINE_LOOP_DRAW_MODE:
-		glDrawMode = GL_LINE_LOOP;
-		break;
-	case LINE_LIST_DRAW_MODE:
-		glDrawMode = GL_LINES;
-		break;
-	case TRIANGLE_STRIP_DRAW_MODE:
-		glDrawMode = GL_TRIANGLE_STRIP;
-		break;
-	case TRIANGLE_FAN_DRAW_MODE:
-		glDrawMode = GL_TRIANGLE_FAN;
-		break;
-	case TRIANGLE_LIST_DRAW_MODE:
-		glDrawMode = GL_TRIANGLES;
-		break;
-	}
+	if (pipeline->gl.onUniformsSet != NULL)
+		pipeline->gl.onUniformsSet(pipeline);
 
 	uint8_t drawIndex = mesh->gl.drawIndex;
 
@@ -223,7 +194,7 @@ inline static void drawGlMesh(
 	}
 
 	glDrawElements(
-		glDrawMode,
+		pipeline->gl.glDrawMode,
 		(GLsizei)mesh->gl.indexCount,
 		glDrawIndex,
 		(const void*)glIndexOffset);

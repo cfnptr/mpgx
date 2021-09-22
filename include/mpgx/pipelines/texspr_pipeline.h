@@ -8,13 +8,8 @@ Pipeline createTexSprPipeline(
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
-	Sampler sampler,
-	uint8_t drawMode);
+	Sampler sampler);
 
-Shader getTexSprPipelineVertexShader(
-	Pipeline pipeline);
-Shader getTexSprPipelineFragmentShader(
-	Pipeline pipeline);
 Image getTexSprPipelineTexture(
 	Pipeline pipeline);
 Sampler getTexSprPipelineSampler(

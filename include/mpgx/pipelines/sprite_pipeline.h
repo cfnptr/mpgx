@@ -6,13 +6,7 @@
 Pipeline createSpritePipeline(
 	Window window,
 	Shader vertexShader,
-	Shader fragmentShader,
-	uint8_t drawMode);
-
-Shader getSpritePipelineVertexShader(
-	Pipeline pipeline);
-Shader getSpritePipelineFragmentShader(
-	Pipeline pipeline);
+	Shader fragmentShader);
 
 Mat4F getSpritePipelineMvp(
 	Pipeline pipeline);

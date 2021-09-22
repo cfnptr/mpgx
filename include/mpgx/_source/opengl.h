@@ -56,122 +56,37 @@ inline static void assertOpenGL()
 #endif
 }
 
-inline static bool getGlImageFilter(
-	uint8_t imageFilter,
-	uint8_t mipmapFilter,
-	bool useMipmapping,
-	GLenum* glImageFilter)
+inline static bool getGlCompareOperation(
+	uint8_t compareOperation,
+	GLenum* glCompareOperation)
 {
-	if (imageFilter == NEAREST_IMAGE_FILTER)
-	{
-		if (useMipmapping == true)
-		{
-			if (mipmapFilter == NEAREST_IMAGE_FILTER)
-			{
-				*glImageFilter = GL_NEAREST_MIPMAP_NEAREST;
-				return true;
-			}
-			else if (mipmapFilter == LINEAR_IMAGE_FILTER)
-			{
-				*glImageFilter = GL_NEAREST_MIPMAP_LINEAR;
-				return true;
-			}
-			else
-			{
-				return false;
-			}
-		}
-		else
-		{
-			*glImageFilter = GL_NEAREST;
-			return true;
-		}
-	}
-	else if (imageFilter == LINEAR_IMAGE_FILTER)
-	{
-		if (useMipmapping == true)
-		{
-			if (mipmapFilter == NEAREST_IMAGE_FILTER)
-			{
-				*glImageFilter = GL_LINEAR_MIPMAP_NEAREST;
-				return true;
-			}
-			else if (mipmapFilter == LINEAR_IMAGE_FILTER)
-			{
-				*glImageFilter = GL_LINEAR_MIPMAP_LINEAR;
-				return true;
-			}
-			else
-			{
-				return false;
-			}
-		}
-		else
-		{
-			*glImageFilter = GL_LINEAR;
-			return true;
-		}
-	}
-	else
-	{
-		return false;
-	}
-}
-inline static bool getGlImageWrap(
-	uint8_t imageWrap,
-	GLenum* glImageWrap)
-{
-	if (imageWrap == CLAMP_TO_EDGE_IMAGE_WRAP)
-	{
-		*glImageWrap = GL_CLAMP_TO_EDGE;
-		return true;
-	}
-	else if (imageWrap == MIRRORED_REPEAT_IMAGE_WRAP)
-	{
-		*glImageWrap = GL_MIRRORED_REPEAT;
-		return true;
-	}
-	else if (imageWrap == REPEAT_IMAGE_WRAP)
-	{
-		*glImageWrap = GL_REPEAT;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-inline static bool getGlImageCompare(
-	uint8_t imageCompare,
-	GLenum* glImageCompare)
-{
-	switch (imageCompare)
+	switch (compareOperation)
 	{
 	default:
 		return false;
-	case LESS_IMAGE_COMPARE:
-		*glImageCompare = GL_LESS;
+	case LESS_COMPARE_OPERATION:
+		*glCompareOperation = GL_LESS;
 		return true;
-	case LESS_OR_EQUAL_IMAGE_COMPARE:
-		*glImageCompare = GL_LEQUAL;
+	case LESS_OR_EQUAL_COMPARE_OPERATION:
+		*glCompareOperation = GL_LEQUAL;
 		return true;
-	case GREATER_OR_EQUAL_IMAGE_COMPARE:
-		*glImageCompare = GL_GEQUAL;
+	case GREATER_OR_EQUAL_COMPARE_OPERATION:
+		*glCompareOperation = GL_GEQUAL;
 		return true;
-	case GREATER_IMAGE_COMPARE:
-		*glImageCompare = GL_GREATER;
+	case GREATER_COMPARE_OPERATION:
+		*glCompareOperation = GL_GREATER;
 		return true;
-	case EQUAL_IMAGE_COMPARE:
-		*glImageCompare = GL_EQUAL;
+	case EQUAL_COMPARE_OPERATION:
+		*glCompareOperation = GL_EQUAL;
 		return true;
-	case NOT_EQUAL_IMAGE_COMPARE:
-		*glImageCompare = GL_NOTEQUAL;
+	case NOT_EQUAL_COMPARE_OPERATION:
+		*glCompareOperation = GL_NOTEQUAL;
 		return true;
-	case ALWAYS_IMAGE_COMPARE:
-		*glImageCompare = GL_ALWAYS;
+	case ALWAYS_COMPARE_OPERATION:
+		*glCompareOperation = GL_ALWAYS;
 		return true;
-	case NEVER_IMAGE_COMPARE:
-		*glImageCompare = GL_NEVER;
+	case NEVER_COMPARE_OPERATION:
+		*glCompareOperation = GL_NEVER;
 		return true;
 	}
 }

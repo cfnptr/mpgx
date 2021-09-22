@@ -126,14 +126,14 @@ inline static Shader createGlShader(
 
 	glCompileShader(handle);
 
-	GLint result;
+	GLint compileStatus;
 
 	glGetShaderiv(
 		handle,
 		GL_COMPILE_STATUS,
-		&result);
+		&compileStatus);
 
-	if (result == GL_FALSE)
+	if (compileStatus == GL_FALSE)
 	{
 		GLint length = 0;
 
@@ -212,7 +212,8 @@ inline static void destroyGlShader(
 	makeWindowContextCurrent(
 		shader->gl.window);
 
-	glDeleteShader(shader->gl.handle);
+	glDeleteShader(
+		shader->gl.handle);
 	assertOpenGL();
 
 	free(shader);

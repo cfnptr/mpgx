@@ -76,13 +76,8 @@ Pipeline createTextPipeline(
 	Window window,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Sampler sampler,
-	uint8_t drawMode);
+	Sampler sampler);
 
-Shader getTextPipelineVertexShader(
-	Pipeline pipeline);
-Shader getTextPipelineFragmentShader(
-	Pipeline pipeline);
 Sampler getTextPipelineSampler(
 	Pipeline pipeline);
 

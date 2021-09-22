@@ -1,12 +1,11 @@
 #include "mpgx/pipelines/texcol_pipeline.h"
 #include "mpgx/_source/pipeline.h"
+#include "mpgx/_source/sampler.h"
 
 #include <string.h>
 
 typedef struct VkPipelineHandle
 {
-	Shader vertexShader;
-	Shader fragmentShader;
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
@@ -16,15 +15,12 @@ typedef struct VkPipelineHandle
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
-	Shader vertexShader;
-	Shader fragmentShader;
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
 	Vec2F size;
 	Vec2F offset;
-	GLuint handle;
 	GLint mvpLocation;
 	GLint colorLocation;
 	GLint sizeLocation;
@@ -37,197 +33,54 @@ typedef union PipelineHandle
 	GlPipelineHandle gl;
 } PipelineHandle;
 
-inline static PipelineHandle* createGlPipelineHandle(
-	Window window,
-	Shader vertexShader,
-	Shader fragmentShader,
-	Image texture,
-	Sampler sampler)
-{
-	PipelineHandle* pipelineHandle = malloc(
-		sizeof(PipelineHandle));
-
-	if (pipelineHandle == NULL)
-		return NULL;
-
-	Shader shaders[2] = {
-		vertexShader,
-		fragmentShader,
-	};
-
-	GLuint glHandle = createGlPipeline(
-		window,
-		shaders,
-		2);
-
-	if (glHandle == GL_ZERO)
-	{
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	GLint mvpLocation = getGlUniformLocation(
-		glHandle,
-		"u_MVP");
-
-	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(glHandle);
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	GLint colorLocation = getGlUniformLocation(
-		glHandle,
-		"u_Color");
-
-	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(glHandle);
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	GLint sizeLocation = getGlUniformLocation(
-		glHandle,
-		"u_Size");
-
-	if (sizeLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(glHandle);
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	GLint offsetLocation = getGlUniformLocation(
-		glHandle,
-		"u_Offset");
-
-	if (offsetLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(glHandle);
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	GLint textureLocation = getGlUniformLocation(
-		glHandle,
-		"u_Texture");
-
-	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(glHandle);
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	assertOpenGL();
-
-	pipelineHandle->gl.vertexShader = vertexShader;
-	pipelineHandle->gl.fragmentShader = fragmentShader;
-	pipelineHandle->gl.texture = texture;
-	pipelineHandle->gl.sampler = sampler;
-	pipelineHandle->gl.mvp = identMat4F();
-	pipelineHandle->gl.color = oneVec4F();
-	pipelineHandle->gl.size = oneVec2F();
-	pipelineHandle->gl.offset = zeroVec2F();
-	pipelineHandle->gl.handle = glHandle;
-	pipelineHandle->gl.mvpLocation = mvpLocation;
-	pipelineHandle->gl.colorLocation = colorLocation;
-	pipelineHandle->gl.sizeLocation = sizeLocation;
-	pipelineHandle->gl.offsetLocation = offsetLocation;
-	pipelineHandle->gl.textureLocation = textureLocation;
-	return pipelineHandle;
-}
-static void onGlPipelineHandleDestroy(
-	Window window,
-	void* handle)
+static void onGlPipelineHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle =
 		(PipelineHandle*)handle;
-	destroyGlPipeline(
-		window,
-		pipelineHandle->gl.handle);
 	free(handle);
 }
-static void onGlPipelineHandleBind(
-	Pipeline pipeline)
+static void onGlPipelineHandleBind(Pipeline pipeline)
 {
-	Vec2U size = getWindowFramebufferSize(
-		getPipelineWindow(pipeline));
-
-	glViewport(
-		0,
-		0,
-		(GLsizei)size.x,
-		(GLsizei)size.y);
-
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-
-	glUseProgram(pipelineHandle->gl.handle);
-
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glDisable(GL_SCISSOR_TEST);
-	glDisable(GL_STENCIL_TEST);
-	glDisable(GL_BLEND);
-
-	glColorMask(
-		GL_TRUE, GL_TRUE,
-		GL_TRUE, GL_TRUE);
-
-	glDepthFunc(GL_LESS);
-	glDepthMask(GL_TRUE);
-	glDepthRange(0.0f, 1.0f);
-	glPolygonOffset(0.0f, 0.0f);
-
-	glFrontFace(GL_CW);
-	glCullFace(GL_BACK);
+	PipelineHandle* handle =
+		pipeline->gl.handle;
 
 	glUniform1i(
-		pipelineHandle->gl.textureLocation,
+		handle->gl.textureLocation,
 		0);
 
 	glActiveTexture(GL_TEXTURE0);
 
-	GLuint glTexture= (GLuint)(uintptr_t)
-		getImageHandle(pipelineHandle->gl.texture);
-	GLuint glSampler = (GLuint)(uintptr_t)
-		getSamplerHandle(pipelineHandle->gl.sampler);
-
 	glBindTexture(
 		GL_TEXTURE_2D,
-		glTexture);
+		handle->gl.texture->gl.handle);
 	glBindSampler(
 		0,
-		glSampler);
+		handle->gl.sampler->gl.handle);
 
 	assertOpenGL();
 }
-static void onGlPipelineUniformsSet(
-	Pipeline pipeline)
+static void onGlPipelineUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+	PipelineHandle* handle =
+		pipeline->gl.handle;
 
 	glUniformMatrix4fv(
-		pipelineHandle->gl.mvpLocation,
+		handle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&pipelineHandle->gl.mvp);
+		(const GLfloat*)&handle->gl.mvp);
 	glUniform4fv(
-		pipelineHandle->gl.colorLocation,
+		handle->gl.colorLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.color);
+		(const GLfloat*)&handle->gl.color);
 	glUniform2fv(
-		pipelineHandle->gl.sizeLocation,
+		handle->gl.sizeLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.size);
+		(const GLfloat*)&handle->gl.size);
 	glUniform2fv(
-		pipelineHandle->gl.offsetLocation,
+		handle->gl.offsetLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.offset);
+		(const GLfloat*)&handle->gl.offset);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -249,20 +102,148 @@ static void onGlPipelineUniformsSet(
 
 	assertOpenGL();
 }
+inline static Pipeline createGlPipelineHandle(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	Image texture,
+	Sampler sampler)
+{
+	PipelineHandle* handle = malloc(
+		sizeof(PipelineHandle));
+
+	if (handle == NULL)
+		return NULL;
+
+	Shader shaders[2] = {
+		vertexShader,
+		fragmentShader,
+	};
+
+	Pipeline pipeline = createPipeline(
+		window,
+		TEX_COL_PIPELINE_NAME,
+		shaders,
+		2,
+		TRIANGLE_LIST_DRAW_MODE,
+		FILL_POLYGON_MODE,
+		BACK_CULL_MODE,
+		LESS_COMPARE_OPERATION,
+		true,
+		true,
+		true,
+		true,
+		false,
+		false,
+		false,
+		DEFAULT_LINE_WIDTH,
+		onGlPipelineHandleDestroy,
+		onGlPipelineHandleBind,
+		onGlPipelineUniformsSet,
+		handle,
+		NULL);
+
+	if (pipeline == NULL)
+	{
+		free(handle);
+		return NULL;
+	}
+
+	GLuint glHandle = pipeline->gl.glHandle;
+
+	GLint mvpLocation = getGlUniformLocation(
+		glHandle,
+		"u_MVP");
+
+	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		free(handle);
+		return NULL;
+	}
+
+	GLint colorLocation = getGlUniformLocation(
+		glHandle,
+		"u_Color");
+
+	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		free(handle);
+		return NULL;
+	}
+
+	GLint sizeLocation = getGlUniformLocation(
+		glHandle,
+		"u_Size");
+
+	if (sizeLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		free(handle);
+		return NULL;
+	}
+
+	GLint offsetLocation = getGlUniformLocation(
+		glHandle,
+		"u_Offset");
+
+	if (offsetLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		free(handle);
+		return NULL;
+	}
+
+	GLint textureLocation = getGlUniformLocation(
+		glHandle,
+		"u_Texture");
+
+	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		free(handle);
+		return NULL;
+	}
+
+	assertOpenGL();
+
+	handle->gl.texture = texture;
+	handle->gl.sampler = sampler;
+	handle->gl.mvp = identMat4F();
+	handle->gl.color = oneVec4F();
+	handle->gl.size = oneVec2F();
+	handle->gl.offset = zeroVec2F();
+	handle->gl.mvpLocation = mvpLocation;
+	handle->gl.colorLocation = colorLocation;
+	handle->gl.sizeLocation = sizeLocation;
+	handle->gl.offsetLocation = offsetLocation;
+	handle->gl.textureLocation = textureLocation;
+	return pipeline;
+}
+
 Pipeline createTexColPipeline(
 	Window window,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
-	Sampler sampler,
-	uint8_t drawMode)
+	Sampler sampler)
 {
 	assert(window != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
 	assert(texture != NULL);
 	assert(sampler != NULL);
-	assert(drawMode < DRAW_MODE_COUNT);
 	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
 	assert(getShaderWindow(vertexShader) == window);
@@ -272,75 +253,29 @@ Pipeline createTexColPipeline(
 
 	uint8_t api = getWindowGraphicsAPI(window);
 
-	PipelineHandle* pipelineHandle;
-	OnPipelineHandleDestroy onHandleDestroy;
-	OnPipelineHandleBind onHandleBind;
-	OnPipelineUniformsSet onUniformsSet;
+	Pipeline pipeline;
 
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		pipelineHandle = createGlPipelineHandle(
+		pipeline = createGlPipelineHandle(
 			window,
 			vertexShader,
 			fragmentShader,
 			texture,
 			sampler);
-
-		onHandleDestroy = onGlPipelineHandleDestroy;
-		onHandleBind = onGlPipelineHandleBind;
-		onUniformsSet = onGlPipelineUniformsSet;
 	}
 	else
 	{
 		return NULL;
 	}
 
-	if (pipelineHandle == NULL)
-		return NULL;
-
-	Pipeline pipeline = createPipeline(
-		window,
-		TEX_COL_PIPELINE_NAME,
-		drawMode,
-		onHandleDestroy,
-		onHandleBind,
-		onUniformsSet,
-		pipelineHandle);
-
 	if (pipeline == NULL)
-	{
-		onHandleDestroy(
-			window,
-			pipelineHandle);
 		return NULL;
-	}
 
 	return pipeline;
 }
 
-Shader getTexColPipelineVertexShader(
-	Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		getPipelineName(pipeline),
-		TEX_COL_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-	return pipelineHandle->vk.vertexShader;
-}
-Shader getTexColPipelineFragmentShader(
-	Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		getPipelineName(pipeline),
-		TEX_COL_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-	return pipelineHandle->vk.fragmentShader;
-}
 Image getTexColPipelineTexture(
 	Pipeline pipeline)
 {
@@ -349,7 +284,7 @@ Image getTexColPipelineTexture(
 		getPipelineName(pipeline),
 		TEX_COL_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.texture;
 }
 Sampler getTexColPipelineSampler(
@@ -360,7 +295,7 @@ Sampler getTexColPipelineSampler(
 		getPipelineName(pipeline),
 		TEX_COL_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.sampler;
 }
 
@@ -372,7 +307,7 @@ Mat4F getTexColPipelineMvp(
 		getPipelineName(pipeline),
 		TEX_COL_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.mvp;
 }
 void setTexColPipelineMvp(
@@ -384,7 +319,7 @@ void setTexColPipelineMvp(
 		getPipelineName(pipeline),
 		TEX_COL_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	pipelineHandle->vk.mvp = mvp;
 }
 
@@ -396,7 +331,7 @@ Vec4F getTexColPipelineColor(
 		getPipelineName(pipeline),
 		TEX_COL_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.color;
 }
 void setTexColPipelineColor(
@@ -412,7 +347,7 @@ void setTexColPipelineColor(
 		getPipelineName(pipeline),
 		TEX_COL_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	pipelineHandle->vk.color = color;
 }
 
@@ -424,7 +359,7 @@ Vec2F getTexColPipelineSize(
 		getPipelineName(pipeline),
 		TEX_COL_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.size;
 }
 void setTexColPipelineSize(
@@ -436,7 +371,7 @@ void setTexColPipelineSize(
 		getPipelineName(pipeline),
 		TEX_COL_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	pipelineHandle->vk.size = size;
 }
 
@@ -448,7 +383,7 @@ Vec2F getTexColPipelineOffset(
 		getPipelineName(pipeline),
 		TEX_COL_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.offset;
 }
 void setTexColPipelineOffset(
@@ -460,6 +395,6 @@ void setTexColPipelineOffset(
 		getPipelineName(pipeline),
 		TEX_COL_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	pipelineHandle->vk.offset = offset;
 }

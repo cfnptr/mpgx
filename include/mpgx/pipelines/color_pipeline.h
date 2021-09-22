@@ -6,13 +6,7 @@
 Pipeline createColorPipeline(
 	Window window,
 	Shader vertexShader,
-	Shader fragmentShader,
-	uint8_t drawMode);
-
-Shader getColorPipelineVertexShader(
-	Pipeline pipeline);
-Shader getColorPipelineFragmentShader(
-	Pipeline pipeline);
+	Shader fragmentShader);
 
 Mat4F getColorPipelineMvp(
 	Pipeline pipeline);

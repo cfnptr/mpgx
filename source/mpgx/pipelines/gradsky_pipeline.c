@@ -1,5 +1,6 @@
 #include "mpgx/pipelines/gradsky_pipeline.h"
 #include "mpgx/_source/pipeline.h"
+#include "mpgx/_source/sampler.h"
 
 #include <string.h>
 
@@ -11,8 +12,6 @@ struct GradSkyAmbient
 
 typedef struct VkPipelineHandle
 {
-	Shader vertexShader;
-	Shader fragmentShader;
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
@@ -20,13 +19,10 @@ typedef struct VkPipelineHandle
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
-	Shader vertexShader;
-	Shader fragmentShader;
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
 	float sunHeight;
-	GLuint handle;
 	GLint mvpLocation;
 	GLint sunHeightLocation;
 	GLint textureLocation;
@@ -133,176 +129,53 @@ Sampler createGradSkySampler(Window window)
 		CLAMP_TO_EDGE_IMAGE_WRAP,
 		CLAMP_TO_EDGE_IMAGE_WRAP,
 		REPEAT_IMAGE_WRAP,
-		NEVER_IMAGE_COMPARE,
+		NEVER_COMPARE_OPERATION,
 		false,
 		DEFAULT_MIN_MIPMAP_LOD,
 		DEFAULT_MAX_MIPMAP_LOD,
 		DEFAULT_MIPMAP_LOD_BIAS);
 }
 
-inline static PipelineHandle* createGlPipelineHandle(
-	Window window,
-	Shader vertexShader,
-	Shader fragmentShader,
-	Image texture,
-	Sampler sampler)
-{
-	PipelineHandle* pipelineHandle = malloc(
-		sizeof(PipelineHandle));
-
-	if (pipelineHandle == NULL)
-		return NULL;
-
-	Shader shaders[2] = {
-		vertexShader,
-		fragmentShader,
-	};
-
-	GLuint glHandle = createGlPipeline(
-		window,
-		shaders,
-		2);
-
-	if (glHandle == GL_ZERO)
-	{
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	GLint mvpLocation = getGlUniformLocation(
-		glHandle,
-		"u_MVP");
-
-	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(glHandle);
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	GLint sunHeightLocation = getGlUniformLocation(
-		glHandle,
-		"u_SunHeight");
-
-	if (sunHeightLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(glHandle);
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	GLint textureLocation = getGlUniformLocation(
-		glHandle,
-		"u_Texture");
-
-	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		glDeleteProgram(glHandle);
-		free(pipelineHandle);
-		return NULL;
-	}
-
-	assertOpenGL();
-
-	pipelineHandle->gl.vertexShader = vertexShader;
-	pipelineHandle->gl.fragmentShader = fragmentShader;
-	pipelineHandle->gl.texture = texture;
-	pipelineHandle->gl.sampler = sampler;
-	pipelineHandle->gl.mvp = identMat4F();
-	pipelineHandle->gl.mvp = identMat4F();
-	pipelineHandle->gl.sunHeight = 1.0f;
-	pipelineHandle->gl.handle = glHandle;
-	pipelineHandle->gl.mvpLocation = mvpLocation;
-	pipelineHandle->gl.sunHeightLocation = sunHeightLocation;
-	pipelineHandle->gl.textureLocation = textureLocation;
-	return pipelineHandle;
-}
-static void onGlPipelineHandleDestroy(
-	Window window,
-	void* handle)
+static void onGlPipelineHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle =
 		(PipelineHandle*)handle;
-	destroyGlPipeline(
-		window,
-		pipelineHandle->gl.handle);
 	free(pipelineHandle);
 }
-static void onGlPipelineHandleBind(
-	Pipeline pipeline)
+static void onGlPipelineHandleBind(Pipeline pipeline)
 {
-	Vec2U size = getWindowFramebufferSize(
-		getPipelineWindow(pipeline));
-
-	glViewport(
-		0,
-		0,
-		(GLsizei)size.x,
-		(GLsizei)size.y);
-
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-
-	glUseProgram(pipelineHandle->gl.handle);
-
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glDisable(GL_SCISSOR_TEST);
-	glDisable(GL_STENCIL_TEST);
-	glEnable(GL_BLEND);
-
-	glColorMask(
-		GL_TRUE, GL_TRUE,
-		GL_TRUE, GL_TRUE);
-
-	glDepthFunc(GL_LESS);
-	glDepthMask(GL_TRUE);
-	glDepthRange(0.0f, 1.0f);
-	glPolygonOffset(0.0f, 0.0f);
-
-	glFrontFace(GL_CW);
-	glCullFace(GL_BACK);
-
-	glBlendFunc(
-		GL_SRC_ALPHA,
-		GL_ONE_MINUS_SRC_ALPHA);
-	glBlendEquation(GL_FUNC_ADD);
+	PipelineHandle* handle =
+		pipeline->gl.handle;
 
 	glUniform1i(
-		pipelineHandle->gl.textureLocation,
+		handle->gl.textureLocation,
 		0);
 
 	glActiveTexture(GL_TEXTURE0);
 
-	GLuint glTexture= (GLuint)(uintptr_t)
-		getImageHandle(pipelineHandle->gl.texture);
-	GLuint glSampler = (GLuint)(uintptr_t)
-		getSamplerHandle(pipelineHandle->gl.sampler);
-
 	glBindTexture(
 		GL_TEXTURE_2D,
-		glTexture);
+		handle->gl.texture->gl.handle);
 	glBindSampler(
 		0,
-		glSampler);
+		handle->gl.sampler->gl.handle);
 
 	assertOpenGL();
 }
-static void onGlPipelineUniformsSet(
-	Pipeline pipeline)
+static void onGlPipelineUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+	PipelineHandle* handle =
+		pipeline->gl.handle;
 
 	glUniformMatrix4fv(
-		pipelineHandle->gl.mvpLocation,
+		handle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&pipelineHandle->gl.mvp);
+		(const GLfloat*)&handle->gl.mvp);
 	glUniform1fv(
-		pipelineHandle->gl.sunHeightLocation,
+		handle->gl.sunHeightLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.sunHeight);
+		(const GLfloat*)&handle->gl.sunHeight);
 
 	glEnableVertexAttribArray(0);
 
@@ -316,20 +189,119 @@ static void onGlPipelineUniformsSet(
 
 	assertOpenGL();
 }
+inline static Pipeline createGlPipelineHandle(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	Image texture,
+	Sampler sampler)
+{
+	PipelineHandle* handle = malloc(
+		sizeof(PipelineHandle));
+
+	if (handle == NULL)
+		return NULL;
+
+	Shader shaders[2] = {
+		vertexShader,
+		fragmentShader,
+	};
+
+	Pipeline pipeline = createPipeline(
+		window,
+		GRAD_SKY_PIPELINE_NAME,
+		shaders,
+		2,
+		TRIANGLE_LIST_DRAW_MODE,
+		FILL_POLYGON_MODE,
+		BACK_CULL_MODE,
+		LESS_COMPARE_OPERATION,
+		true,
+		true,
+		true,
+		true,
+		false,
+		false,
+		false,
+		DEFAULT_LINE_WIDTH,
+		onGlPipelineHandleDestroy,
+		onGlPipelineHandleBind,
+		onGlPipelineUniformsSet,
+		handle,
+		NULL);
+
+	if (pipeline == NULL)
+	{
+		free(handle);
+		return NULL;
+	}
+
+	GLuint glHandle = pipeline->gl.glHandle;
+
+	GLint mvpLocation = getGlUniformLocation(
+		glHandle,
+		"u_MVP");
+
+	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		free(handle);
+		return NULL;
+	}
+
+	GLint sunHeightLocation = getGlUniformLocation(
+		glHandle,
+		"u_SunHeight");
+
+	if (sunHeightLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		free(handle);
+		return NULL;
+	}
+
+	GLint textureLocation = getGlUniformLocation(
+		glHandle,
+		"u_Texture");
+
+	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		free(handle);
+		return NULL;
+	}
+
+	assertOpenGL();
+
+	handle->gl.texture = texture;
+	handle->gl.sampler = sampler;
+	handle->gl.mvp = identMat4F();
+	handle->gl.mvp = identMat4F();
+	handle->gl.sunHeight = 1.0f;
+	handle->gl.mvpLocation = mvpLocation;
+	handle->gl.sunHeightLocation = sunHeightLocation;
+	handle->gl.textureLocation = textureLocation;
+	return pipeline;
+}
+
 Pipeline createGradSkyPipeline(
 	Window window,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
-	Sampler sampler,
-	uint8_t drawMode)
+	Sampler sampler)
 {
 	assert(window != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
 	assert(texture != NULL);
 	assert(sampler != NULL);
-	assert(drawMode < DRAW_MODE_COUNT);
 	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
 	assert(getShaderWindow(vertexShader) == window);
@@ -339,54 +311,30 @@ Pipeline createGradSkyPipeline(
 
 	uint8_t api = getWindowGraphicsAPI(window);
 
-	PipelineHandle* pipelineHandle;
-	OnPipelineHandleDestroy onHandleDestroy;
-	OnPipelineHandleBind onHandleBind;
-	OnPipelineUniformsSet onUniformsSet;
+	Pipeline pipeline;
 
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		pipelineHandle = createGlPipelineHandle(
+		pipeline = createGlPipelineHandle(
 			window,
 			vertexShader,
 			fragmentShader,
 			texture,
 			sampler);
-
-		onHandleDestroy = onGlPipelineHandleDestroy;
-		onHandleBind = onGlPipelineHandleBind;
-		onUniformsSet = onGlPipelineUniformsSet;
 	}
 	else
 	{
 		return NULL;
 	}
 
-	if (pipelineHandle == NULL)
-		return NULL;
-
-	Pipeline pipeline = createPipeline(
-		window,
-		GRAD_SKY_PIPELINE_NAME,
-		drawMode,
-		onHandleDestroy,
-		onHandleBind,
-		onUniformsSet,
-		pipelineHandle);
-
 	if (pipeline == NULL)
-	{
-		onHandleDestroy(
-			window,
-			pipelineHandle);
 		return NULL;
-	}
 
 	return pipeline;
 }
 
-Shader getPipelineHandleVertexShader(
+Image getGradSkyPipelineTexture(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -394,32 +342,10 @@ Shader getPipelineHandleVertexShader(
 		getPipelineName(pipeline),
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-	return pipelineHandle->vk.vertexShader;
-}
-Shader getPipelineHandleFragmentShader(
-	Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		getPipelineName(pipeline),
-		GRAD_SKY_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-	return pipelineHandle->vk.fragmentShader;
-}
-Image getPipelineHandleTexture(
-	Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		getPipelineName(pipeline),
-		GRAD_SKY_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.texture;
 }
-Sampler getPipelineHandleSampler(
+Sampler getGradSkyPipelineSampler(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -427,11 +353,11 @@ Sampler getPipelineHandleSampler(
 		getPipelineName(pipeline),
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.sampler;
 }
 
-Mat4F getPipelineHandleMvp(
+Mat4F getGradSkyPipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -439,10 +365,10 @@ Mat4F getPipelineHandleMvp(
 		getPipelineName(pipeline),
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.mvp;
 }
-void setPipelineHandleMvp(
+void setGradSkyPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp)
 {
@@ -451,11 +377,11 @@ void setPipelineHandleMvp(
 		getPipelineName(pipeline),
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	pipelineHandle->vk.mvp = mvp;
 }
 
-float getPipelineHandleSunHeight(
+float getGradSkyPipelineSunHeight(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -463,10 +389,10 @@ float getPipelineHandleSunHeight(
 		getPipelineName(pipeline),
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	return pipelineHandle->vk.sunHeight;
 }
-void setPipelineHandleSunHeight(
+void setGradSkyPipelineSunHeight(
 	Pipeline pipeline,
 	float sunHeight)
 {
@@ -475,6 +401,6 @@ void setPipelineHandleSunHeight(
 		getPipelineName(pipeline),
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->gl.handle;
 	pipelineHandle->vk.sunHeight = sunHeight;
 }

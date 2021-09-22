@@ -68,7 +68,10 @@ void destroyInterface(Interface interface)
 	for (size_t i = 0; i < elementCount; i++)
 	{
 		InterfaceElement element = elements[i];
-		element->onDestroy(element->handle);
+
+		if (element->onDestroy != NULL)
+			element->onDestroy(element->handle);
+
 		free(element);
 	}
 
@@ -361,7 +364,6 @@ InterfaceElement createInterfaceElement(
 	assert(interface != NULL);
 	assert(anchor < INTERFACE_ANCHOR_COUNT);
 	assert(transform != NULL);
-	assert(onDestroy != NULL);
 
 	InterfaceElement element = malloc(
 		sizeof(struct InterfaceElement));
@@ -422,7 +424,9 @@ void destroyInterfaceElement(
 		for (size_t j = i + 1; j < elementCount; j++)
 			elements[j - 1] = elements[j];
 
-		element->onDestroy(element->handle);
+		if (element->onDestroy != NULL)
+			element->onDestroy(element->handle);
+
 		free(element);
 		interface->elementCount--;
 		return;

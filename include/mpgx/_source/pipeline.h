@@ -1,6 +1,5 @@
 #pragma once
 #include "mpgx/_source/shader.h"
-
 #include <assert.h>
 
 #define GL_NULL_UNIFORM_LOCATION -1
@@ -70,8 +69,14 @@ union Pipeline
 #if MPGX_SUPPORT_VULKAN
 typedef struct VkPipelineCreateInfo
 {
-	VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo;
-	VkPipelineLayoutCreateInfo layoutCreateInfo;
+	uint32_t vertexBindingDescriptionCount;
+	const VkVertexInputBindingDescription* vertexBindingDescriptions;
+	uint32_t vertexAttributeDescriptionCount;
+	const VkVertexInputAttributeDescription* vertexAttributeDescriptions;
+	uint32_t setLayoutCount;
+	const VkDescriptorSetLayout* setLayouts;
+	uint32_t pushConstantRangeCount;
+	const VkPushConstantRange* pushConstantRanges;
 } VkPipelineCreateInfo;
 
 inline static bool getVkShaderType(
@@ -290,6 +295,16 @@ inline static Pipeline createVkPipeline(
 	VkFrontFace vkFrontFace = clockwiseFrontFace ?
 		VK_FRONT_FACE_CLOCKWISE : VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
+	VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = {
+		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+		NULL,
+		0,
+		createInfo->vertexBindingDescriptionCount,
+		createInfo->vertexBindingDescriptions,
+		createInfo->vertexAttributeDescriptionCount,
+		createInfo->vertexAttributeDescriptions,
+	};
+
 	VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 		NULL,
@@ -311,7 +326,7 @@ inline static Pipeline createVkPipeline(
 	};
 
 	VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {
-		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT,
+		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
 		NULL,
 		0,
 		clampDepth ? VK_TRUE : VK_FALSE,
@@ -328,7 +343,7 @@ inline static Pipeline createVkPipeline(
 
 	// TODO: multisampling
 	VkPipelineMultisampleStateCreateInfo multisampleStateCreateInfo = {
-		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT,
+		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
 		NULL,
 		0,
 		VK_SAMPLE_COUNT_1_BIT,
@@ -418,11 +433,21 @@ inline static Pipeline createVkPipeline(
 		return NULL;
 	}
 
+	VkPipelineLayoutCreateInfo layoutCreateInfo = {
+		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		NULL,
+		0,
+		createInfo->setLayoutCount,
+		createInfo->setLayouts,
+		createInfo->pushConstantRangeCount,
+		createInfo->pushConstantRanges,
+	};
+
 	VkPipelineLayout layout;
 
 	vkResult = vkCreatePipelineLayout(
 		device,
-		&createInfo->layoutCreateInfo,
+		&layoutCreateInfo,
 		NULL,
 		&layout);
 
@@ -444,7 +469,7 @@ inline static Pipeline createVkPipeline(
 		0,
 		shaderCount,
 		shaderStageCreateInfos,
-		&createInfo->vertexInputStateCreateInfo,
+		&vertexInputStateCreateInfo,
 		&inputAssemblyStateCreateInfo,
 		NULL,
 		&viewportStateCreateInfo,

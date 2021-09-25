@@ -15,6 +15,8 @@
 
 // TODO: fix a new framebuffer sRGB difference
 
+// TODO: check all /_source error return functions
+
 static const Vec2U defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
 	DEFAULT_WINDOW_HEIGHT
@@ -287,7 +289,7 @@ typedef union Pipeline* Pipeline;
 typedef struct ImageData* ImageData;
 
 typedef void(*OnWindowUpdate)(void* argument);
-typedef void(*OnPipelineHandleDestroy)(void* handle);
+typedef void(*OnPipelineHandleDestroy)(Window window, void* handle);
 typedef void(*OnPipelineHandleBind)(Pipeline pipeline);
 typedef void(*OnPipelineUniformsSet)(Pipeline pipeline);
 
@@ -337,7 +339,6 @@ uint8_t getWindowGraphicsAPI(Window window);
 bool isWindowUseStencilBuffer(Window window);
 OnWindowUpdate getWindowOnUpdate(Window window);
 void* getWindowUpdateArgument(Window window);
-uint32_t getWindowMaxImageSize(Window window);
 double getWindowUpdateTime(Window window);
 double getWindowDeltaTime(Window window);
 Vec2F getWindowContentScale(Window window);
@@ -345,6 +346,7 @@ Vec2U getWindowFramebufferSize(Window window);
 const char* getWindowClipboard(Window window);
 const char* getWindowGpuName(Window window);
 const char* getWindowGpuVendor(Window window);
+void* getVkWindow(Window window);
 
 bool getWindowKeyboardKey(
 	Window window,

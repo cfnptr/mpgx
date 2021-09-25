@@ -97,7 +97,7 @@ inline static Buffer createVkBuffer(
 	VmaAllocator allocator,
 	VkQueue transferQueue,
 	VkCommandPool transferCommandPool,
-	VkImageUsageFlags _vkUsage,
+	VkBufferUsageFlags _vkUsage,
 	Window window,
 	uint8_t type,
 	const void* data,
@@ -381,24 +381,24 @@ inline static Buffer createVkBuffer(
 				stagingBuffer,
 				stagingAllocation);
 		}
-	}
-	else
-	{
-		bool result = setVkBufferData(
-			allocator,
-			allocation,
-			data,
-			size,
-			0);
-
-		if (result == false)
+		else
 		{
-			vmaDestroyBuffer(
+			bool result = setVkBufferData(
 				allocator,
-				handle,
-				allocation);
-			free(buffer);
-			return NULL;
+				allocation,
+				data,
+				size,
+				0);
+
+			if (result == false)
+			{
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
 		}
 	}
 

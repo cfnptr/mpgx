@@ -1,5 +1,6 @@
 #include "mpgx/text.h"
 #include "mpgx/_source/pipeline.h"
+#include "mpgx/_source/image.h"
 #include "mpgx/_source/sampler.h"
 
 #include "ft2build.h"
@@ -1625,7 +1626,9 @@ Sampler createTextSampler(Window window)
 		DEFAULT_MIPMAP_LOD_BIAS);
 }
 
-static void onGlPipelineHandleDestroy(void* handle)
+static void onGlPipelineHandleDestroy(
+	Window window,
+	void* handle)
 {
 	PipelineHandle* pipelineHandle =
 		(PipelineHandle*)handle;

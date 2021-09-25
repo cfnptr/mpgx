@@ -21,7 +21,9 @@ typedef union PipelineHandle
 	GlPipelineHandle gl;
 } PipelineHandle;
 
-static void onGlPipelineHandleDestroy(void* handle)
+static void onGlPipelineHandleDestroy(
+	Window window,
+	void* handle)
 {
 	PipelineHandle* pipelineHandle =
 		(PipelineHandle*)handle;
@@ -29,8 +31,7 @@ static void onGlPipelineHandleDestroy(void* handle)
 }
 static void onGlPipelineUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle =
-		pipeline->gl.handle;
+	PipelineHandle* handle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
 		handle->gl.mvpLocation,

@@ -30,7 +30,7 @@ struct VkWindow
 	VkSemaphore imageOwnershipSemaphores[VK_FRAME_LAG];
 	VkSwapchain swapchain;
 	uint32_t frameIndex;
-	uint32_t imageIndex;
+	uint32_t bufferIndex;
 	VkCommandBuffer currenCommandBuffer;
 };
 
@@ -1129,7 +1129,7 @@ inline static VkWindow createVkWindow(
 	vkWindow->transferCommandPool = transferCommandPool;
 	vkWindow->swapchain = swapchain;
 	vkWindow->frameIndex = 0;
-	vkWindow->imageIndex = 0;
+	vkWindow->bufferIndex = 0;
 	vkWindow->currenCommandBuffer = NULL;
 
 	VkFence* fences = vkWindow->fences;
@@ -1395,7 +1395,7 @@ inline static bool beginVkWindowRender(
 		vkWindow->imageAcquiredSemaphores;
 	VkSwapchainKHR handle = swapchain->handle;
 
-	uint32_t imageIndex;
+	uint32_t bufferIndex;
 
 	do
 	{
@@ -1405,7 +1405,7 @@ inline static bool beginVkWindowRender(
 			UINT64_MAX,
 			imageAcquiredSemaphores[frameIndex],
 			NULL,
-			&imageIndex);
+			&bufferIndex);
 
 		if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
 		{
@@ -1439,15 +1439,15 @@ inline static bool beginVkWindowRender(
 		}
 	} while (vkResult != VK_SUCCESS);
 
-	VkSwapchainFrame frame =
-		swapchain->frames[imageIndex];
+	VkSwapchainBuffer buffer =
+		swapchain->buffers[bufferIndex];
 
 	vmaSetCurrentFrameIndex(
 		vkWindow->allocator,
-		imageIndex);
+		bufferIndex);
 
-	vkWindow->imageIndex = imageIndex;
-	vkWindow->currenCommandBuffer = frame.graphicsCommandBuffer;
+	vkWindow->bufferIndex = bufferIndex;
+	vkWindow->currenCommandBuffer = buffer.graphicsCommandBuffer;
 
 	VkCommandBufferBeginInfo commandBufferBeginInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -1457,7 +1457,7 @@ inline static bool beginVkWindowRender(
 	};
 
 	VkCommandBuffer graphicsCommandBuffer =
-		frame.graphicsCommandBuffer;
+		buffer.graphicsCommandBuffer;
 
 	vkResult = vkBeginCommandBuffer(
 		graphicsCommandBuffer,
@@ -1489,7 +1489,7 @@ inline static bool beginVkWindowRender(
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 		NULL,
 		swapchain->renderPass,
-		frame.framebuffer,
+		buffer.framebuffer,
 		renderArea,
 		2,
 		clearValues,
@@ -1506,14 +1506,14 @@ inline static bool endVkWindowRender(
 	VkWindow vkWindow)
 {
 	VkSwapchain swapchain = vkWindow->swapchain;
-	uint32_t imageIndex = vkWindow->imageIndex;
+	uint32_t bufferIndex = vkWindow->bufferIndex;
 
-	VkSwapchainFrame* frame =
-		&swapchain->frames[imageIndex];
-	VkImage frameImage = frame->image;
+	VkSwapchainBuffer* buffer =
+		&swapchain->buffers[bufferIndex];
+	VkImage frameImage = buffer->image;
 
 	VkCommandBuffer graphicsCommandBuffer =
-		frame->graphicsCommandBuffer;
+		buffer->graphicsCommandBuffer;
 
 	vkCmdEndRenderPass(graphicsCommandBuffer);
 
@@ -1599,7 +1599,7 @@ inline static bool endVkWindowRender(
 		&drawCompleteSemaphore,
 		1,
 		&handle,
-		&imageIndex,
+		&bufferIndex,
 		NULL,
 	};
 
@@ -1610,7 +1610,7 @@ inline static bool endVkWindowRender(
 	if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
 	{
 		submitInfo.pWaitSemaphores = &drawCompleteSemaphore;
-		submitInfo.pCommandBuffers = &frame->presentCommandBuffer;
+		submitInfo.pCommandBuffers = &buffer->presentCommandBuffer;
 		submitInfo.pSignalSemaphores = &imageOwnershipSemaphore;
 
 		vkResult = vkQueueSubmit(

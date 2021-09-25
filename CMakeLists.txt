@@ -102,6 +102,8 @@ if (MPGX_BUILD_EXAMPLES)
 		${PROJECT_SOURCE_DIR}/include)
 
 	set(WINDOW_EXAMPLE_RESOURCES
+		shaders/vulkan/diffuse.frag.spv
+		shaders/vulkan/diffuse.vert.spv
 		shaders/opengl/diffuse.frag
 		shaders/opengl/diffuse.vert)
 

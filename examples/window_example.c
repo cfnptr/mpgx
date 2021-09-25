@@ -22,11 +22,27 @@ typedef struct Client
 	Render diffuseRender;
 } Client;
 
+inline static void rotateRender(
+	double time,
+	Render render)
+{
+	Quat rotation = eulerQuat(vec3F(
+		sinf((float)time),
+		cosf((float)time),
+		0.0f));
+	setTransformRotation(
+		getRenderTransform(render),
+		rotation);
+}
 static void onWindowUpdate(void* handle)
 {
 	Client* client = (Client*)handle;
 	Window window = client->window;
 	FreeCamera freeCamera = client->freeCamera;
+
+	rotateRender(
+		getWindowUpdateTime(window),
+		client->diffuseRender);
 
 	updateFreeCamera(freeCamera);
 	updateTransformer(client->transformer);
@@ -66,7 +82,8 @@ inline static Renderer createDiffuseRendererInstance(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
-		// TODO:
+		vertexShaderPath = "resources/shaders/vulkan/diffuse.vert.spv";
+		fragmentShaderPath = "resources/shaders/vulkan/diffuse.frag.spv";
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
@@ -238,7 +255,7 @@ inline static Client* createClient()
 		return NULL;
 
 	Window window = createWindow(
-		OPENGL_GRAPHICS_API,
+		VULKAN_GRAPHICS_API,
 		false,
 		defaultWindowSize,
 		APP_NAME,

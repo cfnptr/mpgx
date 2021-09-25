@@ -2,14 +2,14 @@
 #include "cmmt/common.h"
 #include "mpgx/_source/image.h"
 
-typedef struct VkSwapchainFrame
+typedef struct VkSwapchainBuffer
 {
 	VkImage image;
 	VkImageView imageView;
 	VkFramebuffer framebuffer;
 	VkCommandBuffer graphicsCommandBuffer;
 	VkCommandBuffer presentCommandBuffer;
-} VkSwapchainFrame;
+} VkSwapchainBuffer;
 
 struct VkSwapchain
 {
@@ -18,8 +18,8 @@ struct VkSwapchain
 	Image depthImage;
 	VkImageView depthImageView;
 	VkRenderPass renderPass;
-	VkSwapchainFrame* frames;
-	uint32_t frameCount;
+	VkSwapchainBuffer*  buffers;
+	uint32_t bufferCount;
 };
 
 typedef struct VkSwapchain* VkSwapchain;
@@ -489,16 +489,16 @@ inline static VkRenderPass createVkRenderPass(
 	return renderPass;
 }
 
-inline static void destroyVkFrames(
+inline static void destroyVkSwapchainBuffers(
 	VkDevice device,
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
-	VkSwapchainFrame* frames,
-	uint32_t frameCount)
+	VkSwapchainBuffer* buffers,
+	uint32_t bufferCount)
 {
-	for (uint32_t i = 0; i < frameCount; i++)
+	for (uint32_t i = 0; i < bufferCount; i++)
 	{
-		VkSwapchainFrame* frame = &frames[i];
+		VkSwapchainBuffer* buffer = &buffers[i];
 
 		if (graphicsCommandPool != presentCommandPool)
 		{
@@ -506,12 +506,12 @@ inline static void destroyVkFrames(
 				device,
 				presentCommandPool,
 				1,
-				&frame->presentCommandBuffer);
+				&buffer->presentCommandBuffer);
 			vkFreeCommandBuffers(
 				device,
 				graphicsCommandPool,
 				1,
-				&frame->graphicsCommandBuffer);
+				&buffer->graphicsCommandBuffer);
 		}
 		else
 		{
@@ -519,22 +519,22 @@ inline static void destroyVkFrames(
 				device,
 				graphicsCommandPool,
 				1,
-				&frame->graphicsCommandBuffer);
+				&buffer->graphicsCommandBuffer);
 		}
 
 		vkDestroyFramebuffer(
 			device,
-			frame->framebuffer,
+			buffer->framebuffer,
 			NULL);
 		vkDestroyImageView(
 			device,
-			frame->imageView,
+			buffer->imageView,
 			NULL);
 	}
 
-	free(frames);
+	free(buffers);
 }
-inline static bool createVkFrames(
+inline static bool createVkSwapchainBuffers(
 	uint32_t graphicsQueueFamilyIndex,
 	uint32_t presentQueueFamilyIndex,
 	VkDevice device,
@@ -545,8 +545,8 @@ inline static bool createVkFrames(
 	VkFormat surfaceFormat,
 	VkImageView depthImageView,
 	VkExtent2D surfaceExtent,
-	VkSwapchainFrame** _frames,
-	uint32_t* frameCount)
+	VkSwapchainBuffer** _buffers,
+	uint32_t* bufferCount)
 {
 	uint32_t imageCount;
 
@@ -581,10 +581,10 @@ inline static bool createVkFrames(
 		return false;
 	}
 
-	VkSwapchainFrame* frames = malloc(
-		imageCount * sizeof(VkSwapchainFrame));
+	VkSwapchainBuffer* buffers = malloc(
+		imageCount * sizeof(VkSwapchainBuffer));
 
-	if (frames == NULL)
+	if (buffers == NULL)
 	{
 		free(images);
 		return false;
@@ -624,13 +624,13 @@ inline static bool createVkFrames(
 
 		if (result != VK_SUCCESS)
 		{
-			destroyVkFrames(
+			destroyVkSwapchainBuffers(
 				device,
 				graphicsCommandPool,
 				presentCommandPool,
-				frames,
+				buffers,
 				i);
-			free(frames);
+			free(buffers);
 			free(images);
 			return false;
 		}
@@ -666,13 +666,13 @@ inline static bool createVkFrames(
 				device,
 				imageView,
 				NULL);
-			destroyVkFrames(
+			destroyVkSwapchainBuffers(
 				device,
 				graphicsCommandPool,
 				presentCommandPool,
-				frames,
+				buffers,
 				i);
-			free(frames);
+			free(buffers);
 			free(images);
 			return false;
 		}
@@ -703,13 +703,13 @@ inline static bool createVkFrames(
 				device,
 				imageView,
 				NULL);
-			destroyVkFrames(
+			destroyVkSwapchainBuffers(
 				device,
 				graphicsCommandPool,
 				presentCommandPool,
-				frames,
+				buffers,
 				i);
-			free(frames);
+			free(buffers);
 			free(images);
 			return false;
 		}
@@ -738,13 +738,13 @@ inline static bool createVkFrames(
 					device,
 					imageView,
 					NULL);
-				destroyVkFrames(
+				destroyVkSwapchainBuffers(
 					device,
 					graphicsCommandPool,
 					presentCommandPool,
-					frames,
+					buffers,
 					i);
-				free(frames);
+				free(buffers);
 				free(images);
 				return false;
 			}
@@ -780,13 +780,13 @@ inline static bool createVkFrames(
 					device,
 					imageView,
 					NULL);
-				destroyVkFrames(
+				destroyVkSwapchainBuffers(
 					device,
 					graphicsCommandPool,
 					presentCommandPool,
-					frames,
+					buffers,
 					i);
-				free(frames);
+				free(buffers);
 				free(images);
 				return false;
 			}
@@ -844,13 +844,13 @@ inline static bool createVkFrames(
 					device,
 					imageView,
 					NULL);
-				destroyVkFrames(
+				destroyVkSwapchainBuffers(
 					device,
 					graphicsCommandPool,
 					presentCommandPool,
-					frames,
+					buffers,
 					i);
-				free(frames);
+				free(buffers);
 				free(images);
 				return false;
 			}
@@ -860,18 +860,21 @@ inline static bool createVkFrames(
 			presentCommandBuffer = graphicsCommandBuffer;
 		}
 
-		VkSwapchainFrame* frame = &frames[i];
-		frame->image = images[i];
-		frame->imageView = imageView;
-		frame->framebuffer = framebuffer;
-		frame->graphicsCommandBuffer = graphicsCommandBuffer;
-		frame->presentCommandBuffer = presentCommandBuffer;
+		VkSwapchainBuffer buffer = {
+			images[i],
+			imageView,
+			framebuffer,
+			graphicsCommandBuffer,
+			presentCommandBuffer
+		};
+
+		buffers[i] = buffer;
 	}
 
 	free(images);
 
-	*_frames = frames;
-	*frameCount = imageCount;
+	*_buffers = buffers;
+	*bufferCount = imageCount;
 	return true;
 }
 
@@ -1053,10 +1056,10 @@ inline static VkSwapchain createVkSwapchain(
 		return NULL;
 	}
 
-	VkSwapchainFrame* frames;
-	uint32_t frameCount;
+	VkSwapchainBuffer* buffers;
+	uint32_t bufferCount;
 
-	result = createVkFrames(
+	result = createVkSwapchainBuffers(
 		graphicsQueueFamilyIndex,
 		presentQueueFamilyIndex,
 		device,
@@ -1067,8 +1070,8 @@ inline static VkSwapchain createVkSwapchain(
 		surfaceFormat.format,
 		depthImageView,
 		surfaceExtent,
-		&frames,
-		&frameCount);
+		&buffers,
+		&bufferCount);
 
 	if (result == false)
 	{
@@ -1096,8 +1099,8 @@ inline static VkSwapchain createVkSwapchain(
 	swapchain->depthImage = depthImage;
 	swapchain->depthImageView = depthImageView;
 	swapchain->renderPass = renderPass;
-	swapchain->frames = frames;
-	swapchain->frameCount = frameCount;
+	swapchain->buffers = buffers;
+	swapchain->bufferCount = bufferCount;
 	return swapchain;
 }
 inline static void destroyVkSwapchain(
@@ -1107,12 +1110,12 @@ inline static void destroyVkSwapchain(
 	VkCommandPool presentCommandPool,
 	VkSwapchain swapchain)
 {
-	destroyVkFrames(
+	destroyVkSwapchainBuffers(
 		device,
 		graphicsCommandPool,
 		presentCommandPool,
-		swapchain->frames,
-		swapchain->frameCount);
+		swapchain->buffers,
+		swapchain->bufferCount);
 	vkDestroyRenderPass(
 		device,
 		swapchain->renderPass,
@@ -1147,12 +1150,12 @@ inline static bool resizeVkSwapchain(
 {
 	vkDeviceWaitIdle(device);
 
-	destroyVkFrames(
+	destroyVkSwapchainBuffers(
 		device,
 		graphicsCommandPool,
 		presentCommandPool,
-		swapchain->frames,
-		swapchain->frameCount);
+		swapchain->buffers,
+		swapchain->bufferCount);
 	vkDestroyRenderPass(
 		device,
 		swapchain->renderPass,
@@ -1165,8 +1168,8 @@ inline static bool resizeVkSwapchain(
 		allocator,
 		swapchain->depthImage);
 
-	swapchain->frameCount = 0;
-	swapchain->frames = NULL;
+	swapchain->bufferCount = 0;
+	swapchain->buffers = NULL;
 	swapchain->renderPass = NULL;
 	swapchain->depthImageView = NULL;
 	swapchain->depthImage = NULL;
@@ -1299,10 +1302,10 @@ inline static bool resizeVkSwapchain(
 		return false;
 	}
 
-	VkSwapchainFrame* frames;
-	uint32_t frameCount;
+	VkSwapchainBuffer* buffers;
+	uint32_t bufferCount;
 
-	result = createVkFrames(
+	result = createVkSwapchainBuffers(
 		graphicsQueueFamilyIndex,
 		presentQueueFamilyIndex,
 		device,
@@ -1313,8 +1316,8 @@ inline static bool resizeVkSwapchain(
 		surfaceFormat.format,
 		depthImageView,
 		surfaceExtent,
-		&frames,
-		&frameCount);
+		&buffers,
+		&bufferCount);
 
 	if (result == false)
 	{
@@ -1336,7 +1339,7 @@ inline static bool resizeVkSwapchain(
 	swapchain->depthImage = depthImage;
 	swapchain->depthImageView = depthImageView;
 	swapchain->renderPass = renderPass;
-	swapchain->frames = frames;
-	swapchain->frameCount = frameCount;
+	swapchain->buffers = buffers;
+	swapchain->bufferCount = bufferCount;
 	return true;
 }

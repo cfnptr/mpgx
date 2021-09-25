@@ -28,7 +28,6 @@ struct Window
 {
 	uint8_t api;
 	bool useStencilBuffer;
-	uint32_t maxImageSize;
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
@@ -367,8 +366,6 @@ Window createWindow(
 	VkWindow vkWindow = NULL;
 #endif
 
-	uint32_t maxImageSize;
-
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
@@ -413,15 +410,6 @@ Window createWindow(
 		}
 
 		//glEnable(GL_FRAMEBUFFER_SRGB);
-
-		GLint glMaxImageSize;
-
-		glGetIntegerv(
-			GL_MAX_TEXTURE_SIZE,
-			&glMaxImageSize);
-		assertOpenGL();
-
-		maxImageSize = glMaxImageSize;
 	}
 
 	Buffer* buffers = malloc(
@@ -539,7 +527,6 @@ Window createWindow(
 
 	window->api = api;
 	window->useStencilBuffer = useStencilBuffer;
-	window->maxImageSize = maxImageSize;
 	window->onUpdate = onUpdate;
 	window->updateArgument = updateArgument;
 	window->handle = handle;
@@ -612,12 +599,12 @@ Window createAnyWindow(
 		updateArgument,
 		visible,
 		bufferCapacity,
-		meshCapacity,
 		imageCapacity,
 		samplerCapacity,
 		framebufferCapacity,
 		shaderCapacity,
-		pipelineCapacity);
+		pipelineCapacity,
+		meshCapacity);
 
 	if (window != NULL)
 		return window;
@@ -631,12 +618,12 @@ Window createAnyWindow(
 		updateArgument,
 		visible,
 		bufferCapacity,
-		meshCapacity,
 		imageCapacity,
 		samplerCapacity,
 		framebufferCapacity,
 		shaderCapacity,
-		pipelineCapacity);
+		pipelineCapacity,
+		meshCapacity);
 
 	if (window != NULL)
 		return window;
@@ -650,12 +637,12 @@ Window createAnyWindow(
 		updateArgument,
 		visible,
 		bufferCapacity,
-		meshCapacity,
 		imageCapacity,
 		samplerCapacity,
 		framebufferCapacity,
 		shaderCapacity,
-		pipelineCapacity);
+		pipelineCapacity,
+		meshCapacity);
 
 	return window;
 }
@@ -688,6 +675,7 @@ void destroyWindow(Window window)
 		if (pipeline->vk.onHandleDestroy != NULL)
 		{
 			pipeline->vk.onHandleDestroy(
+				window,
 				pipeline->vk.handle);
 		}
 	}
@@ -792,11 +780,6 @@ void* getWindowUpdateArgument(Window window)
 	assert(window != NULL);
 	return window->updateArgument;
 }
-uint32_t getWindowMaxImageSize(Window window)
-{
-	assert(window != NULL);
-	return window->maxImageSize;
-}
 double getWindowUpdateTime(Window window)
 {
 	assert(window != NULL);
@@ -896,6 +879,25 @@ const char* getWindowGpuVendor(Window window)
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		return getGlWindowGpuVendor();
+	}
+	else
+	{
+		abort();
+	}
+}
+void* getVkWindow(Window window)
+{
+	assert(window != NULL);
+
+	uint8_t api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		return window->vkWindow;
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -1577,15 +1579,6 @@ Image createImage(
 	assert(levelCount >= 0);
 	assert(levelCount <= getImageLevelCount(size));
 	assert(window->isRecording == false);
-
-	uint32_t maxImageSize = window->maxImageSize;
-
-	if (size.x > maxImageSize ||
-		size.y > maxImageSize ||
-		size.z > maxImageSize)
-	{
-		return NULL;
-	}
 
 	uint8_t api = window->api;
 
@@ -2474,14 +2467,49 @@ Shader createShaderFromFile(
 		return NULL;
 	}
 
-	char* code = malloc(fileSize + 1);
+	uint8_t api = window->api;
 
-	size_t readSize = fread(
-		code,
-		sizeof(char),
-		fileSize,
-		file);
-	code[fileSize] = '\0';
+	char* code;
+	size_t readSize;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		code = malloc(fileSize);
+
+		if (code == NULL)
+		{
+			fclose(file);
+			return NULL;
+		}
+
+		readSize = fread(
+			code,
+			sizeof(char),
+			fileSize,
+			file);
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		code = malloc(fileSize + 1);
+
+		if (code == NULL)
+		{
+			fclose(file);
+			return NULL;
+		}
+
+		readSize = fread(
+			code,
+			sizeof(char),
+			fileSize,
+			file);
+		code[fileSize] = '\0';
+	}
+	else
+	{
+		abort();
+	}
 
 	fclose(file);
 
@@ -2600,8 +2628,8 @@ Pipeline createPipeline(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		VkWindow vkWindow =
-			window->vkWindow;
+		assert(createInfo != NULL);
+		VkWindow vkWindow = window->vkWindow;
 
 		pipeline = createVkPipeline(
 			vkWindow->device,
@@ -2714,6 +2742,7 @@ void destroyPipeline(
 		if (pipeline->vk.onHandleDestroy != NULL)
 		{
 			pipeline->vk.onHandleDestroy(
+				window,
 				pipeline->vk.handle);
 		}
 

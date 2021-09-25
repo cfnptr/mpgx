@@ -137,7 +137,9 @@ Sampler createGradSkySampler(Window window)
 		DEFAULT_MIPMAP_LOD_BIAS);
 }
 
-static void onGlPipelineHandleDestroy(void* handle)
+static void onGlPipelineHandleDestroy(
+	Window window,
+	void* handle)
 {
 	PipelineHandle* pipelineHandle =
 		(PipelineHandle*)handle;
@@ -145,8 +147,7 @@ static void onGlPipelineHandleDestroy(void* handle)
 }
 static void onGlPipelineHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* handle =
-		pipeline->gl.handle;
+	PipelineHandle* handle = pipeline->gl.handle;
 
 	glUniform1i(
 		handle->gl.textureLocation,
@@ -165,8 +166,7 @@ static void onGlPipelineHandleBind(Pipeline pipeline)
 }
 static void onGlPipelineUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle =
-		pipeline->gl.handle;
+	PipelineHandle* handle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
 		handle->gl.mvpLocation,

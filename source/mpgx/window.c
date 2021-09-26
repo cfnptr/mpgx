@@ -904,6 +904,15 @@ void* getVkWindow(Window window)
 		abort();
 	}
 }
+bool isVkGpuIntegrated(Window window)
+{
+	assert(window != NULL);
+#if MPGX_SUPPORT_VULKAN
+	return window->vkWindow->isGpuIntegrated;
+#else
+	abort();
+#endif
+}
 
 bool getWindowKeyboardKey(
 	Window window,
@@ -1403,8 +1412,16 @@ void destroyBuffer(Buffer buffer)
 		if (api == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
+			VkWindow vkWindow = window->vkWindow;
+
+			VkResult result = vkDeviceWaitIdle(
+				vkWindow->device);
+
+			if (result != VK_SUCCESS)
+				abort();
+
 			destroyVkBuffer(
-				window->vkWindow->allocator,
+				vkWindow->allocator,
 				buffer);
 #else
 			abort();
@@ -1726,8 +1743,16 @@ void destroyImage(Image image)
 		if (api == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
+			VkWindow vkWindow = window->vkWindow;
+
+			VkResult result = vkDeviceWaitIdle(
+				vkWindow->device);
+
+			if (result != VK_SUCCESS)
+				abort();
+
 			destroyVkImage(
-				window->vkWindow->allocator,
+				vkWindow->allocator,
 				image);
 #else
 			abort();
@@ -2604,6 +2629,9 @@ Pipeline createPipeline(
 	bool restartPrimitive,
 	bool discardRasterizer,
 	float lineWidth,
+	Vec4U viewport,
+	Vec2F depthRange,
+	Vec4U scissor,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
@@ -2651,6 +2679,9 @@ Pipeline createPipeline(
 			restartPrimitive,
 			discardRasterizer,
 			lineWidth,
+			viewport,
+			depthRange,
+			scissor,
 			onHandleDestroy,
 			onHandleBind,
 			onUniformsSet,
@@ -2681,6 +2712,9 @@ Pipeline createPipeline(
 			writeDepth,
 			clampDepth,
 			lineWidth,
+			viewport,
+			depthRange,
+			scissor,
 			onHandleDestroy,
 			onHandleBind,
 			onUniformsSet,
@@ -2907,7 +2941,7 @@ void bindPipeline(Pipeline pipeline)
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 		bindGlPipeline(pipeline);
 	}

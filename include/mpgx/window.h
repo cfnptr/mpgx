@@ -12,9 +12,10 @@
 #define DEFAULT_MAX_MIPMAP_LOD 1000
 #define DEFAULT_MIPMAP_LOD_BIAS 0
 #define DEFAULT_LINE_WIDTH 1
+#define DEFAULT_MIN_DEPTH_RANGE 0
+#define DEFAULT_MAX_DEPTH_RANGE 1
 
 // TODO: fix a new framebuffer sRGB difference
-
 // TODO: check all /_source error return functions
 
 static const Vec2U defaultWindowSize = {
@@ -346,7 +347,9 @@ Vec2U getWindowFramebufferSize(Window window);
 const char* getWindowClipboard(Window window);
 const char* getWindowGpuName(Window window);
 const char* getWindowGpuVendor(Window window);
+
 void* getVkWindow(Window window);
+bool isVkGpuIntegrated(Window window);
 
 bool getWindowKeyboardKey(
 	Window window,
@@ -544,6 +547,9 @@ Pipeline createPipeline(
 	bool restartPrimitive,
 	bool discardRasterizer,
 	float lineWidth,
+	Vec4U viewport,
+	Vec2F depthRange,
+	Vec4U scissor,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,

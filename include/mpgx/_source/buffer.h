@@ -144,14 +144,23 @@ inline static Buffer createVkBuffer(
 		NULL,
 	};
 
+	bool isGpuIntegrated = isVkGpuIntegrated(window);
+
 	VmaAllocationCreateInfo allocationCreateInfo = {};
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 
-	if (isConstant == true)
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	if (isGpuIntegrated == true)
+	{
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+	}
 	else
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+	{
+		if (isConstant == true)
+			allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+		else
+			allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+	}
 
 	VkBuffer handle;
 	VmaAllocation allocation;
@@ -172,8 +181,7 @@ inline static Buffer createVkBuffer(
 
 	if (data != NULL)
 	{
-		// TODO: possibly optimize with stage buffer caching
-		if (isConstant == true)
+		if (isConstant == true && isGpuIntegrated == false)
 		{
 			bufferCreateInfo.usage = vkUsage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
@@ -404,6 +412,7 @@ inline static Buffer createVkBuffer(
 
 	buffer->vk.window = window;
 	buffer->vk.type = type;
+	buffer->vk.size = size;
 	buffer->vk.isConstant = isConstant;
 	buffer->vk.handle = handle;
 	buffer->vk.allocation = allocation;

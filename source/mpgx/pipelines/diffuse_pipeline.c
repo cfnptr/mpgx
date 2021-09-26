@@ -318,6 +318,9 @@ inline static Pipeline createVkPipelineHandle(
 	if (handle == NULL)
 		return NULL;
 
+	Vec2U framebufferSize =
+		getWindowFramebufferSize(window);
+
 	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
@@ -387,6 +390,15 @@ inline static Pipeline createVkPipelineHandle(
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
+		vec4U(0, 0,
+			framebufferSize.x,
+			framebufferSize.y),
+		vec2F(
+			DEFAULT_MIN_DEPTH_RANGE,
+			DEFAULT_MAX_DEPTH_RANGE),
+		vec4U(0, 0,
+			framebufferSize.x,
+			framebufferSize.y),
 		onVkPipelineHandleDestroy,
 		onVkPipelineHandleBind,
 		onVkPipelineUniformsSet,
@@ -571,6 +583,9 @@ inline static Pipeline createGlPipelineHandle(
 	if (handle == NULL)
 		return NULL;
 
+	Vec2U framebufferSize =
+		getWindowFramebufferSize(window);
+
 	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
@@ -593,6 +608,13 @@ inline static Pipeline createGlPipelineHandle(
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
+		vec4U(0, 0,
+			framebufferSize.x,
+			framebufferSize.y),
+		vec2F(
+			DEFAULT_MIN_DEPTH_RANGE,
+			DEFAULT_MAX_DEPTH_RANGE),
+		zeroVec4U(),
 		onGlPipelineHandleDestroy,
 		onGlPipelineHandleBind,
 		onGlPipelineUniformsSet,
@@ -707,10 +729,14 @@ Pipeline createDiffusePipeline(
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
 		pipeline = createVkPipelineHandle(
 			window,
 			vertexShader,
 			fragmentShader);
+#else
+		abort();
+#endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)

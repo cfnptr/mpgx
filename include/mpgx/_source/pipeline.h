@@ -22,6 +22,9 @@ typedef struct _VkPipeline
 	bool restartPrimitive;
 	bool discardRasterizer;
 	float lineWidth;
+	Vec4U viewport;
+	Vec2F depthRange;
+	Vec4U scissor;
 	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
@@ -50,6 +53,9 @@ typedef struct _GlPipeline
 	bool restartPrimitive;
 	bool discardRasterizer;
 	float lineWidth;
+	Vec4U viewport;
+	Vec2F depthRange;
+	Vec4U scissor;
 	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
@@ -202,6 +208,9 @@ inline static Pipeline createVkPipeline(
 	bool restartPrimitive,
 	bool discardRasterizer,
 	float lineWidth,
+	Vec4U viewport,
+	Vec2F depthRange,
+	Vec4U scissor,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
@@ -315,14 +324,32 @@ inline static Pipeline createVkPipeline(
 
 	// TODO: tesselation stage
 
+	VkViewport vkViewport = {
+		(float)viewport.x,
+		(float)viewport.y,
+		(float)viewport.z,
+		(float)viewport.w,
+		depthRange.x,
+		depthRange.y,
+	};
+	VkRect2D vkScissor = {
+		{
+			(int32_t)scissor.x,
+			(int32_t)scissor.y,
+		},
+		{
+			scissor.z,
+			scissor.w,
+		},
+	};
 	VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
 		NULL,
 		0,
 		1,
-		NULL,
+		&vkViewport,
 		1,
-		NULL, // TODO: dynamic viewport/scissors
+		&vkScissor, // TODO: dynamic viewport/scissors
 	};
 
 	VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {
@@ -397,16 +424,16 @@ inline static Pipeline createVkPipeline(
 
 	// TODO: do not make dynamic if not using custom scissors or viewport
 
-	VkDynamicState dynamicStates[] = {
+	/*VkDynamicState dynamicStates[] = {
 		VK_DYNAMIC_STATE_VIEWPORT,
 		VK_DYNAMIC_STATE_SCISSOR,
-	};
+	};*/
 	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
 		NULL,
 		0,
-		2,
-		dynamicStates,
+		0,
+		NULL,
 	};
 
 	VkPipelineCacheCreateInfo cacheCreateInfo = {
@@ -528,6 +555,9 @@ inline static Pipeline createVkPipeline(
 	pipeline->vk.restartPrimitive = restartPrimitive;
 	pipeline->vk.discardRasterizer = discardRasterizer;
 	pipeline->vk.lineWidth = lineWidth;
+	pipeline->vk.viewport = viewport;
+	pipeline->vk.depthRange = depthRange;
+	pipeline->vk.scissor = scissor;
 	pipeline->vk.onHandleDestroy = onHandleDestroy;
 	pipeline->vk.onHandleBind = onHandleBind;
 	pipeline->vk.onUniformsSet = onUniformsSet;
@@ -634,6 +664,9 @@ inline static Pipeline createGlPipeline(
 	bool writeDepth,
 	bool clampDepth,
 	float lineWidth,
+	Vec4U viewport,
+	Vec2F depthRange,
+	Vec4U scissor,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
@@ -777,6 +810,9 @@ inline static Pipeline createGlPipeline(
 	pipeline->gl.restartPrimitive = false;
 	pipeline->gl.discardRasterizer = false;
 	pipeline->gl.lineWidth = lineWidth;
+	pipeline->gl.viewport = viewport;
+	pipeline->gl.depthRange = depthRange;
+	pipeline->gl.scissor = scissor;
 	pipeline->gl.onHandleDestroy = onHandleDestroy;
 	pipeline->gl.onHandleBind = onHandleBind;
 	pipeline->gl.onUniformsSet = onUniformsSet;
@@ -835,21 +871,49 @@ inline static void bindVkPipeline(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		pipeline->vk.vkHandle);
+
+	if (pipeline->vk.onHandleBind != NULL)
+		pipeline->vk.onHandleBind(pipeline);
 }
 #endif
 
 inline static void bindGlPipeline(
 	Pipeline pipeline)
 {
-	// TODO: get viewport size from pipeline or dont set if custom enabled
-	Vec2U size = getWindowFramebufferSize(
-		pipeline->gl.window);
+	Vec4U viewport = pipeline->gl.viewport;
+	Vec2F depthRange = pipeline->gl.depthRange;
+	Vec4U scissor = pipeline->gl.scissor;
 
-	glViewport(
-		0,
-		0,
-		(GLsizei)size.x,
-		(GLsizei)size.y);
+	if (viewport.x + viewport.y +
+		viewport.z + viewport.w > 0)
+	{
+		glViewport(
+			(GLint)viewport.x,
+			(GLint)viewport.y,
+			(GLsizei)viewport.z,
+			(GLsizei)viewport.w);
+	}
+	if (depthRange.x + depthRange.y > 0.0f)
+	{
+		glDepthRange(
+			depthRange.x,
+			depthRange.y);
+	}
+
+	if (scissor.x + scissor.y +
+		scissor.z + scissor.w > 0)
+	{
+		glScissor(
+			(GLint)scissor.x,
+			(GLint)scissor.y,
+			(GLsizei)scissor.z,
+			(GLsizei)scissor.w);
+		glEnable(GL_SCISSOR_TEST);
+	}
+	else
+	{
+		glDisable(GL_SCISSOR_TEST);
+	}
 
 	glPolygonMode(
 		GL_FRONT_AND_BACK,

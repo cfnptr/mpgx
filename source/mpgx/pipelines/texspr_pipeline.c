@@ -117,6 +117,9 @@ inline static Pipeline createGlPipelineHandle(
 	if (handle == NULL)
 		return NULL;
 
+	Vec2U framebufferSize =
+		getWindowFramebufferSize(window);
+
 	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
@@ -139,6 +142,13 @@ inline static Pipeline createGlPipelineHandle(
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
+		vec4U(0, 0,
+			framebufferSize.x,
+			framebufferSize.y),
+		vec2F(
+			DEFAULT_MIN_DEPTH_RANGE,
+			DEFAULT_MAX_DEPTH_RANGE),
+		zeroVec4U(),
 		onGlPipelineHandleDestroy,
 		onGlPipelineHandleBind,
 		onGlPipelineUniformsSet,

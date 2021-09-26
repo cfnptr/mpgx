@@ -15,6 +15,7 @@ struct VkWindow
 {
 	VkSurfaceKHR surface;
 	VkPhysicalDevice physicalDevice;
+	bool isGpuIntegrated;
 	uint32_t graphicsQueueFamilyIndex;
 	uint32_t presentQueueFamilyIndex;
 	VkDevice device;
@@ -413,7 +414,8 @@ inline static void destroyVkDebugUtilsMessenger(
 }
 
 inline static VkPhysicalDevice getBestVkPhysicalDevice(
-	VkInstance instance)
+	VkInstance instance,
+	bool* _isGpuIntegrated)
 {
 	uint32_t deviceCount;
 
@@ -446,6 +448,7 @@ inline static VkPhysicalDevice getBestVkPhysicalDevice(
 
 	VkPhysicalDevice targetDevice = NULL;
 	uint32_t targetScore = 0;
+	bool isGpuIntegrated = false;
 
 	for (uint32_t i = 0; i < deviceCount; i++)
 	{
@@ -485,10 +488,15 @@ inline static VkPhysicalDevice getBestVkPhysicalDevice(
 		{
 			targetDevice = device;
 			targetScore = score;
+
+			isGpuIntegrated = properties.deviceType ==
+				VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
 		}
 	}
 
 	free(devices);
+
+	*_isGpuIntegrated = isGpuIntegrated;
 	return targetDevice;
 }
 inline static bool getVkQueueFamilyIndices(
@@ -864,8 +872,11 @@ inline static VkWindow createVkWindow(
 		return NULL;
 	}
 
-	VkPhysicalDevice physicalDevice =
-		getBestVkPhysicalDevice(instance);
+	bool isGpuIntegrated;
+
+	VkPhysicalDevice physicalDevice = getBestVkPhysicalDevice(
+		instance,
+		&isGpuIntegrated);
 
 	if (physicalDevice == NULL)
 	{
@@ -877,8 +888,7 @@ inline static VkWindow createVkWindow(
 		return NULL;
 	}
 
-	uint32_t
-		graphicsQueueFamilyIndex,
+	uint32_t graphicsQueueFamilyIndex,
 		presentQueueFamilyIndex;
 
 	bool result = getVkQueueFamilyIndices(
@@ -1118,6 +1128,7 @@ inline static VkWindow createVkWindow(
 
 	vkWindow->surface = surface;
 	vkWindow->physicalDevice = physicalDevice;
+	vkWindow->isGpuIntegrated = isGpuIntegrated;
 	vkWindow->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
 	vkWindow->presentQueueFamilyIndex = presentQueueFamilyIndex;
 	vkWindow->device = device;

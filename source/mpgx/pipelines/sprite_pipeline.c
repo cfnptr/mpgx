@@ -25,8 +25,7 @@ static void onGlHandleDestroy(
 	Window window,
 	void* handle)
 {
-	PipelineHandle* pipelineHandle =
-		(PipelineHandle*)handle;
+	PipelineHandle* pipelineHandle = handle;
 	free(pipelineHandle);
 }
 static void onGlUniformsSet(Pipeline pipeline)
@@ -84,6 +83,7 @@ inline static Pipeline createGlHandle(
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
 		LESS_COMPARE_OPERATION,
+		ALL_COLOR_COMPONENT,
 		true,
 		true,
 		true,

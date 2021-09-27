@@ -246,6 +246,16 @@ typedef enum CompareOperation
 	COMPARE_OPERATION_COUNT = 8,
 } CompareOperation;
 
+typedef enum ColorComponent
+{
+	NONE_COLOR_COMPONENT = 0b0000,
+	RED_COLOR_COMPONENT = 0b0001,
+	GREEN_COLOR_COMPONENT = 0b0010,
+	BLUE_COLOR_COMPONENT = 0b0100,
+	ALPHA_COLOR_COMPONENT = 0b1000,
+	ALL_COLOR_COMPONENT = 0b1111,
+} ColorComponent;
+
 typedef enum ShaderType
 {
 	VERTEX_SHADER_TYPE = 0,
@@ -542,6 +552,7 @@ Pipeline createPipeline(
 	uint8_t polygonMode,
 	uint8_t cullMode,
 	uint8_t depthCompare,
+	uint8_t colorWriteMask,
 	bool cullFace,
 	bool clockwiseFrontFace,
 	bool testDepth,
@@ -571,6 +582,7 @@ uint8_t getPipelineDrawMode(Pipeline pipeline);
 uint8_t getPipelinePolygonMode(Pipeline pipeline);
 uint8_t getPipelineCullMode(Pipeline pipeline);
 uint8_t getPipelineDepthCompare(Pipeline pipeline);
+uint8_t getPipelineColorWriteMask(Pipeline pipeline);
 bool isPipelineCullFace(Pipeline pipeline);
 bool isPipelineClockwiseFrontFace(Pipeline pipeline);
 bool isPipelineTestDepth(Pipeline pipeline);

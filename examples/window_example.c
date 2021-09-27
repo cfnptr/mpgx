@@ -254,8 +254,7 @@ inline static Client* createClient()
 	if (client == NULL)
 		return NULL;
 
-	Window window = createWindow(
-		VULKAN_GRAPHICS_API,
+	Window window = createAnyWindow(
 		false,
 		defaultWindowSize,
 		APP_NAME,

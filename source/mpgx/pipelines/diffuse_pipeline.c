@@ -4,8 +4,6 @@
 
 #include <string.h>
 
-// TODO: recreate buffers on framebuffer resize
-
 typedef struct UniformBuffer
 {
 	Vec4F objectColor;
@@ -42,10 +40,12 @@ typedef union PipelineHandle
 } PipelineHandle;
 
 #if MPGX_SUPPORT_VULKAN
-static const VkVertexInputBindingDescription vertexInputBindingDescription = {
-	0,
-	sizeof(Vec3F) * 2,
-	VK_VERTEX_INPUT_RATE_VERTEX,
+static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
+	{
+		0,
+		sizeof(Vec3F) * 2,
+		VK_VERTEX_INPUT_RATE_VERTEX,
+	},
 };
 static const VkVertexInputAttributeDescription vertexInputAttributeDescriptions[2] = {
 	{
@@ -61,10 +61,12 @@ static const VkVertexInputAttributeDescription vertexInputAttributeDescriptions[
 		sizeof(Vec3F),
 	},
 };
-static const VkPushConstantRange pushConstantRange = {
-	VK_SHADER_STAGE_VERTEX_BIT,
-	0,
-	sizeof(Mat4F) * 2,
+static const VkPushConstantRange pushConstantRanges[1] = {
+	{
+		VK_SHADER_STAGE_VERTEX_BIT,
+		0,
+		sizeof(Mat4F) * 2,
+	},
 };
 
 inline static VkDescriptorSetLayout createVkDescriptorSetLayout(
@@ -269,7 +271,7 @@ static void onVkHandleDestroy(
 	Window window,
 	void* handle)
 {
-	PipelineHandle* pipelineHandle = (PipelineHandle*)handle;
+	PipelineHandle* pipelineHandle = handle;
 	VkWindow vkWindow = getVkWindow(window);
 	VkDevice device = vkWindow->device;
 
@@ -340,10 +342,10 @@ static void onVkHandleResize(
 	Pipeline pipeline,
 	void* _createInfo)
 {
-	PipelineHandle* handle = pipeline->vk.handle;
 	Window window = pipeline->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
+	PipelineHandle* handle = pipeline->vk.handle;
 
 	if (bufferCount != handle->vk.bufferCount)
 	{
@@ -402,13 +404,13 @@ static void onVkHandleResize(
 
 	VkPipelineCreateInfo createInfo = {
 		1,
-		&vertexInputBindingDescription,
+		vertexInputBindingDescriptions,
 		2,
 		vertexInputAttributeDescriptions,
 		1,
 		&handle->vk.descriptorSetLayout,
 		1,
-		&pushConstantRange,
+		pushConstantRanges,
 	};
 
 	*(VkPipelineCreateInfo*)_createInfo = createInfo;
@@ -447,14 +449,15 @@ inline static Pipeline createVkHandle(
 
 	VkPipelineCreateInfo createInfo = {
 		1,
-		&vertexInputBindingDescription,
+		vertexInputBindingDescriptions,
 		2,
 		vertexInputAttributeDescriptions,
 		1,
 		&descriptorSetLayout,
 		1,
-		&pushConstantRange,
+		pushConstantRanges,
 	};
+
 	Pipeline pipeline = createPipeline(
 		window,
 		DIFFUSE_PIPELINE_NAME,
@@ -464,6 +467,7 @@ inline static Pipeline createVkHandle(
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
 		LESS_COMPARE_OPERATION,
+		ALL_COLOR_COMPONENT,
 		true,
 		true,
 		true,
@@ -596,10 +600,8 @@ static void onGlHandleDestroy(
 	Window window,
 	void* handle)
 {
-	PipelineHandle* pipelineHandle =
-		(PipelineHandle*)handle;
-	destroyGlBuffer(
-		pipelineHandle->gl.uniformBuffer);
+	PipelineHandle* pipelineHandle = handle;
+	destroyGlBuffer(pipelineHandle->gl.uniformBuffer);
 	free(pipelineHandle);
 }
 static void onGlHandleBind(Pipeline pipeline)
@@ -655,6 +657,16 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
+static void onGlHandleResize(
+	Pipeline pipeline,
+	void* createInfo)
+{
+	Vec2U framebufferSize = getWindowFramebufferSize(
+		pipeline->gl.window);
+	pipeline->vk.viewport = vec4I(0, 0,
+		(int32_t)framebufferSize.x,
+		(int32_t)framebufferSize.y);
+}
 inline static Pipeline createGlHandle(
 	Window window,
 	Shader vertexShader,
@@ -683,6 +695,7 @@ inline static Pipeline createGlHandle(
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
 		LESS_COMPARE_OPERATION,
+		ALL_COLOR_COMPONENT,
 		true,
 		true,
 		true,
@@ -701,7 +714,7 @@ inline static Pipeline createGlHandle(
 		onGlHandleDestroy,
 		onGlHandleBind,
 		onGlUniformsSet,
-		NULL,
+		onGlHandleResize,
 		handle,
 		NULL);
 

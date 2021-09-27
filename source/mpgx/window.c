@@ -851,25 +851,19 @@ const char* getWindowGpuName(Window window)
 void* getVkWindow(Window window)
 {
 	assert(window != NULL);
+	assert(window->api == VULKAN_GRAPHICS_API);
 
-	uint8_t api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
 #if MPGX_SUPPORT_VULKAN
-		return window->vkWindow;
+	return window->vkWindow;
 #else
-		abort();
+	abort();
 #endif
-	}
-	else
-	{
-		abort();
-	}
 }
 bool isVkGpuIntegrated(Window window)
 {
 	assert(window != NULL);
+	assert(window->api == VULKAN_GRAPHICS_API);
+
 #if MPGX_SUPPORT_VULKAN
 	return window->vkWindow->isGpuIntegrated;
 #else
@@ -1160,6 +1154,7 @@ static void onVkResize(Window window)
 			pipeline->vk.polygonMode,
 			pipeline->vk.cullMode,
 			pipeline->vk.depthCompare,
+			pipeline->vk.colorWriteMask,
 			pipeline->vk.cullFace,
 			pipeline->vk.clockwiseFrontFace,
 			pipeline->vk.testDepth,
@@ -2687,6 +2682,7 @@ Pipeline createPipeline(
 	uint8_t polygonMode,
 	uint8_t cullMode,
 	uint8_t depthCompare,
+	uint8_t colorWriteMask,
 	bool cullFace,
 	bool clockwiseFrontFace,
 	bool testDepth,
@@ -2713,6 +2709,7 @@ Pipeline createPipeline(
 	assert(polygonMode < POLYGON_MODE_COUNT);
 	assert(cullMode < CULL_MODE_COUNT);
 	assert(depthCompare < COMPARE_OPERATION_COUNT);
+	assert(colorWriteMask <= ALL_COLOR_COMPONENT);
 	assert(lineWidth > 0.0f);
 	assert(viewport.z >= 0 && viewport.w >= 0);
 	assert(scissor.z >= 0 && scissor.w >= 0);
@@ -2740,6 +2737,7 @@ Pipeline createPipeline(
 			polygonMode,
 			cullMode,
 			depthCompare,
+			colorWriteMask,
 			cullFace,
 			clockwiseFrontFace,
 			testDepth,
@@ -2776,6 +2774,7 @@ Pipeline createPipeline(
 			polygonMode,
 			cullMode,
 			depthCompare,
+			colorWriteMask,
 			cullFace,
 			clockwiseFrontFace,
 			testDepth,
@@ -2930,6 +2929,11 @@ uint8_t getPipelineDepthCompare(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->vk.depthCompare;
+}
+uint8_t getPipelineColorWriteMask(Pipeline pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->vk.colorWriteMask;
 }
 bool isPipelineCullFace(Pipeline pipeline)
 {

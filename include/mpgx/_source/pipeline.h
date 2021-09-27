@@ -14,6 +14,7 @@ typedef struct _VkPipeline
 	uint8_t polygonMode;
 	uint8_t cullMode;
 	uint8_t depthCompare;
+	uint8_t colorWriteMask;
 	bool cullFace;
 	bool clockwiseFrontFace;
 	bool testDepth;
@@ -46,6 +47,7 @@ typedef struct _GlPipeline
 	uint8_t polygonMode;
 	uint8_t cullMode;
 	uint8_t depthCompare;
+	uint8_t colorWriteMask;
 	bool cullFace;
 	bool clockwiseFrontFace;
 	bool testDepth;
@@ -202,6 +204,7 @@ inline static VkPipeline createVkPipelineHandle(
 	uint8_t polygonMode,
 	uint8_t cullMode,
 	uint8_t depthCompare,
+	uint8_t colorWriteMask,
 	bool cullFace,
 	bool clockwiseFrontFace,
 	bool testDepth,
@@ -391,19 +394,26 @@ inline static VkPipeline createVkPipelineHandle(
 		0.0f,
 	};
 
-	// TODO:
+	VkColorComponentFlags vkColorWriteMask = 0;
+
+	if (colorWriteMask & RED_COLOR_COMPONENT)
+		vkColorWriteMask |= VK_COLOR_COMPONENT_R_BIT;
+	if (colorWriteMask & GREEN_COLOR_COMPONENT)
+		vkColorWriteMask |= VK_COLOR_COMPONENT_G_BIT;
+	if (colorWriteMask & BLUE_COLOR_COMPONENT)
+		vkColorWriteMask |= VK_COLOR_COMPONENT_B_BIT;
+	if (colorWriteMask & ALPHA_COLOR_COMPONENT)
+		vkColorWriteMask |= VK_COLOR_COMPONENT_A_BIT;
+
 	VkPipelineColorBlendAttachmentState colorBlendAttachmentStateCreateInfo = {
-		VK_FALSE,
+		VK_FALSE, // TODO:
 		0,
 		0,
 		0,
 		0,
 		0,
 		0,
-		VK_COLOR_COMPONENT_R_BIT |
-		VK_COLOR_COMPONENT_G_BIT |
-		VK_COLOR_COMPONENT_B_BIT |
-		VK_COLOR_COMPONENT_A_BIT,
+		vkColorWriteMask,
 	};
 
 	VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {
@@ -458,6 +468,10 @@ inline static VkPipeline createVkPipelineHandle(
 		&handle);
 
 	free(shaderStageCreateInfos);
+
+	if (vkResult != VK_SUCCESS)
+		return NULL;
+
 	return handle;
 }
 
@@ -473,6 +487,7 @@ inline static Pipeline createVkPipeline(
 	uint8_t polygonMode,
 	uint8_t cullMode,
 	uint8_t depthCompare,
+	uint8_t colorWriteMask,
 	bool cullFace,
 	bool clockwiseFrontFace,
 	bool testDepth,
@@ -573,6 +588,7 @@ inline static Pipeline createVkPipeline(
 		polygonMode,
 		cullMode,
 		depthCompare,
+		colorWriteMask,
 		cullFace,
 		clockwiseFrontFace,
 		testDepth,
@@ -608,6 +624,7 @@ inline static Pipeline createVkPipeline(
 	pipeline->vk.polygonMode = polygonMode;
 	pipeline->vk.cullMode = cullMode;
 	pipeline->vk.depthCompare = depthCompare;
+	pipeline->vk.colorWriteMask = colorWriteMask;
 	pipeline->vk.cullFace = cullFace;
 	pipeline->vk.clockwiseFrontFace = clockwiseFrontFace;
 	pipeline->vk.testDepth = testDepth;
@@ -720,6 +737,7 @@ inline static Pipeline createGlPipeline(
 	uint8_t polygonMode,
 	uint8_t cullMode,
 	uint8_t depthCompare,
+	uint8_t colorWriteMask,
 	bool cullFace,
 	bool clockwiseFrontFace,
 	bool testDepth,
@@ -865,6 +883,7 @@ inline static Pipeline createGlPipeline(
 	pipeline->gl.polygonMode = polygonMode;
 	pipeline->gl.cullMode = cullMode;
 	pipeline->gl.depthCompare = depthCompare;
+	pipeline->gl.colorWriteMask = colorWriteMask;
 	pipeline->gl.cullFace = cullFace;
 	pipeline->gl.clockwiseFrontFace = clockwiseFrontFace;
 	pipeline->gl.testDepth = testDepth;
@@ -955,9 +974,6 @@ inline static void bindGlPipeline(
 			(GLint)viewport.y,
 			(GLsizei)viewport.z,
 			(GLsizei)viewport.w);
-	}
-	if (depthRange.x + depthRange.y > 0.0f)
-	{
 		glDepthRange(
 			depthRange.x,
 			depthRange.y);
@@ -1017,14 +1033,22 @@ inline static void bindGlPipeline(
 		glDisable(GL_DEPTH_TEST);
 	}
 
+	uint8_t colorMask = pipeline->gl.colorWriteMask;
+
+	glColorMask(
+		colorMask & RED_COLOR_COMPONENT ?
+			GL_TRUE : GL_FALSE,
+		colorMask & GREEN_COLOR_COMPONENT ?
+			GL_TRUE : GL_FALSE,
+		colorMask & BLUE_COLOR_COMPONENT ?
+			GL_TRUE : GL_FALSE,
+		colorMask & ALPHA_COLOR_COMPONENT ?
+			GL_TRUE : GL_FALSE);
+
+	// TODO:
 	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_BLEND);
-
-	// TODO: color mask
-	glColorMask(
-		GL_TRUE, GL_TRUE,
-		GL_TRUE, GL_TRUE);
 	glPolygonOffset(0.0f, 0.0f);
 
 	glUseProgram(pipeline->gl.glHandle);

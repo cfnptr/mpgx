@@ -22,12 +22,13 @@ typedef struct _VkPipeline
 	bool restartPrimitive;
 	bool discardRasterizer;
 	float lineWidth;
-	Vec4U viewport;
+	Vec4I viewport;
 	Vec2F depthRange;
-	Vec4U scissor;
+	Vec4I scissor;
 	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
+	OnPipelineHandleResize onHandleResize;
 	void* handle;
 #if MPGX_SUPPORT_VULKAN
 	VkPipelineCache cache;
@@ -53,12 +54,13 @@ typedef struct _GlPipeline
 	bool restartPrimitive;
 	bool discardRasterizer;
 	float lineWidth;
-	Vec4U viewport;
+	Vec4I viewport;
 	Vec2F depthRange;
-	Vec4U scissor;
+	Vec4I scissor;
 	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
+	OnPipelineHandleResize onHandleResize;
 	void* handle;
 	GLuint glHandle;
 	GLenum glDrawMode;
@@ -187,14 +189,14 @@ inline static bool getVkCullMode(
 		return false;
 	}
 }
-
-inline static Pipeline createVkPipeline(
+inline static VkPipeline createVkPipelineHandle(
+	VkPipelineCache cache,
+	VkPipelineLayout layout,
 	VkDevice device,
 	VkRenderPass renderPass,
 	VkPipelineCreateInfo* createInfo,
 	Window window,
-	const char* name,
-	Shader* _shaders,
+	Shader* shaders,
 	uint8_t shaderCount,
 	uint8_t drawMode,
 	uint8_t polygonMode,
@@ -208,42 +210,19 @@ inline static Pipeline createVkPipeline(
 	bool restartPrimitive,
 	bool discardRasterizer,
 	float lineWidth,
-	Vec4U viewport,
+	Vec4I viewport,
 	Vec2F depthRange,
-	Vec4U scissor,
-	OnPipelineHandleDestroy onHandleDestroy,
-	OnPipelineHandleBind onHandleBind,
-	OnPipelineUniformsSet onUniformsSet,
-	void* handle)
+	Vec4I scissor)
 {
-	Pipeline pipeline = malloc(
-		sizeof(union Pipeline));
-
-	if (pipeline == NULL)
-		return NULL;
-
-	Shader* shaders = malloc(
-		shaderCount * sizeof(Shader));
-
-	if (shaders == NULL)
-	{
-		free(pipeline);
-		return NULL;
-	}
-
 	VkPipelineShaderStageCreateInfo* shaderStageCreateInfos =
 		malloc(shaderCount * sizeof(VkPipelineShaderStageCreateInfo));
 
 	if (shaderStageCreateInfos == NULL)
-	{
-		free(shaders);
-		free(pipeline);
 		return NULL;
-	}
 
 	for (uint8_t i = 0; i < shaderCount; i++)
 	{
-		Shader shader = _shaders[i];
+		Shader shader = shaders[i];
 		assert(shader->vk.window == window);
 
 		VkShaderStageFlagBits shaderStage;
@@ -255,8 +234,6 @@ inline static Pipeline createVkPipeline(
 		if (result == false)
 		{
 			free(shaderStageCreateInfos);
-			free(shaders);
-			free(pipeline);
 			return NULL;
 		}
 
@@ -270,7 +247,6 @@ inline static Pipeline createVkPipeline(
 			NULL, // TODO: pass here shader dynamic constants
 		};
 
-		shaders[i] = shader;
 		shaderStageCreateInfos[i] = shaderStageCreateInfo;
 	}
 
@@ -296,8 +272,6 @@ inline static Pipeline createVkPipeline(
 	if (result == false)
 	{
 		free(shaderStageCreateInfos);
-		free(shaders);
-		free(pipeline);
 		return NULL;
 	}
 
@@ -324,6 +298,27 @@ inline static Pipeline createVkPipeline(
 
 	// TODO: tesselation stage
 
+	VkDynamicState dynamicStates[2];
+	uint32_t dynamicStateCount = 0;
+
+	bool dynamicViewport =
+		viewport.z + viewport.w == 0;
+
+	if (dynamicViewport == true)
+	{
+		dynamicStates[dynamicStateCount++] =
+			VK_DYNAMIC_STATE_VIEWPORT;
+	}
+
+	bool dynamicScissor =
+		scissor.z + scissor.w == 0;
+
+	if (dynamicScissor == true)
+	{
+		dynamicStates[dynamicStateCount++] =
+			VK_DYNAMIC_STATE_SCISSOR;
+	}
+
 	VkViewport vkViewport = {
 		(float)viewport.x,
 		(float)viewport.y,
@@ -338,8 +333,8 @@ inline static Pipeline createVkPipeline(
 			(int32_t)scissor.y,
 		},
 		{
-			scissor.z,
-			scissor.w,
+			(uint32_t)scissor.z,
+			(uint32_t)scissor.w,
 		},
 	};
 	VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {
@@ -347,9 +342,9 @@ inline static Pipeline createVkPipeline(
 		NULL,
 		0,
 		1,
-		&vkViewport,
+		dynamicViewport ? NULL : &vkViewport,
 		1,
-		&vkScissor, // TODO: dynamic viewport/scissors
+		dynamicScissor ? NULL : &vkScissor,
 	};
 
 	VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {
@@ -422,19 +417,96 @@ inline static Pipeline createVkPipeline(
 		{},
 	};
 
-	// TODO: do not make dynamic if not using custom scissors or viewport
-
-	/*VkDynamicState dynamicStates[] = {
-		VK_DYNAMIC_STATE_VIEWPORT,
-		VK_DYNAMIC_STATE_SCISSOR,
-	};*/
 	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
 		NULL,
 		0,
+		dynamicStateCount,
+		dynamicStates,
+	};
+
+	VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {
+		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		NULL,
+		0,
+		shaderCount,
+		shaderStageCreateInfos,
+		&vertexInputStateCreateInfo,
+		&inputAssemblyStateCreateInfo,
+		NULL,
+		&viewportStateCreateInfo,
+		&rasterizationStateCreateInfo,
+		&multisampleStateCreateInfo,
+		&depthStencilStateCreateInfo,
+		&colorBlendStateCreateInfo,
+		&dynamicStateCreateInfo,
+		layout,
+		renderPass,
 		0,
 		NULL,
+		-1
 	};
+
+	VkPipeline handle;
+
+	VkResult vkResult = vkCreateGraphicsPipelines(
+		device,
+		cache,
+		1,
+		&graphicsPipelineCreateInfo,
+		NULL,
+		&handle);
+
+	free(shaderStageCreateInfos);
+	return handle;
+}
+
+inline static Pipeline createVkPipeline(
+	VkDevice device,
+	VkRenderPass renderPass,
+	VkPipelineCreateInfo* createInfo,
+	Window window,
+	const char* name,
+	Shader* _shaders,
+	uint8_t shaderCount,
+	uint8_t drawMode,
+	uint8_t polygonMode,
+	uint8_t cullMode,
+	uint8_t depthCompare,
+	bool cullFace,
+	bool clockwiseFrontFace,
+	bool testDepth,
+	bool writeDepth,
+	bool clampDepth,
+	bool restartPrimitive,
+	bool discardRasterizer,
+	float lineWidth,
+	Vec4I viewport,
+	Vec2F depthRange,
+	Vec4I scissor,
+	OnPipelineHandleDestroy onHandleDestroy,
+	OnPipelineHandleBind onHandleBind,
+	OnPipelineUniformsSet onUniformsSet,
+	OnPipelineHandleResize onHandleResize,
+	void* handle)
+{
+	Pipeline pipeline = malloc(
+		sizeof(union Pipeline));
+
+	if (pipeline == NULL)
+		return NULL;
+
+	Shader* shaders = malloc(
+		shaderCount * sizeof(Shader));
+
+	if (shaders == NULL)
+	{
+		free(pipeline);
+		return NULL;
+	}
+
+	for (uint8_t i = 0; i < shaderCount; i++)
+		shaders[i] = _shaders[i];
 
 	VkPipelineCacheCreateInfo cacheCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
@@ -454,7 +526,6 @@ inline static Pipeline createVkPipeline(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		free(shaderStageCreateInfos);
 		free(shaders);
 		free(pipeline);
 		return NULL;
@@ -484,47 +555,37 @@ inline static Pipeline createVkPipeline(
 			device,
 			cache,
 			NULL);
-		free(shaderStageCreateInfos);
 		free(shaders);
 		free(pipeline);
 		return NULL;
 	}
 
-	VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {
-		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-		NULL,
-		0,
-		shaderCount,
-		shaderStageCreateInfos,
-		&vertexInputStateCreateInfo,
-		&inputAssemblyStateCreateInfo,
-		NULL,
-		&viewportStateCreateInfo,
-		&rasterizationStateCreateInfo,
-		&multisampleStateCreateInfo,
-		&depthStencilStateCreateInfo,
-		&colorBlendStateCreateInfo,
-		&dynamicStateCreateInfo,
-		layout,
-		renderPass,
-		0,
-		NULL,
-		-1
-	};
-
-	VkPipeline vkHandle;
-
-	vkResult = vkCreateGraphicsPipelines(
-		device,
+	VkPipeline vkHandle = createVkPipelineHandle(
 		cache,
-		1,
-		&graphicsPipelineCreateInfo,
-		NULL,
-		&vkHandle);
+		layout,
+		device,
+		renderPass,
+		createInfo,
+		window,
+		shaders,
+		shaderCount,
+		drawMode,
+		polygonMode,
+		cullMode,
+		depthCompare,
+		cullFace,
+		clockwiseFrontFace,
+		testDepth,
+		writeDepth,
+		clampDepth,
+		restartPrimitive,
+		discardRasterizer,
+		lineWidth,
+		viewport,
+		depthRange,
+		scissor);
 
-	free(shaderStageCreateInfos);
-
-	if (vkResult != VK_SUCCESS)
+	if (vkHandle == NULL)
 	{
 		vkDestroyPipelineLayout(
 			device,
@@ -561,6 +622,7 @@ inline static Pipeline createVkPipeline(
 	pipeline->vk.onHandleDestroy = onHandleDestroy;
 	pipeline->vk.onHandleBind = onHandleBind;
 	pipeline->vk.onUniformsSet = onUniformsSet;
+	pipeline->vk.onHandleResize = onHandleResize;
 	pipeline->vk.handle = handle;
 	pipeline->vk.cache = cache;
 	pipeline->vk.layout = layout;
@@ -664,12 +726,13 @@ inline static Pipeline createGlPipeline(
 	bool writeDepth,
 	bool clampDepth,
 	float lineWidth,
-	Vec4U viewport,
+	Vec4I viewport,
 	Vec2F depthRange,
-	Vec4U scissor,
+	Vec4I scissor,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
+	OnPipelineHandleResize onHandleResize,
 	void* handle)
 {
 	Pipeline pipeline = malloc(
@@ -816,6 +879,7 @@ inline static Pipeline createGlPipeline(
 	pipeline->gl.onHandleDestroy = onHandleDestroy;
 	pipeline->gl.onHandleBind = onHandleBind;
 	pipeline->gl.onUniformsSet = onUniformsSet;
+	pipeline->gl.onHandleResize = onHandleResize;
 	pipeline->gl.handle = handle;
 	pipeline->gl.glHandle = glHandle;
 	pipeline->gl.glDrawMode = glDrawMode;
@@ -880,12 +944,11 @@ inline static void bindVkPipeline(
 inline static void bindGlPipeline(
 	Pipeline pipeline)
 {
-	Vec4U viewport = pipeline->gl.viewport;
+	Vec4I viewport = pipeline->gl.viewport;
 	Vec2F depthRange = pipeline->gl.depthRange;
-	Vec4U scissor = pipeline->gl.scissor;
+	Vec4I scissor = pipeline->gl.scissor;
 
-	if (viewport.x + viewport.y +
-		viewport.z + viewport.w > 0)
+	if (viewport.z + viewport.w > 0)
 	{
 		glViewport(
 			(GLint)viewport.x,
@@ -900,8 +963,7 @@ inline static void bindGlPipeline(
 			depthRange.y);
 	}
 
-	if (scissor.x + scissor.y +
-		scissor.z + scissor.w > 0)
+	if (scissor.z + scissor.w > 0)
 	{
 		glScissor(
 			(GLint)scissor.x,

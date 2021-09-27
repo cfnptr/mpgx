@@ -52,6 +52,7 @@ struct Window
 	Mesh* meshes;
 	size_t meshCapacity;
 	size_t meshCount;
+	Vec2U framebufferSize;
 	double updateTime;
 	double deltaTime;
 	bool isRecording;
@@ -366,18 +367,19 @@ Window createWindow(
 	VkWindow vkWindow = NULL;
 #endif
 
+	int width, height;
+
+	glfwGetFramebufferSize(
+		handle,
+		&width,
+		&height);
+
+	Vec2U framebufferSize =
+		vec2U(width, height);
+
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		int width, height;
-
-		glfwGetFramebufferSize(
-			handle,
-			&width,
-			&height);
-
-		Vec2U framebufferSize =
-			vec2U(width, height);
 		vkWindow = createVkWindow(
 			window,
 			vkInstance,
@@ -391,8 +393,6 @@ Window createWindow(
 			free(window);
 			return NULL;
 		}
-
-		// TODO: maxImageSize
 #else
 		abort();
 #endif
@@ -551,6 +551,7 @@ Window createWindow(
 	window->meshes = meshes;
 	window->meshCapacity = meshCapacity;
 	window->meshCount = 0;
+	window->framebufferSize = framebufferSize;
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
 	window->isRecording = false;
@@ -806,15 +807,7 @@ Vec2F getWindowContentScale(Window window)
 Vec2U getWindowFramebufferSize(Window window)
 {
 	assert(window != NULL);
-
-	int width, height;
-
-	glfwGetFramebufferSize(
-		window->handle,
-		&width,
-		&height);
-
-	return vec2U(width, height);
+	return window->framebufferSize;
 }
 const char* getWindowClipboard(Window window)
 {
@@ -838,7 +831,8 @@ const char* getWindowGpuName(Window window)
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		return getVkWindowGpuName();
+		return getVkWindowGpuName(
+			window->vkWindow->physicalDevice);
 #else
 		abort();
 #endif
@@ -854,37 +848,6 @@ const char* getWindowGpuName(Window window)
 	}
 }
 
-inline static const char* getGlWindowGpuVendor()
-{
-	const char* vendor = (const char*)
-		glGetString(GL_VENDOR);
-	assertOpenGL();
-	return vendor;
-}
-const char* getWindowGpuVendor(Window window)
-{
-	assert(window != NULL);
-
-	uint8_t api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		return getVkWindowGpuVendor();
-#else
-		abort();
-#endif
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		return getGlWindowGpuVendor();
-	}
-	else
-	{
-		abort();
-	}
-}
 void* getVkWindow(Window window)
 {
 	assert(window != NULL);
@@ -1158,6 +1121,83 @@ void updateWindow(Window window)
 	}
 }
 
+#if MPGX_SUPPORT_VULKAN
+static void onVkResize(Window window)
+{
+	Pipeline* pipelines = window->pipelines;
+	size_t pipelineCount = window->pipelineCount;
+	VkWindow vkWindow = window->vkWindow;
+	VkDevice device = vkWindow->device;
+	VkRenderPass renderPass = vkWindow->swapchain->renderPass;
+
+	for (size_t i = 0; i < pipelineCount; i++)
+	{
+		Pipeline pipeline = pipelines[i];
+		VkPipelineCreateInfo createInfo;
+
+		if (pipeline->vk.onHandleResize != NULL)
+		{
+			pipeline->vk.onHandleResize(
+				pipeline,
+				&createInfo);
+		}
+
+		vkDestroyPipeline(
+			device,
+			pipeline->vk.vkHandle,
+			NULL);
+
+		VkPipeline vkHandle = createVkPipelineHandle(
+			pipeline->vk.cache,
+			pipeline->vk.layout,
+			device,
+			renderPass,
+			&createInfo,
+			window,
+			pipeline->vk.shaders,
+			pipeline->vk.shaderCount,
+			pipeline->vk.drawMode,
+			pipeline->vk.polygonMode,
+			pipeline->vk.cullMode,
+			pipeline->vk.depthCompare,
+			pipeline->vk.cullFace,
+			pipeline->vk.clockwiseFrontFace,
+			pipeline->vk.testDepth,
+			pipeline->vk.writeDepth,
+			pipeline->vk.clampDepth,
+			pipeline->vk.restartPrimitive,
+			pipeline->vk.discardRasterizer,
+			pipeline->vk.lineWidth,
+			pipeline->vk.viewport,
+			pipeline->vk.depthRange,
+			pipeline->vk.scissor);
+
+		if (vkHandle == NULL)
+			abort();
+
+		pipeline->vk.vkHandle = vkHandle;
+	}
+}
+#endif
+
+static void onGlResize(Window window)
+{
+	Pipeline* pipelines = window->pipelines;
+	size_t pipelineCount = window->pipelineCount;
+
+	for (size_t i = 0; i < pipelineCount; i++)
+	{
+		Pipeline pipeline = pipelines[i];
+
+		if (pipeline->gl.onHandleResize != NULL)
+		{
+			pipeline->gl.onHandleResize(
+				pipeline,
+				NULL);
+		}
+	}
+}
+
 inline static void beginGlWindowRender(
 	bool useStencilBuffer,
 	Vec4F clearColor,
@@ -1217,18 +1257,40 @@ void beginWindowRender(
 	assert(window->isRecording == false);
 	assert(window->isRendering == false);
 
+	int width, height;
+
+	glfwGetFramebufferSize(
+		window->handle,
+		&width,
+		&height);
+
+	Vec2U framebufferSize =
+		vec2U(width, height);
+	Vec2U currentFramebufferSize =
+		window->framebufferSize;
+
+	bool isResized = false;
+
+	if (framebufferSize.x != currentFramebufferSize.x ||
+		framebufferSize.y != currentFramebufferSize.y)
+	{
+		window->framebufferSize = framebufferSize;
+		isResized = true;
+	}
+
 	uint8_t api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		bool result = beginVkWindowRender(
-			vkInstance,
 			window,
 			window->vkWindow,
 			clearColor,
 			clearDepth,
-			clearStencil);
+			clearStencil,
+			isResized,
+			onVkResize);
 
 		if (result == false)
 			abort();
@@ -1239,6 +1301,9 @@ void beginWindowRender(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+		if (isResized == true)
+			onGlResize(window);
+
 		beginGlWindowRender(
 			window->useStencilBuffer,
 			clearColor,
@@ -1270,7 +1335,8 @@ void endWindowRender(Window window)
 #if MPGX_SUPPORT_VULKAN
 		bool result = endVkWindowRender(
 			window,
-			window->vkWindow);
+			window->vkWindow,
+			onVkResize);
 
 		if (result == false)
 			abort();
@@ -2629,12 +2695,13 @@ Pipeline createPipeline(
 	bool restartPrimitive,
 	bool discardRasterizer,
 	float lineWidth,
-	Vec4U viewport,
+	Vec4I viewport,
 	Vec2F depthRange,
-	Vec4U scissor,
+	Vec4I scissor,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
+	OnPipelineHandleResize onHandleResize,
 	void* handle,
 	void* createInfo)
 {
@@ -2647,6 +2714,8 @@ Pipeline createPipeline(
 	assert(cullMode < CULL_MODE_COUNT);
 	assert(depthCompare < COMPARE_OPERATION_COUNT);
 	assert(lineWidth > 0.0f);
+	assert(viewport.z >= 0 && viewport.w >= 0);
+	assert(scissor.z >= 0 && scissor.w >= 0);
 	assert(window->isRecording == false);
 
 	uint8_t api = window->api;
@@ -2685,6 +2754,7 @@ Pipeline createPipeline(
 			onHandleDestroy,
 			onHandleBind,
 			onUniformsSet,
+			onHandleResize,
 			handle);
 #else
 		abort();
@@ -2718,6 +2788,7 @@ Pipeline createPipeline(
 			onHandleDestroy,
 			onHandleBind,
 			onUniformsSet,
+			onHandleResize,
 			handle);
 	}
 	else

@@ -18,6 +18,9 @@
 // TODO: fix a new framebuffer sRGB difference
 // TODO: check all /_source error return functions
 
+// TODO: use glPolygonOffset to improve shadow mapping
+// https://docs.microsoft.com/en-gb/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps?redirectedfrom=MSDN
+
 static const Vec2U defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
 	DEFAULT_WINDOW_HEIGHT
@@ -293,6 +296,7 @@ typedef void(*OnWindowUpdate)(void* argument);
 typedef void(*OnPipelineHandleDestroy)(Window window, void* handle);
 typedef void(*OnPipelineHandleBind)(Pipeline pipeline);
 typedef void(*OnPipelineUniformsSet)(Pipeline pipeline);
+typedef void(*OnPipelineHandleResize)(Pipeline pipeline, void* createInfo);
 
 bool initializeGraphics(
 	const char* appName,
@@ -346,7 +350,6 @@ Vec2F getWindowContentScale(Window window);
 Vec2U getWindowFramebufferSize(Window window);
 const char* getWindowClipboard(Window window);
 const char* getWindowGpuName(Window window);
-const char* getWindowGpuVendor(Window window);
 
 void* getVkWindow(Window window);
 bool isVkGpuIntegrated(Window window);
@@ -547,12 +550,13 @@ Pipeline createPipeline(
 	bool restartPrimitive,
 	bool discardRasterizer,
 	float lineWidth,
-	Vec4U viewport,
+	Vec4I viewport,
 	Vec2F depthRange,
-	Vec4U scissor,
+	Vec4I scissor,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
+	OnPipelineHandleResize onHandleResize,
 	void* handle,
 	void* createInfo);
 void destroyPipeline(

@@ -1329,33 +1329,33 @@ inline static void destroyVkWindow(
 	free(window);
 }
 
-inline static const char* getVkWindowGpuName()
+static VkPhysicalDeviceProperties properties;
+
+inline static const char* getVkWindowGpuName(
+	VkPhysicalDevice physicalDevice)
 {
-	return NULL;
-}
-inline static const char* getVkWindowGpuVendor()
-{
-	return NULL;
+	vkGetPhysicalDeviceProperties(
+		physicalDevice,
+		&properties);
+	return properties.deviceName;
 }
 
 inline static bool beginVkWindowRender(
-	VkInstance vkInstance,
 	Window window,
 	VkWindow vkWindow,
 	Vec4F clearColor,
 	float clearDepth,
-	uint32_t clearStencil)
+	uint32_t clearStencil,
+	bool isResized,
+	void(*onResize)(Window))
 {
 	VkSwapchain swapchain = vkWindow->swapchain;
 	VkDevice device = vkWindow->device;
 
 	Vec2U framebufferSize =
 		getWindowFramebufferSize(window);
-	Vec2U currentFramebufferSize =
-		swapchain->framebufferSize;
 
-	if (framebufferSize.x != currentFramebufferSize.x ||
-		framebufferSize.y != currentFramebufferSize.y)
+	if (isResized == true)
 	{
 		bool useStencilBuffer =
 			isWindowUseStencilBuffer(window);
@@ -1376,6 +1376,9 @@ inline static bool beginVkWindowRender(
 
 		if (result == false)
 			return false;
+
+		vkWindow->frameIndex = 0;
+		onResize(window);
 	}
 
 	uint32_t frameIndex = vkWindow->frameIndex;
@@ -1441,6 +1444,7 @@ inline static bool beginVkWindowRender(
 				return false;
 
 			vkWindow->frameIndex = 0;
+			onResize(window);
 		}
 		else if (vkResult != VK_SUCCESS &&
 			vkResult != VK_SUBOPTIMAL_KHR &&
@@ -1514,7 +1518,8 @@ inline static bool beginVkWindowRender(
 }
 inline static bool endVkWindowRender(
 	Window window,
-	VkWindow vkWindow)
+	VkWindow vkWindow,
+	void(*onResize)(Window))
 {
 	VkSwapchain swapchain = vkWindow->swapchain;
 	uint32_t bufferIndex = vkWindow->bufferIndex;
@@ -1669,6 +1674,7 @@ inline static bool endVkWindowRender(
 			return false;
 
 		vkWindow->frameIndex = 0;
+		onResize(window);
 	}
 	else if (vkResult != VK_SUCCESS &&
 		vkResult != VK_SUBOPTIMAL_KHR &&

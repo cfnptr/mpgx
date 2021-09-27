@@ -150,6 +150,8 @@ inline static Buffer createVkBuffer(
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 
+	// TODO: investigate if this solution optimal
+
 	if (isGpuIntegrated == true)
 	{
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;

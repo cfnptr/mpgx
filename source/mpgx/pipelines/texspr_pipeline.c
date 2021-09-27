@@ -34,7 +34,7 @@ typedef union PipelineHandle
 	GlPipelineHandle gl;
 } PipelineHandle;
 
-static void onGlPipelineHandleDestroy(
+static void onGlHandleDestroy(
 	Window window,
 	void* handle)
 {
@@ -42,7 +42,7 @@ static void onGlPipelineHandleDestroy(
 		(PipelineHandle*)handle;
 	free(pipelineHandle);
 }
-static void onGlPipelineHandleBind(Pipeline pipeline)
+static void onGlHandleBind(Pipeline pipeline)
 {
 	PipelineHandle* handle =
 		pipeline->gl.handle;
@@ -62,7 +62,7 @@ static void onGlPipelineHandleBind(Pipeline pipeline)
 
 	assertOpenGL();
 }
-static void onGlPipelineUniformsSet(Pipeline pipeline)
+static void onGlUniformsSet(Pipeline pipeline)
 {
 	PipelineHandle* handle = pipeline->gl.handle;
 
@@ -104,7 +104,7 @@ static void onGlPipelineUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
-inline static Pipeline createGlPipelineHandle(
+inline static Pipeline createGlHandle(
 	Window window,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -142,16 +142,17 @@ inline static Pipeline createGlPipelineHandle(
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
-		vec4U(0, 0,
-			framebufferSize.x,
-			framebufferSize.y),
+		vec4I(0, 0,
+			(int32_t)framebufferSize.x,
+			(int32_t)framebufferSize.y),
 		vec2F(
 			DEFAULT_MIN_DEPTH_RANGE,
 			DEFAULT_MAX_DEPTH_RANGE),
-		zeroVec4U(),
-		onGlPipelineHandleDestroy,
-		onGlPipelineHandleBind,
-		onGlPipelineUniformsSet,
+		zeroVec4I(),
+		onGlHandleDestroy,
+		onGlHandleBind,
+		onGlUniformsSet,
+		NULL,
 		handle,
 		NULL);
 
@@ -270,7 +271,7 @@ Pipeline createTexSprPipeline(
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		pipeline = createGlPipelineHandle(
+		pipeline = createGlHandle(
 			window,
 			vertexShader,
 			fragmentShader,

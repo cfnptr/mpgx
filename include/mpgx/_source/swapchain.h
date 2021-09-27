@@ -13,7 +13,6 @@ typedef struct VkSwapchainBuffer
 
 struct VkSwapchain
 {
-	Vec2U framebufferSize;
 	VkSwapchainKHR handle;
 	Image depthImage;
 	VkImageView depthImageView;
@@ -1094,7 +1093,6 @@ inline static VkSwapchain createVkSwapchain(
 		return NULL;
 	}
 
-	swapchain->framebufferSize = framebufferSize;
 	swapchain->handle = handle;
 	swapchain->depthImage = depthImage;
 	swapchain->depthImageView = depthImageView;
@@ -1335,7 +1333,6 @@ inline static bool resizeVkSwapchain(
 		return false;
 	}
 
-	swapchain->framebufferSize = framebufferSize;
 	swapchain->depthImage = depthImage;
 	swapchain->depthImageView = depthImageView;
 	swapchain->renderPass = renderPass;

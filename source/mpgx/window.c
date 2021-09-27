@@ -1150,22 +1150,7 @@ static void onVkResize(Window window)
 			window,
 			pipeline->vk.shaders,
 			pipeline->vk.shaderCount,
-			pipeline->vk.drawMode,
-			pipeline->vk.polygonMode,
-			pipeline->vk.cullMode,
-			pipeline->vk.depthCompare,
-			pipeline->vk.colorWriteMask,
-			pipeline->vk.cullFace,
-			pipeline->vk.clockwiseFrontFace,
-			pipeline->vk.testDepth,
-			pipeline->vk.writeDepth,
-			pipeline->vk.clampDepth,
-			pipeline->vk.restartPrimitive,
-			pipeline->vk.discardRasterizer,
-			pipeline->vk.lineWidth,
-			pipeline->vk.viewport,
-			pipeline->vk.depthRange,
-			pipeline->vk.scissor);
+			pipeline->vk.state);
 
 		if (vkHandle == NULL)
 			abort();
@@ -2678,22 +2663,7 @@ Pipeline createPipeline(
 	const char* name,
 	Shader* shaders,
 	uint8_t shaderCount,
-	uint8_t drawMode,
-	uint8_t polygonMode,
-	uint8_t cullMode,
-	uint8_t depthCompare,
-	uint8_t colorWriteMask,
-	bool cullFace,
-	bool clockwiseFrontFace,
-	bool testDepth,
-	bool writeDepth,
-	bool clampDepth,
-	bool restartPrimitive,
-	bool discardRasterizer,
-	float lineWidth,
-	Vec4I viewport,
-	Vec2F depthRange,
-	Vec4I scissor,
+	const PipelineState* state,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
@@ -2705,14 +2675,15 @@ Pipeline createPipeline(
 	assert(name != NULL);
 	assert(shaders != NULL);
 	assert(shaderCount != 0);
-	assert(drawMode < DRAW_MODE_COUNT);
-	assert(polygonMode < POLYGON_MODE_COUNT);
-	assert(cullMode < CULL_MODE_COUNT);
-	assert(depthCompare < COMPARE_OPERATION_COUNT);
-	assert(colorWriteMask <= ALL_COLOR_COMPONENT);
-	assert(lineWidth > 0.0f);
-	assert(viewport.z >= 0 && viewport.w >= 0);
-	assert(scissor.z >= 0 && scissor.w >= 0);
+	assert(state != NULL);
+	assert(state->drawMode < DRAW_MODE_COUNT);
+	assert(state->polygonMode < POLYGON_MODE_COUNT);
+	assert(state->cullMode < CULL_MODE_COUNT);
+	assert(state->depthCompare < COMPARE_OPERATION_COUNT);
+	assert(state->colorWriteMask <= ALL_COLOR_COMPONENT);
+	assert(state->lineWidth > 0.0f);
+	assert(state->viewport.z >= 0 && state->viewport.w >= 0);
+	assert(state->scissor.z >= 0 && state->scissor.w >= 0);
 	assert(window->isRecording == false);
 
 	uint8_t api = window->api;
@@ -2733,22 +2704,7 @@ Pipeline createPipeline(
 			name,
 			shaders,
 			shaderCount,
-			drawMode,
-			polygonMode,
-			cullMode,
-			depthCompare,
-			colorWriteMask,
-			cullFace,
-			clockwiseFrontFace,
-			testDepth,
-			writeDepth,
-			clampDepth,
-			restartPrimitive,
-			discardRasterizer,
-			lineWidth,
-			viewport,
-			depthRange,
-			scissor,
+			*state,
 			onHandleDestroy,
 			onHandleBind,
 			onUniformsSet,
@@ -2762,28 +2718,15 @@ Pipeline createPipeline(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		assert(createInfo == NULL);
-		assert(restartPrimitive == false);
-		assert(discardRasterizer == false);
+		assert(state->restartPrimitive == false);
+		assert(state->discardRasterizer == false);
 
 		pipeline = createGlPipeline(
 			window,
 			name,
 			shaders,
 			shaderCount,
-			drawMode,
-			polygonMode,
-			cullMode,
-			depthCompare,
-			colorWriteMask,
-			cullFace,
-			clockwiseFrontFace,
-			testDepth,
-			writeDepth,
-			clampDepth,
-			lineWidth,
-			viewport,
-			depthRange,
-			scissor,
+			*state,
 			onHandleDestroy,
 			onHandleBind,
 			onUniformsSet,
@@ -2910,70 +2853,10 @@ uint8_t getPipelineShaderCount(Pipeline pipeline)
 	assert(pipeline != NULL);
 	return pipeline->vk.shaderCount;
 }
-uint8_t getPipelineDrawMode(Pipeline pipeline)
+const PipelineState* getPipelineState(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->vk.drawMode;
-}
-uint8_t getPipelinePolygonMode(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.polygonMode;
-}
-uint8_t getPipelineCullMode(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.cullMode;
-}
-uint8_t getPipelineDepthCompare(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.depthCompare;
-}
-uint8_t getPipelineColorWriteMask(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.colorWriteMask;
-}
-bool isPipelineCullFace(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.cullFace;
-}
-bool isPipelineClockwiseFrontFace(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.clockwiseFrontFace;
-}
-bool isPipelineTestDepth(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.testDepth;
-}
-bool isPipelineWriteDepth(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.writeDepth;
-}
-bool isPipelineClampDepth(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.clampDepth;
-}
-bool isPipelineRestartPrimitive(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.restartPrimitive;
-}
-bool isPipelineDiscardRasterizer(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.discardRasterizer;
-}
-float getPipelineLineWidth(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->vk.lineWidth;
+	return &pipeline->vk.state;
 }
 OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline)
 {

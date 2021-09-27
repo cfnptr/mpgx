@@ -10,22 +10,7 @@ typedef struct _VkPipeline
 	const char* name;
 	Shader* shaders;
 	uint8_t shaderCount;
-	uint8_t drawMode;
-	uint8_t polygonMode;
-	uint8_t cullMode;
-	uint8_t depthCompare;
-	uint8_t colorWriteMask;
-	bool cullFace;
-	bool clockwiseFrontFace;
-	bool testDepth;
-	bool writeDepth;
-	bool clampDepth;
-	bool restartPrimitive;
-	bool discardRasterizer;
-	float lineWidth;
-	Vec4I viewport;
-	Vec2F depthRange;
-	Vec4I scissor;
+	PipelineState state;
 	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
@@ -43,32 +28,18 @@ typedef struct _GlPipeline
 	const char* name;
 	Shader* shaders;
 	uint8_t shaderCount;
-	uint8_t drawMode;
-	uint8_t polygonMode;
-	uint8_t cullMode;
-	uint8_t depthCompare;
-	uint8_t colorWriteMask;
-	bool cullFace;
-	bool clockwiseFrontFace;
-	bool testDepth;
-	bool writeDepth;
-	bool clampDepth;
-	bool restartPrimitive;
-	bool discardRasterizer;
-	float lineWidth;
-	Vec4I viewport;
-	Vec2F depthRange;
-	Vec4I scissor;
+	PipelineState state;
 	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
 	OnPipelineHandleResize onHandleResize;
 	void* handle;
 	GLuint glHandle;
-	GLenum glDrawMode;
-	GLenum _glPolygonMode;
-	GLenum glCullMode;
-	GLenum glDepthCompare;
+	GLenum drawMode;
+	GLenum polygonMode;
+	GLenum cullMode;
+	GLenum depthCompare;
+	GLenum frontFace;
 } _GlPipeline;
 union Pipeline
 {
@@ -200,22 +171,7 @@ inline static VkPipeline createVkPipelineHandle(
 	Window window,
 	Shader* shaders,
 	uint8_t shaderCount,
-	uint8_t drawMode,
-	uint8_t polygonMode,
-	uint8_t cullMode,
-	uint8_t depthCompare,
-	uint8_t colorWriteMask,
-	bool cullFace,
-	bool clockwiseFrontFace,
-	bool testDepth,
-	bool writeDepth,
-	bool clampDepth,
-	bool restartPrimitive,
-	bool discardRasterizer,
-	float lineWidth,
-	Vec4I viewport,
-	Vec2F depthRange,
-	Vec4I scissor)
+	PipelineState state)
 {
 	VkPipelineShaderStageCreateInfo* shaderStageCreateInfos =
 		malloc(shaderCount * sizeof(VkPipelineShaderStageCreateInfo));
@@ -253,24 +209,24 @@ inline static VkPipeline createVkPipelineHandle(
 		shaderStageCreateInfos[i] = shaderStageCreateInfo;
 	}
 
-	VkPrimitiveTopology vkPrimitiveTopology;
-	VkPolygonMode vkPolygonMode;
-	VkCullModeFlags vkCullMode;
-	VkCompareOp vkDepthCompare;
+	VkPrimitiveTopology primitiveTopology;
+	VkPolygonMode polygonMode;
+	VkCullModeFlags cullMode;
+	VkCompareOp depthCompare;
 
 	bool result = getVkDrawMode(
-		drawMode,
-		&vkPrimitiveTopology);
+		state.drawMode,
+		&primitiveTopology);
 	result &= getVkPolygonMode(
-		polygonMode,
-		&vkPolygonMode);
+		state.polygonMode,
+		&polygonMode);
 	result &= getVkCullMode(
-		cullMode,
-		cullFace,
-		&vkCullMode);
+		state.cullMode,
+		state.cullFace,
+		&cullMode);
 	result &= getVkCompareOperation(
-		depthCompare,
-		&vkDepthCompare);
+		state.depthCompare,
+		&depthCompare);
 
 	if (result == false)
 	{
@@ -278,7 +234,7 @@ inline static VkPipeline createVkPipelineHandle(
 		return NULL;
 	}
 
-	VkFrontFace vkFrontFace = clockwiseFrontFace ?
+	VkFrontFace vkFrontFace = state.clockwiseFrontFace ?
 		VK_FRONT_FACE_CLOCKWISE : VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 	VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = {
@@ -295,8 +251,8 @@ inline static VkPipeline createVkPipelineHandle(
 		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 		NULL,
 		0,
-		vkPrimitiveTopology,
-		restartPrimitive ? VK_TRUE : VK_FALSE,
+		primitiveTopology,
+		state.restartPrimitive ? VK_TRUE : VK_FALSE,
 	};
 
 	// TODO: tesselation stage
@@ -305,7 +261,8 @@ inline static VkPipeline createVkPipelineHandle(
 	uint32_t dynamicStateCount = 0;
 
 	bool dynamicViewport =
-		viewport.z + viewport.w == 0;
+		state.viewport.z +
+		state.viewport.w == 0;
 
 	if (dynamicViewport == true)
 	{
@@ -314,7 +271,8 @@ inline static VkPipeline createVkPipelineHandle(
 	}
 
 	bool dynamicScissor =
-		scissor.z + scissor.w == 0;
+		state.scissor.z +
+		state.scissor.w == 0;
 
 	if (dynamicScissor == true)
 	{
@@ -322,22 +280,22 @@ inline static VkPipeline createVkPipelineHandle(
 			VK_DYNAMIC_STATE_SCISSOR;
 	}
 
-	VkViewport vkViewport = {
-		(float)viewport.x,
-		(float)viewport.y,
-		(float)viewport.z,
-		(float)viewport.w,
-		depthRange.x,
-		depthRange.y,
+	VkViewport viewport = {
+		(float)state.viewport.x,
+		(float)state.viewport.y,
+		(float)state.viewport.z,
+		(float)state.viewport.w,
+		state.depthRange.x,
+		state.depthRange.y,
 	};
-	VkRect2D vkScissor = {
+	VkRect2D scissor = {
 		{
-			(int32_t)scissor.x,
-			(int32_t)scissor.y,
+			(int32_t)state.scissor.x,
+			(int32_t)state.scissor.y,
 		},
 		{
-			(uint32_t)scissor.z,
-			(uint32_t)scissor.w,
+			(uint32_t)state.scissor.z,
+			(uint32_t)state.scissor.w,
 		},
 	};
 	VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {
@@ -345,25 +303,25 @@ inline static VkPipeline createVkPipelineHandle(
 		NULL,
 		0,
 		1,
-		dynamicViewport ? NULL : &vkViewport,
+		dynamicViewport ? NULL : &viewport,
 		1,
-		dynamicScissor ? NULL : &vkScissor,
+		dynamicScissor ? NULL : &scissor,
 	};
 
 	VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
 		NULL,
 		0,
-		clampDepth ? VK_TRUE : VK_FALSE,
-		discardRasterizer ? VK_TRUE : VK_FALSE,
-		vkPolygonMode,
-		vkCullMode,
+		state.clampDepth ? VK_TRUE : VK_FALSE,
+		state.discardRasterizer ? VK_TRUE : VK_FALSE,
+		polygonMode,
+		cullMode,
 		vkFrontFace,
 		VK_FALSE, // TODO: implement depth bias
 		0.0f,
 		0.0f,
 		0.0f,
-		lineWidth,
+		state.lineWidth,
 	};
 
 	// TODO: multisampling
@@ -383,9 +341,9 @@ inline static VkPipeline createVkPipelineHandle(
 		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 		NULL,
 		0,
-		testDepth ? VK_TRUE : VK_FALSE,
-		writeDepth ? VK_TRUE : VK_FALSE,
-		vkDepthCompare,
+		state.testDepth ? VK_TRUE : VK_FALSE,
+		state.writeDepth ? VK_TRUE : VK_FALSE,
+		depthCompare,
 		VK_FALSE, // TODO:
 		VK_FALSE,
 		{},
@@ -396,13 +354,13 @@ inline static VkPipeline createVkPipelineHandle(
 
 	VkColorComponentFlags vkColorWriteMask = 0;
 
-	if (colorWriteMask & RED_COLOR_COMPONENT)
+	if (state.colorWriteMask & RED_COLOR_COMPONENT)
 		vkColorWriteMask |= VK_COLOR_COMPONENT_R_BIT;
-	if (colorWriteMask & GREEN_COLOR_COMPONENT)
+	if (state.colorWriteMask & GREEN_COLOR_COMPONENT)
 		vkColorWriteMask |= VK_COLOR_COMPONENT_G_BIT;
-	if (colorWriteMask & BLUE_COLOR_COMPONENT)
+	if (state.colorWriteMask & BLUE_COLOR_COMPONENT)
 		vkColorWriteMask |= VK_COLOR_COMPONENT_B_BIT;
-	if (colorWriteMask & ALPHA_COLOR_COMPONENT)
+	if (state.colorWriteMask & ALPHA_COLOR_COMPONENT)
 		vkColorWriteMask |= VK_COLOR_COMPONENT_A_BIT;
 
 	VkPipelineColorBlendAttachmentState colorBlendAttachmentStateCreateInfo = {
@@ -483,22 +441,7 @@ inline static Pipeline createVkPipeline(
 	const char* name,
 	Shader* _shaders,
 	uint8_t shaderCount,
-	uint8_t drawMode,
-	uint8_t polygonMode,
-	uint8_t cullMode,
-	uint8_t depthCompare,
-	uint8_t colorWriteMask,
-	bool cullFace,
-	bool clockwiseFrontFace,
-	bool testDepth,
-	bool writeDepth,
-	bool clampDepth,
-	bool restartPrimitive,
-	bool discardRasterizer,
-	float lineWidth,
-	Vec4I viewport,
-	Vec2F depthRange,
-	Vec4I scissor,
+	PipelineState state,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
@@ -584,22 +527,7 @@ inline static Pipeline createVkPipeline(
 		window,
 		shaders,
 		shaderCount,
-		drawMode,
-		polygonMode,
-		cullMode,
-		depthCompare,
-		colorWriteMask,
-		cullFace,
-		clockwiseFrontFace,
-		testDepth,
-		writeDepth,
-		clampDepth,
-		restartPrimitive,
-		discardRasterizer,
-		lineWidth,
-		viewport,
-		depthRange,
-		scissor);
+		state);
 
 	if (vkHandle == NULL)
 	{
@@ -620,22 +548,7 @@ inline static Pipeline createVkPipeline(
 	pipeline->vk.name = name;
 	pipeline->vk.shaders = shaders;
 	pipeline->vk.shaderCount = shaderCount;
-	pipeline->vk.drawMode = drawMode;
-	pipeline->vk.polygonMode = polygonMode;
-	pipeline->vk.cullMode = cullMode;
-	pipeline->vk.depthCompare = depthCompare;
-	pipeline->vk.colorWriteMask = colorWriteMask;
-	pipeline->vk.cullFace = cullFace;
-	pipeline->vk.clockwiseFrontFace = clockwiseFrontFace;
-	pipeline->vk.testDepth = testDepth;
-	pipeline->vk.writeDepth = writeDepth;
-	pipeline->vk.clampDepth = clampDepth;
-	pipeline->vk.restartPrimitive = restartPrimitive;
-	pipeline->vk.discardRasterizer = discardRasterizer;
-	pipeline->vk.lineWidth = lineWidth;
-	pipeline->vk.viewport = viewport;
-	pipeline->vk.depthRange = depthRange;
-	pipeline->vk.scissor = scissor;
+	pipeline->vk.state = state;
 	pipeline->vk.onHandleDestroy = onHandleDestroy;
 	pipeline->vk.onHandleBind = onHandleBind;
 	pipeline->vk.onUniformsSet = onUniformsSet;
@@ -733,20 +646,7 @@ inline static Pipeline createGlPipeline(
 	const char* name,
 	Shader* _shaders,
 	uint8_t shaderCount,
-	uint8_t drawMode,
-	uint8_t polygonMode,
-	uint8_t cullMode,
-	uint8_t depthCompare,
-	uint8_t colorWriteMask,
-	bool cullFace,
-	bool clockwiseFrontFace,
-	bool testDepth,
-	bool writeDepth,
-	bool clampDepth,
-	float lineWidth,
-	Vec4I viewport,
-	Vec2F depthRange,
-	Vec4I scissor,
+	PipelineState state,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
@@ -768,30 +668,30 @@ inline static Pipeline createGlPipeline(
 		return NULL;
 	}
 
-	GLenum glDrawMode, _glPolygonMode,
-		glCullMode, glDepthCompare;
+	GLenum drawMode, polygonMode,
+		cullMode, depthCompare;
 
 	bool result = getGlDrawMode(
-		drawMode,
-		&glDrawMode);
+		state.drawMode,
+		&drawMode);
 	result &= getGlPolygonMode(
-		polygonMode,
-		&_glPolygonMode);
+		state.polygonMode,
+		&polygonMode);
 
-	if (cullFace == true)
+	if (state.cullFace == true)
 	{
 		result &= getGlCullMode(
-			cullMode,
-			&glCullMode);
+			state.cullMode,
+			&cullMode);
 	}
 	else
 	{
-		glCullMode = GL_ZERO;
+		cullMode = GL_ZERO;
 	}
 
 	result &= getGlCompareOperation(
-		depthCompare,
-		&glDepthCompare);
+		state.depthCompare,
+		&depthCompare);
 
 	if (result == false)
 	{
@@ -799,6 +699,10 @@ inline static Pipeline createGlPipeline(
 		free(pipeline);
 		return NULL;
 	}
+
+	GLenum frontFace =
+		state.clockwiseFrontFace == true ?
+		GL_CW : GL_CCW;
 
 	makeWindowContextCurrent(window);
 
@@ -879,32 +783,18 @@ inline static Pipeline createGlPipeline(
 	pipeline->gl.name = name;
 	pipeline->gl.shaders = shaders;
 	pipeline->gl.shaderCount = shaderCount;
-	pipeline->gl.drawMode = drawMode;
-	pipeline->gl.polygonMode = polygonMode;
-	pipeline->gl.cullMode = cullMode;
-	pipeline->gl.depthCompare = depthCompare;
-	pipeline->gl.colorWriteMask = colorWriteMask;
-	pipeline->gl.cullFace = cullFace;
-	pipeline->gl.clockwiseFrontFace = clockwiseFrontFace;
-	pipeline->gl.testDepth = testDepth;
-	pipeline->gl.writeDepth = writeDepth;
-	pipeline->gl.clampDepth = clampDepth;
-	pipeline->gl.restartPrimitive = false;
-	pipeline->gl.discardRasterizer = false;
-	pipeline->gl.lineWidth = lineWidth;
-	pipeline->gl.viewport = viewport;
-	pipeline->gl.depthRange = depthRange;
-	pipeline->gl.scissor = scissor;
+	pipeline->gl.state = state;
 	pipeline->gl.onHandleDestroy = onHandleDestroy;
 	pipeline->gl.onHandleBind = onHandleBind;
 	pipeline->gl.onUniformsSet = onUniformsSet;
 	pipeline->gl.onHandleResize = onHandleResize;
 	pipeline->gl.handle = handle;
 	pipeline->gl.glHandle = glHandle;
-	pipeline->gl.glDrawMode = glDrawMode;
-	pipeline->gl._glPolygonMode = _glPolygonMode;
-	pipeline->gl.glCullMode = glCullMode;
-	pipeline->gl.glDepthCompare = glDepthCompare;
+	pipeline->gl.drawMode = drawMode;
+	pipeline->gl.polygonMode = polygonMode;
+	pipeline->gl.cullMode = cullMode;
+	pipeline->gl.depthCompare = depthCompare;
+	pipeline->gl.frontFace = frontFace;
 	return pipeline;
 }
 
@@ -963,9 +853,9 @@ inline static void bindVkPipeline(
 inline static void bindGlPipeline(
 	Pipeline pipeline)
 {
-	Vec4I viewport = pipeline->gl.viewport;
-	Vec2F depthRange = pipeline->gl.depthRange;
-	Vec4I scissor = pipeline->gl.scissor;
+	Vec4I viewport = pipeline->gl.state.viewport;
+	Vec2F depthRange = pipeline->gl.state.depthRange;
+	Vec4I scissor = pipeline->gl.state.scissor;
 
 	if (viewport.z + viewport.w > 0)
 	{
@@ -995,14 +885,12 @@ inline static void bindGlPipeline(
 
 	glPolygonMode(
 		GL_FRONT_AND_BACK,
-		pipeline->gl._glPolygonMode);
+		pipeline->gl.polygonMode);
 
-	if (pipeline->gl.cullFace == true)
+	if (pipeline->gl.state.cullFace == true)
 	{
-		glFrontFace(
-			pipeline->gl.clockwiseFrontFace ?
-			GL_CW : GL_CCW);
-		glCullFace(pipeline->gl.glCullMode);
+		glFrontFace(pipeline->gl.frontFace);
+		glCullFace(pipeline->gl.cullMode);
 		glEnable(GL_CULL_FACE);
 	}
 	else
@@ -1010,9 +898,9 @@ inline static void bindGlPipeline(
 		glDisable(GL_CULL_FACE);
 	}
 
-	if (pipeline->gl.testDepth)
+	if (pipeline->gl.state.testDepth)
 	{
-		if (pipeline->gl.clampDepth)
+		if (pipeline->gl.state.clampDepth)
 		{
 			glDepthRange(0.0f, 1.0f); // TODO:
 			glEnable(GL_DEPTH_CLAMP);
@@ -1023,9 +911,9 @@ inline static void bindGlPipeline(
 		}
 
 		glDepthMask(
-			pipeline->gl.writeDepth ?
+			pipeline->gl.state.writeDepth ?
 			GL_TRUE : GL_FALSE);
-		glDepthFunc(pipeline->gl.glDepthCompare);
+		glDepthFunc(pipeline->gl.depthCompare);
 		glEnable(GL_DEPTH_TEST);
 	}
 	else
@@ -1033,7 +921,7 @@ inline static void bindGlPipeline(
 		glDisable(GL_DEPTH_TEST);
 	}
 
-	uint8_t colorMask = pipeline->gl.colorWriteMask;
+	uint8_t colorMask = pipeline->gl.state.colorWriteMask;
 
 	glColorMask(
 		colorMask & RED_COLOR_COMPONENT ?
@@ -1046,7 +934,6 @@ inline static void bindGlPipeline(
 			GL_TRUE : GL_FALSE);
 
 	// TODO:
-	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_BLEND);
 	glPolygonOffset(0.0f, 0.0f);

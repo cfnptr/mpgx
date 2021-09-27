@@ -3,6 +3,11 @@
 
 #define DIFFUSE_PIPELINE_NAME "Diffuse"
 
+Pipeline createExtDiffusePipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	const PipelineState* state);
 Pipeline createDiffusePipeline(
 	Window window,
 	Shader vertexShader,

@@ -194,7 +194,7 @@ inline static void drawGlMesh(
 	}
 
 	glDrawElements(
-		pipeline->gl.glDrawMode,
+		pipeline->gl.drawMode,
 		(GLsizei)mesh->gl.indexCount,
 		glDrawIndex,
 		(const void*)glIndexOffset);

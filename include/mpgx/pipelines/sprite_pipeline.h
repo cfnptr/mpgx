@@ -3,6 +3,11 @@
 
 #define SPRITE_PIPELINE_NAME "Sprite"
 
+Pipeline createExtSpritePipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	const PipelineState* state);
 Pipeline createSpritePipeline(
 	Window window,
 	Shader vertexShader,

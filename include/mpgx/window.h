@@ -292,6 +292,26 @@ typedef enum CullMode
 	CULL_MODE_COUNT = 3,
 } CullMode;
 
+typedef struct PipelineState
+{
+	uint8_t drawMode;
+	uint8_t polygonMode;
+	uint8_t cullMode;
+	uint8_t depthCompare;
+	uint8_t colorWriteMask;
+	bool cullFace;
+	bool clockwiseFrontFace;
+	bool testDepth;
+	bool writeDepth;
+	bool clampDepth;
+	bool restartPrimitive;
+	bool discardRasterizer;
+	float lineWidth;
+	Vec4I viewport;
+	Vec2F depthRange;
+	Vec4I scissor;
+} PipelineState;
+
 typedef struct Window* Window;
 typedef union Buffer* Buffer;
 typedef union Mesh* Mesh;
@@ -548,22 +568,7 @@ Pipeline createPipeline(
 	const char* name,
 	Shader* shaders,
 	uint8_t shaderCount,
-	uint8_t drawMode,
-	uint8_t polygonMode,
-	uint8_t cullMode,
-	uint8_t depthCompare,
-	uint8_t colorWriteMask,
-	bool cullFace,
-	bool clockwiseFrontFace,
-	bool testDepth,
-	bool writeDepth,
-	bool clampDepth,
-	bool restartPrimitive,
-	bool discardRasterizer,
-	float lineWidth,
-	Vec4I viewport,
-	Vec2F depthRange,
-	Vec4I scissor,
+	const PipelineState* state,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
@@ -578,19 +583,7 @@ Window getPipelineWindow(Pipeline pipeline);
 const char* getPipelineName(Pipeline pipeline);
 Shader* getPipelineShaders(Pipeline pipeline);
 uint8_t getPipelineShaderCount(Pipeline pipeline);
-uint8_t getPipelineDrawMode(Pipeline pipeline);
-uint8_t getPipelinePolygonMode(Pipeline pipeline);
-uint8_t getPipelineCullMode(Pipeline pipeline);
-uint8_t getPipelineDepthCompare(Pipeline pipeline);
-uint8_t getPipelineColorWriteMask(Pipeline pipeline);
-bool isPipelineCullFace(Pipeline pipeline);
-bool isPipelineClockwiseFrontFace(Pipeline pipeline);
-bool isPipelineTestDepth(Pipeline pipeline);
-bool isPipelineWriteDepth(Pipeline pipeline);
-bool isPipelineClampDepth(Pipeline pipeline);
-bool isPipelineRestartPrimitive(Pipeline pipeline);
-bool isPipelineDiscardRasterizer(Pipeline pipeline);
-float getPipelineLineWidth(Pipeline pipeline);
+const PipelineState* getPipelineState(Pipeline pipeline);
 OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline);
 OnPipelineHandleBind getPipelineOnHandleBind(Pipeline pipeline);
 OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline);

@@ -1683,29 +1683,145 @@ static void onGlUniformsSet(Pipeline pipeline)
 }
 inline static Pipeline createGlHandle(
 	Window window,
+	Shader* shaders,
+	uint8_t shaderCount,
+	const PipelineState* state,
+	PipelineHandle* handle)
+{
+	Pipeline pipeline = createPipeline(
+		window,
+		TEXT_PIPELINE_NAME,
+		shaders,
+		shaderCount,
+		state,
+		onGlHandleDestroy,
+		NULL,
+		onGlUniformsSet,
+		NULL,
+		handle,
+		NULL);
+
+	if (pipeline == NULL)
+		return NULL;
+
+	GLuint glHandle = pipeline->gl.glHandle;
+
+	GLint mvpLocation = getGlUniformLocation(
+		glHandle,
+		"u_MVP");
+
+	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		return NULL;
+	}
+
+	GLint colorLocation = getGlUniformLocation(
+		glHandle,
+		"u_Color");
+
+	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		return NULL;
+	}
+
+	GLint textureLocation = getGlUniformLocation(
+		glHandle,
+		"u_Texture");
+
+	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		return NULL;
+	}
+
+	assertOpenGL();
+
+	handle->gl.mvpLocation = mvpLocation;
+	handle->gl.colorLocation = colorLocation;
+	handle->gl.textureLocation = textureLocation;
+	return pipeline;
+}
+
+Pipeline createExtTextPipeline(
+	Window window,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Sampler sampler)
+	Sampler sampler,
+	const PipelineState* state)
 {
+	assert(window != NULL);
+	assert(vertexShader != NULL);
+	assert(fragmentShader != NULL);
+	assert(sampler != NULL);
+	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
+	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
+	assert(getShaderWindow(vertexShader) == window);
+	assert(getShaderWindow(fragmentShader) == window);
+	assert(getSamplerWindow(sampler) == window);
+
 	PipelineHandle* handle = malloc(
 		sizeof(PipelineHandle));
 
 	if (handle == NULL)
 		return NULL;
 
-	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
-
 	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
 
-	Pipeline pipeline = createPipeline(
-		window,
-		TEXT_PIPELINE_NAME,
-		shaders,
-		2,
+	uint8_t api = getWindowGraphicsAPI(window);
+
+	Pipeline pipeline;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		pipeline = createGlHandle(
+			window,
+			shaders,
+			2,
+			state,
+			handle);
+	}
+	else
+	{
+		free(handle);
+		return NULL;
+	}
+
+	if (pipeline == NULL)
+	{
+		free(handle);
+		return NULL;
+	}
+
+	handle->vk.texture = NULL;
+	handle->vk.sampler = sampler;
+	handle->vk.mvp = identMat4F();
+	handle->vk.color = valVec4F(1.0f);
+	return pipeline;
+}
+Pipeline createTextPipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	Sampler sampler)
+{
+	assert(window != NULL);
+
+	Vec2U framebufferSize =
+		getWindowFramebufferSize(window);
+
+	PipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
@@ -1726,110 +1842,14 @@ inline static Pipeline createGlHandle(
 			DEFAULT_MIN_DEPTH_RANGE,
 			DEFAULT_MAX_DEPTH_RANGE),
 		zeroVec4I(),
-		onGlHandleDestroy,
-		NULL,
-		onGlUniformsSet,
-		NULL,
-		handle,
-		NULL);
+	};
 
-	if (pipeline == NULL)
-	{
-		free(handle);
-		return NULL;
-	}
-
-	GLuint glHandle = pipeline->gl.glHandle;
-
-	GLint mvpLocation = getGlUniformLocation(
-		glHandle,
-		"u_MVP");
-
-	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		free(handle);
-		return NULL;
-	}
-
-	GLint colorLocation = getGlUniformLocation(
-		glHandle,
-		"u_Color");
-
-	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		free(handle);
-		return NULL;
-	}
-
-	GLint textureLocation = getGlUniformLocation(
-		glHandle,
-		"u_Texture");
-
-	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		free(handle);
-		return NULL;
-	}
-
-	assertOpenGL();
-
-	handle->gl.texture = NULL;
-	handle->gl.sampler = sampler;
-	handle->gl.mvp = identMat4F();
-	handle->gl.color = valVec4F(1.0f);
-	handle->gl.mvpLocation = mvpLocation;
-	handle->gl.colorLocation = colorLocation;
-	handle->gl.textureLocation = textureLocation;
-	return pipeline;
-}
-
-Pipeline createTextPipeline(
-	Window window,
-	Shader vertexShader,
-	Shader fragmentShader,
-	Sampler sampler)
-{
-	assert(window != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(sampler != NULL);
-	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
-	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
-	assert(getShaderWindow(vertexShader) == window);
-	assert(getShaderWindow(fragmentShader) == window);
-	assert(getSamplerWindow(sampler) == window);
-
-	uint8_t api = getWindowGraphicsAPI(window);
-
-	Pipeline pipeline;
-
-	if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		pipeline = createGlHandle(
-			window,
-			vertexShader,
-			fragmentShader,
-			sampler);
-	}
-	else
-	{
-		return NULL;
-	}
-
-	if (pipeline == NULL)
-		return NULL;
-
-	return pipeline;
+	return createExtTextPipeline(
+		window,
+		vertexShader,
+		fragmentShader,
+		sampler,
+		&state);
 }
 
 Sampler getTextPipelineSampler(

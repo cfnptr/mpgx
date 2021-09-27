@@ -398,7 +398,7 @@ static void onVkHandleResize(
 
 	Vec2U framebufferSize =
 		getWindowFramebufferSize(window);
-	pipeline->vk.viewport = vec4I(0, 0,
+	pipeline->vk.state.viewport = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
 
@@ -418,23 +418,11 @@ static void onVkHandleResize(
 
 inline static Pipeline createVkHandle(
 	Window window,
-	Shader vertexShader,
-	Shader fragmentShader)
+	Shader* shaders,
+	uint8_t shaderCount,
+	const PipelineState* state,
+	PipelineHandle* handle)
 {
-	PipelineHandle* handle = malloc(
-		sizeof(PipelineHandle));
-
-	if (handle == NULL)
-		return NULL;
-
-	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
-
-	Shader shaders[2] = {
-		vertexShader,
-		fragmentShader,
-	};
-
 	VkWindow vkWindow = getVkWindow(window);
 	VkDevice device = vkWindow->device;
 
@@ -442,10 +430,7 @@ inline static Pipeline createVkHandle(
 		createVkDescriptorSetLayout(device);
 
 	if (descriptorSetLayout == NULL)
-	{
-		free(handle);
 		return NULL;
-	}
 
 	VkPipelineCreateInfo createInfo = {
 		1,
@@ -462,29 +447,8 @@ inline static Pipeline createVkHandle(
 		window,
 		DIFFUSE_PIPELINE_NAME,
 		shaders,
-		2,
-		TRIANGLE_LIST_DRAW_MODE,
-		FILL_POLYGON_MODE,
-		BACK_CULL_MODE,
-		LESS_COMPARE_OPERATION,
-		ALL_COLOR_COMPONENT,
-		true,
-		true,
-		true,
-		true,
-		false,
-		false,
-		false,
-		DEFAULT_LINE_WIDTH,
-		vec4I(0, 0,
-			(int32_t)framebufferSize.x,
-			(int32_t)framebufferSize.y),
-		vec2F(
-			DEFAULT_MIN_DEPTH_RANGE,
-			DEFAULT_MAX_DEPTH_RANGE),
-		vec4I(0, 0,
-			(int32_t)framebufferSize.x,
-			(int32_t)framebufferSize.y),
+		shaderCount,
+		state,
 		onVkHandleDestroy,
 		onVkHandleBind,
 		onVkUniformsSet,
@@ -498,7 +462,6 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorSetLayout,
 			NULL);
-		free(handle);
 		return NULL;
 	}
 
@@ -517,7 +480,6 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorSetLayout,
 			NULL);
-		free(handle);
 		return NULL;
 	}
 
@@ -542,7 +504,6 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorSetLayout,
 			NULL);
-		free(handle);
 		return NULL;
 	}
 
@@ -570,23 +531,9 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorSetLayout,
 			NULL);
-		free(handle);
 		return NULL;
 	}
 
-	Vec3F lightDirection = normVec3F(
-		vec3F(1.0f, -3.0f, 6.0f));
-
-	handle->vk.mvp = identMat4F();
-	handle->vk.normal = identMat4F();
-	handle->vk.u.objectColor = oneVec4F();
-	handle->vk.u.ambientColor = valVec4F(0.5f);
-	handle->vk.u.lightColor = oneVec4F();
-	handle->vk.u.lightDirection = vec4F(
-		lightDirection.x,
-		lightDirection.y,
-		lightDirection.z,
-		0.0f);
 	handle->vk.descriptorSetLayout = descriptorSetLayout;
 	handle->vk.descriptorPool = descriptorPool;
 	handle->vk.uniformBuffers = uniformBuffers;
@@ -663,54 +610,23 @@ static void onGlHandleResize(
 {
 	Vec2U framebufferSize = getWindowFramebufferSize(
 		pipeline->gl.window);
-	pipeline->vk.viewport = vec4I(0, 0,
+	pipeline->vk.state.viewport = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
 }
 inline static Pipeline createGlHandle(
 	Window window,
-	Shader vertexShader,
-	Shader fragmentShader)
+	Shader* shaders,
+	uint8_t shaderCount,
+	const PipelineState* state,
+	PipelineHandle* handle)
 {
-	PipelineHandle* handle = malloc(
-		sizeof(PipelineHandle));
-
-	if (handle == NULL)
-		return NULL;
-
-	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
-
-	Shader shaders[2] = {
-		vertexShader,
-		fragmentShader,
-	};
-
 	Pipeline pipeline = createPipeline(
 		window,
 		DIFFUSE_PIPELINE_NAME,
 		shaders,
-		2,
-		TRIANGLE_LIST_DRAW_MODE,
-		FILL_POLYGON_MODE,
-		BACK_CULL_MODE,
-		LESS_COMPARE_OPERATION,
-		ALL_COLOR_COMPONENT,
-		true,
-		true,
-		true,
-		true,
-		false,
-		false,
-		false,
-		DEFAULT_LINE_WIDTH,
-		vec4I(0, 0,
-			(int32_t)framebufferSize.x,
-			(int32_t)framebufferSize.y),
-		vec2F(
-			DEFAULT_MIN_DEPTH_RANGE,
-			DEFAULT_MAX_DEPTH_RANGE),
-		zeroVec4I(),
+		shaderCount,
+		state,
 		onGlHandleDestroy,
 		onGlHandleBind,
 		onGlUniformsSet,
@@ -719,10 +635,7 @@ inline static Pipeline createGlHandle(
 		NULL);
 
 	if (pipeline == NULL)
-	{
-		free(handle);
 		return NULL;
-	}
 
 	GLuint glHandle = pipeline->gl.glHandle;
 
@@ -735,7 +648,6 @@ inline static Pipeline createGlHandle(
 		destroyPipeline(
 			pipeline,
 			false);
-		free(handle);
 		return NULL;
 	}
 
@@ -748,7 +660,6 @@ inline static Pipeline createGlHandle(
 		destroyPipeline(
 			pipeline,
 			false);
-		free(handle);
 		return NULL;
 	}
 
@@ -761,7 +672,6 @@ inline static Pipeline createGlHandle(
 		destroyPipeline(
 			pipeline,
 			false);
-		free(handle);
 		return NULL;
 	}
 
@@ -784,33 +694,20 @@ inline static Pipeline createGlHandle(
 		destroyPipeline(
 			pipeline,
 			false);
-		free(handle);
 		return NULL;
 	}
 
-	Vec3F lightDirection = normVec3F(
-		vec3F(1.0f, -3.0f, 6.0f));
-
-	handle->gl.mvp = identMat4F();
-	handle->gl.normal = identMat4F();
-	handle->gl.u.objectColor = oneVec4F();
-	handle->gl.u.ambientColor = valVec4F(0.5f);
-	handle->gl.u.lightColor = oneVec4F();
-	handle->gl.u.lightDirection = vec4F(
-		lightDirection.x,
-		lightDirection.y,
-		lightDirection.z,
-		0.0f);
 	handle->gl.mvpLocation = mvpLocation;
 	handle->gl.normalLocation = normalLocation;
 	handle->gl.uniformBuffer = uniformBuffer;
 	return pipeline;
 }
 
-Pipeline createDiffusePipeline(
+Pipeline createExtDiffusePipeline(
 	Window window,
 	Shader vertexShader,
-	Shader fragmentShader)
+	Shader fragmentShader,
+	const PipelineState* state)
 {
 	assert(window != NULL);
 	assert(vertexShader != NULL);
@@ -819,6 +716,17 @@ Pipeline createDiffusePipeline(
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
 	assert(getShaderWindow(vertexShader) == window);
 	assert(getShaderWindow(fragmentShader) == window);
+
+	PipelineHandle* handle = malloc(
+		sizeof(PipelineHandle));
+
+	if (handle == NULL)
+		return NULL;
+
+	Shader shaders[2] = {
+		vertexShader,
+		fragmentShader,
+	};
 
 	uint8_t api = getWindowGraphicsAPI(window);
 
@@ -829,29 +737,95 @@ Pipeline createDiffusePipeline(
 #if MPGX_SUPPORT_VULKAN
 		pipeline = createVkHandle(
 			window,
-			vertexShader,
-			fragmentShader);
+			shaders,
+			2,
+			state,
+			handle);
 #else
 		abort();
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+			 api == OPENGL_ES_GRAPHICS_API)
 	{
 		pipeline = createGlHandle(
 			window,
-			vertexShader,
-			fragmentShader);
+			shaders,
+			2,
+			state,
+			handle);
 	}
 	else
 	{
+		free(handle);
 		return NULL;
 	}
 
 	if (pipeline == NULL)
+	{
+		free(handle);
 		return NULL;
+	}
 
+	Vec3F lightDirection = normVec3F(
+		vec3F(1.0f, -3.0f, 6.0f));
+
+	UniformBuffer u = {
+		oneVec4F(),
+		valVec4F(0.5f),
+		oneVec4F(),
+		vec4F(
+			lightDirection.x,
+			lightDirection.y,
+			lightDirection.z,
+			0.0f),
+	};
+
+	handle->vk.mvp = identMat4F();
+	handle->vk.normal = identMat4F();
+	handle->vk.u = u;
 	return pipeline;
+}
+Pipeline createDiffusePipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader)
+{
+	assert(window != NULL);
+
+	Vec2U framebufferSize =
+		getWindowFramebufferSize(window);
+
+	PipelineState state = {
+		TRIANGLE_LIST_DRAW_MODE,
+		FILL_POLYGON_MODE,
+		BACK_CULL_MODE,
+		LESS_COMPARE_OPERATION,
+		ALL_COLOR_COMPONENT,
+		true,
+		true,
+		true,
+		true,
+		false,
+		false,
+		false,
+		DEFAULT_LINE_WIDTH,
+		vec4I(0, 0,
+			(int32_t)framebufferSize.x,
+			(int32_t)framebufferSize.y),
+		vec2F(
+			DEFAULT_MIN_DEPTH_RANGE,
+			DEFAULT_MAX_DEPTH_RANGE),
+		vec4I(0, 0,
+			(int32_t)framebufferSize.x,
+			(int32_t)framebufferSize.y),
+	};
+
+	return createExtDiffusePipeline(
+		window,
+		vertexShader,
+		fragmentShader,
+		&state);
 }
 
 Mat4F getDiffusePipelineMvp(

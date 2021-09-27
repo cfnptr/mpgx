@@ -56,29 +56,127 @@ static void onGlUniformsSet(Pipeline pipeline)
 }
 inline static Pipeline createGlHandle(
 	Window window,
-	Shader vertexShader,
-	Shader fragmentShader)
+	Shader* shaders,
+	uint8_t shaderCount,
+	const PipelineState* state,
+	PipelineHandle* handle)
 {
+	// TODO: enable blending
+	Pipeline pipeline = createPipeline(
+		window,
+		SPRITE_PIPELINE_NAME,
+		shaders,
+		shaderCount,
+		state,
+		onGlHandleDestroy,
+		NULL,
+		onGlUniformsSet,
+		NULL,
+		handle,
+		NULL);
+
+	if (pipeline == NULL)
+		return NULL;
+
+	GLuint glHandle = pipeline->gl.glHandle;
+
+	GLint mvpLocation = getGlUniformLocation(
+		glHandle,
+		"u_MVP");
+
+	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		return NULL;
+	}
+
+	GLint colorLocation = getGlUniformLocation(
+		glHandle,
+		"u_Color");
+
+	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		return NULL;
+	}
+
+	assertOpenGL();
+
+	handle->gl.mvpLocation = mvpLocation;
+	handle->gl.colorLocation = colorLocation;
+	return pipeline;
+}
+
+Pipeline createExtSpritePipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	const PipelineState* state)
+{
+	assert(window != NULL);
+	assert(vertexShader != NULL);
+	assert(fragmentShader != NULL);
+	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
+	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
+	assert(getShaderWindow(vertexShader) == window);
+	assert(getShaderWindow(fragmentShader) == window);
+
 	PipelineHandle* handle = malloc(
 		sizeof(PipelineHandle));
 
 	if (handle == NULL)
 		return NULL;
 
-	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
-
 	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
 
-	// TODO: enable blending
-	Pipeline pipeline = createPipeline(
-		window,
-		SPRITE_PIPELINE_NAME,
-		shaders,
-		2,
+	uint8_t api = getWindowGraphicsAPI(window);
+
+	Pipeline pipeline;
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		pipeline = createGlHandle(
+			window,
+			shaders,
+			2,
+			state,
+			handle);
+	}
+	else
+	{
+		free(handle);
+		return NULL;
+	}
+
+	if (pipeline == NULL)
+	{
+		free(handle);
+		return NULL;
+	}
+
+	handle->vk.mvp = identMat4F();
+	handle->vk.color = oneVec4F();
+	return pipeline;
+}
+Pipeline createSpritePipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader)
+{
+	assert(window != NULL);
+
+	Vec2U framebufferSize =
+		getWindowFramebufferSize(window);
+
+	PipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
@@ -99,90 +197,13 @@ inline static Pipeline createGlHandle(
 			DEFAULT_MIN_DEPTH_RANGE,
 			DEFAULT_MAX_DEPTH_RANGE),
 		zeroVec4I(),
-		onGlHandleDestroy,
-		NULL,
-		onGlUniformsSet,
-		NULL,
-		handle,
-		NULL);
+	};
 
-	if (pipeline == NULL)
-	{
-		free(handle);
-		return NULL;
-	}
-
-	GLuint glHandle = pipeline->gl.glHandle;
-
-	GLint mvpLocation = getGlUniformLocation(
-		glHandle,
-		"u_MVP");
-
-	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		free(handle);
-		return NULL;
-	}
-
-	GLint colorLocation = getGlUniformLocation(
-		glHandle,
-		"u_Color");
-
-	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		free(handle);
-		return NULL;
-	}
-
-	assertOpenGL();
-
-	handle->gl.mvp = identMat4F();
-	handle->gl.color = oneVec4F();
-	handle->gl.mvpLocation = mvpLocation;
-	handle->gl.colorLocation = colorLocation;
-	return pipeline;
-}
-
-Pipeline createSpritePipeline(
-	Window window,
-	Shader vertexShader,
-	Shader fragmentShader)
-{
-	assert(window != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
-	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
-	assert(getShaderWindow(vertexShader) == window);
-	assert(getShaderWindow(fragmentShader) == window);
-
-	uint8_t api = getWindowGraphicsAPI(window);
-
-	Pipeline pipeline;
-
-	if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		pipeline = createGlHandle(
-			window,
-			vertexShader,
-			fragmentShader);
-	}
-	else
-	{
-		return NULL;
-	}
-
-	if (pipeline == NULL)
-		return NULL;
-
-	return pipeline;
+	return createExtSpritePipeline(
+		window,
+		vertexShader,
+		fragmentShader,
+		&state);
 }
 
 Mat4F getSpritePipelineMvp(

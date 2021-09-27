@@ -84,7 +84,7 @@ static void onVkHandleResize(
 {
 	Vec2U framebufferSize = getWindowFramebufferSize(
 		pipeline->vk.window);
-	pipeline->vk.viewport = vec4I(0, 0,
+	pipeline->vk.state.viewport = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
 
@@ -106,32 +106,9 @@ inline static Pipeline createVkHandle(
 	Window window,
 	Shader* shaders,
 	uint8_t shaderCount,
-	uint8_t drawMode,
-	uint8_t polygonMode,
-	uint8_t cullMode,
-	uint8_t depthCompare,
-	uint8_t colorWriteMask,
-	bool cullFace,
-	bool clockwiseFrontFace,
-	bool testDepth,
-	bool writeDepth,
-	bool clampDepth,
-	bool restartPrimitive,
-	bool discardRasterizer,
-	float lineWidth,
-	Vec4I viewport,
-	Vec2F depthRange,
-	Vec4I scissor)
+	const PipelineState* state,
+	PipelineHandle* handle)
 {
-	PipelineHandle* handle = malloc(
-		sizeof(PipelineHandle));
-
-	if (handle == NULL)
-		return NULL;
-
-	VkWindow vkWindow = getVkWindow(window);
-	VkDevice device = vkWindow->device;
-
 	VkPipelineCreateInfo createInfo = {
 		1,
 		vertexInputBindingDescriptions,
@@ -143,43 +120,18 @@ inline static Pipeline createVkHandle(
 		pushConstantRanges,
 	};
 
-	Pipeline pipeline = createPipeline(
+	return createPipeline(
 		window,
 		COLOR_PIPELINE_NAME,
 		shaders,
 		shaderCount,
-		drawMode,
-		polygonMode,
-		cullMode,
-		depthCompare,
-		colorWriteMask,
-		cullFace,
-		clockwiseFrontFace,
-		testDepth,
-		writeDepth,
-		clampDepth,
-		restartPrimitive,
-		discardRasterizer,
-		lineWidth,
-		viewport,
-		depthRange,
-		scissor,
+		state,
 		onVkHandleDestroy,
 		NULL,
 		onVkUniformsSet,
 		onVkHandleResize,
 		handle,
 		&createInfo);
-
-	if (pipeline == NULL)
-	{
-		free(handle);
-		return NULL;
-	}
-
-	handle->vk.mvp = identMat4F();
-	handle->vk.color = oneVec4F();
-	return pipeline;
 }
 #endif
 
@@ -220,50 +172,15 @@ inline static Pipeline createGlHandle(
 	Window window,
 	Shader* shaders,
 	uint8_t shaderCount,
-	uint8_t drawMode,
-	uint8_t polygonMode,
-	uint8_t cullMode,
-	uint8_t depthCompare,
-	uint8_t colorWriteMask,
-	bool cullFace,
-	bool clockwiseFrontFace,
-	bool testDepth,
-	bool writeDepth,
-	bool clampDepth,
-	bool restartPrimitive,
-	bool discardRasterizer,
-	float lineWidth,
-	Vec4I viewport,
-	Vec2F depthRange,
-	Vec4I scissor)
+	const PipelineState* state,
+	PipelineHandle* handle)
 {
-	PipelineHandle* handle = malloc(
-		sizeof(PipelineHandle));
-
-	if (handle == NULL)
-		return NULL;
-
 	Pipeline pipeline = createPipeline(
 		window,
 		COLOR_PIPELINE_NAME,
 		shaders,
 		shaderCount,
-		drawMode,
-		polygonMode,
-		cullMode,
-		depthCompare,
-		colorWriteMask,
-		cullFace,
-		clockwiseFrontFace,
-		testDepth,
-		writeDepth,
-		clampDepth,
-		restartPrimitive,
-		discardRasterizer,
-		lineWidth,
-		viewport,
-		depthRange,
-		scissor,
+		state,
 		onGlHandleDestroy,
 		NULL,
 		onGlUniformsSet,
@@ -272,10 +189,7 @@ inline static Pipeline createGlHandle(
 		NULL);
 
 	if (pipeline == NULL)
-	{
-		free(handle);
 		return NULL;
-	}
 
 	GLuint glHandle = pipeline->gl.glHandle;
 
@@ -288,7 +202,6 @@ inline static Pipeline createGlHandle(
 		destroyPipeline(
 			pipeline,
 			false);
-		free(handle);
 		return NULL;
 	}
 
@@ -301,14 +214,11 @@ inline static Pipeline createGlHandle(
 		destroyPipeline(
 			pipeline,
 			false);
-		free(handle);
 		return NULL;
 	}
 
 	assertOpenGL();
 
-	handle->gl.mvp = identMat4F();
-	handle->gl.color = oneVec4F();
 	handle->gl.mvpLocation = mvpLocation;
 	handle->gl.colorLocation = colorLocation;
 	return pipeline;
@@ -318,22 +228,7 @@ Pipeline createExtColorPipeline(
 	Window window,
 	Shader vertexShader,
 	Shader fragmentShader,
-	uint8_t drawMode,
-	uint8_t polygonMode,
-	uint8_t cullMode,
-	uint8_t depthCompare,
-	uint8_t colorWriteMask,
-	bool cullFace,
-	bool clockwiseFrontFace,
-	bool testDepth,
-	bool writeDepth,
-	bool clampDepth,
-	bool restartPrimitive,
-	bool discardRasterizer,
-	float lineWidth,
-	Vec4I viewport,
-	Vec2F depthRange,
-	Vec4I scissor)
+	const PipelineState* state)
 {
 	assert(window != NULL);
 	assert(vertexShader != NULL);
@@ -342,6 +237,12 @@ Pipeline createExtColorPipeline(
 	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
 	assert(getShaderWindow(vertexShader) == window);
 	assert(getShaderWindow(fragmentShader) == window);
+
+	PipelineHandle* handle = malloc(
+		sizeof(PipelineHandle));
+
+	if (handle == NULL)
+		return NULL;
 
 	Shader shaders[2] = {
 		vertexShader,
@@ -359,22 +260,8 @@ Pipeline createExtColorPipeline(
 			window,
 			shaders,
 			2,
-			drawMode,
-			polygonMode,
-			cullMode,
-			depthCompare,
-			colorWriteMask,
-			cullFace,
-			clockwiseFrontFace,
-			testDepth,
-			writeDepth,
-			clampDepth,
-			restartPrimitive,
-			discardRasterizer,
-			lineWidth,
-			viewport,
-			depthRange,
-			scissor);
+			state,
+			handle);
 #else
 		abort();
 #endif
@@ -386,31 +273,23 @@ Pipeline createExtColorPipeline(
 			window,
 			shaders,
 			2,
-			drawMode,
-			polygonMode,
-			cullMode,
-			depthCompare,
-			colorWriteMask,
-			cullFace,
-			clockwiseFrontFace,
-			testDepth,
-			writeDepth,
-			clampDepth,
-			restartPrimitive,
-			discardRasterizer,
-			lineWidth,
-			viewport,
-			depthRange,
-			scissor);
+			state,
+			handle);
 	}
 	else
 	{
+		free(handle);
 		return NULL;
 	}
 
 	if (pipeline == NULL)
+	{
+		free(handle);
 		return NULL;
+	}
 
+	handle->vk.mvp = identMat4F();
+	handle->vk.color = oneVec4F();
 	return pipeline;
 }
 Pipeline createColorPipeline(
@@ -423,10 +302,7 @@ Pipeline createColorPipeline(
 	Vec2U framebufferSize =
 		getWindowFramebufferSize(window);
 
-	return createExtColorPipeline(
-		window,
-		vertexShader,
-		fragmentShader,
+	PipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
@@ -446,7 +322,14 @@ Pipeline createColorPipeline(
 		vec2F(
 			DEFAULT_MIN_DEPTH_RANGE,
 			DEFAULT_MAX_DEPTH_RANGE),
-		zeroVec4I());
+		zeroVec4I(),
+	};
+
+	return createExtColorPipeline(
+		window,
+		vertexShader,
+		fragmentShader,
+		&state);
 }
 
 Mat4F getColorPipelineMvp(

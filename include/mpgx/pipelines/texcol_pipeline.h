@@ -3,6 +3,13 @@
 
 #define TEX_COL_PIPELINE_NAME "TexCol"
 
+Pipeline createExtTexColPipeline(
+	Window window,
+	Shader vertexShader,
+	Shader fragmentShader,
+	Image texture,
+	Sampler sampler,
+	const PipelineState* state);
 Pipeline createTexColPipeline(
 	Window window,
 	Shader vertexShader,

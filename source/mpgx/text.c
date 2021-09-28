@@ -1681,6 +1681,17 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
+static void onGlHandleResize(
+	Pipeline pipeline,
+	void* createInfo)
+{
+	Vec2U framebufferSize = getWindowFramebufferSize(
+		pipeline->vk.window);
+	pipeline->vk.state.viewport = vec4I(
+		0, 0,
+		(int32_t)framebufferSize.x,
+		(int32_t)framebufferSize.y);
+}
 inline static Pipeline createGlHandle(
 	Window window,
 	Shader* shaders,

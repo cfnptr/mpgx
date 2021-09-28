@@ -189,6 +189,18 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
+static void onGlHandleResize(
+	Pipeline pipeline,
+	void* createInfo)
+{
+	Vec2U framebufferSize = getWindowFramebufferSize(
+		pipeline->gl.window);
+	Vec4I size = vec4I(0, 0,
+		(int32_t)framebufferSize.x,
+		(int32_t)framebufferSize.y);
+	pipeline->gl.state.viewport = size;
+	pipeline->gl.state.scissor = size;
+}
 inline static Pipeline createGlHandle(
 	Window window,
 	Shader* shaders,
@@ -205,7 +217,7 @@ inline static Pipeline createGlHandle(
 		onGlHandleDestroy,
 		onGlHandleBind,
 		onGlUniformsSet,
-		NULL,
+		onGlHandleResize,
 		handle,
 		NULL);
 
@@ -332,6 +344,9 @@ Pipeline createGradSkyPipeline(
 
 	Vec2U framebufferSize =
 		getWindowFramebufferSize(window);
+	Vec4I size = vec4I(0, 0,
+		(int32_t)framebufferSize.x,
+		(int32_t)framebufferSize.y);
 
 	PipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
@@ -354,13 +369,9 @@ Pipeline createGradSkyPipeline(
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
-		vec4I(0, 0,
-			(int32_t)framebufferSize.x,
-			(int32_t)framebufferSize.y),
+		size,
 		defaultDepthRange,
-		vec4I(0, 0,
-			(int32_t)framebufferSize.x,
-			(int32_t)framebufferSize.y),
+		size,
 	};
 
 	return createExtGradSkyPipeline(

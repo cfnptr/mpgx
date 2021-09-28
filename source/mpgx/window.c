@@ -1175,7 +1175,7 @@ static void onGlResize(Window window)
 	}
 }
 
-void beginWindowRecord(Window window)
+bool beginWindowRecord(Window window)
 {
 	assert(window != NULL);
 	assert(window->isRecording == false);
@@ -1187,6 +1187,9 @@ void beginWindowRecord(Window window)
 		window->handle,
 		&width,
 		&height);
+
+	if (width <= 0 || height <= 0)
+		return false;
 
 	Vec2U framebufferSize =
 		vec2U(width, height);
@@ -1214,7 +1217,7 @@ void beginWindowRecord(Window window)
 			onVkResize);
 
 		if (result == false)
-			abort();
+			return false;
 #else
 		abort();
 #endif
@@ -1231,6 +1234,7 @@ void beginWindowRecord(Window window)
 	}
 
 	window->isRecording = true;
+	return true;
 }
 
 inline static void endGlWindowRecord(GLFWwindow* window)

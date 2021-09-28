@@ -340,7 +340,7 @@ static void onVkUniformsSet(Pipeline pipeline)
 }
 static void onVkHandleResize(
 	Pipeline pipeline,
-	void* _createInfo)
+	void* createInfo)
 {
 	Window window = pipeline->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
@@ -398,11 +398,13 @@ static void onVkHandleResize(
 
 	Vec2U framebufferSize =
 		getWindowFramebufferSize(window);
-	pipeline->vk.state.viewport = vec4I(0, 0,
+	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
+	pipeline->vk.state.viewport = size;
+	pipeline->vk.state.scissor = size;
 
-	VkPipelineCreateInfo createInfo = {
+	VkPipelineCreateInfo _createInfo = {
 		1,
 		vertexInputBindingDescriptions,
 		2,
@@ -413,7 +415,7 @@ static void onVkHandleResize(
 		pushConstantRanges,
 	};
 
-	*(VkPipelineCreateInfo*)_createInfo = createInfo;
+	*(VkPipelineCreateInfo*)createInfo = _createInfo;
 }
 
 inline static Pipeline createVkHandle(
@@ -610,9 +612,11 @@ static void onGlHandleResize(
 {
 	Vec2U framebufferSize = getWindowFramebufferSize(
 		pipeline->gl.window);
-	pipeline->vk.state.viewport = vec4I(0, 0,
+	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
+	pipeline->gl.state.viewport = size;
+	pipeline->gl.state.scissor = size;
 }
 inline static Pipeline createGlHandle(
 	Window window,
@@ -794,6 +798,9 @@ Pipeline createDiffusePipeline(
 
 	Vec2U framebufferSize =
 		getWindowFramebufferSize(window);
+	Vec4I size = vec4I(0, 0,
+		(int32_t)framebufferSize.x,
+		(int32_t)framebufferSize.y);
 
 	PipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
@@ -816,13 +823,9 @@ Pipeline createDiffusePipeline(
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
-		vec4I(0, 0,
-			(int32_t)framebufferSize.x,
-			(int32_t)framebufferSize.y),
+		size,
 		defaultDepthRange,
-		vec4I(0, 0,
-			(int32_t)framebufferSize.x,
-			(int32_t)framebufferSize.y),
+		size,
 	};
 
 	return createExtDiffusePipeline(

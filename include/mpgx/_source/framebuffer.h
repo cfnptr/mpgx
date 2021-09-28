@@ -39,9 +39,8 @@ inline static Framebuffer createVkFramebuffer(
 	if (framebuffer == NULL)
 		return NULL;
 
-	VkRenderPassCreateInfo renderPassCreateInfo = {
-		// TODO:
-	};
+	// TODO:
+	VkRenderPassCreateInfo renderPassCreateInfo;
 
 	VkRenderPass renderPass;
 
@@ -78,6 +77,26 @@ inline static void destroyVkFramebuffer(
 		framebuffer->vk.handle,
 		NULL);
 	free(framebuffer);
+}
+inline static void beginVkFramebufferRender(
+	Framebuffer framebuffer)
+{
+	// TODO:
+}
+inline static void endVkFramebufferRender(
+	Window window)
+{
+	// TODO:
+}
+inline static void clearVkFramebuffer(
+	bool clearColorBuffer,
+	bool clearDepthBuffer,
+	bool clearStencilBuffer,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
+{
+	// TODO:
 }
 #endif
 
@@ -255,7 +274,6 @@ inline static Framebuffer createGlFramebuffer(
 	framebuffer->gl.depthStencilAttachment = depthStencilAttachment;
 	return framebuffer;
 }
-
 inline static void destroyGlFramebuffer(Framebuffer framebuffer)
 {
 	makeWindowContextCurrent(
@@ -269,12 +287,6 @@ inline static void destroyGlFramebuffer(Framebuffer framebuffer)
 	free(framebuffer->gl.colorAttachments);
 	free(framebuffer);
 }
-
-inline static void beginVkFramebufferRender(
-	Framebuffer framebuffer)
-{
-	// TODO:
-}
 inline static void beginGlFramebufferRender(
 	GLuint framebuffer)
 {
@@ -283,29 +295,12 @@ inline static void beginGlFramebufferRender(
 		framebuffer);
 	assertOpenGL();
 }
-
-inline static void endVkFramebufferRender(
-	Window window)
-{
-	// TODO:
-}
 inline static void endGlFramebufferRender()
 {
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,
 		GL_ZERO);
 	assertOpenGL();
-}
-
-inline static void clearVkFramebuffer(
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil)
-{
-
 }
 inline static void clearGlFramebuffer(
 	bool clearColorBuffer,

@@ -50,64 +50,11 @@ inline static Mesh createVkMesh(
 	mesh->gl.indexBuffer = indexBuffer;
 	return mesh;
 }
-#endif
-
-inline static Mesh createGlMesh(
-	Window window,
-	uint8_t drawIndex,
-	size_t indexCount,
-	size_t indexOffset,
-	Buffer vertexBuffer,
-	Buffer indexBuffer)
-{
-	Mesh mesh = malloc(
-		sizeof(union Mesh));
-
-	if (mesh == NULL)
-		return NULL;
-
-	makeWindowContextCurrent(window);
-
-	GLuint handle = GL_ZERO;
-
-	glGenVertexArrays(
-		GL_ONE,
-		&handle);
-	assertOpenGL();
-
-	mesh->gl.window = window;
-	mesh->gl.drawIndex = drawIndex;
-	mesh->gl.indexCount = indexCount;
-	mesh->gl.indexOffset = indexOffset;
-	mesh->gl.vertexBuffer = vertexBuffer;
-	mesh->gl.indexBuffer = indexBuffer;
-	mesh->gl.handle = handle;
-	return mesh;
-}
-
-#if MPGX_SUPPORT_VULKAN
 inline static void destroyVkMesh(
 	Mesh mesh)
 {
 	free(mesh);
 }
-#endif
-
-inline static void destroyGlMesh(
-	Mesh mesh)
-{
-	makeWindowContextCurrent(
-		mesh->gl.window);
-
-	glDeleteVertexArrays(
-		GL_ONE,
-		&mesh->gl.handle);
-	assertOpenGL();
-
-	free(mesh);
-}
-
-#if MPGX_SUPPORT_VULKAN
 inline static void drawVkMesh(
 	VkCommandBuffer commandBuffer,
 	Mesh mesh)
@@ -156,6 +103,51 @@ inline static void drawVkMesh(
 }
 #endif
 
+inline static Mesh createGlMesh(
+	Window window,
+	uint8_t drawIndex,
+	size_t indexCount,
+	size_t indexOffset,
+	Buffer vertexBuffer,
+	Buffer indexBuffer)
+{
+	Mesh mesh = malloc(
+		sizeof(union Mesh));
+
+	if (mesh == NULL)
+		return NULL;
+
+	makeWindowContextCurrent(window);
+
+	GLuint handle = GL_ZERO;
+
+	glGenVertexArrays(
+		GL_ONE,
+		&handle);
+	assertOpenGL();
+
+	mesh->gl.window = window;
+	mesh->gl.drawIndex = drawIndex;
+	mesh->gl.indexCount = indexCount;
+	mesh->gl.indexOffset = indexOffset;
+	mesh->gl.vertexBuffer = vertexBuffer;
+	mesh->gl.indexBuffer = indexBuffer;
+	mesh->gl.handle = handle;
+	return mesh;
+}
+inline static void destroyGlMesh(
+	Mesh mesh)
+{
+	makeWindowContextCurrent(
+		mesh->gl.window);
+
+	glDeleteVertexArrays(
+		GL_ONE,
+		&mesh->gl.handle);
+	assertOpenGL();
+
+	free(mesh);
+}
 inline static void drawGlMesh(
 	Mesh mesh,
 	Pipeline pipeline)

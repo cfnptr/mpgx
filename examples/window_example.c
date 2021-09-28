@@ -47,6 +47,11 @@ static void onWindowUpdate(void* handle)
 	updateFreeCamera(freeCamera);
 	updateTransformer(client->transformer);
 
+	bool result = beginWindowRecord(window);
+
+	if (result == false)
+		return;
+
 	Transform cameraTransform =
 		getFreeCameraTransform(freeCamera);
 	RenderData* renderData = &client->renderData;
@@ -57,8 +62,6 @@ static void onWindowUpdate(void* handle)
 		getFreeCamera(freeCamera),
 		renderData,
 		true);
-
-	beginWindowRecord(window);
 
 	beginWindowRender(
 		window,

@@ -74,6 +74,16 @@ inline static Shader createVkShader(
 	shader->vk.handle = handle;
 	return shader;
 }
+inline static void destroyVkShader(
+	VkDevice device,
+	Shader shader)
+{
+	vkDestroyShaderModule(
+		device,
+		shader->vk.handle,
+		NULL);
+	free(shader);
+}
 #endif
 
 inline static bool getGlShaderType(
@@ -100,7 +110,6 @@ inline static bool getGlShaderType(
 		return false;
 	}
 }
-
 inline static Shader createGlShader(
 	Window window,
 	uint8_t type,
@@ -219,20 +228,6 @@ inline static Shader createGlShader(
 	shader->gl.handle = handle;
 	return shader;
 }
-
-#if MPGX_SUPPORT_VULKAN
-inline static void destroyVkShader(
-	VkDevice device,
-	Shader shader)
-{
-	vkDestroyShaderModule(
-		device,
-		shader->vk.handle,
-		NULL);
-	free(shader);
-}
-#endif
-
 inline static void destroyGlShader(
 	Shader shader)
 {

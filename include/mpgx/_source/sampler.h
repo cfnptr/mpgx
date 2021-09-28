@@ -120,7 +120,6 @@ inline static bool getVkImageWrap(
 		return false;
 	}
 }
-
 inline static Sampler createVkSampler(
 	VkDevice device,
 	Window window,
@@ -227,6 +226,16 @@ inline static Sampler createVkSampler(
 	sampler->vk.handle = handle;
 	return sampler;
 }
+inline static void destroyVkSampler(
+	VkDevice device,
+	Sampler sampler)
+{
+	vkDestroySampler(
+		device,
+		sampler->vk.handle,
+		NULL);
+	free(sampler);
+}
 #endif
 
 inline static bool getGlImageFilter(
@@ -314,7 +323,6 @@ inline static bool getGlImageWrap(
 		return false;
 	}
 }
-
 inline static Sampler createGlSampler(
 	Window window,
 	uint8_t minImageFilter,
@@ -446,20 +454,6 @@ inline static Sampler createGlSampler(
 	sampler->gl.handle = handle;
 	return sampler;
 }
-
-#if MPGX_SUPPORT_VULKAN
-inline static void destroyVkSampler(
-	VkDevice device,
-	Sampler sampler)
-{
-	vkDestroySampler(
-		device,
-		sampler->vk.handle,
-		NULL);
-	free(sampler);
-}
-#endif
-
 inline static void destroyGlSampler(
 	Sampler sampler)
 {

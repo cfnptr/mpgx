@@ -80,15 +80,17 @@ static void onVkUniformsSet(Pipeline pipeline)
 }
 static void onVkHandleResize(
 	Pipeline pipeline,
-	void* _createInfo)
+	void* createInfo)
 {
 	Vec2U framebufferSize = getWindowFramebufferSize(
 		pipeline->vk.window);
-	pipeline->vk.state.viewport = vec4I(0, 0,
+	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
+	pipeline->vk.state.viewport = size;
+	pipeline->vk.state.scissor = size;
 
-	VkPipelineCreateInfo createInfo = {
+	VkPipelineCreateInfo _createInfo = {
 		1,
 		vertexInputBindingDescriptions,
 		2,
@@ -99,9 +101,8 @@ static void onVkHandleResize(
 		pushConstantRanges,
 	};
 
-	*(VkPipelineCreateInfo*)_createInfo = createInfo;
+	*(VkPipelineCreateInfo*)createInfo = _createInfo;
 }
-
 inline static Pipeline createVkHandle(
 	Window window,
 	Shader* shaders,
@@ -168,6 +169,18 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
+static void onGlHandleResize(
+	Pipeline pipeline,
+	void* createInfo)
+{
+	Vec2U framebufferSize = getWindowFramebufferSize(
+		pipeline->gl.window);
+	Vec4I size = vec4I(0, 0,
+		(int32_t)framebufferSize.x,
+		(int32_t)framebufferSize.y);
+	pipeline->gl.state.viewport = size;
+	pipeline->gl.state.scissor = size;
+}
 inline static Pipeline createGlHandle(
 	Window window,
 	Shader* shaders,
@@ -184,7 +197,7 @@ inline static Pipeline createGlHandle(
 		onGlHandleDestroy,
 		NULL,
 		onGlUniformsSet,
-		NULL,
+		onGlHandleResize,
 		handle,
 		NULL);
 
@@ -300,6 +313,9 @@ Pipeline createColorPipeline(
 
 	Vec2U framebufferSize =
 		getWindowFramebufferSize(window);
+	Vec4I size = vec4I(0, 0,
+		(int32_t)framebufferSize.x,
+		(int32_t)framebufferSize.y);
 
 	PipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
@@ -322,13 +338,9 @@ Pipeline createColorPipeline(
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
-		vec4I(0, 0,
-			(int32_t)framebufferSize.x,
-			(int32_t)framebufferSize.y),
+		size,
 		defaultDepthRange,
-		vec4I(0, 0,
-			(int32_t)framebufferSize.x,
-			(int32_t)framebufferSize.y),
+		size,
 	};
 
 	return createExtColorPipeline(

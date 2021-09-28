@@ -726,6 +726,38 @@ inline static Pipeline createVkPipeline(
 	pipeline->vk.vkHandle = vkHandle;
 	return pipeline;
 }
+inline static void destroyVkPipeline(
+	VkDevice device,
+	Pipeline pipeline)
+{
+	vkDestroyPipeline(
+		device,
+		pipeline->vk.vkHandle,
+		NULL);
+	vkDestroyPipelineLayout(
+		device,
+		pipeline->vk.layout,
+		NULL);
+	vkDestroyPipelineCache(
+		device,
+		pipeline->vk.cache,
+		NULL);
+
+	free(pipeline->gl.shaders);
+	free(pipeline);
+}
+inline static void bindVkPipeline(
+	VkCommandBuffer commandBuffer,
+	Pipeline pipeline)
+{
+	vkCmdBindPipeline(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		pipeline->vk.vkHandle);
+
+	if (pipeline->vk.onHandleBind != NULL)
+		pipeline->vk.onHandleBind(pipeline);
+}
 #endif
 
 inline static bool getGlDrawMode(
@@ -887,7 +919,6 @@ inline static bool getGlBlendOperator(
 		return true;
 	}
 }
-
 inline static Pipeline createGlPipeline(
 	Window window,
 	const char* name,
@@ -1080,30 +1111,6 @@ inline static Pipeline createGlPipeline(
 	pipeline->gl.frontFace = frontFace;
 	return pipeline;
 }
-
-#if MPGX_SUPPORT_VULKAN
-inline static void destroyVkPipeline(
-	VkDevice device,
-	Pipeline pipeline)
-{
-	vkDestroyPipeline(
-		device,
-		pipeline->vk.vkHandle,
-		NULL);
-	vkDestroyPipelineLayout(
-		device,
-		pipeline->vk.layout,
-		NULL);
-	vkDestroyPipelineCache(
-		device,
-		pipeline->vk.cache,
-		NULL);
-
-	free(pipeline->gl.shaders);
-	free(pipeline);
-}
-#endif
-
 inline static void destroyGlPipeline(
 	Pipeline pipeline)
 {
@@ -1117,22 +1124,6 @@ inline static void destroyGlPipeline(
 	free(pipeline->gl.shaders);
 	free(pipeline);
 }
-
-#if MPGX_SUPPORT_VULKAN
-inline static void bindVkPipeline(
-	VkCommandBuffer commandBuffer,
-	Pipeline pipeline)
-{
-	vkCmdBindPipeline(
-		commandBuffer,
-		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		pipeline->vk.vkHandle);
-
-	if (pipeline->vk.onHandleBind != NULL)
-		pipeline->vk.onHandleBind(pipeline);
-}
-#endif
-
 inline static void bindGlPipeline(
 	Pipeline pipeline)
 {
@@ -1252,7 +1243,6 @@ inline static void bindGlPipeline(
 	if (pipeline->gl.onHandleBind != NULL)
 		pipeline->gl.onHandleBind(pipeline);
 }
-
 inline static GLint getGlUniformLocation(
 	GLuint program,
 	const GLchar* name)

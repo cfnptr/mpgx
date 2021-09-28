@@ -487,7 +487,7 @@ void requestWindowAttention(Window window);
 void makeWindowContextCurrent(Window window);
 void updateWindow(Window window);
 
-void beginWindowRecord(Window window);
+bool beginWindowRecord(Window window);
 void endWindowRecord(Window window);
 
 void beginWindowRender(

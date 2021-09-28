@@ -14,9 +14,6 @@
 
 // TODO: OpenGL renderbuffer optimization
 
-// TODO: add isIntegratedGpu,
-// and if true use cpu only buffers/images
-
 struct ImageData
 {
 	uint8_t* pixels;

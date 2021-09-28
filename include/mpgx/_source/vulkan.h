@@ -8,9 +8,6 @@
 #define VK_VERSION VK_API_VERSION_1_2
 #define VK_FRAME_LAG 2
 
-// TODO: compile vulkan shaders using cmake
-// and do not store them into the git
-
 struct VkWindow
 {
 	VkSurfaceKHR surface;

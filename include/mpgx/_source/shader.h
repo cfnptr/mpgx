@@ -76,6 +76,31 @@ inline static Shader createVkShader(
 }
 #endif
 
+inline static bool getGlShaderType(
+	uint8_t shaderType,
+	GLenum* glShaderType)
+{
+	if (shaderType == VERTEX_SHADER_TYPE)
+	{
+		*glShaderType = GL_VERTEX_SHADER;
+		return true;
+	}
+	else if (shaderType == FRAGMENT_SHADER_TYPE)
+	{
+		*glShaderType = GL_FRAGMENT_SHADER;
+		return true;
+	}
+	else if (shaderType == COMPUTE_SHADER_TYPE)
+	{
+		*glShaderType = GL_COMPUTE_SHADER;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 inline static Shader createGlShader(
 	Window window,
 	uint8_t type,
@@ -90,19 +115,11 @@ inline static Shader createGlShader(
 
 	GLenum glType;
 
-	if (type == VERTEX_SHADER_TYPE)
-	{
-		glType = GL_VERTEX_SHADER;
-	}
-	else if (type == FRAGMENT_SHADER_TYPE)
-	{
-		glType = GL_FRAGMENT_SHADER;
-	}
-	else if (type == COMPUTE_SHADER_TYPE)
-	{
-		glType = GL_COMPUTE_SHADER;
-	}
-	else
+	bool result = getGlShaderType(
+		type,
+		&glType);
+
+	if (result == false)
 	{
 		free(shader);
 		return NULL;
@@ -171,10 +188,8 @@ inline static Shader createGlShader(
 				typeString = "vertex";
 			else if (type == FRAGMENT_SHADER_TYPE)
 				typeString = "fragment";
-			else if (type == COMPUTE_SHADER_TYPE)
-				typeString = "compute";
 			else
-				abort();
+				typeString = "compute";
 
 			fprintf(GL_INFO_LOG_OUT,
 				"OpenGL %s shader compile error: %s\n",
@@ -190,7 +205,14 @@ inline static Shader createGlShader(
 		return NULL;
 	}
 
-	assertOpenGL();
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+	{
+		glDeleteShader(handle);
+		free(shader);
+		return NULL;
+	}
 
 	shader->gl.window = window;
 	shader->gl.type = type;

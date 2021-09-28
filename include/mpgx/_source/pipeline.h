@@ -83,6 +83,15 @@ inline static bool getVkShaderType(
 	case COMPUTE_SHADER_TYPE:
 		*vkShaderType = VK_SHADER_STAGE_COMPUTE_BIT;
 		return true;
+	case TESSELLATION_CONTROL_SHADER_TYPE:
+		*vkShaderType = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+		return true;
+	case TESSELLATION_EVALUATION_SHADER_TYPE:
+		*vkShaderType = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+		return true;
+	case GEOMETRY_SHADER_TYPE:
+		*vkShaderType = VK_SHADER_STAGE_GEOMETRY_BIT;
+		return true;
 	}
 }
 inline static bool getVkDrawMode(
@@ -978,8 +987,6 @@ inline static Pipeline createGlPipeline(
 		GL_LINK_STATUS,
 		&linkStatus);
 
-	assertOpenGL();
-
 	if (linkStatus == GL_FALSE)
 	{
 		GLint length = 0;
@@ -1017,6 +1024,16 @@ inline static Pipeline createGlPipeline(
 
 		assertOpenGL();
 
+		glDeleteProgram(glHandle);
+		free(shaders);
+		free(pipeline);
+		return NULL;
+	}
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+	{
 		glDeleteProgram(glHandle);
 		free(shaders);
 		free(pipeline);

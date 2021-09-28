@@ -90,9 +90,9 @@ inline static bool getVkImageWrap(
 	uint8_t imageWrap,
 	VkSamplerAddressMode* vkImageWrap)
 {
-	if (imageWrap == CLAMP_TO_EDGE_IMAGE_WRAP)
+	if (imageWrap == REPEAT_IMAGE_WRAP)
 	{
-		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		return true;
 	}
 	else if (imageWrap == MIRRORED_REPEAT_IMAGE_WRAP)
@@ -100,17 +100,25 @@ inline static bool getVkImageWrap(
 		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 		return true;
 	}
-	else if (imageWrap == REPEAT_IMAGE_WRAP)
+	else if (imageWrap == CLAMP_TO_EDGE_IMAGE_WRAP)
 	{
-		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		return true;
+	}
+	else if (imageWrap == CLAMP_TO_BORDER_IMAGE_WRAP)
+	{
+		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		return true;
+	}
+	else if (imageWrap == MIRROR_CLAMP_TO_EDGE_IMAGE_WRAP)
+	{
+		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
 		return true;
 	}
 	else
 	{
 		return false;
 	}
-
-	// TODO:
 }
 
 inline static Sampler createVkSampler(
@@ -286,9 +294,9 @@ inline static bool getGlImageWrap(
 	uint8_t imageWrap,
 	GLenum* glImageWrap)
 {
-	if (imageWrap == CLAMP_TO_EDGE_IMAGE_WRAP)
+	if (imageWrap == REPEAT_IMAGE_WRAP)
 	{
-		*glImageWrap = GL_CLAMP_TO_EDGE;
+		*glImageWrap = GL_REPEAT;
 		return true;
 	}
 	else if (imageWrap == MIRRORED_REPEAT_IMAGE_WRAP)
@@ -296,9 +304,9 @@ inline static bool getGlImageWrap(
 		*glImageWrap = GL_MIRRORED_REPEAT;
 		return true;
 	}
-	else if (imageWrap == REPEAT_IMAGE_WRAP)
+	else if (imageWrap == CLAMP_TO_EDGE_IMAGE_WRAP)
 	{
-		*glImageWrap = GL_REPEAT;
+		*glImageWrap = GL_CLAMP_TO_EDGE;
 		return true;
 	}
 	else
@@ -336,7 +344,8 @@ inline static Sampler createGlSampler(
 		&handle);
 
 	GLenum minFilter, magFilter,
-		wrapX, wrapY, wrapZ, compare;
+		wrapX, wrapY, wrapZ,
+		compareOperator;
 
 	bool result = getGlImageFilter(
 		minImageFilter,
@@ -359,7 +368,7 @@ inline static Sampler createGlSampler(
 		&wrapZ);
 	result &= getGlCompareOperation(
 		compareOperation,
-		&compare);
+		&compareOperator);
 
 	if (result == false)
 	{
@@ -400,7 +409,7 @@ inline static Sampler createGlSampler(
 	glSamplerParameteri(
 		handle,
 		GL_TEXTURE_COMPARE_FUNC,
-		(GLint)compare);
+		(GLint)compareOperator);
 	glSamplerParameterf(
 		handle,
 		GL_TEXTURE_MIN_LOD,
@@ -410,7 +419,16 @@ inline static Sampler createGlSampler(
 		GL_TEXTURE_MAX_LOD,
 		(GLfloat)maxMipmapLod);
 
-	assertOpenGL();
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+	{
+		glDeleteSamplers(
+			GL_ONE,
+			&handle);
+		free(sampler);
+		return NULL;
+	}
 
 	sampler->gl.window = window;
 	sampler->gl.minImageFilter = minImageFilter;

@@ -83,10 +83,10 @@ inline static Framebuffer createGlFramebuffer(
 			switch (format)
 			{
 			default:
+				free(colorAttachments);
 				glDeleteFramebuffers(
 					GL_ONE,
 					&handle);
-				free(colorAttachments);
 				free(framebuffer);
 				return NULL;
 			case R8G8B8A8_UNORM_IMAGE_FORMAT:
@@ -118,10 +118,10 @@ inline static Framebuffer createGlFramebuffer(
 		switch (format)
 		{
 		default:
+			free(colorAttachments);
 			glDeleteFramebuffers(
 				GL_ONE,
 				&handle);
-			free(colorAttachments);
 			free(framebuffer);
 			return NULL;
 		case D16_UNORM_IMAGE_FORMAT:
@@ -145,8 +145,7 @@ inline static Framebuffer createGlFramebuffer(
 		}
 	}
 
-	GLenum status = glCheckFramebufferStatus(
-		GL_FRAMEBUFFER);
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
 	if (status != GL_FRAMEBUFFER_COMPLETE)
 	{
@@ -182,15 +181,25 @@ inline static Framebuffer createGlFramebuffer(
 
 		assertOpenGL();
 
+		free(colorAttachments);
 		glDeleteFramebuffers(
 			GL_ONE,
 			&handle);
-		free(colorAttachments);
 		free(framebuffer);
 		return NULL;
 	}
 
-	assertOpenGL();
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+	{
+		free(colorAttachments);
+		glDeleteFramebuffers(
+			GL_ONE,
+			&handle);
+		free(framebuffer);
+		return NULL;
+	}
 
 	framebuffer->gl.window = window;
 	framebuffer->gl.handle = handle;

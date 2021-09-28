@@ -476,7 +476,16 @@ inline static Buffer createGlBuffer(
 		data,
 		usage);
 
-	assertOpenGL();
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+	{
+		glDeleteBuffers(
+			GL_ONE,
+			&handle);
+		free(buffer);
+		return NULL;
+	}
 
 	buffer->gl.window = window;
 	buffer->gl.type = type;

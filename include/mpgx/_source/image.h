@@ -343,7 +343,16 @@ inline static Image createGlImage(
 		}
 	}
 
-	assertOpenGL();
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+	{
+		glDeleteTextures(
+			GL_ONE,
+			&handle);
+		free(image);
+		return NULL;
+	}
 
 	image->gl.window = window;
 	image->gl.type = type;

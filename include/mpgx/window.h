@@ -16,7 +16,6 @@
 #define DEFAULT_MAX_DEPTH_RANGE 1
 
 // TODO: fix a new framebuffer sRGB difference
-// TODO: check in some places for opengl errors instead of the assert
 
 // TODO: use glPolygonOffset to improve shadow mapping
 // https://docs.microsoft.com/en-gb/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps?redirectedfrom=MSDN
@@ -227,7 +226,9 @@ typedef enum ImageWrap
 	REPEAT_IMAGE_WRAP = 0,
 	MIRRORED_REPEAT_IMAGE_WRAP = 1,
 	CLAMP_TO_EDGE_IMAGE_WRAP = 2,
-	IMAGE_WRAP_COUNT = 3,
+	CLAMP_TO_BORDER_IMAGE_WRAP = 3,
+	MIRROR_CLAMP_TO_EDGE_IMAGE_WRAP = 4,
+	IMAGE_WRAP_COUNT = 5,
 } ImageWrap;
 
 typedef enum ShaderType
@@ -235,7 +236,10 @@ typedef enum ShaderType
 	VERTEX_SHADER_TYPE = 0,
 	FRAGMENT_SHADER_TYPE = 1,
 	COMPUTE_SHADER_TYPE = 2,
-	SHADER_TYPE_COUNT = 3,
+	TESSELLATION_CONTROL_SHADER_TYPE = 3,
+	TESSELLATION_EVALUATION_SHADER_TYPE = 4,
+	GEOMETRY_SHADER_TYPE = 5,
+	SHADER_TYPE_COUNT = 6,
 } ShaderType;
 
 typedef enum DrawMode

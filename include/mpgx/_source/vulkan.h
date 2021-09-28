@@ -1337,12 +1337,9 @@ inline static const char* getVkWindowGpuName(
 	return properties.deviceName;
 }
 
-inline static bool beginVkWindowRender(
+inline static bool beginVkWindowRecord(
 	Window window,
 	VkWindow vkWindow,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil,
 	bool isResized,
 	void(*onResize)(Window))
 {
@@ -1451,89 +1448,35 @@ inline static bool beginVkWindowRender(
 		}
 	} while (vkResult != VK_SUCCESS);
 
-	VkSwapchainBuffer buffer =
-		swapchain->buffers[bufferIndex];
-
 	vmaSetCurrentFrameIndex(
 		vkWindow->allocator,
 		bufferIndex);
 
+	VkSwapchainBuffer buffer =
+		swapchain->buffers[bufferIndex];
+
 	vkWindow->bufferIndex = bufferIndex;
 	vkWindow->currenCommandBuffer = buffer.graphicsCommandBuffer;
-
-	VkCommandBufferBeginInfo commandBufferBeginInfo = {
-		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		NULL,
-		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-		NULL,
-	};
-
-	VkCommandBuffer graphicsCommandBuffer =
-		buffer.graphicsCommandBuffer;
-
-	vkResult = vkBeginCommandBuffer(
-		graphicsCommandBuffer,
-		&commandBufferBeginInfo);
-
-	if (vkResult != VK_SUCCESS)
-		return false;
-
-	VkClearValue clearValues[2];
-	clearValues[0].color.float32[0] = clearColor.x;
-	clearValues[0].color.float32[1] = clearColor.y;
-	clearValues[0].color.float32[2] = clearColor.z;
-	clearValues[0].color.float32[3] = clearColor.w;
-	clearValues[1].depthStencil.depth = clearDepth;
-	clearValues[1].depthStencil.stencil = clearStencil;
-
-	VkRect2D renderArea = {
-		{
-			0,
-			0,
-		},
-		{
-			framebufferSize.x,
-			framebufferSize.y,
-		},
-	};
-
-	VkRenderPassBeginInfo renderPassBeginInfo = {
-		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-		NULL,
-		swapchain->renderPass,
-		buffer.framebuffer,
-		renderArea,
-		2,
-		clearValues,
-	};
-
-	vkCmdBeginRenderPass(
-		graphicsCommandBuffer,
-		&renderPassBeginInfo,
-		VK_SUBPASS_CONTENTS_INLINE);
 	return true;
 }
-inline static bool endVkWindowRender(
+inline static bool endVkWindowRecord(
 	Window window,
 	VkWindow vkWindow,
 	void(*onResize)(Window))
 {
 	VkSwapchain swapchain = vkWindow->swapchain;
-	uint32_t bufferIndex = vkWindow->bufferIndex;
-
-	VkSwapchainBuffer* buffer =
-		&swapchain->buffers[bufferIndex];
-	VkImage frameImage = buffer->image;
-
-	VkCommandBuffer graphicsCommandBuffer =
-		buffer->graphicsCommandBuffer;
-
-	vkCmdEndRenderPass(graphicsCommandBuffer);
 
 	uint32_t graphicsQueueFamilyIndex =
 		vkWindow->graphicsQueueFamilyIndex;
 	uint32_t presentQueueFamilyIndex =
 		vkWindow->presentQueueFamilyIndex;
+
+	uint32_t bufferIndex = vkWindow->bufferIndex;
+
+	VkSwapchainBuffer* buffer =
+		&swapchain->buffers[bufferIndex];
+	VkCommandBuffer graphicsCommandBuffer =
+		buffer->graphicsCommandBuffer;
 
 	if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
 	{
@@ -1546,7 +1489,7 @@ inline static bool endVkWindowRender(
 			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			graphicsQueueFamilyIndex,
 			presentQueueFamilyIndex,
-			frameImage,
+			buffer->image,
 			{
 				VK_IMAGE_ASPECT_COLOR_BIT,
 				0,
@@ -1681,6 +1624,79 @@ inline static bool endVkWindowRender(
 	}
 
 	return true;
+}
+
+inline static bool beginVkWindowRender(
+	Window window,
+	VkWindow vkWindow,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
+{
+	VkSwapchain swapchain = vkWindow->swapchain;
+
+	VkSwapchainBuffer buffer = swapchain->buffers[
+		vkWindow->bufferIndex];
+	VkCommandBuffer graphicsCommandBuffer =
+		buffer.graphicsCommandBuffer;
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		NULL,
+		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+		NULL,
+	};
+
+	VkResult vkResult = vkBeginCommandBuffer(
+		graphicsCommandBuffer,
+		&commandBufferBeginInfo);
+
+	if (vkResult != VK_SUCCESS)
+		return false;
+
+	VkClearValue clearValues[2];
+	clearValues[0].color.float32[0] = clearColor.x;
+	clearValues[0].color.float32[1] = clearColor.y;
+	clearValues[0].color.float32[2] = clearColor.z;
+	clearValues[0].color.float32[3] = clearColor.w;
+	clearValues[1].depthStencil.depth = clearDepth;
+	clearValues[1].depthStencil.stencil = clearStencil;
+
+	Vec2U framebufferSize =
+		getWindowFramebufferSize(window);
+
+	VkRect2D renderArea = {
+		{
+			0,
+			0,
+		},
+		{
+			framebufferSize.x,
+			framebufferSize.y,
+		},
+	};
+
+	VkRenderPassBeginInfo renderPassBeginInfo = {
+		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+		NULL,
+		swapchain->renderPass,
+		buffer.framebuffer,
+		renderArea,
+		2,
+		clearValues,
+	};
+
+	vkCmdBeginRenderPass(
+		graphicsCommandBuffer,
+		&renderPassBeginInfo,
+		VK_SUBPASS_CONTENTS_INLINE);
+	return true;
+}
+inline static void endVkWindowRender(
+	VkWindow vkWindow)
+{
+	vkCmdEndRenderPass(
+		vkWindow->currenCommandBuffer);
 }
 
 inline static bool getVkCompareOperation(

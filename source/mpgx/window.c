@@ -698,7 +698,7 @@ void destroyWindow(Window window)
 		for (size_t i = 0; i < shaderCount; i++)
 			destroyVkShader(device, shaders[i]);
 		for (size_t i = 0; i < framebufferCount; i++)
-			destroyVkFramebuffer(framebuffers[i]);
+			destroyVkFramebuffer(device, framebuffers[i]);
 		for (size_t i = 0; i < samplerCount; i++)
 			destroyVkSampler(device, samplers[i]);
 		for (size_t i = 0; i < imageCount; i++)
@@ -1175,6 +1175,103 @@ static void onGlResize(Window window)
 	}
 }
 
+void beginWindowRecord(Window window)
+{
+	assert(window != NULL);
+	assert(window->isRecording == false);
+	assert(window->isRendering == false);
+
+	int width, height;
+
+	glfwGetFramebufferSize(
+		window->handle,
+		&width,
+		&height);
+
+	Vec2U framebufferSize =
+		vec2U(width, height);
+	Vec2U currentFramebufferSize =
+		window->framebufferSize;
+
+	bool isResized = false;
+
+	if (framebufferSize.x != currentFramebufferSize.x ||
+		framebufferSize.y != currentFramebufferSize.y)
+	{
+		window->framebufferSize = framebufferSize;
+		isResized = true;
+	}
+
+	uint8_t api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		bool result = beginVkWindowRecord(
+			window,
+			window->vkWindow,
+			isResized,
+			onVkResize);
+
+		if (result == false)
+			abort();
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		if (isResized == true)
+			onGlResize(window);
+	}
+	else
+	{
+		abort();
+	}
+
+	window->isRecording = true;
+}
+
+inline static void endGlWindowRecord(GLFWwindow* window)
+{
+	glfwSwapBuffers(window);
+}
+void endWindowRecord(Window window)
+{
+	assert(window != NULL);
+	assert(window->isRecording == true);
+	assert(window->isRendering == false);
+
+	uint8_t api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		bool result = endVkWindowRecord(
+			window,
+			window->vkWindow,
+			onVkResize);
+
+		if (result == false)
+			abort();
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		endGlWindowRecord(window->handle);
+	}
+	else
+	{
+		abort();
+	}
+
+	window->isRecording = false;
+}
+
 inline static void beginGlWindowRender(
 	bool useStencilBuffer,
 	Vec4F clearColor,
@@ -1231,29 +1328,8 @@ void beginWindowRender(
 	assert(
 		clearDepth >= 0.0f &&
 		clearDepth <= 1.0f);
-	assert(window->isRecording == false);
+	assert(window->isRecording == true);
 	assert(window->isRendering == false);
-
-	int width, height;
-
-	glfwGetFramebufferSize(
-		window->handle,
-		&width,
-		&height);
-
-	Vec2U framebufferSize =
-		vec2U(width, height);
-	Vec2U currentFramebufferSize =
-		window->framebufferSize;
-
-	bool isResized = false;
-
-	if (framebufferSize.x != currentFramebufferSize.x ||
-		framebufferSize.y != currentFramebufferSize.y)
-	{
-		window->framebufferSize = framebufferSize;
-		isResized = true;
-	}
 
 	uint8_t api = window->api;
 
@@ -1265,9 +1341,7 @@ void beginWindowRender(
 			window->vkWindow,
 			clearColor,
 			clearDepth,
-			clearStencil,
-			isResized,
-			onVkResize);
+			clearStencil);
 
 		if (result == false)
 			abort();
@@ -1278,9 +1352,6 @@ void beginWindowRender(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		if (isResized == true)
-			onGlResize(window);
-
 		beginGlWindowRender(
 			window->useStencilBuffer,
 			clearColor,
@@ -1292,31 +1363,20 @@ void beginWindowRender(
 		abort();
 	}
 
-	window->isRecording = true;
-}
-
-inline static void endGlWindowRender(GLFWwindow* window)
-{
-	glfwSwapBuffers(window);
+	window->isRendering = true;
 }
 void endWindowRender(Window window)
 {
 	assert(window != NULL);
 	assert(window->isRecording == true);
-	assert(window->isRendering == false);
+	assert(window->isRendering == true);
 
 	uint8_t api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		bool result = endVkWindowRender(
-			window,
-			window->vkWindow,
-			onVkResize);
-
-		if (result == false)
-			abort();
+		endVkWindowRender(window->vkWindow);
 #else
 		abort();
 #endif
@@ -1324,14 +1384,13 @@ void endWindowRender(Window window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		endGlWindowRender(window->handle);
 	}
 	else
 	{
 		abort();
 	}
 
-	window->isRecording = false;
+	window->isRendering = false;
 }
 
 Buffer createBuffer(
@@ -2151,7 +2210,10 @@ Framebuffer createFramebuffer(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+
 		framebuffer = createVkFramebuffer(
+			vkWindow->device,
 			window,
 			colorAttachments,
 			colorAttachmentCount,
@@ -2192,7 +2254,9 @@ Framebuffer createFramebuffer(
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
-				destroyVkFramebuffer(framebuffer);
+				destroyVkFramebuffer(
+					window->vkWindow->device,
+					framebuffer);
 #else
 				abort();
 #endif
@@ -2242,7 +2306,9 @@ void destroyFramebuffer(Framebuffer framebuffer)
 		if (api == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
-			destroyVkFramebuffer(framebuffer);
+			destroyVkFramebuffer(
+				window->vkWindow->device,
+				framebuffer);
 #else
 			abort();
 #endif

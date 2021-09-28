@@ -71,27 +71,6 @@ inline static bool setVkBufferData(
 		allocation);
 	return true;
 }
-#endif
-
-inline static void setGlBufferData(
-	GLenum type,
-	GLuint buffer,
-	const void* data,
-	size_t size,
-	size_t offset)
-{
-	glBindBuffer(
-		type,
-		buffer);
-	glBufferSubData(
-		type,
-		(GLintptr)offset,
-		(GLsizeiptr)size,
-		data);
-	assertOpenGL();
-}
-
-#if MPGX_SUPPORT_VULKAN
 inline static Buffer createVkBuffer(
 	VkDevice device,
 	VmaAllocator allocator,
@@ -420,8 +399,35 @@ inline static Buffer createVkBuffer(
 	buffer->vk.allocation = allocation;
 	return buffer;
 }
+inline static void destroyVkBuffer(
+	VmaAllocator allocator,
+	Buffer buffer)
+{
+	vmaDestroyBuffer(
+		allocator,
+		buffer->vk.handle,
+		buffer->vk.allocation);
+	free(buffer);
+}
 #endif
 
+inline static void setGlBufferData(
+	GLenum type,
+	GLuint buffer,
+	const void* data,
+	size_t size,
+	size_t offset)
+{
+	glBindBuffer(
+		type,
+		buffer);
+	glBufferSubData(
+		type,
+		(GLintptr)offset,
+		(GLsizeiptr)size,
+		data);
+	assertOpenGL();
+}
 inline static Buffer createGlBuffer(
 	Window window,
 	uint8_t type,
@@ -495,20 +501,6 @@ inline static Buffer createGlBuffer(
 	buffer->gl.handle = handle;
 	return buffer;
 }
-
-#if MPGX_SUPPORT_VULKAN
-inline static void destroyVkBuffer(
-	VmaAllocator allocator,
-	Buffer buffer)
-{
-	vmaDestroyBuffer(
-		allocator,
-		buffer->vk.handle,
-		buffer->vk.allocation);
-	free(buffer);
-}
-#endif
-
 inline static void destroyGlBuffer(
 	Buffer buffer)
 {

@@ -58,17 +58,19 @@ static void onWindowUpdate(void* handle)
 		renderData,
 		true);
 
+	beginWindowRecord(window);
+
 	beginWindowRender(
 		window,
 		valVec4F(0.25f),
 		1.0f,
 		0);
-
 	drawRenderer(
 		client->diffuseRenderer,
 		renderData);
-
 	endWindowRender(window);
+
+	endWindowRecord(window);
 }
 
 inline static Renderer createDiffuseRendererInstance(

@@ -7,6 +7,9 @@ typedef struct _VkFramebuffer
 	Image* colorAttachments;
 	size_t colorAttachmentCount;
 	Image depthStencilAttachment;
+#if MPGX_SUPPORT_VULKAN
+	VkFramebuffer handle;
+#endif
 } _VkFramebuffer;
 typedef struct _GlFramebuffer
 {
@@ -24,13 +27,57 @@ union Framebuffer
 
 #if MPGX_SUPPORT_VULKAN
 inline static Framebuffer createVkFramebuffer(
+	VkDevice device,
 	Window window,
 	Image* _colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment)
 {
-	// TODO:
-	abort();
+	Framebuffer framebuffer = malloc(
+		sizeof(union Framebuffer));
+
+	if (framebuffer == NULL)
+		return NULL;
+
+	VkRenderPassCreateInfo renderPassCreateInfo = {
+		// TODO:
+	};
+
+	VkRenderPass renderPass;
+
+	VkFramebufferCreateInfo framebufferCreateInfo = {
+		VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+		NULL,
+		0,
+
+	};
+
+	VkFramebuffer handle;
+
+	VkResult result = vkCreateFramebuffer(
+		device,
+		&framebufferCreateInfo,
+		NULL,
+		&handle);
+
+	if (result != VK_SUCCESS)
+	{
+		free(framebuffer);
+		return NULL;
+	}
+
+	framebuffer->vk.handle = handle;
+	return framebuffer;
+}
+inline static void destroyVkFramebuffer(
+	VkDevice device,
+	Framebuffer framebuffer)
+{
+	vkDestroyFramebuffer(
+		device,
+		framebuffer->vk.handle,
+		NULL);
+	free(framebuffer);
 }
 #endif
 
@@ -208,13 +255,6 @@ inline static Framebuffer createGlFramebuffer(
 	framebuffer->gl.depthStencilAttachment = depthStencilAttachment;
 	return framebuffer;
 }
-
-#if MPGX_SUPPORT_VULKAN
-inline static void destroyVkFramebuffer(Framebuffer framebuffer)
-{
-	// TODO:
-}
-#endif
 
 inline static void destroyGlFramebuffer(Framebuffer framebuffer)
 {

@@ -5,13 +5,12 @@
 #include "mpgx/_source/vulkan.h"
 #endif
 
-// TODO: possibly set default precision
-// or detect supported precisions
-
 #define OPENGL_SHADER_HEADER \
 	"#version 330 core\n"
 #define OPENGL_ES_SHADER_HEADER \
-	"#version 300 es\n"
+	"#version 300 es\n"         \
+	"precision highp float;\n"  \
+	"precision highp int;\n"
 
 typedef struct _VkShader
 {

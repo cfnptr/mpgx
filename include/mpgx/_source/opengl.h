@@ -1,11 +1,13 @@
 #pragma once
+#include "mpgx/window.h"
 #include "mpgx/_source/graphics.h"
+
+#include <stdio.h>
+#include <stdbool.h>
 
 #ifndef GL_INFO_LOG_OUT
 #define GL_INFO_LOG_OUT stderr
 #endif
-
-#include <stdio.h>
 
 inline static void assertOpenGL()
 {

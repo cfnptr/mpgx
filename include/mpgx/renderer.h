@@ -83,7 +83,9 @@ Render createRender(
 	Transform transform,
 	Box3F bounding,
 	void* handle);
-void destroyRender(Render render);
+void destroyRender(
+	Render render,
+	bool destroyTransform);
 
 Renderer getRenderRenderer(Render render);
 Transform getRenderTransform(Render render);

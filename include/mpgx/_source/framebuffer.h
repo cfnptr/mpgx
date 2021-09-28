@@ -297,9 +297,9 @@ inline static void beginGlFramebufferRender(
 }
 inline static void endGlFramebufferRender()
 {
-	glBindFramebuffer(
+	/*glBindFramebuffer(
 		GL_FRAMEBUFFER,
-		GL_ZERO);
+		GL_ZERO);*/
 	assertOpenGL();
 }
 inline static void clearGlFramebuffer(

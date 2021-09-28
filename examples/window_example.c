@@ -249,10 +249,9 @@ inline static void destroyDiffuseRenderInstance(
 	if (diffuseRender == NULL)
 		return;
 
-	destroyMesh(
-		getDiffuseRenderMesh(diffuseRender),
-		true);
-	destroyRender(diffuseRender);
+	Mesh mesh = getDiffuseRenderMesh(diffuseRender);
+	destroyRender(diffuseRender, true);
+	destroyMesh(mesh, true);
 }
 
 inline static Client* createClient()
@@ -360,8 +359,13 @@ inline static void destroyClient(Client* client)
 		return;
 
 	destroyDiffuseRenderInstance(client->diffuseRender);
+	
+	assert(isRendererEmpty(client->diffuseRenderer));
 	destroyDiffuseRendererInstance(client->diffuseRenderer);
+
 	destroyFreeCamera(client->freeCamera);
+
+	assert(isTransformerEmpty(client->transformer));
 	destroyTransformer(client->transformer);
 
 	assert(isWindowEmpty(client->window) == true);

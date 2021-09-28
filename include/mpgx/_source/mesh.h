@@ -95,7 +95,7 @@ inline static void drawVkMesh(
 		vkDrawIndex);
 	vkCmdDrawIndexed(
 		commandBuffer,
-		mesh->vk.indexCount,
+		(uint32_t)mesh->vk.indexCount,
 		1,
 		0,
 		0,

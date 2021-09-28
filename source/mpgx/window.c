@@ -272,8 +272,8 @@ Window createWindow(
 			GLFW_TRUE);
 #else
 		glfwWindowHint(
-			GLFW_CONTEXT_NO_ERROR,
-			GLFW_TRUE);
+			GLFW_OPENGL_DEBUG_CONTEXT,
+			GLFW_FALSE);
 #endif
 	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
@@ -313,8 +313,8 @@ Window createWindow(
 			GLFW_TRUE);
 #else
 		glfwWindowHint(
-			GLFW_CONTEXT_NO_ERROR,
-			GLFW_TRUE);
+			GLFW_OPENGL_DEBUG_CONTEXT,
+			GLFW_FALSE);
 #endif
 	}
 	else

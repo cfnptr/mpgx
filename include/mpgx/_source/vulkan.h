@@ -516,7 +516,7 @@ inline static bool getVkQueueFamilyIndices(
 		propertyCount * sizeof(VkQueueFamilyProperties));
 
 	if (properties == NULL)
-		return NULL;
+		return false;
 
 	vkGetPhysicalDeviceQueueFamilyProperties(
 		physicalDevice,

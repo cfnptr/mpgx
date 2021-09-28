@@ -551,7 +551,6 @@ Render createRender(
 
 		if (renders == NULL)
 		{
-			destroyTransform(transform);
 			free(render);
 			return NULL;
 		}
@@ -564,7 +563,6 @@ Render createRender(
 
 		if (renderElements == NULL)
 		{
-			destroyTransform(transform);
 			free(render);
 			return NULL;
 		}
@@ -577,7 +575,9 @@ Render createRender(
 	renderer->renderCount = count + 1;
 	return render;
 }
-void destroyRender(Render render)
+void destroyRender(
+	Render render,
+	bool _destroyTransform)
 {
 	if (render == NULL)
 		return;
@@ -585,9 +585,6 @@ void destroyRender(Render render)
 	Renderer renderer = render->renderer;
 	Render* renders = renderer->renders;
 	size_t renderCount = renderer->renderCount;
-
-	OnRenderHandleDestroy onHandleDestroy =
-		renderer->onHandleDestroy;
 
 	for (size_t i = 0; i < renderCount; i++)
 	{
@@ -597,7 +594,11 @@ void destroyRender(Render render)
 		for (size_t j = i + 1; j < renderCount; j++)
 			renders[j - 1] = renders[j];
 
-		onHandleDestroy(render->handle);
+		renderer->onHandleDestroy(render->handle);
+
+		if (_destroyTransform == true)
+			destroyTransform(render->transform);
+
 		free(render);
 		renderer->renderCount--;
 		return;

@@ -751,7 +751,13 @@ inline static VmaAllocator createVmaAllocator(
 	VkDevice device,
 	VkInstance instance)
 {
-	VmaAllocatorCreateInfo createInfo = {};
+	VmaAllocatorCreateInfo createInfo;
+
+	memset(
+		&createInfo,
+		0,
+		sizeof(VmaAllocatorCreateInfo));
+
 	createInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
 	createInfo.physicalDevice = physicalDevice;
 	createInfo.device = device;

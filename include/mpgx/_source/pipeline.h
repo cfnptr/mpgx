@@ -492,8 +492,24 @@ inline static VkPipeline createVkPipelineHandle(
 		depthCompareOperator,
 		VK_FALSE, // TODO:
 		VK_FALSE,
-		{},
-		{},
+		{
+			0,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0
+		},
+		{
+			0,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0
+		},
 		0.0f,
 		0.0f,
 	};

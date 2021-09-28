@@ -5,6 +5,8 @@
 #include "vk_mem_alloc.h"
 #endif
 
+#include <string.h>
+
 // TODO: handle Vulkan unsupported formats on platforms
 // VkGetPhysicalDeviceImageFormatProperties
 // https://stackoverflow.com/questions/38396578/vulkan-vkcreateimage-with-3-components
@@ -128,7 +130,13 @@ inline static Image createVkImage(
 		VK_IMAGE_LAYOUT_UNDEFINED,
 	};
 
-	VmaAllocationCreateInfo allocationCreateInfo = {};
+	VmaAllocationCreateInfo allocationCreateInfo;
+
+	memset(
+		&allocationCreateInfo,
+		0,
+		sizeof(VmaAllocationCreateInfo));
+
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles

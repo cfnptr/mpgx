@@ -52,8 +52,10 @@ inline static bool setVkBufferData(
 	if (result != VK_SUCCESS)
 		return false;
 
+	uint8_t* _mappedData = mappedData;
+
 	memcpy(
-		mappedData + offset,
+		_mappedData + offset,
 		data,
 		size);
 
@@ -125,7 +127,13 @@ inline static Buffer createVkBuffer(
 
 	bool isGpuIntegrated = isVkGpuIntegrated(window);
 
-	VmaAllocationCreateInfo allocationCreateInfo = {};
+	VmaAllocationCreateInfo allocationCreateInfo;
+
+	memset(
+		&allocationCreateInfo,
+		0,
+		sizeof(VmaAllocationCreateInfo));
+
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 

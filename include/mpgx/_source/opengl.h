@@ -64,28 +64,28 @@ inline static bool getGlCompareOperation(
 	{
 	default:
 		return false;
-	case LESS_COMPARE_OPERATION:
+	case LESS_COMPARE_OPERATOR:
 		*glCompareOperation = GL_LESS;
 		return true;
-	case LESS_OR_EQUAL_COMPARE_OPERATION:
+	case LESS_OR_EQUAL_COMPARE_OPERATOR:
 		*glCompareOperation = GL_LEQUAL;
 		return true;
-	case GREATER_OR_EQUAL_COMPARE_OPERATION:
+	case GREATER_OR_EQUAL_COMPARE_OPERATOR:
 		*glCompareOperation = GL_GEQUAL;
 		return true;
-	case GREATER_COMPARE_OPERATION:
+	case GREATER_COMPARE_OPERATOR:
 		*glCompareOperation = GL_GREATER;
 		return true;
-	case EQUAL_COMPARE_OPERATION:
+	case EQUAL_COMPARE_OPERATOR:
 		*glCompareOperation = GL_EQUAL;
 		return true;
-	case NOT_EQUAL_COMPARE_OPERATION:
+	case NOT_EQUAL_COMPARE_OPERATOR:
 		*glCompareOperation = GL_NOTEQUAL;
 		return true;
-	case ALWAYS_COMPARE_OPERATION:
+	case ALWAYS_COMPARE_OPERATOR:
 		*glCompareOperation = GL_ALWAYS;
 		return true;
-	case NEVER_COMPARE_OPERATION:
+	case NEVER_COMPARE_OPERATOR:
 		*glCompareOperation = GL_NEVER;
 		return true;
 	}

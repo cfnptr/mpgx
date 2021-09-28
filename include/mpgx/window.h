@@ -16,14 +16,18 @@
 #define DEFAULT_MAX_DEPTH_RANGE 1
 
 // TODO: fix a new framebuffer sRGB difference
-// TODO: check all /_source error return functions
+// TODO: check in some places for opengl errors instead of the assert
 
 // TODO: use glPolygonOffset to improve shadow mapping
 // https://docs.microsoft.com/en-gb/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps?redirectedfrom=MSDN
 
 static const Vec2U defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
-	DEFAULT_WINDOW_HEIGHT
+	DEFAULT_WINDOW_HEIGHT,
+};
+static const Vec2F defaultDepthRange = {
+	DEFAULT_MIN_DEPTH_RANGE,
+	DEFAULT_MAX_DEPTH_RANGE,
 };
 
 typedef enum KeyboardKey
@@ -192,13 +196,6 @@ typedef enum BufferType
 	BUFFER_TYPE_COUNT = 3,
 } BufferType;
 
-typedef enum DrawIndex
-{
-	UINT16_DRAW_INDEX = 0,
-	UINT32_DRAW_INDEX = 1,
-	DRAW_INDEX_COUNT = 2,
-} DrawIndex;
-
 typedef enum ImageType
 {
 	IMAGE_1D_TYPE = 0,
@@ -233,29 +230,6 @@ typedef enum ImageWrap
 	IMAGE_WRAP_COUNT = 3,
 } ImageWrap;
 
-typedef enum CompareOperation
-{
-	LESS_OR_EQUAL_COMPARE_OPERATION = 0,
-	GREATER_OR_EQUAL_COMPARE_OPERATION = 1,
-	LESS_COMPARE_OPERATION = 2,
-	GREATER_COMPARE_OPERATION = 3,
-	EQUAL_COMPARE_OPERATION = 4,
-	NOT_EQUAL_COMPARE_OPERATION = 5,
-	ALWAYS_COMPARE_OPERATION = 6,
-	NEVER_COMPARE_OPERATION = 7,
-	COMPARE_OPERATION_COUNT = 8,
-} CompareOperation;
-
-typedef enum ColorComponent
-{
-	NONE_COLOR_COMPONENT = 0b0000,
-	RED_COLOR_COMPONENT = 0b0001,
-	GREEN_COLOR_COMPONENT = 0b0010,
-	BLUE_COLOR_COMPONENT = 0b0100,
-	ALPHA_COLOR_COMPONENT = 0b1000,
-	ALL_COLOR_COMPONENT = 0b1111,
-} ColorComponent;
-
 typedef enum ShaderType
 {
 	VERTEX_SHADER_TYPE = 0,
@@ -273,7 +247,12 @@ typedef enum DrawMode
 	TRIANGLE_STRIP_DRAW_MODE = 4,
 	TRIANGLE_FAN_DRAW_MODE = 5,
 	TRIANGLE_LIST_DRAW_MODE = 6,
-	DRAW_MODE_COUNT = 7,
+	LINE_LIST_WITH_ADJACENCY_DRAW_MODE = 7,
+	LINE_STRIP_WITH_ADJACENCY_DRAW_MODE = 8,
+	TRIANGLE_LIST_WITH_ADJACENCY_DRAW_MODE = 9,
+	TRIANGLE_STRIP_WITH_ADJACENCY_DRAW_MODE = 10,
+	PATCH_LIST_DRAW_MODE = 11,
+	DRAW_MODE_COUNT = 12,
 } DrawMode;
 
 typedef enum PolygonMode
@@ -292,24 +271,96 @@ typedef enum CullMode
 	CULL_MODE_COUNT = 3,
 } CullMode;
 
+typedef enum CompareOperator
+{
+	LESS_OR_EQUAL_COMPARE_OPERATOR = 0,
+	GREATER_OR_EQUAL_COMPARE_OPERATOR = 1,
+	LESS_COMPARE_OPERATOR = 2,
+	GREATER_COMPARE_OPERATOR = 3,
+	EQUAL_COMPARE_OPERATOR = 4,
+	NOT_EQUAL_COMPARE_OPERATOR = 5,
+	ALWAYS_COMPARE_OPERATOR = 6,
+	NEVER_COMPARE_OPERATOR = 7,
+	COMPARE_OPERATOR_COUNT = 8,
+} CompareOperator;
+
+typedef enum ColorComponent
+{
+	NONE_COLOR_COMPONENT = 0b0000,
+	RED_COLOR_COMPONENT = 0b0001,
+	GREEN_COLOR_COMPONENT = 0b0010,
+	BLUE_COLOR_COMPONENT = 0b0100,
+	ALPHA_COLOR_COMPONENT = 0b1000,
+	ALL_COLOR_COMPONENT = 0b1111,
+} ColorComponent;
+
+typedef enum BlendFactor
+{
+	ZERO_BLEND_FACTOR = 0,
+	ONE_BLEND_FACTOR = 1,
+	SRC_COLOR_BLEND_FACTOR = 2,
+	ONE_MINUS_SRC_COLOR_BLEND_FACTOR = 3,
+	DST_COLOR_BLEND_FACTOR = 4,
+	ONE_MINUS_DST_COLOR_BLEND_FACTOR = 5,
+	SRC_ALPHA_BLEND_FACTOR = 6,
+	ONE_MINUS_SRC_ALPHA_BLEND_FACTOR = 7,
+	DST_ALPHA_BLEND_FACTOR = 8,
+	ONE_MINUS_DST_ALPHA_BLEND_FACTOR = 9,
+	CONSTANT_COLOR_BLEND_FACTOR = 10,
+	ONE_MINUS_CONSTANT_COLOR_BLEND_FACTOR = 11,
+	CONSTANT_ALPHA_BLEND_FACTOR = 12,
+	ONE_MINUS_CONSTANT_ALPHA_BLEND_FACTOR = 13,
+	SRC_ALPHA_SATURATE_BLEND_FACTOR = 14,
+	SRC1_COLOR_BLEND_FACTOR = 15,
+	ONE_MINUS_SRC1_COLOR_BLEND_FACTOR = 16,
+	SRC1_ALPHA_BLEND_FACTOR = 17,
+	ONE_MINUS_SRC1_ALPHA_BLEND_FACTOR = 18,
+	BLEND_FACTOR_COUNT = 19,
+} BlendFactor;
+
+typedef enum BlendOperator
+{
+	ADD_BLEND_OPERATOR = 0,
+	SUBTRACT_BLEND_OPERATOR = 1,
+	REVERSE_SUBTRACT_BLEND_OPERATOR = 2,
+	MIN_BLEND_OPERATOR = 3,
+	MAX_BLEND_OPERATOR = 4,
+	BLEND_OPERATOR_COUNT = 5,
+} BlendOperator;
+
+typedef enum DrawIndex
+{
+	UINT16_DRAW_INDEX = 0,
+	UINT32_DRAW_INDEX = 1,
+	DRAW_INDEX_COUNT = 2,
+} DrawIndex;
+
 typedef struct PipelineState
 {
 	uint8_t drawMode;
 	uint8_t polygonMode;
 	uint8_t cullMode;
-	uint8_t depthCompare;
-	uint8_t colorWriteMask;
+	uint8_t depthCompareOperator;
+	uint8_t colorComponentWriteMask;
+	uint8_t srcColorBlendFactor;
+	uint8_t dstColorBlendFactor;
+	uint8_t srcAlphaBlendFactor;
+	uint8_t dstAlphaBlendFactor;
+	uint8_t colorBlendOperator;
+	uint8_t alphaBlendOperator;
 	bool cullFace;
 	bool clockwiseFrontFace;
 	bool testDepth;
 	bool writeDepth;
 	bool clampDepth;
+	bool enableBlend;
 	bool restartPrimitive;
 	bool discardRasterizer;
 	float lineWidth;
 	Vec4I viewport;
 	Vec2F depthRange;
 	Vec4I scissor;
+	Vec4F blendColor;
 } PipelineState;
 
 typedef struct Window* Window;

@@ -1694,28 +1694,28 @@ inline static bool getVkCompareOperation(
 	{
 	default:
 		return false;
-	case LESS_COMPARE_OPERATION:
+	case LESS_COMPARE_OPERATOR:
 		*vkCompareOperation = VK_COMPARE_OP_LESS;
 		return true;
-	case LESS_OR_EQUAL_COMPARE_OPERATION:
+	case LESS_OR_EQUAL_COMPARE_OPERATOR:
 		*vkCompareOperation = VK_COMPARE_OP_LESS_OR_EQUAL;
 		return true;
-	case GREATER_OR_EQUAL_COMPARE_OPERATION:
+	case GREATER_OR_EQUAL_COMPARE_OPERATOR:
 		*vkCompareOperation = VK_COMPARE_OP_GREATER_OR_EQUAL;
 		return true;
-	case GREATER_COMPARE_OPERATION:
+	case GREATER_COMPARE_OPERATOR:
 		*vkCompareOperation = VK_COMPARE_OP_GREATER;
 		return true;
-	case EQUAL_COMPARE_OPERATION:
+	case EQUAL_COMPARE_OPERATOR:
 		*vkCompareOperation = VK_COMPARE_OP_EQUAL;
 		return true;
-	case NOT_EQUAL_COMPARE_OPERATION:
+	case NOT_EQUAL_COMPARE_OPERATOR:
 		*vkCompareOperation = VK_COMPARE_OP_NOT_EQUAL;
 		return true;
-	case ALWAYS_COMPARE_OPERATION:
+	case ALWAYS_COMPARE_OPERATOR:
 		*vkCompareOperation = VK_COMPARE_OP_ALWAYS;
 		return true;
-	case NEVER_COMPARE_OPERATION:
+	case NEVER_COMPARE_OPERATOR:
 		*vkCompareOperation = VK_COMPARE_OP_NEVER;
 		return true;
 	}

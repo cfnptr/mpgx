@@ -21,6 +21,120 @@ typedef union PipelineHandle
 	GlPipelineHandle gl;
 } PipelineHandle;
 
+#if MPGX_SUPPORT_VULKAN
+static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
+	{
+		0,
+		sizeof(Vec2F),
+		VK_VERTEX_INPUT_RATE_VERTEX,
+	},
+};
+static const VkVertexInputAttributeDescription vertexInputAttributeDescriptions[1] = {
+	{
+		0,
+		0,
+		VK_FORMAT_R32G32_SFLOAT,
+		0,
+	},
+};
+static const VkPushConstantRange pushConstantRanges[2] = {
+	{
+		VK_SHADER_STAGE_VERTEX_BIT,
+		0,
+		sizeof(Mat4F),
+	},
+	{
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		0,
+		sizeof(Vec4F),
+	},
+};
+
+static void onVkHandleDestroy(
+	Window window,
+	void* handle)
+{
+	PipelineHandle* pipelineHandle = handle;
+	free(pipelineHandle);
+}
+static void onVkUniformsSet(Pipeline pipeline)
+{
+	PipelineHandle* handle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
+
+	vkCmdPushConstants(
+		commandBuffer,
+		pipeline->vk.layout,
+		VK_SHADER_STAGE_VERTEX_BIT,
+		0,
+		sizeof(Mat4F),
+		&handle->vk.mvp);
+	vkCmdPushConstants(
+		commandBuffer,
+		pipeline->vk.layout,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		0,
+		sizeof(Vec3F),
+		&handle->vk.color);
+}
+static void onVkHandleResize(
+	Pipeline pipeline,
+	void* _createInfo)
+{
+	Vec2U framebufferSize = getWindowFramebufferSize(
+		pipeline->vk.window);
+	pipeline->vk.state.viewport = vec4I(0, 0,
+		(int32_t)framebufferSize.x,
+		(int32_t)framebufferSize.y);
+
+	VkPipelineCreateInfo createInfo = {
+		1,
+		vertexInputBindingDescriptions,
+		2,
+		vertexInputAttributeDescriptions,
+		0,
+		NULL,
+		1,
+		pushConstantRanges,
+	};
+
+	*(VkPipelineCreateInfo*)_createInfo = createInfo;
+}
+
+inline static Pipeline createVkHandle(
+	Window window,
+	Shader* shaders,
+	uint8_t shaderCount,
+	const PipelineState* state,
+	PipelineHandle* handle)
+{
+	VkPipelineCreateInfo createInfo = {
+		1,
+		vertexInputBindingDescriptions,
+		2,
+		vertexInputAttributeDescriptions,
+		0,
+		NULL,
+		1,
+		pushConstantRanges,
+	};
+
+	return createPipeline(
+		window,
+		SPRITE_PIPELINE_NAME,
+		shaders,
+		shaderCount,
+		state,
+		onVkHandleDestroy,
+		NULL,
+		onVkUniformsSet,
+		onVkHandleResize,
+		handle,
+		&createInfo);
+}
+#endif
+
 static void onGlHandleDestroy(
 	Window window,
 	void* handle)
@@ -61,7 +175,6 @@ inline static Pipeline createGlHandle(
 	const PipelineState* state,
 	PipelineHandle* handle)
 {
-	// TODO: enable blending
 	Pipeline pipeline = createPipeline(
 		window,
 		SPRITE_PIPELINE_NAME,
@@ -140,6 +253,19 @@ Pipeline createExtSpritePipeline(
 
 	Pipeline pipeline;
 
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		pipeline = createVkHandle(
+			window,
+			shaders,
+			2,
+			state,
+			handle);
+#else
+		abort();
+#endif
+	}
 	if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
@@ -152,8 +278,7 @@ Pipeline createExtSpritePipeline(
 	}
 	else
 	{
-		free(handle);
-		return NULL;
+		abort();
 	}
 
 	if (pipeline == NULL)
@@ -180,23 +305,30 @@ Pipeline createSpritePipeline(
 		TRIANGLE_LIST_DRAW_MODE,
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
-		LESS_COMPARE_OPERATION,
+		LESS_COMPARE_OPERATOR,
 		ALL_COLOR_COMPONENT,
+		SRC_ALPHA_BLEND_FACTOR,
+		ONE_MINUS_SRC_ALPHA_BLEND_FACTOR,
+		ONE_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
+		ADD_BLEND_OPERATOR,
+		ADD_BLEND_OPERATOR,
 		true,
 		true,
 		true,
 		true,
 		false,
+		true,
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
 		vec4I(0, 0,
 			(int32_t)framebufferSize.x,
 			(int32_t)framebufferSize.y),
-		vec2F(
-			DEFAULT_MIN_DEPTH_RANGE,
-			DEFAULT_MAX_DEPTH_RANGE),
-		zeroVec4I(),
+		defaultDepthRange,
+		vec4I(0, 0,
+			(int32_t)framebufferSize.x,
+			(int32_t)framebufferSize.y),
 	};
 
 	return createExtSpritePipeline(

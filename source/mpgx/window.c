@@ -254,7 +254,7 @@ Window createWindow(
 		{
 			glfwWindowHint(
 				GLFW_DEPTH_BITS,
-				32);
+				24);
 			glfwWindowHint(
 				GLFW_STENCIL_BITS,
 				8);
@@ -263,7 +263,7 @@ Window createWindow(
 		{
 			glfwWindowHint(
 				GLFW_DEPTH_BITS,
-				32);
+				24);
 			glfwWindowHint(
 				GLFW_STENCIL_BITS,
 				0);
@@ -295,7 +295,7 @@ Window createWindow(
 		{
 			glfwWindowHint(
 				GLFW_DEPTH_BITS,
-				32);
+				24);
 			glfwWindowHint(
 				GLFW_STENCIL_BITS,
 				8);
@@ -304,7 +304,7 @@ Window createWindow(
 		{
 			glfwWindowHint(
 				GLFW_DEPTH_BITS,
-				32);
+				24);
 			glfwWindowHint(
 				GLFW_STENCIL_BITS,
 				0);
@@ -1918,7 +1918,7 @@ Sampler createSampler(
 	assert(imageWrapX < IMAGE_WRAP_COUNT);
 	assert(imageWrapY < IMAGE_WRAP_COUNT);
 	assert(imageWrapZ < IMAGE_WRAP_COUNT);
-	assert(compareOperation < COMPARE_OPERATION_COUNT);
+	assert(compareOperation < COMPARE_OPERATOR_COUNT);
 	assert(window->isRecording == false);
 
 	uint8_t api = window->api;
@@ -2679,8 +2679,14 @@ Pipeline createPipeline(
 	assert(state->drawMode < DRAW_MODE_COUNT);
 	assert(state->polygonMode < POLYGON_MODE_COUNT);
 	assert(state->cullMode < CULL_MODE_COUNT);
-	assert(state->depthCompare < COMPARE_OPERATION_COUNT);
-	assert(state->colorWriteMask <= ALL_COLOR_COMPONENT);
+	assert(state->depthCompareOperator < COMPARE_OPERATOR_COUNT);
+	assert(state->colorComponentWriteMask <= ALL_COLOR_COMPONENT);
+	assert(state->srcColorBlendFactor < BLEND_FACTOR_COUNT);
+	assert(state->dstColorBlendFactor < BLEND_FACTOR_COUNT);
+	assert(state->srcAlphaBlendFactor < BLEND_FACTOR_COUNT);
+	assert(state->dstAlphaBlendFactor < BLEND_FACTOR_COUNT);
+	assert(state->colorBlendOperator < BLEND_OPERATOR_COUNT);
+	assert(state->alphaBlendOperator < BLEND_OPERATOR_COUNT);
 	assert(state->lineWidth > 0.0f);
 	assert(state->viewport.z >= 0 && state->viewport.w >= 0);
 	assert(state->scissor.z >= 0 && state->scissor.w >= 0);

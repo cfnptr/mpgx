@@ -267,7 +267,7 @@ Pipeline createExtColorPipeline(
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 		pipeline = createGlHandle(
 			window,
@@ -278,8 +278,7 @@ Pipeline createExtColorPipeline(
 	}
 	else
 	{
-		free(handle);
-		return NULL;
+		abort();
 	}
 
 	if (pipeline == NULL)
@@ -306,12 +305,19 @@ Pipeline createColorPipeline(
 		TRIANGLE_LIST_DRAW_MODE,
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
-		LESS_COMPARE_OPERATION,
+		LESS_COMPARE_OPERATOR,
 		ALL_COLOR_COMPONENT,
+		ZERO_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
+		ADD_BLEND_OPERATOR,
+		ADD_BLEND_OPERATOR,
 		true,
 		true,
 		true,
 		true,
+		false,
 		false,
 		false,
 		false,
@@ -319,10 +325,10 @@ Pipeline createColorPipeline(
 		vec4I(0, 0,
 			(int32_t)framebufferSize.x,
 			(int32_t)framebufferSize.y),
-		vec2F(
-			DEFAULT_MIN_DEPTH_RANGE,
-			DEFAULT_MAX_DEPTH_RANGE),
-		zeroVec4I(),
+		defaultDepthRange,
+		vec4I(0, 0,
+			(int32_t)framebufferSize.x,
+			(int32_t)framebufferSize.y),
 	};
 
 	return createExtColorPipeline(

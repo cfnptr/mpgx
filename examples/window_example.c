@@ -8,7 +8,7 @@
 #include <string.h>
 #include <assert.h>
 
-#define APP_NAME "MPGX Window Example"
+#define APPLICATION_NAME "MPGX - Window Example"
 
 // Camera fly: WASD + RMB
 
@@ -90,6 +90,10 @@ inline static Renderer createDiffuseRendererInstance(
 	{
 		vertexShaderPath = "resources/shaders/opengl/diffuse.vert";
 		fragmentShaderPath = "resources/shaders/opengl/diffuse.frag";
+	}
+	else
+	{
+		abort();
 	}
 
 	Shader vertexShader = createShaderFromFile(
@@ -257,7 +261,7 @@ inline static Client* createClient()
 	Window window = createAnyWindow(
 		false,
 		defaultWindowSize,
-		APP_NAME,
+		APPLICATION_NAME,
 		onWindowUpdate,
 		client,
 		false,
@@ -369,7 +373,7 @@ inline static void updateClient(Client* client)
 int main()
 {
 	bool result = initializeGraphics(
-		APP_NAME,
+		APPLICATION_NAME,
 		MPGX_VERSION_MAJOR,
 		MPGX_VERSION_MINOR,
 		MPGX_VERSION_PATCH);

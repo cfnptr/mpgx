@@ -38,7 +38,13 @@ typedef struct _GlPipeline
 	GLenum drawMode;
 	GLenum polygonMode;
 	GLenum cullMode;
-	GLenum depthCompare;
+	GLenum depthCompareOperator;
+	GLenum srcColorBlendFactor;
+	GLenum dstColorBlendFactor;
+	GLenum srcAlphaBlendFactor;
+	GLenum dstAlphaBlendFactor;
+	GLenum colorBlendOperator;
+	GLenum alphaBlendOperator;
 	GLenum frontFace;
 } _GlPipeline;
 union Pipeline
@@ -105,6 +111,21 @@ inline static bool getVkDrawMode(
 	case TRIANGLE_LIST_DRAW_MODE:
 		*vkDrawMode = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		return true;
+	case LINE_LIST_WITH_ADJACENCY_DRAW_MODE:
+		*vkDrawMode = VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
+		return true;
+	case LINE_STRIP_WITH_ADJACENCY_DRAW_MODE:
+		*vkDrawMode = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+		return true;
+	case TRIANGLE_LIST_WITH_ADJACENCY_DRAW_MODE:
+		*vkDrawMode = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+		return true;
+	case TRIANGLE_STRIP_WITH_ADJACENCY_DRAW_MODE:
+		*vkDrawMode = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
+		return true;
+	case PATCH_LIST_DRAW_MODE:
+		*vkDrawMode = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+		return true;
 	}
 }
 inline static bool getVkPolygonMode(
@@ -162,6 +183,99 @@ inline static bool getVkCullMode(
 		return false;
 	}
 }
+inline static bool getVkBlendFactor(
+	uint8_t blendFactor,
+	VkBlendFactor* vkBlendFactor)
+{
+	switch (blendFactor)
+	{
+	default:
+		return false;
+	case ZERO_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_ZERO;
+		return true;
+	case ONE_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_ONE;
+		return true;
+	case SRC_COLOR_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
+		return true;
+	case ONE_MINUS_SRC_COLOR_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+		return true;
+	case DST_COLOR_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_DST_COLOR;
+		return true;
+	case ONE_MINUS_DST_COLOR_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+		return true;
+	case SRC_ALPHA_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		return true;
+	case ONE_MINUS_SRC_ALPHA_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		return true;
+	case DST_ALPHA_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_DST_ALPHA;
+		return true;
+	case ONE_MINUS_DST_ALPHA_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+		return true;
+	case CONSTANT_COLOR_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_CONSTANT_COLOR;
+		return true;
+	case ONE_MINUS_CONSTANT_COLOR_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+		return true;
+	case CONSTANT_ALPHA_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_CONSTANT_ALPHA;
+		return true;
+	case ONE_MINUS_CONSTANT_ALPHA_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA;
+		return true;
+	case SRC_ALPHA_SATURATE_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
+		return true;
+	case SRC1_COLOR_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_SRC1_COLOR;
+		return true;
+	case ONE_MINUS_SRC1_COLOR_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
+		return true;
+	case SRC1_ALPHA_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_SRC1_ALPHA;
+		return true;
+	case ONE_MINUS_SRC1_ALPHA_BLEND_FACTOR:
+		*vkBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
+		return true;
+	}
+}
+inline static bool getVkBlendOperator(
+	uint8_t blendOperator,
+	VkBlendOp* vkBlendOperator)
+{
+	switch (blendOperator)
+	{
+	default:
+		return false;
+	case ADD_BLEND_OPERATOR:
+		*vkBlendOperator = VK_BLEND_OP_ADD;
+		return true;
+	case SUBTRACT_BLEND_OPERATOR:
+		*vkBlendOperator = VK_BLEND_OP_SUBTRACT;
+		return true;
+	case REVERSE_SUBTRACT_BLEND_OPERATOR:
+		*vkBlendOperator = VK_BLEND_OP_REVERSE_SUBTRACT;
+		return true;
+	case MIN_BLEND_OPERATOR:
+		*vkBlendOperator = VK_BLEND_OP_MIN;
+		return true;
+	case MAX_BLEND_OPERATOR:
+		*vkBlendOperator = VK_BLEND_OP_MAX;
+		return true;
+	}
+}
+
 inline static VkPipeline createVkPipelineHandle(
 	VkPipelineCache cache,
 	VkPipelineLayout layout,
@@ -212,7 +326,12 @@ inline static VkPipeline createVkPipelineHandle(
 	VkPrimitiveTopology primitiveTopology;
 	VkPolygonMode polygonMode;
 	VkCullModeFlags cullMode;
-	VkCompareOp depthCompare;
+	VkCompareOp depthCompareOperator;
+
+	VkBlendFactor
+		srcColorBlendFactor, dstColorBlendFactor,
+		srcAlphaBlendFactor, dstAlphaBlendFactor;
+	VkBlendOp colorBlendOperator, alphaBlendOperator;
 
 	bool result = getVkDrawMode(
 		state.drawMode,
@@ -225,8 +344,26 @@ inline static VkPipeline createVkPipelineHandle(
 		state.cullFace,
 		&cullMode);
 	result &= getVkCompareOperation(
-		state.depthCompare,
-		&depthCompare);
+		state.depthCompareOperator,
+		&depthCompareOperator);
+	result &= getVkBlendFactor(
+		state.srcColorBlendFactor,
+		&srcColorBlendFactor);
+	result &= getVkBlendFactor(
+		state.dstColorBlendFactor,
+		&dstColorBlendFactor);
+	result &= getVkBlendFactor(
+		state.srcAlphaBlendFactor,
+		&srcAlphaBlendFactor);
+	result &= getVkBlendFactor(
+		state.dstAlphaBlendFactor,
+		&dstAlphaBlendFactor);
+	result &= getVkBlendOperator(
+		state.colorBlendOperator,
+		&colorBlendOperator);
+	result &= getVkBlendOperator(
+		state.alphaBlendOperator,
+		&alphaBlendOperator);
 
 	if (result == false)
 	{
@@ -343,7 +480,7 @@ inline static VkPipeline createVkPipelineHandle(
 		0,
 		state.testDepth ? VK_TRUE : VK_FALSE,
 		state.writeDepth ? VK_TRUE : VK_FALSE,
-		depthCompare,
+		depthCompareOperator,
 		VK_FALSE, // TODO:
 		VK_FALSE,
 		{},
@@ -354,23 +491,23 @@ inline static VkPipeline createVkPipelineHandle(
 
 	VkColorComponentFlags vkColorWriteMask = 0;
 
-	if (state.colorWriteMask & RED_COLOR_COMPONENT)
+	if (state.colorComponentWriteMask & RED_COLOR_COMPONENT)
 		vkColorWriteMask |= VK_COLOR_COMPONENT_R_BIT;
-	if (state.colorWriteMask & GREEN_COLOR_COMPONENT)
+	if (state.colorComponentWriteMask & GREEN_COLOR_COMPONENT)
 		vkColorWriteMask |= VK_COLOR_COMPONENT_G_BIT;
-	if (state.colorWriteMask & BLUE_COLOR_COMPONENT)
+	if (state.colorComponentWriteMask & BLUE_COLOR_COMPONENT)
 		vkColorWriteMask |= VK_COLOR_COMPONENT_B_BIT;
-	if (state.colorWriteMask & ALPHA_COLOR_COMPONENT)
+	if (state.colorComponentWriteMask & ALPHA_COLOR_COMPONENT)
 		vkColorWriteMask |= VK_COLOR_COMPONENT_A_BIT;
 
 	VkPipelineColorBlendAttachmentState colorBlendAttachmentStateCreateInfo = {
-		VK_FALSE, // TODO:
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
+		state.enableBlend ? VK_TRUE : VK_FALSE,
+		srcColorBlendFactor,
+		dstColorBlendFactor,
+		colorBlendOperator,
+		srcAlphaBlendFactor,
+		dstAlphaBlendFactor,
+		alphaBlendOperator,
 		vkColorWriteMask,
 	};
 
@@ -382,7 +519,12 @@ inline static VkPipeline createVkPipelineHandle(
 		0,
 		1,
 		&colorBlendAttachmentStateCreateInfo,
-		{},
+		{
+			state.blendColor.x,
+			state.blendColor.y,
+			state.blendColor.z,
+			state.blendColor.w,
+		},
 	};
 
 	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {
@@ -640,6 +782,86 @@ inline static bool getGlCullMode(
 		return false;
 	}
 }
+inline static bool getGlBlendFactor(
+	uint8_t blendFactor,
+	GLenum* glBlendFactor)
+{
+	switch (blendFactor)
+	{
+	default:
+		return false;
+	case ZERO_BLEND_FACTOR:
+		*glBlendFactor = GL_ZERO;
+		return true;
+	case ONE_BLEND_FACTOR:
+		*glBlendFactor = GL_ONE;
+		return true;
+	case SRC_COLOR_BLEND_FACTOR:
+		*glBlendFactor = GL_SRC_COLOR;
+		return true;
+	case ONE_MINUS_SRC_COLOR_BLEND_FACTOR:
+		*glBlendFactor = GL_ONE_MINUS_SRC_COLOR;
+		return true;
+	case DST_COLOR_BLEND_FACTOR:
+		*glBlendFactor = GL_DST_COLOR;
+		return true;
+	case ONE_MINUS_DST_COLOR_BLEND_FACTOR:
+		*glBlendFactor = GL_ONE_MINUS_DST_COLOR;
+		return true;
+	case SRC_ALPHA_BLEND_FACTOR:
+		*glBlendFactor = GL_SRC_ALPHA;
+		return true;
+	case ONE_MINUS_SRC_ALPHA_BLEND_FACTOR:
+		*glBlendFactor = GL_ONE_MINUS_SRC_ALPHA;
+		return true;
+	case DST_ALPHA_BLEND_FACTOR:
+		*glBlendFactor = GL_DST_ALPHA;
+		return true;
+	case ONE_MINUS_DST_ALPHA_BLEND_FACTOR:
+		*glBlendFactor = GL_ONE_MINUS_DST_ALPHA;
+		return true;
+	case CONSTANT_COLOR_BLEND_FACTOR:
+		*glBlendFactor = GL_CONSTANT_COLOR;
+		return true;
+	case ONE_MINUS_CONSTANT_COLOR_BLEND_FACTOR:
+		*glBlendFactor = GL_ONE_MINUS_CONSTANT_COLOR;
+		return true;
+	case CONSTANT_ALPHA_BLEND_FACTOR:
+		*glBlendFactor = GL_CONSTANT_ALPHA;
+		return true;
+	case ONE_MINUS_CONSTANT_ALPHA_BLEND_FACTOR:
+		*glBlendFactor = GL_ONE_MINUS_CONSTANT_ALPHA;
+		return true;
+	case SRC_ALPHA_SATURATE_BLEND_FACTOR:
+		*glBlendFactor = GL_SRC_ALPHA_SATURATE;
+		return true;
+	}
+}
+inline static bool getGlBlendOperator(
+	uint8_t blendOperator,
+	GLenum* glBlendOperator)
+{
+	switch (blendOperator)
+	{
+	default:
+		return false;
+	case ADD_BLEND_OPERATOR:
+		*glBlendOperator = GL_FUNC_ADD;
+		return true;
+	case SUBTRACT_BLEND_OPERATOR:
+		*glBlendOperator = GL_FUNC_SUBTRACT;
+		return true;
+	case REVERSE_SUBTRACT_BLEND_OPERATOR:
+		*glBlendOperator = GL_FUNC_REVERSE_SUBTRACT;
+		return true;
+	case MIN_BLEND_OPERATOR:
+		*glBlendOperator = GL_MIN;
+		return true;
+	case MAX_BLEND_OPERATOR:
+		*glBlendOperator = GL_MAX;
+		return true;
+	}
+}
 
 inline static Pipeline createGlPipeline(
 	Window window,
@@ -668,8 +890,12 @@ inline static Pipeline createGlPipeline(
 		return NULL;
 	}
 
-	GLenum drawMode, polygonMode,
-		cullMode, depthCompare;
+	GLenum
+		drawMode, polygonMode,
+		cullMode, depthCompareOperator,
+		srcColorBlendFactor, dstColorBlendFactor,
+		srcAlphaBlendFactor, dstAlphaBlendFactor,
+		colorBlendOperator, alphaBlendOperator;
 
 	bool result = getGlDrawMode(
 		state.drawMode,
@@ -690,8 +916,26 @@ inline static Pipeline createGlPipeline(
 	}
 
 	result &= getGlCompareOperation(
-		state.depthCompare,
-		&depthCompare);
+		state.depthCompareOperator,
+		&depthCompareOperator);
+	result &= getGlBlendFactor(
+		state.srcColorBlendFactor,
+		&srcColorBlendFactor);
+	result &= getGlBlendFactor(
+		state.dstColorBlendFactor,
+		&dstColorBlendFactor);
+	result &= getGlBlendFactor(
+		state.srcAlphaBlendFactor,
+		&srcAlphaBlendFactor);
+	result &= getGlBlendFactor(
+		state.dstAlphaBlendFactor,
+		&dstAlphaBlendFactor);
+	result &= getGlBlendOperator(
+		state.colorBlendOperator,
+		&colorBlendOperator);
+	result &= getGlBlendOperator(
+		state.colorBlendOperator,
+		&alphaBlendOperator);
 
 	if (result == false)
 	{
@@ -793,7 +1037,13 @@ inline static Pipeline createGlPipeline(
 	pipeline->gl.drawMode = drawMode;
 	pipeline->gl.polygonMode = polygonMode;
 	pipeline->gl.cullMode = cullMode;
-	pipeline->gl.depthCompare = depthCompare;
+	pipeline->gl.depthCompareOperator = depthCompareOperator;
+	pipeline->gl.srcColorBlendFactor = srcColorBlendFactor;
+	pipeline->gl.dstColorBlendFactor = dstColorBlendFactor;
+	pipeline->gl.srcAlphaBlendFactor = srcAlphaBlendFactor;
+	pipeline->gl.dstAlphaBlendFactor = dstAlphaBlendFactor;
+	pipeline->gl.colorBlendOperator = colorBlendOperator;
+	pipeline->gl.alphaBlendOperator = alphaBlendOperator;
 	pipeline->gl.frontFace = frontFace;
 	return pipeline;
 }
@@ -898,6 +1148,19 @@ inline static void bindGlPipeline(
 		glDisable(GL_CULL_FACE);
 	}
 
+	uint8_t colorMask =
+		pipeline->gl.state.colorComponentWriteMask;
+
+	glColorMask(
+		colorMask & RED_COLOR_COMPONENT ?
+			GL_TRUE : GL_FALSE,
+		colorMask & GREEN_COLOR_COMPONENT ?
+			GL_TRUE : GL_FALSE,
+		colorMask & BLUE_COLOR_COMPONENT ?
+		GL_TRUE : GL_FALSE,
+		colorMask & ALPHA_COLOR_COMPONENT ?
+			GL_TRUE : GL_FALSE);
+
 	if (pipeline->gl.state.testDepth)
 	{
 		if (pipeline->gl.state.clampDepth)
@@ -913,7 +1176,7 @@ inline static void bindGlPipeline(
 		glDepthMask(
 			pipeline->gl.state.writeDepth ?
 			GL_TRUE : GL_FALSE);
-		glDepthFunc(pipeline->gl.depthCompare);
+		glDepthFunc(pipeline->gl.depthCompareOperator);
 		glEnable(GL_DEPTH_TEST);
 	}
 	else
@@ -921,21 +1184,33 @@ inline static void bindGlPipeline(
 		glDisable(GL_DEPTH_TEST);
 	}
 
-	uint8_t colorMask = pipeline->gl.state.colorWriteMask;
+	if (pipeline->gl.state.enableBlend)
+	{
+		Vec4F blendColor =
+			pipeline->gl.state.blendColor;
 
-	glColorMask(
-		colorMask & RED_COLOR_COMPONENT ?
-			GL_TRUE : GL_FALSE,
-		colorMask & GREEN_COLOR_COMPONENT ?
-			GL_TRUE : GL_FALSE,
-		colorMask & BLUE_COLOR_COMPONENT ?
-			GL_TRUE : GL_FALSE,
-		colorMask & ALPHA_COLOR_COMPONENT ?
-			GL_TRUE : GL_FALSE);
+		glBlendFuncSeparate(
+			pipeline->gl.srcColorBlendFactor,
+			pipeline->gl.dstColorBlendFactor,
+			pipeline->gl.srcAlphaBlendFactor,
+			pipeline->gl.dstAlphaBlendFactor);
+		glBlendEquationSeparate(
+			pipeline->gl.colorBlendOperator,
+			pipeline->gl.alphaBlendOperator);
+		glBlendColor(
+			blendColor.x,
+			blendColor.y,
+			blendColor.z,
+			blendColor.w);
+		glEnable(GL_BLEND);
+	}
+	else
+	{
+		glDisable(GL_BLEND);
+	}
 
 	// TODO:
 	glDisable(GL_STENCIL_TEST);
-	glDisable(GL_BLEND);
 	glPolygonOffset(0.0f, 0.0f);
 
 	glUseProgram(pipeline->gl.glHandle);

@@ -1619,7 +1619,7 @@ Sampler createTextSampler(Window window)
 		REPEAT_IMAGE_WRAP,
 		REPEAT_IMAGE_WRAP,
 		REPEAT_IMAGE_WRAP,
-		NEVER_COMPARE_OPERATION,
+		NEVER_COMPARE_OPERATOR,
 		false,
 		DEFAULT_MIN_MIPMAP_LOD,
 		DEFAULT_MAX_MIPMAP_LOD,
@@ -1794,8 +1794,7 @@ Pipeline createExtTextPipeline(
 	}
 	else
 	{
-		free(handle);
-		return NULL;
+		abort();
 	}
 
 	if (pipeline == NULL)
@@ -1825,22 +1824,27 @@ Pipeline createTextPipeline(
 		TRIANGLE_LIST_DRAW_MODE,
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
-		LESS_COMPARE_OPERATION,
+		LESS_COMPARE_OPERATOR,
 		ALL_COLOR_COMPONENT,
+		SRC_ALPHA_BLEND_FACTOR,
+		ONE_MINUS_SRC_ALPHA_BLEND_FACTOR,
+		ONE_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
+		ADD_BLEND_OPERATOR,
+		ADD_BLEND_OPERATOR,
 		true,
 		true,
 		true,
 		true,
 		false,
+		true,
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
 		vec4I(0, 0,
 			(int32_t)framebufferSize.x,
 			(int32_t)framebufferSize.y),
-		vec2F(
-			DEFAULT_MIN_DEPTH_RANGE,
-			DEFAULT_MAX_DEPTH_RANGE),
+		defaultDepthRange,
 		zeroVec4I(),
 	};
 

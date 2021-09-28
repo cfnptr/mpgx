@@ -1,6 +1,6 @@
 #version 410
 
-layout(location = 0) in vec3 v_Position;
+layout(location = 0) in vec2 v_Position;
 
 layout(push_constant) uniform PushConstant
 {
@@ -9,5 +9,5 @@ layout(push_constant) uniform PushConstant
 
 void main()
 {
-    gl_Position = p.mvp * vec4(v_Position, 1.0);
+    gl_Position = p.mvp * vec4(v_Position, 0.0, 1.0);
 }

@@ -5,6 +5,7 @@ if (${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
 endif ()
 
 option(MPGX_BUILD_EXAMPLES "Build MPGX usage examples" ON)
+option(MPGX_BUILD_EDITOR "Build MPGX engine editor" ON)
 option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
 
 set(MPGX_LANGUAGES C)

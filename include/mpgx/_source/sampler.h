@@ -17,8 +17,7 @@ typedef struct _VkSampler
 	uint8_t imageWrapZ;
 	uint8_t compareOperation;
 	bool useCompare;
-	float minMipmapLod;
-	float maxMipmapLod;
+	Vec2F mipmapLodRange;
 	float mipmapLodBias;
 #if MPGX_SUPPORT_VULKAN
 	VkSampler handle;
@@ -36,8 +35,7 @@ typedef struct _GlSampler
 	uint8_t imageWrapZ;
 	uint8_t compareOperation;
 	bool useCompare;
-	float minMipmapLod;
-	float maxMipmapLod;
+	Vec2F mipmapLodRange;
 	float mipmapLodBias;
 	GLuint handle;
 } _GlSampler;
@@ -132,8 +130,7 @@ inline static Sampler createVkSampler(
 	uint8_t imageWrapZ,
 	uint8_t compareOperation,
 	bool useCompare,
-	float minMipmapLod,
-	float maxMipmapLod,
+	Vec2F mipmapLodRange,
 	float mipmapLodBias)
 {
 	Sampler sampler = malloc(
@@ -190,8 +187,8 @@ inline static Sampler createVkSampler(
 		0.0f,
 		useCompare ? VK_TRUE : VK_FALSE,
 		compare,
-		minMipmapLod,
-		maxMipmapLod,
+		mipmapLodRange.x,
+		mipmapLodRange.y,
 		VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK, // TODO:
 		VK_FALSE,
 	};
@@ -210,19 +207,18 @@ inline static Sampler createVkSampler(
 		return NULL;
 	}
 
-	sampler->gl.window = window;
-	sampler->gl.minImageFilter = minImageFilter;
-	sampler->gl.magImageFilter = magImageFilter;
-	sampler->gl.minMipmapFilter = minMipmapFilter;
-	sampler->gl.useMipmapping = useMipmapping;
-	sampler->gl.imageWrapX = imageWrapX;
-	sampler->gl.imageWrapY = imageWrapY;
-	sampler->gl.imageWrapZ = imageWrapZ;
-	sampler->gl.compareOperation = compareOperation;
-	sampler->gl.useCompare = useCompare;
-	sampler->gl.minMipmapLod = minMipmapLod;
-	sampler->gl.maxMipmapLod = maxMipmapLod;
-	sampler->gl.mipmapLodBias = mipmapLodBias;
+	sampler->vk.window = window;
+	sampler->vk.minImageFilter = minImageFilter;
+	sampler->vk.magImageFilter = magImageFilter;
+	sampler->vk.minMipmapFilter = minMipmapFilter;
+	sampler->vk.useMipmapping = useMipmapping;
+	sampler->vk.imageWrapX = imageWrapX;
+	sampler->vk.imageWrapY = imageWrapY;
+	sampler->vk.imageWrapZ = imageWrapZ;
+	sampler->vk.compareOperation = compareOperation;
+	sampler->vk.useCompare = useCompare;
+	sampler->vk.mipmapLodRange = mipmapLodRange;
+	sampler->vk.mipmapLodBias = mipmapLodBias;
 	sampler->vk.handle = handle;
 	return sampler;
 }
@@ -334,8 +330,7 @@ inline static Sampler createGlSampler(
 	uint8_t imageWrapZ,
 	uint8_t compareOperation,
 	bool useCompare,
-	float minMipmapLod,
-	float maxMipmapLod)
+	Vec2F mipmapLodRange)
 {
 	Sampler sampler = malloc(
 		sizeof(union Sampler));
@@ -421,11 +416,11 @@ inline static Sampler createGlSampler(
 	glSamplerParameterf(
 		handle,
 		GL_TEXTURE_MIN_LOD,
-		(GLfloat)minMipmapLod);
+		(GLfloat)mipmapLodRange.x);
 	glSamplerParameterf(
 		handle,
 		GL_TEXTURE_MAX_LOD,
-		(GLfloat)maxMipmapLod);
+		(GLfloat)mipmapLodRange.y);
 
 	GLenum error = glGetError();
 
@@ -448,8 +443,7 @@ inline static Sampler createGlSampler(
 	sampler->gl.imageWrapZ = imageWrapZ;
 	sampler->gl.compareOperation = compareOperation;
 	sampler->gl.useCompare = useCompare;
-	sampler->gl.minMipmapLod = minMipmapLod;
-	sampler->gl.maxMipmapLod = maxMipmapLod;
+	sampler->gl.mipmapLodRange = mipmapLodRange;
 	sampler->gl.mipmapLodBias = 0.0f;
 	sampler->gl.handle = handle;
 	return sampler;

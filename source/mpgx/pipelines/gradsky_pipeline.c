@@ -135,8 +135,7 @@ Sampler createGradSkySampler(Window window)
 		REPEAT_IMAGE_WRAP,
 		NEVER_COMPARE_OPERATOR,
 		false,
-		DEFAULT_MIN_MIPMAP_LOD,
-		DEFAULT_MAX_MIPMAP_LOD,
+		defaultMipmapLodRange,
 		DEFAULT_MIPMAP_LOD_BIAS);
 }
 
@@ -431,7 +430,7 @@ void setGradSkyPipelineMvp(
 	pipelineHandle->vk.mvp = mvp;
 }
 
-Vec3F getSkyPipelineSunDir(
+Vec3F getGradSkyPipelineSunDir(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -447,7 +446,7 @@ Vec3F getSkyPipelineSunDir(
 		sunDir.y,
 		sunDir.z);
 }
-void setSkyPipelineSunDir(
+void setGradSkyPipelineSunDir(
 	Pipeline pipeline,
 	Vec3F sunDir)
 {
@@ -464,7 +463,7 @@ void setSkyPipelineSunDir(
 		0.0f);
 }
 
-Vec4F getSkyPipelineSunColor(
+Vec4F getGradSkyPipelineSunColor(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -475,7 +474,7 @@ Vec4F getSkyPipelineSunColor(
 		getPipelineHandle(pipeline);
 	return pipelineHandle->vk.sunColor;
 }
-void setSkyPipelineSunColor(
+void setGradSkyPipelineSunColor(
 	Pipeline pipeline,
 	Vec4F sunColor)
 {

@@ -1621,8 +1621,7 @@ Sampler createTextSampler(Window window)
 		REPEAT_IMAGE_WRAP,
 		NEVER_COMPARE_OPERATOR,
 		false,
-		DEFAULT_MIN_MIPMAP_LOD,
-		DEFAULT_MAX_MIPMAP_LOD,
+		defaultMipmapLodRange,
 		DEFAULT_MIPMAP_LOD_BIAS);
 }
 

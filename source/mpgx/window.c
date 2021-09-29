@@ -1967,8 +1967,7 @@ Sampler createSampler(
 	uint8_t imageWrapZ,
 	uint8_t compareOperation,
 	bool useCompare,
-	float minMipmapLod,
-	float maxMipmapLod,
+	Vec2F mipmapLodRange,
 	float mipmapLodBias)
 {
 	assert(window != NULL);
@@ -2000,8 +1999,7 @@ Sampler createSampler(
 			imageWrapZ,
 			compareOperation,
 			useCompare,
-			minMipmapLod,
-			maxMipmapLod,
+			mipmapLodRange,
 			mipmapLodBias);
 #else
 		abort();
@@ -2023,8 +2021,7 @@ Sampler createSampler(
 			imageWrapZ,
 			compareOperation,
 			useCompare,
-			minMipmapLod,
-			maxMipmapLod);
+			mipmapLodRange);
 	}
 	else
 	{
@@ -2175,15 +2172,10 @@ bool isSamplerUseCompare(Sampler sampler)
 	assert(sampler != NULL);
 	return sampler->vk.useCompare;
 }
-float getSamplerMinMipmapLod(Sampler sampler)
+Vec2F getSamplerMipmapLodRange(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.minMipmapLod;
-}
-float getSamplerMaxMipmapLod(Sampler sampler)
-{
-	assert(sampler != NULL);
-	return sampler->vk.maxMipmapLod;
+	return sampler->vk.mipmapLodRange;
 }
 float getSamplerMipmapLodBias(Sampler sampler)
 {

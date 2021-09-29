@@ -7,13 +7,12 @@
 
 #define DEFAULT_WINDOW_WIDTH 1280
 #define DEFAULT_WINDOW_HEIGHT 720
-
 #define DEFAULT_MIN_MIPMAP_LOD -1000
 #define DEFAULT_MAX_MIPMAP_LOD 1000
 #define DEFAULT_MIPMAP_LOD_BIAS 0
 #define DEFAULT_LINE_WIDTH 1
-#define DEFAULT_MIN_DEPTH_RANGE 0
-#define DEFAULT_MAX_DEPTH_RANGE 1
+#define DEFAULT_MIN_DEPTH 0
+#define DEFAULT_MAX_DEPTH 1
 
 // TODO: fix a new framebuffer sRGB difference
 
@@ -24,9 +23,13 @@ static const Vec2U defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
 	DEFAULT_WINDOW_HEIGHT,
 };
+static const Vec2F defaultMipmapLodRange = {
+	DEFAULT_MIN_MIPMAP_LOD,
+	DEFAULT_MAX_MIPMAP_LOD,
+};
 static const Vec2F defaultDepthRange = {
-	DEFAULT_MIN_DEPTH_RANGE,
-	DEFAULT_MAX_DEPTH_RANGE,
+	DEFAULT_MIN_DEPTH,
+	DEFAULT_MAX_DEPTH,
 };
 
 typedef enum KeyboardKey
@@ -562,8 +565,7 @@ Sampler createSampler(
 	uint8_t imageWrapZ,
 	uint8_t compareOperation,
 	bool useCompare,
-	float minMipmapLod,
-	float maxMipmapLod,
+	Vec2F mipmapLodRange,
 	float mipmapLodBias);
 void destroySampler(Sampler sampler);
 
@@ -577,8 +579,7 @@ uint8_t getSamplerImageWrapY(Sampler sampler);
 uint8_t getSamplerImageWrapZ(Sampler sampler);
 uint8_t getSamplerCompareOperation(Sampler sampler);
 bool isSamplerUseCompare(Sampler sampler);
-float getSamplerMinMipmapLod(Sampler sampler);
-float getSamplerMaxMipmapLod(Sampler sampler);
+Vec2F getSamplerMipmapLodRange(Sampler sampler);
 float getSamplerMipmapLodBias(Sampler sampler);
 
 Framebuffer createFramebuffer(

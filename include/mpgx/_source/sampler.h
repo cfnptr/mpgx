@@ -15,7 +15,7 @@ typedef struct _VkSampler
 	uint8_t imageWrapX;
 	uint8_t imageWrapY;
 	uint8_t imageWrapZ;
-	uint8_t compareOperation;
+	uint8_t compareOperator;
 	bool useCompare;
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
@@ -33,7 +33,7 @@ typedef struct _GlSampler
 	uint8_t imageWrapX;
 	uint8_t imageWrapY;
 	uint8_t imageWrapZ;
-	uint8_t compareOperation;
+	uint8_t compareOperator;
 	bool useCompare;
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
@@ -128,7 +128,7 @@ inline static Sampler createVkSampler(
 	uint8_t imageWrapX,
 	uint8_t imageWrapY,
 	uint8_t imageWrapZ,
-	uint8_t compareOperation,
+	uint8_t compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange,
 	float mipmapLodBias)
@@ -162,8 +162,8 @@ inline static Sampler createVkSampler(
 	result &= getVkImageWrap(
 		imageWrapZ,
 		&wrapZ);
-	result &= getVkCompareOperation(
-		compareOperation,
+	result &= getVkCompareOperator(
+		compareOperator,
 		&compare);
 
 	if (result == false)
@@ -215,7 +215,7 @@ inline static Sampler createVkSampler(
 	sampler->vk.imageWrapX = imageWrapX;
 	sampler->vk.imageWrapY = imageWrapY;
 	sampler->vk.imageWrapZ = imageWrapZ;
-	sampler->vk.compareOperation = compareOperation;
+	sampler->vk.compareOperator = compareOperator;
 	sampler->vk.useCompare = useCompare;
 	sampler->vk.mipmapLodRange = mipmapLodRange;
 	sampler->vk.mipmapLodBias = mipmapLodBias;
@@ -328,7 +328,7 @@ inline static Sampler createGlSampler(
 	uint8_t imageWrapX,
 	uint8_t imageWrapY,
 	uint8_t imageWrapZ,
-	uint8_t compareOperation,
+	uint8_t compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange)
 {
@@ -347,8 +347,7 @@ inline static Sampler createGlSampler(
 		&handle);
 
 	GLenum minFilter, magFilter,
-		wrapX, wrapY, wrapZ,
-		compareOperator;
+		wrapX, wrapY, wrapZ, compare;
 
 	bool result = getGlImageFilter(
 		minImageFilter,
@@ -369,9 +368,9 @@ inline static Sampler createGlSampler(
 	result &= getGlImageWrap(
 		imageWrapZ,
 		&wrapZ);
-	result &= getGlCompareOperation(
-		compareOperation,
-		&compareOperator);
+	result &= getGlCompareOperator(
+		compareOperator,
+		&compare);
 
 	if (result == false)
 	{
@@ -382,17 +381,17 @@ inline static Sampler createGlSampler(
 		return NULL;
 	}
 
-	GLint glCompareMode = useCompare ?
+	GLint compareMode = useCompare ?
 		GL_COMPARE_REF_TO_TEXTURE : GL_NONE;
 
 	glSamplerParameteri(
 		handle,
 		GL_TEXTURE_MIN_FILTER,
-		(GLint)minImageFilter);
+		(GLint)minFilter);
 	glSamplerParameteri(
 		handle,
 		GL_TEXTURE_MAG_FILTER,
-		(GLint)magImageFilter);
+		(GLint)magFilter);
 	glSamplerParameteri(
 		handle,
 		GL_TEXTURE_WRAP_S,
@@ -408,11 +407,11 @@ inline static Sampler createGlSampler(
 	glSamplerParameteri(
 		handle,
 		GL_TEXTURE_COMPARE_MODE,
-		glCompareMode);
+		compareMode);
 	glSamplerParameteri(
 		handle,
 		GL_TEXTURE_COMPARE_FUNC,
-		(GLint)compareOperator);
+		(GLint)compare);
 	glSamplerParameterf(
 		handle,
 		GL_TEXTURE_MIN_LOD,
@@ -441,7 +440,7 @@ inline static Sampler createGlSampler(
 	sampler->gl.imageWrapX = imageWrapX;
 	sampler->gl.imageWrapY = imageWrapY;
 	sampler->gl.imageWrapZ = imageWrapZ;
-	sampler->gl.compareOperation = compareOperation;
+	sampler->gl.compareOperator = compareOperator;
 	sampler->gl.useCompare = useCompare;
 	sampler->gl.mipmapLodRange = mipmapLodRange;
 	sampler->gl.mipmapLodBias = 0.0f;

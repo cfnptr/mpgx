@@ -1707,7 +1707,7 @@ inline static Pipeline createGlHandle(
 		onGlHandleDestroy,
 		NULL,
 		onGlUniformsSet,
-		NULL,
+		onGlHandleResize,
 		handle,
 		NULL);
 

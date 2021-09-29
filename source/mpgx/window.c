@@ -1965,7 +1965,7 @@ Sampler createSampler(
 	uint8_t imageWrapX,
 	uint8_t imageWrapY,
 	uint8_t imageWrapZ,
-	uint8_t compareOperation,
+	uint8_t compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange,
 	float mipmapLodBias)
@@ -1977,7 +1977,7 @@ Sampler createSampler(
 	assert(imageWrapX < IMAGE_WRAP_COUNT);
 	assert(imageWrapY < IMAGE_WRAP_COUNT);
 	assert(imageWrapZ < IMAGE_WRAP_COUNT);
-	assert(compareOperation < COMPARE_OPERATOR_COUNT);
+	assert(compareOperator < COMPARE_OPERATOR_COUNT);
 	assert(window->isRecording == false);
 
 	uint8_t api = window->api;
@@ -1997,7 +1997,7 @@ Sampler createSampler(
 			imageWrapX,
 			imageWrapY,
 			imageWrapZ,
-			compareOperation,
+			compareOperator,
 			useCompare,
 			mipmapLodRange,
 			mipmapLodBias);
@@ -2019,7 +2019,7 @@ Sampler createSampler(
 			imageWrapX,
 			imageWrapY,
 			imageWrapZ,
-			compareOperation,
+			compareOperator,
 			useCompare,
 			mipmapLodRange);
 	}
@@ -2162,10 +2162,10 @@ uint8_t getSamplerImageWrapZ(Sampler sampler)
 	assert(sampler != NULL);
 	return sampler->vk.imageWrapZ;
 }
-uint8_t getSamplerCompareOperation(Sampler sampler)
+uint8_t getSamplerCompareOperator(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.compareOperation;
+	return sampler->vk.compareOperator;
 }
 bool isSamplerUseCompare(Sampler sampler)
 {

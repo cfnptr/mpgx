@@ -366,7 +366,6 @@ inline static Image createGlImage(
 	image->gl.type = type;
 	image->gl.format = format;
 	image->gl.size = size;
-	image->gl.handle = handle;
 	image->gl.glType = glType;
 	image->gl.dataType = dataType;
 	image->gl.dataFormat = dataFormat;

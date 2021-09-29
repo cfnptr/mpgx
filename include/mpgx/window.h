@@ -563,7 +563,7 @@ Sampler createSampler(
 	uint8_t imageWrapX,
 	uint8_t imageWrapY,
 	uint8_t imageWrapZ,
-	uint8_t compareOperation,
+	uint8_t compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange,
 	float mipmapLodBias);
@@ -577,7 +577,7 @@ bool isSamplerUseMipmapping(Sampler sampler);
 uint8_t getSamplerImageWrapX(Sampler sampler);
 uint8_t getSamplerImageWrapY(Sampler sampler);
 uint8_t getSamplerImageWrapZ(Sampler sampler);
-uint8_t getSamplerCompareOperation(Sampler sampler);
+uint8_t getSamplerCompareOperator(Sampler sampler);
 bool isSamplerUseCompare(Sampler sampler);
 Vec2F getSamplerMipmapLodRange(Sampler sampler);
 float getSamplerMipmapLodBias(Sampler sampler);

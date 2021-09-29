@@ -58,37 +58,37 @@ inline static void assertOpenGL()
 #endif
 }
 
-inline static bool getGlCompareOperation(
-	uint8_t compareOperation,
-	GLenum* glCompareOperation)
+inline static bool getGlCompareOperator(
+	uint8_t compareOperator,
+	GLenum* glCompareOperator)
 {
-	switch (compareOperation)
+	switch (compareOperator)
 	{
 	default:
 		return false;
 	case LESS_COMPARE_OPERATOR:
-		*glCompareOperation = GL_LESS;
+		*glCompareOperator = GL_LESS;
 		return true;
 	case LESS_OR_EQUAL_COMPARE_OPERATOR:
-		*glCompareOperation = GL_LEQUAL;
+		*glCompareOperator = GL_LEQUAL;
 		return true;
 	case GREATER_OR_EQUAL_COMPARE_OPERATOR:
-		*glCompareOperation = GL_GEQUAL;
+		*glCompareOperator = GL_GEQUAL;
 		return true;
 	case GREATER_COMPARE_OPERATOR:
-		*glCompareOperation = GL_GREATER;
+		*glCompareOperator = GL_GREATER;
 		return true;
 	case EQUAL_COMPARE_OPERATOR:
-		*glCompareOperation = GL_EQUAL;
+		*glCompareOperator = GL_EQUAL;
 		return true;
 	case NOT_EQUAL_COMPARE_OPERATOR:
-		*glCompareOperation = GL_NOTEQUAL;
+		*glCompareOperator = GL_NOTEQUAL;
 		return true;
 	case ALWAYS_COMPARE_OPERATOR:
-		*glCompareOperation = GL_ALWAYS;
+		*glCompareOperator = GL_ALWAYS;
 		return true;
 	case NEVER_COMPARE_OPERATOR:
-		*glCompareOperation = GL_NEVER;
+		*glCompareOperator = GL_NEVER;
 		return true;
 	}
 }

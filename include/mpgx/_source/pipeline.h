@@ -350,7 +350,7 @@ inline static VkPipeline createVkPipelineHandle(
 		state.cullMode,
 		state.cullFace,
 		&cullMode);
-	result &= getVkCompareOperation(
+	result &= getVkCompareOperator(
 		state.depthCompareOperator,
 		&depthCompareOperator);
 	result &= getVkBlendFactor(
@@ -969,7 +969,7 @@ inline static Pipeline createGlPipeline(
 		cullMode = GL_ZERO;
 	}
 
-	result &= getGlCompareOperation(
+	result &= getGlCompareOperator(
 		state.depthCompareOperator,
 		&depthCompareOperator);
 	result &= getGlBlendFactor(

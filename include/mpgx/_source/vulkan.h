@@ -1705,37 +1705,37 @@ inline static void endVkWindowRender(
 		vkWindow->currenCommandBuffer);
 }
 
-inline static bool getVkCompareOperation(
-	uint8_t compareOperation,
-	VkCompareOp* vkCompareOperation)
+inline static bool getVkCompareOperator(
+	uint8_t compareOperator,
+	VkCompareOp* vkCompareOperator)
 {
-	switch (compareOperation)
+	switch (compareOperator)
 	{
 	default:
 		return false;
 	case LESS_COMPARE_OPERATOR:
-		*vkCompareOperation = VK_COMPARE_OP_LESS;
+		*vkCompareOperator = VK_COMPARE_OP_LESS;
 		return true;
 	case LESS_OR_EQUAL_COMPARE_OPERATOR:
-		*vkCompareOperation = VK_COMPARE_OP_LESS_OR_EQUAL;
+		*vkCompareOperator = VK_COMPARE_OP_LESS_OR_EQUAL;
 		return true;
 	case GREATER_OR_EQUAL_COMPARE_OPERATOR:
-		*vkCompareOperation = VK_COMPARE_OP_GREATER_OR_EQUAL;
+		*vkCompareOperator = VK_COMPARE_OP_GREATER_OR_EQUAL;
 		return true;
 	case GREATER_COMPARE_OPERATOR:
-		*vkCompareOperation = VK_COMPARE_OP_GREATER;
+		*vkCompareOperator = VK_COMPARE_OP_GREATER;
 		return true;
 	case EQUAL_COMPARE_OPERATOR:
-		*vkCompareOperation = VK_COMPARE_OP_EQUAL;
+		*vkCompareOperator = VK_COMPARE_OP_EQUAL;
 		return true;
 	case NOT_EQUAL_COMPARE_OPERATOR:
-		*vkCompareOperation = VK_COMPARE_OP_NOT_EQUAL;
+		*vkCompareOperator = VK_COMPARE_OP_NOT_EQUAL;
 		return true;
 	case ALWAYS_COMPARE_OPERATOR:
-		*vkCompareOperation = VK_COMPARE_OP_ALWAYS;
+		*vkCompareOperator = VK_COMPARE_OP_ALWAYS;
 		return true;
 	case NEVER_COMPARE_OPERATOR:
-		*vkCompareOperation = VK_COMPARE_OP_NEVER;
+		*vkCompareOperator = VK_COMPARE_OP_NEVER;
 		return true;
 	}
 }

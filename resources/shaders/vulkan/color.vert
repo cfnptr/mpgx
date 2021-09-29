@@ -4,7 +4,7 @@ layout(location = 0) in vec3 v_Position;
 
 layout(push_constant) uniform PushConstant
 {
-    layout(offset = 0) mat4 mvp;
+    mat4 mvp;
 } p;
 
 void main()

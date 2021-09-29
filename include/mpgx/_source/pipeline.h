@@ -1179,24 +1179,19 @@ inline static void bindGlPipeline(
 		colorMask & GREEN_COLOR_COMPONENT ?
 			GL_TRUE : GL_FALSE,
 		colorMask & BLUE_COLOR_COMPONENT ?
-		GL_TRUE : GL_FALSE,
+			GL_TRUE : GL_FALSE,
 		colorMask & ALPHA_COLOR_COMPONENT ?
 			GL_TRUE : GL_FALSE);
 
-	if (pipeline->gl.state.testDepth)
+	if (pipeline->gl.state.testDepth == true)
 	{
-		if (pipeline->gl.state.clampDepth)
-		{
-			glDepthRange(0.0f, 1.0f); // TODO:
+		if (pipeline->gl.state.clampDepth == true)
 			glEnable(GL_DEPTH_CLAMP);
-		}
 		else
-		{
 			glDisable(GL_DEPTH_CLAMP);
-		}
 
 		glDepthMask(
-			pipeline->gl.state.writeDepth ?
+			pipeline->gl.state.writeDepth == true ?
 			GL_TRUE : GL_FALSE);
 		glDepthFunc(pipeline->gl.depthCompareOperator);
 		glEnable(GL_DEPTH_TEST);
@@ -1206,7 +1201,7 @@ inline static void bindGlPipeline(
 		glDisable(GL_DEPTH_TEST);
 	}
 
-	if (pipeline->gl.state.enableBlend)
+	if (pipeline->gl.state.enableBlend == true)
 	{
 		Vec4F blendColor =
 			pipeline->gl.state.blendColor;
@@ -1252,7 +1247,7 @@ inline static bool getGlUniformLocation(
 
 	if (location == -1)
 	{
-		fprintf(stderr,
+		fprintf(GL_INFO_LOG_OUT,
 			"Failed to get '%s' uniform location.\n",
 			name);
 		return false;
@@ -1272,7 +1267,7 @@ inline static GLuint getGlUniformBlockIndex(
 
 	if (blockIndex == GL_INVALID_INDEX)
 	{
-		fprintf(stderr,
+		fprintf(GL_INFO_LOG_OUT,
 			"Failed to get '%s' uniform block index.\n",
 			name);
 		return false;

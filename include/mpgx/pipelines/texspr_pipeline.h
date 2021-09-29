@@ -28,12 +28,6 @@ void setTexSprPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 
-Vec4F getTexSprPipelineColor(
-	Pipeline pipeline);
-void setTexSprPipelineColor(
-	Pipeline pipeline,
-	Vec4F color);
-
 Vec2F getTexSprPipelineSize(
 	Pipeline pipeline);
 void setTexSprPipelineSize(
@@ -45,3 +39,9 @@ Vec2F getTexSprPipelineOffset(
 void setTexSprPipelineOffset(
 	Pipeline pipeline,
 	Vec2F offset);
+
+Vec4F getTexSprPipelineColor(
+	Pipeline pipeline);
+void setTexSprPipelineColor(
+	Pipeline pipeline,
+	Vec4F color);

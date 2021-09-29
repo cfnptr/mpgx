@@ -45,7 +45,7 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 	},
 	{
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		0,
+		sizeof(Mat4F),
 		sizeof(Vec4F),
 	},
 };
@@ -62,20 +62,21 @@ static void onVkUniformsSet(Pipeline pipeline)
 	PipelineHandle* handle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
+	VkPipelineLayout layout = pipeline->vk.layout;
 
 	vkCmdPushConstants(
 		commandBuffer,
-		pipeline->vk.layout,
+		layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(Mat4F),
 		&handle->vk.mvp);
 	vkCmdPushConstants(
 		commandBuffer,
-		pipeline->vk.layout,
+		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		0,
-		sizeof(Vec3F),
+		sizeof(Mat4F),
+		sizeof(Vec4F),
 		&handle->vk.color);
 }
 static void onVkHandleResize(
@@ -91,11 +92,11 @@ static void onVkHandleResize(
 	VkPipelineCreateInfo _createInfo = {
 		1,
 		vertexInputBindingDescriptions,
-		2,
+		1,
 		vertexInputAttributeDescriptions,
 		0,
 		NULL,
-		1,
+		2,
 		pushConstantRanges,
 	};
 
@@ -112,11 +113,11 @@ inline static Pipeline createVkHandle(
 	VkPipelineCreateInfo createInfo = {
 		1,
 		vertexInputBindingDescriptions,
-		2,
+		1,
 		vertexInputAttributeDescriptions,
 		0,
 		NULL,
-		1,
+		2,
 		pushConstantRanges,
 	};
 

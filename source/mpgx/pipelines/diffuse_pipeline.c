@@ -130,6 +130,20 @@ inline static VkDescriptorPool createVkDescriptorPool(
 
 	return descriptorPool;
 }
+inline static void destroyVkUniformBuffers(
+	VmaAllocator allocator,
+	uint32_t bufferCount,
+	Buffer* uniformBuffers)
+{
+	for (uint32_t i = 0; i < bufferCount; i++)
+	{
+		destroyVkBuffer(
+			allocator,
+			uniformBuffers[i]);
+	}
+
+	free(uniformBuffers);
+}
 inline static Buffer* createVkUniformBuffers(
 	VkDevice device,
 	VmaAllocator allocator,
@@ -160,14 +174,10 @@ inline static Buffer* createVkUniformBuffers(
 
 		if (buffer == NULL)
 		{
-			for (uint32_t j = 0; j < i; j++)
-			{
-				destroyVkBuffer(
-					allocator,
-					buffers[j]);
-			}
-
-			free(buffers);
+			destroyVkUniformBuffers(
+				allocator,
+				i,
+				buffers);
 			return NULL;
 		}
 
@@ -175,20 +185,6 @@ inline static Buffer* createVkUniformBuffers(
 	}
 
 	return buffers;
-}
-inline static void destroyVkUniformBuffers(
-	VmaAllocator allocator,
-	uint32_t bufferCount,
-	Buffer* uniformBuffers)
-{
-	for (uint32_t i = 0; i < bufferCount; i++)
-	{
-		destroyVkBuffer(
-			allocator,
-			uniformBuffers[i]);
-	}
-
-	free(uniformBuffers);
 }
 inline static VkDescriptorSet* createVkDescriptorSets(
 	VkDevice device,
@@ -322,17 +318,18 @@ static void onVkUniformsSet(Pipeline pipeline)
 	PipelineHandle* handle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
+	VkPipelineLayout layout = pipeline->vk.layout;
 
 	vkCmdPushConstants(
 		commandBuffer,
-		pipeline->vk.layout,
+		layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(Mat4F),
 		&handle->vk.mvp);
 	vkCmdPushConstants(
 		commandBuffer,
-		pipeline->vk.layout,
+		layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		sizeof(Mat4F),
 		sizeof(Mat4F),
@@ -353,6 +350,7 @@ static void onVkHandleResize(
 		VmaAllocator allocator = vkWindow->allocator;
 
 		free(handle->vk.descriptorSets);
+
 		destroyVkUniformBuffers(
 			vkWindow->allocator,
 			handle->vk.bufferCount,
@@ -417,7 +415,6 @@ static void onVkHandleResize(
 
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
 }
-
 inline static Pipeline createVkHandle(
 	Window window,
 	Shader* shaders,

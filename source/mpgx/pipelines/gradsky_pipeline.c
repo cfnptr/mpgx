@@ -18,6 +18,13 @@ typedef struct VkPipelineHandle
 	Mat4F mvp;
 	Vec4F sunDir;
 	Vec4F sunColor;
+#if MPGX_SUPPORT_VULKAN
+	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorPool descriptorPool;
+	VkImageView imageView;
+	VkDescriptorSet* descriptorSets;
+	uint32_t bufferCount;
+#endif
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
@@ -138,6 +145,471 @@ Sampler createGradSkySampler(Window window)
 		defaultMipmapLodRange,
 		DEFAULT_MIPMAP_LOD_BIAS);
 }
+
+#if MPGX_SUPPORT_VULKAN
+static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
+	{
+		0,
+		sizeof(Vec3F),
+		VK_VERTEX_INPUT_RATE_VERTEX,
+	},
+};
+static const VkVertexInputAttributeDescription vertexInputAttributeDescriptions[1] = {
+	{
+		0,
+		0,
+		VK_FORMAT_R32G32B32_SFLOAT,
+		0,
+	},
+};
+static const VkPushConstantRange pushConstantRanges[2] = {
+	{
+		VK_SHADER_STAGE_VERTEX_BIT,
+		0,
+		sizeof(Mat4F),
+	},
+	{
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		sizeof(Mat4F),
+		sizeof(Vec4F) * 2,
+	},
+};
+
+inline static VkDescriptorSetLayout createVkDescriptorSetLayout(
+	VkDevice device)
+{
+	VkDescriptorSetLayoutBinding descriptorSetLayoutBinding = {
+		0,
+		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		1,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		NULL,
+	};
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		NULL,
+		0,
+		1,
+		&descriptorSetLayoutBinding,
+	};
+
+	VkDescriptorSetLayout descriptorSetLayout;
+
+	VkResult result = vkCreateDescriptorSetLayout(
+		device,
+		&descriptorSetLayoutCreateInfo,
+		NULL,
+		&descriptorSetLayout);
+
+	if(result != VK_SUCCESS)
+		return NULL;
+
+	return descriptorSetLayout;
+}
+inline static VkDescriptorPool createVkDescriptorPool(
+	VkDevice device,
+	uint32_t bufferCount)
+{
+	VkDescriptorPoolSize descriptorPoolSize = {
+		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		bufferCount,
+	};
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		NULL,
+		0,
+		bufferCount,
+		1,
+		&descriptorPoolSize,
+	};
+
+	VkDescriptorPool descriptorPool;
+
+	VkResult result = vkCreateDescriptorPool(
+		device,
+		&descriptorPoolCreateInfo,
+		NULL,
+		&descriptorPool);
+
+	if (result != VK_SUCCESS)
+		return NULL;
+
+	return descriptorPool;
+}
+inline static VkImageView createVkImageView(
+	VkDevice device,
+	VkImage image)
+{
+	VkImageViewCreateInfo imageViewCreateInfo = {
+		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		NULL,
+		0,
+		image,
+		VK_IMAGE_VIEW_TYPE_2D,
+		VK_FORMAT_R8G8B8A8_SRGB,
+		{
+			0,
+			0,
+			0,
+			0,
+		},
+		{
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0,
+			1,
+			0,
+			1,
+		},
+	};
+
+	VkImageView imageView;
+
+	VkResult result = vkCreateImageView(
+		device,
+		&imageViewCreateInfo,
+		NULL,
+		&imageView);
+
+	if(result != VK_SUCCESS)
+		return NULL;
+
+	return imageView;
+}
+inline static VkDescriptorSet* createVkDescriptorSets(
+	VkDevice device,
+	VkDescriptorSetLayout descriptorSetLayout,
+	VkDescriptorPool descriptorPool,
+	uint32_t bufferCount,
+	VkSampler sampler,
+	VkImageView imageView)
+{
+	VkDescriptorSetLayout* descriptorSetLayouts = malloc(
+		bufferCount * sizeof(VkDescriptorSetLayout));
+
+	if (descriptorSetLayouts == NULL)
+		return NULL;
+
+	for (uint32_t i = 0; i < bufferCount; i++)
+		descriptorSetLayouts[i] = descriptorSetLayout;
+
+	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo ={
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		NULL,
+		descriptorPool,
+		bufferCount,
+		descriptorSetLayouts,
+	};
+
+	VkDescriptorSet* descriptorSets = malloc(
+		bufferCount * sizeof(VkDescriptorSet));
+
+	if (descriptorSets == NULL)
+	{
+		free(descriptorSetLayouts);
+		return NULL;
+	}
+
+	VkResult result = vkAllocateDescriptorSets(
+		device,
+		&descriptorSetAllocateInfo,
+		descriptorSets);
+
+	free(descriptorSetLayouts);
+
+	if (result != VK_SUCCESS)
+	{
+		free(descriptorSets);
+		return NULL;
+	}
+
+	for (uint32_t i = 0; i < bufferCount; i++)
+	{
+		VkDescriptorImageInfo descriptorImageInfo =
+		{
+			sampler,
+			imageView,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		};
+		VkWriteDescriptorSet writeDescriptorSet = {
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			NULL,
+			descriptorSets[i],
+			0,
+			0,
+			1,
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			&descriptorImageInfo,
+			NULL,
+			NULL,
+		};
+
+		vkUpdateDescriptorSets(
+			device,
+			1,
+			&writeDescriptorSet,
+			0,
+			NULL);
+	}
+
+	return descriptorSets;
+}
+
+static void onVkHandleDestroy(
+	Window window,
+	void* handle)
+{
+	PipelineHandle* pipelineHandle = handle;
+	VkWindow vkWindow = getVkWindow(window);
+	VkDevice device = vkWindow->device;
+
+	free(pipelineHandle->vk.descriptorSets);
+	vkDestroyImageView(
+		device,
+		pipelineHandle->vk.imageView,
+		NULL);
+	vkDestroyDescriptorPool(
+		device,
+		pipelineHandle->vk.descriptorPool,
+		NULL);
+	vkDestroyDescriptorSetLayout(
+		device,
+		pipelineHandle->vk.descriptorSetLayout,
+		NULL);
+	free(pipelineHandle);
+}
+static void onVkUniformsSet(Pipeline pipeline)
+{
+	PipelineHandle* handle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
+	VkPipelineLayout layout = pipeline->vk.layout;
+
+	vkCmdPushConstants(
+		commandBuffer,
+		layout,
+		VK_SHADER_STAGE_VERTEX_BIT,
+		0,
+		sizeof(Mat4F),
+		&handle->vk.mvp);
+	vkCmdPushConstants(
+		commandBuffer,
+		layout,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		sizeof(Mat4F),
+		sizeof(Vec4F),
+		&handle->vk.sunDir);
+	vkCmdPushConstants(
+		commandBuffer,
+		layout,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		sizeof(Mat4F) + sizeof(Vec4F),
+		sizeof(Vec4F),
+		&handle->vk.sunColor);
+}
+static void onVkHandleBind(Pipeline pipeline)
+{
+	PipelineHandle* handle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	uint32_t bufferIndex = vkWindow->bufferIndex;
+
+	vkCmdBindDescriptorSets(
+		vkWindow->currenCommandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		pipeline->vk.layout,
+		0,
+		1,
+		&handle->vk.descriptorSets[bufferIndex],
+		0,
+		NULL);
+}
+static void onVkHandleResize(
+	Pipeline pipeline,
+	void* createInfo)
+{
+	Window window = pipeline->vk.window;
+	VkWindow vkWindow = getVkWindow(window);
+	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
+	PipelineHandle* handle = pipeline->vk.handle;
+
+	if (bufferCount != handle->vk.bufferCount)
+	{
+		VkDevice device = vkWindow->device;
+
+		free(handle->vk.descriptorSets);
+
+		vkDestroyDescriptorPool(
+			device,
+			handle->vk.descriptorPool,
+			NULL);
+
+		VkDescriptorPool descriptorPool = createVkDescriptorPool(
+			device,
+			bufferCount);
+
+		if (descriptorPool == NULL)
+			abort();
+
+		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+			device,
+			handle->vk.descriptorSetLayout,
+			descriptorPool,
+			bufferCount,
+			handle->vk.sampler->vk.handle,
+			handle->vk.imageView);
+
+		if (descriptorSets == NULL)
+			abort();
+
+		handle->vk.descriptorPool = descriptorPool;
+		handle->vk.descriptorSets = descriptorSets;
+		handle->vk.bufferCount = bufferCount;
+	}
+
+	Vec2U framebufferSize =
+		getWindowFramebufferSize(window);
+	Vec4I size = vec4I(0, 0,
+		(int32_t)framebufferSize.x,
+		(int32_t)framebufferSize.y);
+	pipeline->vk.state.viewport = size;
+	pipeline->vk.state.scissor = size;
+
+	VkPipelineCreateInfo _createInfo = {
+		1,
+		vertexInputBindingDescriptions,
+		1,
+		vertexInputAttributeDescriptions,
+		1,
+		&handle->vk.descriptorSetLayout,
+		2,
+		pushConstantRanges,
+	};
+
+	*(VkPipelineCreateInfo*)createInfo = _createInfo;
+}
+inline static Pipeline createVkHandle(
+	Window window,
+	Shader* shaders,
+	uint8_t shaderCount,
+	VkSampler sampler,
+	VkImage image,
+	const PipelineState* state,
+	PipelineHandle* handle)
+{
+	VkWindow vkWindow = getVkWindow(window);
+	VkDevice device = vkWindow->device;
+
+	VkDescriptorSetLayout descriptorSetLayout =
+		createVkDescriptorSetLayout(device);
+
+	if (descriptorSetLayout == NULL)
+		return NULL;
+
+	VkPipelineCreateInfo createInfo = {
+		1,
+		vertexInputBindingDescriptions,
+		1,
+		vertexInputAttributeDescriptions,
+		1,
+		&descriptorSetLayout,
+		2,
+		pushConstantRanges,
+	};
+
+	Pipeline pipeline = createPipeline(
+		window,
+		GRAD_SKY_PIPELINE_NAME,
+		shaders,
+		shaderCount,
+		state,
+		onVkHandleDestroy,
+		NULL,
+		onVkUniformsSet,
+		onVkHandleResize,
+		handle,
+		&createInfo);
+
+	if (pipeline == NULL)
+	{
+		vkDestroyDescriptorSetLayout(
+			device,
+			descriptorSetLayout,
+			NULL);
+		return NULL;
+	}
+
+	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
+
+	VkDescriptorPool descriptorPool = createVkDescriptorPool(
+		device,
+		bufferCount);
+
+	if (descriptorPool == NULL)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		vkDestroyDescriptorSetLayout(
+			device,
+			descriptorSetLayout,
+			NULL);
+		return NULL;
+	}
+
+	VkImageView imageView = createVkImageView(
+		device,
+		image);
+
+	if (imageView == NULL)
+	{
+		vkDestroyDescriptorPool(
+			device,
+			descriptorPool,
+			NULL);
+		destroyPipeline(
+			pipeline,
+			false);
+		vkDestroyDescriptorSetLayout(
+			device,
+			descriptorSetLayout,
+			NULL);
+	}
+
+	VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+		device,
+		descriptorSetLayout,
+		descriptorPool,
+		bufferCount,
+		sampler,
+		imageView);
+
+	if (descriptorSets == NULL)
+	{
+		vkDestroyImageView(
+			device,
+			imageView,
+			NULL);
+		vkDestroyDescriptorPool(
+			device,
+			descriptorPool,
+			NULL);
+		destroyPipeline(
+			pipeline,
+			false);
+		vkDestroyDescriptorSetLayout(
+			device,
+			descriptorSetLayout,
+			NULL);
+		return NULL;
+	}
+
+	handle->vk.descriptorSetLayout = descriptorSetLayout;
+	handle->vk.descriptorPool = descriptorPool;
+	handle->vk.imageView = imageView;
+	handle->vk.descriptorSets = descriptorSets;
+	handle->vk.bufferCount = bufferCount;
+	return pipeline;
+}
+#endif
 
 static void onGlHandleDestroy(
 	Window window,
@@ -304,7 +776,22 @@ Pipeline createExtGradSkyPipeline(
 
 	Pipeline pipeline;
 
-	if (api == OPENGL_GRAPHICS_API ||
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		pipeline = createVkHandle(
+			window,
+			shaders,
+			2,
+			sampler->vk.handle,
+			texture->vk.handle,
+			state,
+			handle);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		pipeline = createGlHandle(

@@ -16,16 +16,19 @@ typedef struct VkPipelineHandle
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
-	float sunHeight;
+	Vec4F sunDir;
+	Vec4F sunColor;
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
-	float sunHeight;
+	Vec4F sunDir;
+	Vec4F sunColor;
 	GLint mvpLocation;
-	GLint sunHeightLocation;
+	GLint sunDirLocation;
+	GLint sunColorLocation;
 	GLint textureLocation;
 } GlPipelineHandle;
 typedef union PipelineHandle
@@ -172,10 +175,14 @@ static void onGlUniformsSet(Pipeline pipeline)
 		1,
 		GL_FALSE,
 		(const GLfloat*)&handle->gl.mvp);
-	glUniform1fv(
-		handle->gl.sunHeightLocation,
+	glUniform4fv(
+		handle->gl.sunDirLocation,
 		1,
-		(const GLfloat*)&handle->gl.sunHeight);
+		(const GLfloat*)&handle->gl.sunDir);
+	glUniform4fv(
+		handle->gl.sunColorLocation,
+		1,
+		(const GLfloat*)&handle->gl.sunColor);
 
 	glEnableVertexAttribArray(0);
 
@@ -226,35 +233,27 @@ inline static Pipeline createGlHandle(
 
 	GLuint glHandle = pipeline->gl.glHandle;
 
-	GLint mvpLocation = getGlUniformLocation(
+	GLint mvpLocation, sunDirLocation,
+		sunColorLocation, textureLocation;
+
+	bool result = getGlUniformLocation(
 		glHandle,
-		"u_MVP");
-
-	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
-	GLint sunHeightLocation = getGlUniformLocation(
+		"u_MVP",
+		&mvpLocation);
+	result &= getGlUniformLocation(
 		glHandle,
-		"u_SunHeight");
-
-	if (sunHeightLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
-	GLint textureLocation = getGlUniformLocation(
+		"u_SunDir",
+		&sunDirLocation);
+	result &= getGlUniformLocation(
 		glHandle,
-		"u_Texture");
+		"u_SunColor",
+		&sunColorLocation);
+	result &= getGlUniformLocation(
+		glHandle,
+		"u_Texture",
+		&textureLocation);
 
-	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
+	if (result == false)
 	{
 		destroyPipeline(
 			pipeline,
@@ -265,7 +264,8 @@ inline static Pipeline createGlHandle(
 	assertOpenGL();
 
 	handle->gl.mvpLocation = mvpLocation;
-	handle->gl.sunHeightLocation = sunHeightLocation;
+	handle->gl.sunDirLocation = sunDirLocation;
+	handle->gl.sunColorLocation = sunColorLocation;
 	handle->gl.textureLocation = textureLocation;
 	return pipeline;
 }
@@ -330,7 +330,8 @@ Pipeline createExtGradSkyPipeline(
 	handle->vk.sampler = sampler;
 	handle->vk.mvp = identMat4F();
 	handle->vk.mvp = identMat4F();
-	handle->vk.sunHeight = 1.0f;
+	handle->vk.sunDir = zeroVec4F();
+	handle->vk.sunColor = oneVec4F();
 	return pipeline;
 }
 Pipeline createGradSkyPipeline(
@@ -430,7 +431,7 @@ void setGradSkyPipelineMvp(
 	pipelineHandle->vk.mvp = mvp;
 }
 
-float getGradSkyPipelineSunHeight(
+Vec3F getSkyPipelineSunDir(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -438,18 +439,51 @@ float getGradSkyPipelineSunHeight(
 		getPipelineName(pipeline),
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.sunHeight;
+		getPipelineHandle(pipeline);
+	Vec4F sunDir =
+		pipelineHandle->vk.sunDir;
+	return vec3F(
+		sunDir.x,
+		sunDir.y,
+		sunDir.z);
 }
-void setGradSkyPipelineSunHeight(
+void setSkyPipelineSunDir(
 	Pipeline pipeline,
-	float sunHeight)
+	Vec3F sunDir)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.sunHeight = sunHeight;
+		getPipelineHandle(pipeline);
+	pipelineHandle->vk.sunDir = vec4F(
+		sunDir.x,
+		sunDir.y,
+		sunDir.z,
+		0.0f);
+}
+
+Vec4F getSkyPipelineSunColor(
+	Pipeline pipeline)
+{
+	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		GRAD_SKY_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
+		getPipelineHandle(pipeline);
+	return pipelineHandle->vk.sunColor;
+}
+void setSkyPipelineSunColor(
+	Pipeline pipeline,
+	Vec4F sunColor)
+{
+	assert(pipeline != NULL);
+	assert(strcmp(
+		getPipelineName(pipeline),
+		GRAD_SKY_PIPELINE_NAME) == 0);
+	PipelineHandle* pipelineHandle =
+		getPipelineHandle(pipeline);
+	pipelineHandle->vk.sunColor = sunColor;
 }

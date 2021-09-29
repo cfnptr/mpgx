@@ -28,10 +28,6 @@ Pipeline createGradSkyPipeline(
 	Image texture,
 	Sampler sampler);
 
-Shader getGradSkyPipelineVertexShader(
-	Pipeline pipeline);
-Shader getGradSkyPipelineFragmentShader(
-	Pipeline pipeline);
 Image getGradSkyPipelineTexture(
 	Pipeline pipeline);
 Sampler getGradSkyPipelineSampler(
@@ -43,8 +39,14 @@ void setGradSkyPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 
-float getGradSkyPipelineSunHeight(
+Vec3F getGradSkyPipelineSunDir(
 	Pipeline pipeline);
-void setGradSkyPipelineSunHeight(
+void setGradSkyPipelineSunDir(
 	Pipeline pipeline,
-	float sunHeight);
+	Vec3F sunDir);
+
+Vec4F getGradSkyPipelineSunColor(
+	Pipeline pipeline);
+void setGradSkyPipelineSunColor(
+	Pipeline pipeline,
+	Vec4F sunColor);

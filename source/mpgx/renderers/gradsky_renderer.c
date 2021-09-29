@@ -5,7 +5,6 @@
 
 typedef struct RenderHandle
 {
-	float sunHeight;
 	Mesh mesh;
 } RenderHandle;
 
@@ -27,9 +26,6 @@ static size_t onRenderHandleDraw(
 	setGradSkyPipelineMvp(
 		pipeline,
 		mvp);
-	setGradSkyPipelineSunHeight(
-		pipeline,
-		renderHandle->sunHeight);
 	return drawMesh(
 		renderHandle->mesh,
 		pipeline);
@@ -63,7 +59,6 @@ Render createGradSkyRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
-	float sunHeight,
 	Mesh mesh)
 {
 	assert(renderer != NULL);
@@ -87,7 +82,6 @@ Render createGradSkyRender(
 	if (renderHandle == NULL)
 		return NULL;
 
-	renderHandle->sunHeight = sunHeight;
 	renderHandle->mesh = mesh;
 
 	Render render = createRender(
@@ -103,34 +97,6 @@ Render createGradSkyRender(
 	}
 
 	return render;
-}
-
-float getGradSkyRenderSunHeight(
-	Render render)
-{
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
-		GRAD_SKY_PIPELINE_NAME) == 0);
-	RenderHandle* renderHandle =
-		getRenderHandle(render);
-	return renderHandle->sunHeight;
-}
-void setGradSkyRenderSunHeight(
-	Render render,
-	float sunHeight)
-{
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
-		GRAD_SKY_PIPELINE_NAME) == 0);
-	RenderHandle* renderHandle =
-		getRenderHandle(render);
-	renderHandle->sunHeight = sunHeight;
 }
 
 Mesh getGradSkyRenderMesh(

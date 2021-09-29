@@ -643,35 +643,23 @@ inline static Pipeline createGlHandle(
 
 	GLuint glHandle = pipeline->gl.glHandle;
 
-	GLint mvpLocation = getGlUniformLocation(
+	GLint mvpLocation, normalLocation;
+	GLuint uniformBlockIndex;
+
+	bool result = getGlUniformLocation(
 		glHandle,
-		"u_MVP");
-
-	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
-	GLint normalLocation = getGlUniformLocation(
+		"u_MVP",
+		&mvpLocation);
+	result &= getGlUniformLocation(
 		glHandle,
-		"u_Normal");
-
-	if (normalLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
-	GLuint uniformBlockIndex = getGlUniformBlockIndex(
+		"u_Normal",
+		&normalLocation);
+	result &= getGlUniformBlockIndex(
 		glHandle,
-		"UniformBuffer");
+		"UniformBuffer",
+		&uniformBlockIndex);
 
-	if (uniformBlockIndex == GL_INVALID_INDEX)
+	if (result == false)
 	{
 		destroyPipeline(
 			pipeline,

@@ -2,8 +2,6 @@
 #include "mpgx/_source/shader.h"
 #include <assert.h>
 
-#define GL_NULL_UNIFORM_LOCATION -1
-
 typedef struct _VkPipeline
 {
 	Window window;
@@ -1243,41 +1241,43 @@ inline static void bindGlPipeline(
 	if (pipeline->gl.onHandleBind != NULL)
 		pipeline->gl.onHandleBind(pipeline);
 }
-inline static GLint getGlUniformLocation(
+inline static bool getGlUniformLocation(
 	GLuint program,
-	const GLchar* name)
+	const GLchar* name,
+	GLint* _location)
 {
-	GLint uniformLocation = glGetUniformLocation(
+	GLint location = glGetUniformLocation(
 		program,
 		name);
 
-#ifndef NDEBUG
-	if (uniformLocation == GL_NULL_UNIFORM_LOCATION)
+	if (location == -1)
 	{
 		fprintf(stderr,
 			"Failed to get '%s' uniform location.\n",
 			name);
+		return false;
 	}
-#endif
 
-	return uniformLocation;
+	*_location = location;
+	return true;
 }
 inline static GLuint getGlUniformBlockIndex(
 	GLuint program,
-	const GLchar* name)
+	const GLchar* name,
+	GLuint* _blockIndex)
 {
-	GLuint uniformBlockIndex = glGetUniformBlockIndex(
+	GLuint blockIndex = glGetUniformBlockIndex(
 		program,
 		name);
 
-#ifndef NDEBUG
-	if (uniformBlockIndex == GL_INVALID_INDEX)
+	if (blockIndex == GL_INVALID_INDEX)
 	{
 		fprintf(stderr,
 			"Failed to get '%s' uniform block index.\n",
 			name);
+		return false;
 	}
-#endif
 
-	return uniformBlockIndex;
+	*_blockIndex = blockIndex;
+	return true;
 }

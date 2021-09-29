@@ -359,7 +359,7 @@ inline static void destroyClient(Client* client)
 		return;
 
 	destroyDiffuseRenderInstance(client->diffuseRender);
-	
+
 	assert(isRendererEmpty(client->diffuseRenderer));
 	destroyDiffuseRendererInstance(client->diffuseRenderer);
 

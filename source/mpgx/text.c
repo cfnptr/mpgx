@@ -1717,35 +1717,23 @@ inline static Pipeline createGlHandle(
 
 	GLuint glHandle = pipeline->gl.glHandle;
 
-	GLint mvpLocation = getGlUniformLocation(
+	GLint mvpLocation, colorLocation,
+		textureLocation;
+
+	bool result = getGlUniformLocation(
 		glHandle,
-		"u_MVP");
-
-	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
-	GLint colorLocation = getGlUniformLocation(
+		"u_MVP",
+		&mvpLocation);
+	result &= getGlUniformLocation(
 		glHandle,
-		"u_Color");
-
-	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
-	GLint textureLocation = getGlUniformLocation(
+		"u_Color",
+		&colorLocation);
+	result &= getGlUniformLocation(
 		glHandle,
-		"u_Texture");
+		"u_Texture",
+		&textureLocation);
 
-	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
+	if (result == false)
 	{
 		destroyPipeline(
 			pipeline,

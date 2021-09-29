@@ -140,59 +140,32 @@ inline static Pipeline createGlHandle(
 
 	GLuint glHandle = pipeline->gl.glHandle;
 
-	GLint mvpLocation = getGlUniformLocation(
+	GLint mvpLocation, colorLocation,
+		sizeLocation, offsetLocation,
+		textureLocation;
+
+	bool result = getGlUniformLocation(
 		glHandle,
-		"u_MVP");
-
-	if (mvpLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
-	GLint colorLocation = getGlUniformLocation(
+		"u_MVP",
+		&mvpLocation);
+	result &= getGlUniformLocation(
 		glHandle,
-		"u_Color");
-
-	if (colorLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
-	GLint sizeLocation = getGlUniformLocation(
+		"u_Color",
+		&colorLocation);
+	result &= getGlUniformLocation(
 		glHandle,
-		"u_Size");
-
-	if (sizeLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
-	GLint offsetLocation = getGlUniformLocation(
+		"u_Size",
+		&sizeLocation);
+	result &= getGlUniformLocation(
 		glHandle,
-		"u_Offset");
-
-	if (offsetLocation == GL_NULL_UNIFORM_LOCATION)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
-	GLint textureLocation = getGlUniformLocation(
+		"u_Offset",
+		&offsetLocation);
+	result &= getGlUniformLocation(
 		glHandle,
-		"u_Texture");
+		"u_Texture",
+		&textureLocation);
 
-	if (textureLocation == GL_NULL_UNIFORM_LOCATION)
+	if (result == false)
 	{
 		destroyPipeline(
 			pipeline,

@@ -12,14 +12,7 @@ Render createGradSkyRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
-	float sunHeight,
 	Mesh mesh);
-
-float getGradSkyRenderSunHeight(
-	Render render);
-void setGradSkyRenderSunHeight(
-	Render render,
-	float sunHeight);
 
 Mesh getGradSkyRenderMesh(
 	Render render);

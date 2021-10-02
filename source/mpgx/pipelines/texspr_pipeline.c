@@ -703,7 +703,22 @@ Pipeline createExtTexSprPipeline(
 
 	Pipeline pipeline;
 
-	if (api == OPENGL_GRAPHICS_API ||
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		pipeline = createVkHandle(
+			window,
+			shaders,
+			2,
+			sampler->vk.handle,
+			texture->vk.handle,
+			state,
+			handle);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		pipeline = createGlHandle(

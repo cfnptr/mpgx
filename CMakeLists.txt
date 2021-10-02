@@ -80,12 +80,12 @@ add_library(mpgx STATIC
 	source/mpgx/renderers/texspr_renderer.c
 	source/mpgx/renderers/text_renderer.c
 
-    source/mpgx/free_camera.c
+	source/mpgx/free_camera.c
 	source/mpgx/interface.c
 	source/mpgx/renderer.c
 	source/mpgx/text.c
 	source/mpgx/transformer.c
-    source/mpgx/window.c)
+	source/mpgx/window.c)
 target_link_libraries(mpgx PUBLIC
 	${MPGX_LINK_LIBRARIES})
 target_include_directories(mpgx PUBLIC

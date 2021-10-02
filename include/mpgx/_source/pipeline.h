@@ -1060,10 +1060,8 @@ inline static Pipeline createGlPipeline(
 				&length,
 				(GLchar*)infoLog);
 
-			fprintf(GL_INFO_LOG_OUT,
-				"OpenGL program link error: %s\n",
+			printf("OpenGL program link error:\n%s",
 				infoLog);
-
 			free(infoLog);
 		}
 
@@ -1247,8 +1245,7 @@ inline static bool getGlUniformLocation(
 
 	if (location == -1)
 	{
-		fprintf(GL_INFO_LOG_OUT,
-			"Failed to get '%s' uniform location.\n",
+		printf("Failed to get '%s' uniform location.\n",
 			name);
 		return false;
 	}
@@ -1267,8 +1264,7 @@ inline static GLuint getGlUniformBlockIndex(
 
 	if (blockIndex == GL_INVALID_INDEX)
 	{
-		fprintf(GL_INFO_LOG_OUT,
-			"Failed to get '%s' uniform block index.\n",
+		printf("Failed to get '%s' uniform block index.\n",
 			name);
 		return false;
 	}

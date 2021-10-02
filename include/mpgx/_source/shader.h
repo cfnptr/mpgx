@@ -113,6 +113,7 @@ inline static Shader createGlShader(
 	Window window,
 	uint8_t type,
 	const void* code,
+	size_t size,
 	uint8_t api)
 {
 	Shader shader = malloc(
@@ -134,15 +135,25 @@ inline static Shader createGlShader(
 	}
 
 	const char* sources[2];
+	GLint lengths[2];
 
 	if (api == OPENGL_GRAPHICS_API)
+	{
 		sources[0] = OPENGL_SHADER_HEADER;
+		lengths[0] = strlen(OPENGL_SHADER_HEADER);
+	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
+	{
 		sources[0] = OPENGL_ES_SHADER_HEADER;
+		lengths[0] = strlen(OPENGL_ES_SHADER_HEADER);
+	}
 	else
+	{
 		abort();
+	}
 
 	sources[1] = (const char*)code;
+	lengths[1] = (GLint)size;
 
 	makeWindowContextCurrent(window);
 
@@ -152,7 +163,7 @@ inline static Shader createGlShader(
 		handle,
 		2,
 		sources,
-		NULL);
+		lengths);
 
 	glCompileShader(handle);
 
@@ -199,8 +210,7 @@ inline static Shader createGlShader(
 			else
 				typeString = "compute";
 
-			fprintf(GL_INFO_LOG_OUT,
-				"OpenGL %s shader compile error: %s\n",
+			printf("OpenGL %s shader compile error:\n%s",
 				typeString,
 				infoLog);
 			free(infoLog);

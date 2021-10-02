@@ -14,6 +14,8 @@
 
 // TODO: OpenGL renderbuffer optimization
 
+// TODO: replace fopen with file funcs
+
 struct ImageData
 {
 	uint8_t* pixels;
@@ -1617,6 +1619,51 @@ void setBufferData(
 	}
 }
 
+ImageData createImageData(
+	const void* data,
+	size_t size,
+	uint8_t _channelCount)
+{
+	assert(data != NULL);
+	assert(size != 0);
+	assert(_channelCount <= 4);
+
+	ImageData imageData = malloc(
+		sizeof(struct ImageData));
+
+	if (imageData == NULL)
+		return NULL;
+
+	stbi_set_flip_vertically_on_load(true);
+
+	int width, height, channelCount;
+
+	stbi_uc* pixels = stbi_load_from_memory(
+		data,
+		(int)size,
+		&width,
+		&height,
+		&channelCount,
+		_channelCount);
+
+	if (pixels == NULL)
+	{
+		free(imageData);
+		return NULL;
+	}
+
+	if (channelCount != _channelCount)
+	{
+		stbi_image_free(pixels);
+		free(imageData);
+		return NULL;
+	}
+
+	imageData->pixels = pixels;
+	imageData->size = vec2U(width, height);
+	imageData->channelCount = _channelCount;
+	return imageData;
+}
 ImageData createImageDataFromFile(
 	const char* filePath,
 	uint8_t _channelCount)
@@ -1688,17 +1735,17 @@ Image createImage(
 	Window window,
 	uint8_t type,
 	uint8_t format,
-	Vec3U size,
 	const void** data,
+	Vec3U size,
 	uint8_t levelCount)
 {
 	assert(window != NULL);
 	assert(type < IMAGE_TYPE_COUNT);
 	assert(format < IMAGE_FORMAT_COUNT);
+	assert(data != NULL);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
-	assert(data != NULL);
 	assert(levelCount >= 0);
 	assert(levelCount <= getImageLevelCount(size));
 	assert(window->isRecording == false);
@@ -1818,8 +1865,55 @@ Image createImageFromFile(
 		window,
 		IMAGE_2D_TYPE,
 		format,
-		vec3U(width, height, 1),
 		(const void**)&pixels,
+		vec3U(width, height, 1),
+		generateMipmap ? 0 : 1);
+
+	stbi_image_free(pixels);
+	return image;
+}
+Image createImageFromData(
+	Window window,
+	uint8_t format,
+	const void* data,
+	size_t size,
+	bool generateMipmap)
+{
+	assert(window != NULL);
+	assert(data != NULL);
+	assert(size != 0);
+	assert(window->isRecording == false);
+
+	if (format != R8G8B8A8_UNORM_IMAGE_FORMAT &&
+		format != R8G8B8A8_SRGB_IMAGE_FORMAT)
+	{
+		return NULL;
+	}
+
+	stbi_set_flip_vertically_on_load(true);
+
+	int width, height, components;
+
+	stbi_uc* pixels = stbi_load_from_memory(
+		data,
+		(int)size,
+		&width,
+		&height,
+		&components,
+		4);
+
+	if (pixels == NULL ||
+		components != 4)
+	{
+		return NULL;
+	}
+
+	Image image = createImage(
+		window,
+		IMAGE_2D_TYPE,
+		format,
+		(const void**)&pixels,
+		vec3U(width, height, 1),
 		generateMipmap ? 0 : 1);
 
 	stbi_image_free(pixels);
@@ -2478,6 +2572,7 @@ Shader createShader(
 	assert(window != NULL);
 	assert(type < SHADER_TYPE_COUNT);
 	assert(code != NULL);
+	assert(size != 0);
 	assert(window->isRecording == false);
 
 	uint8_t api = window->api;
@@ -2504,6 +2599,7 @@ Shader createShader(
 			window,
 			type,
 			code,
+			size,
 			window->api);
 	}
 	else

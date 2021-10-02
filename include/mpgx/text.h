@@ -7,7 +7,6 @@
 typedef struct Font* Font;
 typedef struct Text* Text;
 
-// TODO: add font loading from the memory
 // TODO: add tab symbol handling
 
 // TODO: add monochrome text support
@@ -18,6 +17,9 @@ typedef struct Text* Text;
 
 // TODO: add text fallback fonts
 
+Font createFont(
+	const void* data,
+	size_t size);
 Font createFontFromFile(
 	const void* filePath);
 void destroyFont(Font font);

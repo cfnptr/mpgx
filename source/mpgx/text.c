@@ -12,6 +12,7 @@
 
 struct Font
 {
+	uint8_t* data;
 	FT_Face face;
 };
 
@@ -60,6 +61,65 @@ typedef union PipelineHandle
 	GlPipelineHandle gl;
 } PipelineHandle;
 
+Font createFont(
+	const void* _data,
+	size_t size)
+{
+	assert(_data != NULL);
+	assert(size != 0);
+
+	Font font = malloc(
+		sizeof(struct Font));
+
+	if (font == NULL)
+		return NULL;
+
+	uint8_t* data = malloc(
+		size * sizeof(uint8_t));
+
+	if (data == NULL)
+		return NULL;
+
+	memcpy(
+		data,
+		_data,
+		size);
+
+	FT_Library ftLibrary =
+		(FT_Library)getFtLibrary();
+
+	FT_Face face;
+
+	FT_Error result = FT_New_Memory_Face(
+		ftLibrary,
+		data,
+		(FT_Long)size,
+		0,
+		&face);
+
+	if (result != 0)
+	{
+		free(data);
+		free(font);
+		return NULL;
+	}
+
+	result = FT_Select_Charmap(
+		face,
+		FT_ENCODING_UNICODE);
+
+	if (result != 0)
+	{
+		FT_Done_Face(face);
+		free(data);
+		free(font);
+		return NULL;
+	}
+
+	font->data = data;
+	font->face = face;
+	return font;
+}
 Font createFontFromFile(
 	const void* filePath)
 {
@@ -94,10 +154,12 @@ Font createFontFromFile(
 
 	if (result != 0)
 	{
+		FT_Done_Face(face);
 		free(font);
 		return NULL;
 	}
 
+	font->data = NULL;
 	font->face = face;
 	return font;
 }
@@ -107,6 +169,7 @@ void destroyFont(Font font)
 		return;
 
 	FT_Done_Face(font->face);
+	free(font->data);
 	free(font);
 }
 
@@ -543,8 +606,8 @@ Text createText(
 			window,
 			IMAGE_2D_TYPE,
 			R8G8B8A8_UNORM_IMAGE_FORMAT,
-			vec3U(fontSize, fontSize, 1),
 			(const void**)&pixels,
+			vec3U(fontSize, fontSize, 1),
 			1);
 
 		if (texture == NULL)
@@ -684,8 +747,8 @@ Text createText(
 			window,
 			IMAGE_2D_TYPE,
 			R8G8B8A8_UNORM_IMAGE_FORMAT,
-			vec3U(pixelLength, pixelLength, 1),
 			(const void**)&pixels,
+			vec3U(pixelLength, pixelLength, 1),
 			1);
 
 		free(pixels);
@@ -1150,8 +1213,8 @@ bool bakeText(
 					window,
 					IMAGE_2D_TYPE,
 					R8G8B8A8_UNORM_IMAGE_FORMAT,
-					vec3U(pixelLength, pixelLength, 1),
 					(const void**)&pixels,
+					vec3U(pixelLength, pixelLength, 1),
 					1);
 
 				free(pixels);
@@ -1323,8 +1386,8 @@ bool bakeText(
 				window,
 				IMAGE_2D_TYPE,
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
-				vec3U(text->fontSize, text->fontSize, 1),
 				(const void**)&pixels,
+				vec3U(text->fontSize, text->fontSize, 1),
 				1);
 
 			if (texture == NULL)
@@ -1462,8 +1525,8 @@ bool bakeText(
 				window,
 				IMAGE_2D_TYPE,
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
-				vec3U(pixelLength, pixelLength, 1),
 				(const void**)&pixels,
+				vec3U(pixelLength, pixelLength, 1),
 				1);
 
 			free(pixels);

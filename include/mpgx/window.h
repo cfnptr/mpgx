@@ -519,6 +519,10 @@ void setBufferData(
 	size_t size,
 	size_t offset);
 
+ImageData createImageData(
+	const void* data,
+	size_t size,
+	uint8_t channelCount);
 ImageData createImageDataFromFile(
 	const char* filePath,
 	uint8_t channelCount);
@@ -532,13 +536,19 @@ Image createImage(
 	Window window,
 	uint8_t type,
 	uint8_t format,
-	Vec3U size,
 	const void** data,
+	Vec3U size,
 	uint8_t levelCount);
 Image createImageFromFile(
 	Window window,
 	uint8_t format,
 	const char* filePath,
+	bool generateMipmap);
+Image createImageFromData(
+	Window window,
+	uint8_t format,
+	const void* data,
+	size_t size,
 	bool generateMipmap);
 void destroyImage(Image image);
 

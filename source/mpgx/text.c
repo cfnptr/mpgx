@@ -1839,7 +1839,7 @@ Pipeline createExtTextPipeline(
 		fragmentShader,
 	};
 
-	uint8_t api = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Pipeline pipeline;
 

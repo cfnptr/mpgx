@@ -14,8 +14,8 @@
 typedef struct _VkImage
 {
 	Window window;
-	uint8_t type;
-	uint8_t format;
+	ImageType type;
+	ImageFormat format;
 	Vec3U size;
 #if MPGX_SUPPORT_VULKAN
 	VkImage handle;
@@ -25,8 +25,8 @@ typedef struct _VkImage
 typedef struct _GlImage
 {
 	Window window;
-	uint8_t type;
-	uint8_t format;
+	ImageType type;
+	ImageFormat format;
 	Vec3U size;
 	GLenum glType;
 	GLenum dataType;
@@ -45,8 +45,8 @@ inline static Image createVkImage(
 	VkImageUsageFlags _vkUsage,
 	VkFormat _vkFormat,
 	Window window,
-	uint8_t type,
-	uint8_t format,
+	ImageType type,
+	ImageFormat format,
 	Vec3U size)
 {
 	// TODO: mipmap generation, multisampling
@@ -171,8 +171,8 @@ inline static Image createVkImage(
 
 inline static Image createGlImage(
 	Window window,
-	uint8_t type,
-	uint8_t format,
+	ImageType type,
+	ImageFormat format,
 	Vec3U size,
 	const void** data,
 	uint8_t levelCount)

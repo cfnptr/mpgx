@@ -83,7 +83,7 @@ inline static Renderer createDiffuseRendererInstance(
 	const char* vertexShaderPath;
 	const char* fragmentShaderPath;
 
-	uint8_t api = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	if (api == VULKAN_GRAPHICS_API)
 	{

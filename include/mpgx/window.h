@@ -176,10 +176,9 @@ typedef enum MouseButton
 
 typedef enum CursorMode
 {
-	DEFAULT_CURSOR_MODE = 0,
-	HIDDEN_CURSOR_MODE = 1,
-	LOCKED_CURSOR_MODE = 2,
-	CURSOR_MODE_COUNT = 3,
+	DEFAULT_CURSOR_MODE = 0x00034001,
+	HIDDEN_CURSOR_MODE = 0x00034002,
+	LOCKED_CURSOR_MODE = 0x00034003,
 } CursorMode;
 
 typedef enum GraphicsAPI
@@ -397,7 +396,7 @@ bool isGraphicsInitialized();
 void* getFtLibrary();
 
 Window createWindow(
-	uint8_t api,
+	GraphicsAPI api,
 	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
@@ -428,7 +427,7 @@ Window createAnyWindow(
 void destroyWindow(Window window);
 
 bool isWindowEmpty(Window window);
-uint8_t getWindowGraphicsAPI(Window window);
+GraphicsAPI getWindowGraphicsAPI(Window window);
 bool isWindowUseStencilBuffer(Window window);
 OnWindowUpdate getWindowOnUpdate(Window window);
 void* getWindowUpdateArgument(Window window);
@@ -444,10 +443,10 @@ bool isVkGpuIntegrated(Window window);
 
 bool getWindowKeyboardKey(
 	Window window,
-	int key);
+	KeyboardKey key);
 bool getWindowMouseButton(
 	Window window,
-	int button);
+	MouseButton button);
 
 Vec2U getWindowSize(
 	Window window);
@@ -467,11 +466,11 @@ void setWindowCursorPosition(
 	Window window,
 	Vec2F position);
 
-uint8_t getWindowCursorMode(
+CursorMode getWindowCursorMode(
 	Window window);
 void setWindowCursorMode(
 	Window window,
-	uint8_t cursorMode);
+	CursorMode cursorMode);
 
 bool isWindowFocused(Window window);
 bool isWindowIconified(Window window);
@@ -502,14 +501,14 @@ void endWindowRender(Window window);
 
 Buffer createBuffer(
 	Window window,
-	uint8_t type,
+	BufferType type,
 	const void* data,
 	size_t size,
 	bool isConstant);
 void destroyBuffer(Buffer buffer);
 
 Window getBufferWindow(Buffer buffer);
-uint8_t getBufferType(Buffer buffer);
+BufferType getBufferType(Buffer buffer);
 size_t getBufferSize(Buffer buffer);
 bool isBufferConstant(Buffer buffer);
 
@@ -534,19 +533,19 @@ uint8_t getImageDataChannelCount(ImageData imageData);
 
 Image createImage(
 	Window window,
-	uint8_t type,
-	uint8_t format,
+	ImageType type,
+	ImageFormat format,
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount);
 Image createImageFromFile(
 	Window window,
-	uint8_t format,
+	ImageFormat format,
 	const char* filePath,
 	bool generateMipmap);
 Image createImageFromData(
 	Window window,
-	uint8_t format,
+	ImageFormat format,
 	const void* data,
 	size_t size,
 	bool generateMipmap);
@@ -559,8 +558,8 @@ void setImageData(
 	Vec3U offset);
 
 Window getImageWindow(Image image);
-uint8_t getImageType(Image image);
-uint8_t getImageFormat(Image image);
+ImageType getImageType(Image image);
+ImageFormat getImageFormat(Image image);
 Vec3U getImageSize(Image image);
 uint8_t getImageLevelCount(Vec3U imageSize);
 

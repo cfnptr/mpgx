@@ -25,6 +25,7 @@ project(mpgx
 	LANGUAGES ${MPGX_LANGUAGES})
 
 add_subdirectory(libraries/cmmt)
+add_subdirectory(libraries/glad)
 
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -38,6 +39,7 @@ add_subdirectory(libraries/freetype)
 
 set(MPGX_LINK_LIBRARIES
 	cmmt
+	glad
 	glfw
 	freetype)
 
@@ -63,8 +65,6 @@ configure_file(
 	mpgx/defines.h)
 
 add_library(mpgx STATIC
-	source/glad/glad.c
-
 	source/mpgx/pipelines/color_pipeline.c
 	source/mpgx/pipelines/diffuse_pipeline.c
 	source/mpgx/pipelines/gradsky_pipeline.c

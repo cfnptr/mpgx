@@ -223,8 +223,7 @@ void createRenderData(
 	assert(window != NULL);
 	assert(data != NULL);
 
-	uint8_t graphicsAPI =
-		getWindowGraphicsAPI(window);
+	GraphicsAPI graphicsAPI = getWindowGraphicsAPI(window);
 
 	Mat4F proj;
 	Mat4F viewProj;

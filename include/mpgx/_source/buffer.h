@@ -11,7 +11,7 @@
 typedef struct _VkBuffer
 {
 	Window window;
-	uint8_t type;
+	BufferType type;
 	size_t size;
 	bool isConstant;
 #if MPGX_SUPPORT_VULKAN
@@ -22,7 +22,7 @@ typedef struct _VkBuffer
 typedef struct _GlBuffer
 {
 	Window window;
-	uint8_t type;
+	BufferType type;
 	size_t size;
 	bool isConstant;
 	GLenum glType;
@@ -80,7 +80,7 @@ inline static Buffer createVkBuffer(
 	VkCommandPool transferCommandPool,
 	VkBufferUsageFlags _vkUsage,
 	Window window,
-	uint8_t type,
+	BufferType type,
 	const void* data,
 	size_t size,
 	bool isConstant)
@@ -438,7 +438,7 @@ inline static void setGlBufferData(
 }
 inline static Buffer createGlBuffer(
 	Window window,
-	uint8_t type,
+	BufferType type,
 	const void* data,
 	size_t size,
 	bool isConstant)

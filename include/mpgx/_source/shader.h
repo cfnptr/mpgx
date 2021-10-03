@@ -116,7 +116,7 @@ inline static Shader createGlShader(
 	uint8_t type,
 	const void* code,
 	size_t size,
-	uint8_t api)
+	GraphicsAPI api)
 {
 	Shader shader = malloc(
 		sizeof(union Shader));

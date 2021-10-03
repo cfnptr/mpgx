@@ -25,7 +25,7 @@ struct ImageData
 
 struct Window
 {
-	uint8_t api;
+	GraphicsAPI api;
 	bool useStencilBuffer;
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
@@ -191,7 +191,7 @@ void* getFtLibrary()
 }
 
 Window createWindow(
-	uint8_t api,
+	GraphicsAPI api,
 	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
@@ -673,7 +673,7 @@ void destroyWindow(Window window)
 	Buffer* buffers = window->buffers;
 	size_t bufferCount = window->bufferCount;
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
@@ -767,7 +767,7 @@ bool isWindowEmpty(Window window)
 		window->pipelineCount == 0 &&
 		window->meshCount == 0;
 }
-uint8_t getWindowGraphicsAPI(Window window)
+GraphicsAPI getWindowGraphicsAPI(Window window)
 {
 	assert(window != NULL);
 	return window->api;
@@ -832,7 +832,7 @@ const char* getWindowGpuName(Window window)
 {
 	assert(window != NULL);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -879,7 +879,7 @@ bool isVkGpuIntegrated(Window window)
 
 bool getWindowKeyboardKey(
 	Window window,
-	int key)
+	KeyboardKey key)
 {
 	assert(window != NULL);
 
@@ -889,7 +889,7 @@ bool getWindowKeyboardKey(
 }
 bool getWindowMouseButton(
 	Window window,
-	int button)
+	MouseButton button)
 {
 	assert(window != NULL);
 
@@ -976,7 +976,7 @@ void setWindowCursorPosition(
 		(double)position.y);
 }
 
-uint8_t getWindowCursorMode(
+CursorMode getWindowCursorMode(
 	Window window)
 {
 	assert(window != NULL);
@@ -987,26 +987,14 @@ uint8_t getWindowCursorMode(
 }
 void setWindowCursorMode(
 	Window window,
-	uint8_t cursorMode)
+	CursorMode cursorMode)
 {
 	assert(window != NULL);
-	assert(cursorMode < CURSOR_MODE_COUNT);
-
-	int value;
-
-	if (cursorMode == DEFAULT_CURSOR_MODE)
-		value = GLFW_CURSOR_NORMAL;
-	else if (cursorMode == HIDDEN_CURSOR_MODE)
-		value = GLFW_CURSOR_HIDDEN;
-	else if (cursorMode == LOCKED_CURSOR_MODE)
-		value = GLFW_CURSOR_DISABLED;
-	else
-		abort();
 
 	glfwSetInputMode(
 		window->handle,
 		GLFW_CURSOR,
-		value);
+		cursorMode);
 }
 
 bool isWindowFocused(Window window)
@@ -1214,7 +1202,7 @@ bool beginWindowRecord(Window window)
 		isResized = true;
 	}
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1256,7 +1244,7 @@ void endWindowRecord(Window window)
 	assert(window->isRecording == true);
 	assert(window->isRendering == false);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1344,7 +1332,7 @@ void beginWindowRender(
 	assert(window->isRecording == true);
 	assert(window->isRendering == false);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1384,7 +1372,7 @@ void endWindowRender(Window window)
 	assert(window->isRecording == true);
 	assert(window->isRendering == true);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1408,7 +1396,7 @@ void endWindowRender(Window window)
 
 Buffer createBuffer(
 	Window window,
-	uint8_t type,
+	BufferType type,
 	const void* data,
 	size_t size,
 	bool isConstant)
@@ -1418,7 +1406,7 @@ Buffer createBuffer(
 	assert(size != 0);
 	assert(window->isRecording == false);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	Buffer buffer;
 
@@ -1522,7 +1510,7 @@ void destroyBuffer(Buffer buffer)
 		for (size_t j = i + 1; j < bufferCount; j++)
 			buffers[j - 1] = buffers[j];
 
-		uint8_t api = window->api;
+		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -1564,7 +1552,7 @@ Window getBufferWindow(Buffer buffer)
 	assert(buffer != NULL);
 	return buffer->vk.window;
 }
-uint8_t getBufferType(Buffer buffer)
+BufferType getBufferType(Buffer buffer)
 {
 	assert(buffer != NULL);
 	return buffer->vk.type;
@@ -1592,7 +1580,7 @@ void setBufferData(
 	assert(buffer->vk.isConstant == false);
 	assert(size + offset <= buffer->vk.size);
 
-	uint8_t api = buffer->vk.window->api;
+	GraphicsAPI api = buffer->vk.window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -1740,8 +1728,8 @@ uint8_t getImageDataChannelCount(ImageData imageData)
 
 Image createImage(
 	Window window,
-	uint8_t type,
-	uint8_t format,
+	ImageType type,
+	ImageFormat format,
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount)
@@ -1757,7 +1745,7 @@ Image createImage(
 	assert(levelCount <= getImageLevelCount(size));
 	assert(window->isRecording == false);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	Image image;
 
@@ -1840,7 +1828,7 @@ Image createImage(
 }
 Image createImageFromFile(
 	Window window,
-	uint8_t format,
+	ImageFormat format,
 	const char* filePath,
 	bool generateMipmap)
 {
@@ -1881,7 +1869,7 @@ Image createImageFromFile(
 }
 Image createImageFromData(
 	Window window,
-	uint8_t format,
+	ImageFormat format,
 	const void* data,
 	size_t size,
 	bool generateMipmap)
@@ -1945,7 +1933,7 @@ void destroyImage(Image image)
 		for (size_t j = i + 1; j < imageCount; j++)
 			images[j - 1] = images[j];
 
-		uint8_t api = window->api;
+		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -1999,7 +1987,7 @@ void setImageData(
 
 	// TODO: check for static image in Vulkan API
 
-	uint8_t api = image->vk.window->api;
+	GraphicsAPI api = image->vk.window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2033,12 +2021,12 @@ Window getImageWindow(Image image)
 	assert(image != NULL);
 	return image->vk.window;
 }
-uint8_t getImageType(Image image)
+ImageType getImageType(Image image)
 {
 	assert(image != NULL);
 	return image->vk.type;
 }
-uint8_t getImageFormat(Image image)
+ImageFormat getImageFormat(Image image)
 {
 	assert(image != NULL);
 	return image->vk.format;
@@ -2081,7 +2069,7 @@ Sampler createSampler(
 	assert(compareOperator < COMPARE_OPERATOR_COUNT);
 	assert(window->isRecording == false);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	Sampler sampler;
 
@@ -2194,7 +2182,7 @@ void destroySampler(Sampler sampler)
 		for (size_t j = i + 1; j < samplerCount; j++)
 			samplers[j - 1] = samplers[j];
 
-		uint8_t api = window->api;
+		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -2300,7 +2288,7 @@ Framebuffer createFramebuffer(
 	assert(getImageWindow(depthStencilAttachment) == window);
 	assert(window->isRecording == false);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	Framebuffer framebuffer;
 
@@ -2398,7 +2386,7 @@ void destroyFramebuffer(Framebuffer framebuffer)
 		for (size_t j = i + 1; j < framebufferCount; j++)
 			framebuffers[j - 1] = framebuffers[j];
 
-		uint8_t api = window->api;
+		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -2453,7 +2441,7 @@ void beginFramebufferRender(Framebuffer framebuffer)
 	assert(framebuffer->vk.window->isRendering == false);
 
 	Window window = framebuffer->vk.window;
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2483,7 +2471,7 @@ void endFramebufferRender(Window window)
 	assert(window->isRecording == true);
 	assert(window->isRendering == true);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2537,7 +2525,7 @@ void clearFramebuffer(
 		clearDepth <= 1.0f);
 	assert(window->isRecording == true);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2582,7 +2570,7 @@ Shader createShader(
 	assert(size != 0);
 	assert(window->isRecording == false);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	Shader shader;
 
@@ -2700,7 +2688,7 @@ Shader createShaderFromFile(
 		return NULL;
 	}
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	char* code;
 	size_t readSize;
@@ -2780,7 +2768,7 @@ void destroyShader(Shader shader)
 		for (size_t j = i + 1; j < shaderCount; j++)
 			shaders[j - 1] = shaders[j];
 
-		uint8_t api = window->api;
+		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -2854,7 +2842,7 @@ Pipeline createPipeline(
 	assert(state->scissor.z >= 0 && state->scissor.w >= 0);
 	assert(window->isRecording == false);
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	Pipeline pipeline;
 
@@ -2970,7 +2958,7 @@ void destroyPipeline(
 				destroyShader(shaders[j]);
 		}
 
-		uint8_t api = window->api;
+		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -3052,7 +3040,7 @@ void bindPipeline(Pipeline pipeline)
 	assert(pipeline != NULL);
 	assert(pipeline->vk.window->isRecording == true);
 
-	uint8_t api = pipeline->vk.window->api;
+	GraphicsAPI api = pipeline->vk.window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -3119,7 +3107,7 @@ Mesh createMesh(
 	}
 #endif
 
-	uint8_t api = window->api;
+	GraphicsAPI api = window->api;
 
 	Mesh mesh;
 
@@ -3224,7 +3212,7 @@ void destroyMesh(
 			destroyBuffer(mesh->vk.indexBuffer);
 		}
 
-		uint8_t api = window->api;
+		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -3426,7 +3414,7 @@ size_t drawMesh(
 		return 0;
 	}
 
-	uint8_t api = pipeline->vk.window->api;
+	GraphicsAPI api = pipeline->vk.window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{

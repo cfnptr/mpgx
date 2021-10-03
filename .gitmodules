@@ -10,3 +10,6 @@
 [submodule "libraries/VulkanMemoryAllocator"]
 	path = libraries/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "libraries/glad"]
+	path = libraries/glad
+	url = https://github.com/cfnptr/glad

@@ -72,19 +72,21 @@ static const VkPushConstantRange pushConstantRanges[1] = {
 inline static VkDescriptorSetLayout createVkDescriptorSetLayout(
 	VkDevice device)
 {
-	VkDescriptorSetLayoutBinding descriptorSetLayoutBinding = {
-		0,
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		1,
-		VK_SHADER_STAGE_FRAGMENT_BIT,
-		NULL,
+	VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[1] = {
+		{
+			0,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			1,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			NULL,
+		},
 	};
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
 		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 		NULL,
 		0,
 		1,
-		&descriptorSetLayoutBinding,
+		descriptorSetLayoutBindings,
 	};
 
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -104,24 +106,28 @@ inline static VkDescriptorPool createVkDescriptorPool(
 	VkDevice device,
 	uint32_t bufferCount)
 {
-	VkDescriptorPoolSize descriptorPoolSize = {
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		bufferCount,
+	VkDescriptorPoolSize descriptorPoolSizes[1] = {
+		{
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			bufferCount,
+		},
 	};
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-		NULL,
-		0,
-		bufferCount,
-		1,
-		&descriptorPoolSize,
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfos[1] = {
+		{
+			VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			NULL,
+			0,
+			bufferCount,
+			1,
+			descriptorPoolSizes,
+		},
 	};
 
 	VkDescriptorPool descriptorPool;
 
 	VkResult result = vkCreateDescriptorPool(
 		device,
-		&descriptorPoolCreateInfo,
+		descriptorPoolCreateInfos,
 		NULL,
 		&descriptorPool);
 
@@ -234,10 +240,12 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 
 	for (uint32_t i = 0; i < bufferCount; i++)
 	{
-		VkDescriptorBufferInfo descriptorBufferInfo = {
-			uniformBuffers[i]->vk.handle,
-			0,
-			sizeof(UniformBuffer),
+		VkDescriptorBufferInfo descriptorBufferInfos[1] = {
+			{
+				uniformBuffers[i]->vk.handle,
+				0,
+				sizeof(UniformBuffer),
+			},
 		};
 		VkWriteDescriptorSet writeDescriptorSet = {
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -248,7 +256,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 			1,
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			NULL,
-			&descriptorBufferInfo,
+			descriptorBufferInfos,
 			NULL,
 		};
 
@@ -717,7 +725,7 @@ Pipeline createExtDiffusePipeline(
 		fragmentShader,
 	};
 
-	uint8_t api = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Pipeline pipeline;
 

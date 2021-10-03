@@ -257,7 +257,7 @@ Pipeline createExtSpritePipeline(
 		fragmentShader,
 	};
 
-	uint8_t api = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Pipeline pipeline;
 

@@ -51,7 +51,7 @@ void updateInterface(Interface interface);
 
 InterfaceElement createInterfaceElement(
 	Interface interface,
-	uint8_t anchor,
+	InterfaceAnchor anchor,
 	Vec3F position,
 	Box2F bounds,
 	Transform transform,
@@ -77,11 +77,11 @@ OnInterfaceElementEvent getInterfaceElementOnStay(
 void* getInterfaceElementHandle(
 	InterfaceElement element);
 
-uint8_t getInterfaceElementAnchor(
+InterfaceAnchor getInterfaceElementAnchor(
 	InterfaceElement element);
 void setInterfaceElementAnchor(
 	InterfaceElement element,
-	uint8_t anchor);
+	InterfaceAnchor anchor);
 
 Vec3F getInterfaceElementPosition(
 	InterfaceElement element);

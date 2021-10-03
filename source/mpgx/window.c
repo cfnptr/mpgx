@@ -2047,14 +2047,14 @@ uint8_t getImageLevelCount(Vec3U imageSize)
 
 Sampler createSampler(
 	Window window,
-	uint8_t minImageFilter,
-	uint8_t magImageFilter,
-	uint8_t minMipmapFilter,
+	ImageFilter minImageFilter,
+	ImageFilter magImageFilter,
+	ImageFilter minMipmapFilter,
 	bool useMipmapping,
-	uint8_t imageWrapX,
-	uint8_t imageWrapY,
-	uint8_t imageWrapZ,
-	uint8_t compareOperator,
+	ImageWrap imageWrapX,
+	ImageWrap imageWrapY,
+	ImageWrap imageWrapZ,
+	CompareOperator compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange,
 	float mipmapLodBias)
@@ -2216,17 +2216,17 @@ Window getSamplerWindow(Sampler sampler)
 	assert(sampler != NULL);
 	return sampler->vk.window;
 }
-uint8_t getSamplerMinImageFilter(Sampler sampler)
+ImageFilter getSamplerMinImageFilter(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.minImageFilter;
 }
-uint8_t getSamplerMagImageFilter(Sampler sampler)
+ImageFilter getSamplerMagImageFilter(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.magImageFilter;
 }
-uint8_t getSamplerMinMipmapFilter(Sampler sampler)
+ImageFilter getSamplerMinMipmapFilter(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.minMipmapFilter;
@@ -2236,22 +2236,22 @@ bool isSamplerUseMipmapping(Sampler sampler)
 	assert(sampler != NULL);
 	return sampler->vk.useMipmapping;
 }
-uint8_t getSamplerImageWrapX(Sampler sampler)
+ImageWrap getSamplerImageWrapX(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.imageWrapX;
 }
-uint8_t getSamplerImageWrapY(Sampler sampler)
+ImageWrap getSamplerImageWrapY(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.imageWrapY;
 }
-uint8_t getSamplerImageWrapZ(Sampler sampler)
+ImageWrap getSamplerImageWrapZ(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.imageWrapZ;
 }
-uint8_t getSamplerCompareOperator(Sampler sampler)
+CompareOperator getSamplerCompareOperator(Sampler sampler)
 {
 	assert(sampler != NULL);
 	return sampler->vk.compareOperator;
@@ -2560,7 +2560,7 @@ void clearFramebuffer(
 
 Shader createShader(
 	Window window,
-	uint8_t type,
+	ShaderType type,
 	const void* code,
 	size_t size)
 {
@@ -2651,7 +2651,7 @@ Shader createShader(
 }
 Shader createShaderFromFile(
 	Window window,
-	uint8_t type,
+	ShaderType type,
 	const char* filePath)
 {
 	assert(window != NULL);
@@ -2802,7 +2802,7 @@ Window getShaderWindow(Shader shader)
 	assert(shader != NULL);
 	return shader->vk.window;
 }
-uint8_t getShaderType(Shader shader)
+ShaderType getShaderType(Shader shader)
 {
 	assert(shader != NULL);
 	return shader->vk.type;
@@ -3067,7 +3067,7 @@ void bindPipeline(Pipeline pipeline)
 
 Mesh createMesh(
 	Window window,
-	uint8_t drawIndex,
+	DrawIndex drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
@@ -3091,14 +3091,14 @@ Mesh createMesh(
 		if (drawIndex == UINT16_DRAW_INDEX)
 		{
 			assert(indexCount * sizeof(uint16_t) +
-				   indexOffset * sizeof(uint16_t) <=
-				   indexBuffer->vk.size);
+				indexOffset * sizeof(uint16_t) <=
+				indexBuffer->vk.size);
 		}
 		else if (drawIndex == UINT32_DRAW_INDEX)
 		{
 			assert(indexCount * sizeof(uint32_t) +
-				   indexOffset * sizeof(uint32_t) <=
-				   indexBuffer->vk.size);
+				indexOffset * sizeof(uint32_t) <=
+				indexBuffer->vk.size);
 		}
 		else
 		{
@@ -3244,7 +3244,7 @@ Window getMeshWindow(Mesh mesh)
 	assert(mesh != NULL);
 	return mesh->vk.window;
 }
-uint8_t getMeshDrawIndex(Mesh mesh)
+DrawIndex getMeshDrawIndex(Mesh mesh)
 {
 	assert(mesh != NULL);
 	return mesh->vk.drawIndex;
@@ -3358,7 +3358,7 @@ Buffer getMeshIndexBuffer(
 }
 void setMeshIndexBuffer(
 	Mesh mesh,
-	uint8_t drawIndex,
+	DrawIndex drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer indexBuffer)

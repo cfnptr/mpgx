@@ -424,7 +424,7 @@ inline static void setGlImageData(
 		image->gl.glType,
 		image->gl.handle);
 
-	uint8_t type = image->gl.type;
+	ImageType type = image->gl.type;
 
 	if (type == IMAGE_2D_TYPE)
 	{

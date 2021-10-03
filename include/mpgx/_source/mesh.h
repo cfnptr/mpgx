@@ -5,7 +5,7 @@
 typedef struct _VkMesh
 {
 	Window window;
-	uint8_t drawIndex;
+	DrawIndex drawIndex;
 	size_t indexCount;
 	size_t indexOffset;
 	Buffer vertexBuffer;
@@ -14,7 +14,7 @@ typedef struct _VkMesh
 typedef struct _GlMesh
 {
 	Window window;
-	uint8_t drawIndex;
+	DrawIndex drawIndex;
 	size_t indexCount;
 	size_t indexOffset;
 	Buffer vertexBuffer;
@@ -30,7 +30,7 @@ union Mesh
 #if MPGX_SUPPORT_VULKAN
 inline static Mesh createVkMesh(
 	Window window,
-	uint8_t drawIndex,
+	DrawIndex drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
@@ -59,7 +59,7 @@ inline static void drawVkMesh(
 	VkCommandBuffer commandBuffer,
 	Mesh mesh)
 {
-	uint8_t drawIndex = mesh->vk.drawIndex;
+	DrawIndex drawIndex = mesh->vk.drawIndex;
 
 	VkIndexType vkDrawIndex;
 	VkDeviceSize vkIndexOffset;
@@ -105,7 +105,7 @@ inline static void drawVkMesh(
 
 inline static Mesh createGlMesh(
 	Window window,
-	uint8_t drawIndex,
+	DrawIndex drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
@@ -165,7 +165,7 @@ inline static void drawGlMesh(
 	if (pipeline->gl.onUniformsSet != NULL)
 		pipeline->gl.onUniformsSet(pipeline);
 
-	uint8_t drawIndex = mesh->gl.drawIndex;
+	DrawIndex drawIndex = mesh->gl.drawIndex;
 
 	GLenum glDrawIndex;
 	size_t glIndexOffset;

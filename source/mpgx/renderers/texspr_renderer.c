@@ -45,13 +45,13 @@ static size_t onRenderHandleDraw(
 Renderer createTexSprRenderer(
 	Transform transform,
 	Pipeline pipeline,
-	uint8_t sortingType,
+	RenderSorting sorting,
 	bool useCulling,
 	size_t capacity)
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
-	assert(sortingType < RENDER_SORTING_COUNT);
+	assert(sorting < RENDER_SORTING_COUNT);
 	assert(capacity != 0);
 
 	assert(strcmp(
@@ -61,7 +61,7 @@ Renderer createTexSprRenderer(
 	return createRenderer(
 		transform,
 		pipeline,
-		sortingType,
+		sorting,
 		useCulling,
 		onRenderHandleDestroy,
 		onRenderHandleDraw,

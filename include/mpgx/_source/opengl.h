@@ -55,7 +55,7 @@ inline static void assertOpenGL()
 }
 
 inline static bool getGlCompareOperator(
-	uint8_t compareOperator,
+	CompareOperator compareOperator,
 	GLenum* glCompareOperator)
 {
 	switch (compareOperator)

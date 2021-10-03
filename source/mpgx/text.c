@@ -908,7 +908,7 @@ size_t getTextIndexCount(Text text)
 
 Vec2F getTextOffset(
 	Text text,
-	uint8_t anchor)
+	InterfaceAnchor anchor)
 {
 	assert(text != NULL);
 	assert(anchor < INTERFACE_ANCHOR_COUNT);

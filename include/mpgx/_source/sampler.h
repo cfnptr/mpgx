@@ -8,14 +8,14 @@
 typedef struct _VkSampler
 {
 	Window window;
-	uint8_t minImageFilter;
-	uint8_t magImageFilter;
-	uint8_t minMipmapFilter;
+	ImageFilter minImageFilter;
+	ImageFilter magImageFilter;
+	ImageFilter minMipmapFilter;
 	bool useMipmapping;
-	uint8_t imageWrapX;
-	uint8_t imageWrapY;
-	uint8_t imageWrapZ;
-	uint8_t compareOperator;
+	ImageWrap imageWrapX;
+	ImageWrap imageWrapY;
+	ImageWrap imageWrapZ;
+	CompareOperator compareOperator;
 	bool useCompare;
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
@@ -26,14 +26,14 @@ typedef struct _VkSampler
 typedef struct _GlSampler
 {
 	Window window;
-	uint8_t minImageFilter;
-	uint8_t magImageFilter;
-	uint8_t minMipmapFilter;
+	ImageFilter minImageFilter;
+	ImageFilter magImageFilter;
+	ImageFilter minMipmapFilter;
 	bool useMipmapping;
-	uint8_t imageWrapX;
-	uint8_t imageWrapY;
-	uint8_t imageWrapZ;
-	uint8_t compareOperator;
+	ImageWrap imageWrapX;
+	ImageWrap imageWrapY;
+	ImageWrap imageWrapZ;
+	CompareOperator compareOperator;
 	bool useCompare;
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
@@ -47,7 +47,7 @@ union Sampler
 
 #if MPGX_SUPPORT_VULKAN
 inline static bool getVkImageFilter(
-	uint8_t imageFilter,
+	ImageFilter imageFilter,
 	VkFilter* vkImageFilter)
 {
 	if (imageFilter == NEAREST_IMAGE_FILTER)
@@ -66,7 +66,7 @@ inline static bool getVkImageFilter(
 	}
 }
 inline static bool getVkMipmapFilter(
-	uint8_t mipmapFilter,
+	ImageFilter mipmapFilter,
 	VkSamplerMipmapMode* vkMipmapFilter)
 {
 	if (mipmapFilter == NEAREST_IMAGE_FILTER)
@@ -85,7 +85,7 @@ inline static bool getVkMipmapFilter(
 	}
 }
 inline static bool getVkImageWrap(
-	uint8_t imageWrap,
+	ImageWrap imageWrap,
 	VkSamplerAddressMode* vkImageWrap)
 {
 	if (imageWrap == REPEAT_IMAGE_WRAP)
@@ -121,14 +121,14 @@ inline static bool getVkImageWrap(
 inline static Sampler createVkSampler(
 	VkDevice device,
 	Window window,
-	uint8_t minImageFilter,
-	uint8_t magImageFilter,
-	uint8_t minMipmapFilter,
+	ImageFilter minImageFilter,
+	ImageFilter magImageFilter,
+	ImageFilter minMipmapFilter,
 	bool useMipmapping,
-	uint8_t imageWrapX,
-	uint8_t imageWrapY,
-	uint8_t imageWrapZ,
-	uint8_t compareOperator,
+	ImageWrap imageWrapX,
+	ImageWrap imageWrapY,
+	ImageWrap imageWrapZ,
+	CompareOperator compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange,
 	float mipmapLodBias)
@@ -235,8 +235,8 @@ inline static void destroyVkSampler(
 #endif
 
 inline static bool getGlImageFilter(
-	uint8_t imageFilter,
-	uint8_t mipmapFilter,
+	ImageFilter imageFilter,
+	ImageFilter mipmapFilter,
 	bool useMipmapping,
 	GLenum* glImageFilter)
 {
@@ -296,7 +296,7 @@ inline static bool getGlImageFilter(
 	}
 }
 inline static bool getGlImageWrap(
-	uint8_t imageWrap,
+	ImageWrap imageWrap,
 	GLenum* glImageWrap)
 {
 	if (imageWrap == REPEAT_IMAGE_WRAP)
@@ -321,14 +321,14 @@ inline static bool getGlImageWrap(
 }
 inline static Sampler createGlSampler(
 	Window window,
-	uint8_t minImageFilter,
-	uint8_t magImageFilter,
-	uint8_t minMipmapFilter,
+	ImageFilter minImageFilter,
+	ImageFilter magImageFilter,
+	ImageFilter minMipmapFilter,
 	bool useMipmapping,
-	uint8_t imageWrapX,
-	uint8_t imageWrapY,
-	uint8_t imageWrapZ,
-	uint8_t compareOperator,
+	ImageWrap imageWrapX,
+	ImageWrap imageWrapY,
+	ImageWrap imageWrapZ,
+	CompareOperator compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange)
 {

@@ -5,7 +5,7 @@
 Renderer createTexSprRenderer(
 	Transform transform,
 	Pipeline pipeline,
-	uint8_t sortingType,
+	RenderSorting sortingType,
 	bool useCulling,
 	size_t capacity);
 Render createTexSprRender(

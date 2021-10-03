@@ -16,7 +16,7 @@ struct Transform
 	Vec3F position;
 	Vec3F scale;
 	Quat rotation;
-	uint8_t rotationType;
+	RotationType rotationType;
 	Mat4F model;
 	Transform parent;
 	bool isActive;
@@ -72,7 +72,7 @@ Transform createTransform(
 	Vec3F position,
 	Vec3F scale,
 	Quat rotation,
-	uint8_t rotationType,
+	RotationType rotationType,
 	Transform parent,
 	bool isActive)
 {
@@ -196,7 +196,7 @@ void setTransformRotation(
 	transform->rotation = rotation;
 }
 
-uint8_t getTransformRotationType(
+RotationType getTransformRotationType(
 	Transform transform)
 {
 	assert(transform != NULL);
@@ -204,7 +204,7 @@ uint8_t getTransformRotationType(
 }
 void setTransformRotationType(
 	Transform transform,
-	uint8_t rotationType)
+	RotationType rotationType)
 {
 	assert(transform != NULL);
 	assert(rotationType < ROTATION_TYPE_COUNT);
@@ -277,7 +277,7 @@ void updateTransformer(
 			parent = parent->parent;
 		}
 
-		uint8_t rotationType = transform->rotationType;
+		RotationType rotationType = transform->rotationType;
 
 		Mat4F model = identMat4F();
 

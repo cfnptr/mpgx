@@ -7,7 +7,7 @@ struct InterfaceElement
 {
 	Interface interface;
 	Transform transform;
-	uint8_t anchor;
+	InterfaceAnchor anchor;
 	Vec3F position;
 	Box2F bounds;
 	OnInterfaceElementDestroy onDestroy;
@@ -351,7 +351,7 @@ void updateInterface(Interface interface)
 
 InterfaceElement createInterfaceElement(
 	Interface interface,
-	uint8_t anchor,
+	InterfaceAnchor anchor,
 	Vec3F position,
 	Box2F bounds,
 	Transform transform,
@@ -478,7 +478,7 @@ void* getInterfaceElementHandle(
 	return element->handle;
 }
 
-uint8_t getInterfaceElementAnchor(
+InterfaceAnchor getInterfaceElementAnchor(
 	InterfaceElement element)
 {
 	assert(element != NULL);
@@ -486,7 +486,7 @@ uint8_t getInterfaceElementAnchor(
 }
 void setInterfaceElementAnchor(
 	InterfaceElement element,
-	uint8_t anchor)
+	InterfaceAnchor anchor)
 {
 	assert(element != NULL);
 	element->anchor = anchor;

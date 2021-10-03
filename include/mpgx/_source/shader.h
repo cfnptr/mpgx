@@ -17,7 +17,7 @@
 typedef struct _VkShader
 {
 	Window window;
-	uint8_t type;
+	ShaderType type;
 #if MPGX_SUPPORT_VULKAN
 	VkShaderModule handle;
 #endif
@@ -25,7 +25,7 @@ typedef struct _VkShader
 typedef struct _GlShader
 {
 	Window window;
-	uint8_t type;
+	ShaderType type;
 	GLuint handle;
 } _GlShader;
 union Shader
@@ -38,7 +38,7 @@ union Shader
 inline static Shader createVkShader(
 	VkDevice device,
 	Window window,
-	uint8_t type,
+	ShaderType type,
 	const void* code,
 	size_t size)
 {
@@ -88,7 +88,7 @@ inline static void destroyVkShader(
 #endif
 
 inline static bool getGlShaderType(
-	uint8_t shaderType,
+	ShaderType shaderType,
 	GLenum* glShaderType)
 {
 	if (shaderType == VERTEX_SHADER_TYPE)
@@ -113,7 +113,7 @@ inline static bool getGlShaderType(
 }
 inline static Shader createGlShader(
 	Window window,
-	uint8_t type,
+	ShaderType type,
 	const void* code,
 	size_t size,
 	GraphicsAPI api)

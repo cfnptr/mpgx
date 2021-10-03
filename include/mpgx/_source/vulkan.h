@@ -1706,7 +1706,7 @@ inline static void endVkWindowRender(
 }
 
 inline static bool getVkCompareOperator(
-	uint8_t compareOperator,
+	CompareOperator compareOperator,
 	VkCompareOp* vkCompareOperator)
 {
 	switch (compareOperator)

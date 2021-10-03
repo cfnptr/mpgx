@@ -5,7 +5,7 @@
 Renderer createDiffuseRenderer(
 	Transform transform,
 	Pipeline pipeline,
-	uint8_t sortingType,
+	RenderSorting sorting,
 	bool useCulling,
 	size_t capacity);
 Render createDiffuseRender(

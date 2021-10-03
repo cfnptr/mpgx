@@ -144,7 +144,7 @@ inline static Framebuffer createGlFramebuffer(
 		for (size_t i = 0; i < colorAttachmentCount; i++)
 		{
 			Image colorAttachment = _colorAttachments[i];
-			uint8_t format = colorAttachment->gl.format;
+			ImageFormat format = colorAttachment->gl.format;
 
 			switch (format)
 			{
@@ -179,7 +179,7 @@ inline static Framebuffer createGlFramebuffer(
 
 	if (depthStencilAttachment != NULL)
 	{
-		uint8_t format = depthStencilAttachment->gl.format;
+		ImageFormat format = depthStencilAttachment->gl.format;
 
 		switch (format)
 		{

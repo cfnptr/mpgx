@@ -43,7 +43,7 @@ typedef size_t(*OnRenderHandleDraw)(
 Renderer createRenderer(
 	Transform transform,
 	Pipeline pipeline,
-	uint8_t sortingType,
+	RenderSorting sorting,
 	bool useCulling,
 	OnRenderHandleDestroy onHandleDestroy,
 	OnRenderHandleDraw onHandleDraw,
@@ -56,11 +56,11 @@ Pipeline getRendererPipeline(Renderer renderer);
 OnRenderHandleDestroy getRendererOnHandleDestroy(Renderer renderer);
 OnRenderHandleDraw getRendererOnHandleDraw(Renderer renderer);
 
-uint8_t getRendererSortingType(
+RenderSorting getRendererSorting(
 	Renderer renderer);
-void setRendererSortingType(
+void setRendererSorting(
 	Renderer renderer,
-	uint8_t sortingType);
+	RenderSorting sorting);
 
 bool getRendererUseCulling(
 	Renderer renderer);

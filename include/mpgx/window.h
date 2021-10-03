@@ -343,17 +343,17 @@ typedef enum DrawIndex
 
 typedef struct PipelineState
 {
-	uint8_t drawMode;
-	uint8_t polygonMode;
-	uint8_t cullMode;
-	uint8_t depthCompareOperator;
-	uint8_t colorComponentWriteMask;
-	uint8_t srcColorBlendFactor;
-	uint8_t dstColorBlendFactor;
-	uint8_t srcAlphaBlendFactor;
-	uint8_t dstAlphaBlendFactor;
-	uint8_t colorBlendOperator;
-	uint8_t alphaBlendOperator;
+	DrawMode drawMode;
+	PolygonMode polygonMode;
+	CullMode cullMode;
+	CompareOperator depthCompareOperator;
+	ColorComponent colorComponentWriteMask;
+	BlendFactor srcColorBlendFactor;
+	BlendFactor dstColorBlendFactor;
+	BlendFactor srcAlphaBlendFactor;
+	BlendFactor dstAlphaBlendFactor;
+	BlendOperator colorBlendOperator;
+	BlendOperator alphaBlendOperator;
 	bool cullFace;
 	bool clockwiseFrontFace;
 	bool testDepth;
@@ -565,28 +565,28 @@ uint8_t getImageLevelCount(Vec3U imageSize);
 
 Sampler createSampler(
 	Window window,
-	uint8_t minImageFilter,
-	uint8_t magImageFilter,
-	uint8_t minMipmapFilter,
+	ImageFilter minImageFilter,
+	ImageFilter magImageFilter,
+	ImageFilter minMipmapFilter,
 	bool useMipmapping,
-	uint8_t imageWrapX,
-	uint8_t imageWrapY,
-	uint8_t imageWrapZ,
-	uint8_t compareOperator,
+	ImageWrap imageWrapX,
+	ImageWrap imageWrapY,
+	ImageWrap imageWrapZ,
+	CompareOperator compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange,
 	float mipmapLodBias);
 void destroySampler(Sampler sampler);
 
 Window getSamplerWindow(Sampler sampler);
-uint8_t getSamplerMinImageFilter(Sampler sampler);
-uint8_t getSamplerMagImageFilter(Sampler sampler);
-uint8_t getSamplerMinMipmapFilter(Sampler sampler);
+ImageFilter getSamplerMinImageFilter(Sampler sampler);
+ImageFilter getSamplerMagImageFilter(Sampler sampler);
+ImageFilter getSamplerMinMipmapFilter(Sampler sampler);
 bool isSamplerUseMipmapping(Sampler sampler);
-uint8_t getSamplerImageWrapX(Sampler sampler);
-uint8_t getSamplerImageWrapY(Sampler sampler);
-uint8_t getSamplerImageWrapZ(Sampler sampler);
-uint8_t getSamplerCompareOperator(Sampler sampler);
+ImageWrap getSamplerImageWrapX(Sampler sampler);
+ImageWrap getSamplerImageWrapY(Sampler sampler);
+ImageWrap getSamplerImageWrapZ(Sampler sampler);
+CompareOperator getSamplerCompareOperator(Sampler sampler);
 bool isSamplerUseCompare(Sampler sampler);
 Vec2F getSamplerMipmapLodRange(Sampler sampler);
 float getSamplerMipmapLodBias(Sampler sampler);
@@ -619,17 +619,17 @@ void clearFramebuffer(
 
 Shader createShader(
 	Window window,
-	uint8_t type,
+	ShaderType type,
 	const void* code,
 	size_t size);
 Shader createShaderFromFile(
 	Window window,
-	uint8_t type,
+	ShaderType type,
 	const char* filePath);
 void destroyShader(Shader shader);
 
 Window getShaderWindow(Shader shader);
-uint8_t getShaderType(Shader shader);
+ShaderType getShaderType(Shader shader);
 
 Pipeline createPipeline(
 	Window window,
@@ -661,7 +661,7 @@ void bindPipeline(Pipeline pipeline);
 
 Mesh createMesh(
 	Window window,
-	uint8_t drawIndex,
+	DrawIndex drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
@@ -671,7 +671,7 @@ void destroyMesh(
 	bool destroyBuffers);
 
 Window getMeshWindow(Mesh mesh);
-uint8_t getMeshDrawIndex(Mesh mesh);
+DrawIndex getMeshDrawIndex(Mesh mesh);
 
 size_t getMeshIndexCount(
 	Mesh mesh);
@@ -695,7 +695,7 @@ Buffer getMeshIndexBuffer(
 	Mesh mesh);
 void setMeshIndexBuffer(
 	Mesh mesh,
-	uint8_t drawIndex,
+	DrawIndex drawIndex,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer indexBuffer);

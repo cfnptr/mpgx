@@ -65,7 +65,7 @@ typedef struct VkPipelineCreateInfo
 } VkPipelineCreateInfo;
 
 inline static bool getVkShaderType(
-	uint8_t shaderType,
+	ShaderType shaderType,
 	VkShaderStageFlagBits* vkShaderType)
 {
 	switch (shaderType)
@@ -93,7 +93,7 @@ inline static bool getVkShaderType(
 	}
 }
 inline static bool getVkDrawMode(
-	uint8_t drawMode,
+	DrawMode drawMode,
 	VkPrimitiveTopology* vkDrawMode)
 {
 	switch (drawMode)
@@ -136,7 +136,7 @@ inline static bool getVkDrawMode(
 	}
 }
 inline static bool getVkPolygonMode(
-	uint8_t polygonMode,
+	PolygonMode polygonMode,
 	VkPolygonMode* vkPolygonMode)
 {
 	if (polygonMode == POINT_POLYGON_MODE)
@@ -160,7 +160,7 @@ inline static bool getVkPolygonMode(
 	}
 }
 inline static bool getVkCullMode(
-	uint8_t cullMode,
+	CullMode cullMode,
 	bool cullFace,
 	VkCullModeFlags* vkCullMode)
 {
@@ -191,7 +191,7 @@ inline static bool getVkCullMode(
 	}
 }
 inline static bool getVkBlendFactor(
-	uint8_t blendFactor,
+	BlendFactor blendFactor,
 	VkBlendFactor* vkBlendFactor)
 {
 	switch (blendFactor)
@@ -258,7 +258,7 @@ inline static bool getVkBlendFactor(
 	}
 }
 inline static bool getVkBlendOperator(
-	uint8_t blendOperator,
+	BlendOperator blendOperator,
 	VkBlendOp* vkBlendOperator)
 {
 	switch (blendOperator)
@@ -759,7 +759,7 @@ inline static void bindVkPipeline(
 #endif
 
 inline static bool getGlDrawMode(
-	uint8_t drawMode,
+	DrawMode drawMode,
 	GLenum* glDrawMode)
 {
 	switch (drawMode)
@@ -790,7 +790,7 @@ inline static bool getGlDrawMode(
 	}
 }
 inline static bool getGlPolygonMode(
-	uint8_t polygonMode,
+	PolygonMode polygonMode,
 	GLenum* _glPolygonMode)
 {
 	if (polygonMode == POINT_POLYGON_MODE)
@@ -814,7 +814,7 @@ inline static bool getGlPolygonMode(
 	}
 }
 inline static bool getGlCullMode(
-	uint8_t cullMode,
+	CullMode cullMode,
 	GLenum* glCullMode)
 {
 	if (cullMode == FRONT_CULL_MODE)
@@ -838,7 +838,7 @@ inline static bool getGlCullMode(
 	}
 }
 inline static bool getGlBlendFactor(
-	uint8_t blendFactor,
+	BlendFactor blendFactor,
 	GLenum* glBlendFactor)
 {
 	switch (blendFactor)
@@ -893,7 +893,7 @@ inline static bool getGlBlendFactor(
 	}
 }
 inline static bool getGlBlendOperator(
-	uint8_t blendOperator,
+	BlendOperator blendOperator,
 	GLenum* glBlendOperator)
 {
 	switch (blendOperator)
@@ -1168,7 +1168,7 @@ inline static void bindGlPipeline(
 		glDisable(GL_CULL_FACE);
 	}
 
-	uint8_t colorMask =
+	ColorComponent colorMask =
 		pipeline->gl.state.colorComponentWriteMask;
 
 	glColorMask(

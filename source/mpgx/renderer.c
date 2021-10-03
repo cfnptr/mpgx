@@ -20,7 +20,7 @@ struct Renderer
 {
 	Transform transform;
 	Pipeline pipeline;
-	uint8_t sortingType;
+	RenderSorting sorting;
 	bool useCulling;
 	OnRenderHandleDestroy onHandleDestroy;
 	OnRenderHandleDraw onHandleDraw;
@@ -33,7 +33,7 @@ struct Renderer
 Renderer createRenderer(
 	Transform transform,
 	Pipeline pipeline,
-	uint8_t sortingType,
+	RenderSorting sorting,
 	bool useCulling,
 	OnRenderHandleDestroy onHandleDestroy,
 	OnRenderHandleDraw onHandleDraw,
@@ -41,7 +41,7 @@ Renderer createRenderer(
 {
 	assert(transform != NULL);
 	assert(pipeline != NULL);
-	assert(sortingType < RENDER_SORTING_COUNT);
+	assert(sorting < RENDER_SORTING_COUNT);
 	assert(onHandleDestroy != NULL);
 	assert(onHandleDraw != NULL);
 	assert(capacity != 0);
@@ -73,7 +73,7 @@ Renderer createRenderer(
 
 	renderer->transform = transform;
 	renderer->pipeline = pipeline;
-	renderer->sortingType = sortingType;
+	renderer->sorting = sorting;
 	renderer->useCulling = useCulling;
 	renderer->onHandleDestroy = onHandleDestroy;
 	renderer->onHandleDraw = onHandleDraw;
@@ -133,19 +133,19 @@ OnRenderHandleDraw getRendererOnHandleDraw(Renderer renderer)
 	return renderer->onHandleDraw;
 }
 
-uint8_t getRendererSortingType(
+RenderSorting getRendererSorting(
 	Renderer renderer)
 {
 	assert(renderer != NULL);
-	return renderer->sortingType;
+	return renderer->sorting;
 }
-void setRendererSortingType(
+void setRendererSorting(
 	Renderer renderer,
-	uint8_t sortingType)
+	RenderSorting sorting)
 {
 	assert(renderer != NULL);
-	assert(sortingType < RENDER_SORTING_COUNT);
-	renderer->sortingType = sortingType;
+	assert(sorting < RENDER_SORTING_COUNT);
+	renderer->sorting = sorting;
 }
 
 bool getRendererUseCulling(
@@ -460,9 +460,9 @@ RenderResult drawRenderer(
 
 	if (elementCount > 1)
 	{
-		uint8_t sortingType = renderer->sortingType;
+		RenderSorting sorting = renderer->sorting;
 
-		if (sortingType == ASCENDING_RENDER_SORTING)
+		if (sorting == ASCENDING_RENDER_SORTING)
 		{
 			qsort(
 				renderElements,
@@ -470,7 +470,7 @@ RenderResult drawRenderer(
 				sizeof(RenderElement),
 				ascendingRenderCompare);
 		}
-		else if (sortingType == DESCENDING_RENDER_SORTING)
+		else if (sorting == DESCENDING_RENDER_SORTING)
 		{
 			qsort(
 				renderElements,

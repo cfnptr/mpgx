@@ -39,7 +39,7 @@ size_t getTextIndexCount(Text text);
 
 Vec2F getTextOffset(
 	Text text,
-	uint8_t anchor);
+	InterfaceAnchor anchor);
 size_t getTextUnicodeCharCount(
 	Text text);
 bool getTextUnicodeCharAdvance(

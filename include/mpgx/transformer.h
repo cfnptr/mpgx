@@ -23,7 +23,7 @@ Transform createTransform(
 	Vec3F position,
 	Vec3F scale,
 	Quat rotation,
-	uint8_t rotationType,
+	RotationType rotationType,
 	Transform parent,
 	bool isActive);
 void destroyTransform(Transform transform);
@@ -49,11 +49,11 @@ void setTransformRotation(
 	Transform transform,
 	Quat rotation);
 
-uint8_t getTransformRotationType(
+RotationType getTransformRotationType(
 	Transform transform);
 void setTransformRotationType(
 	Transform transform,
-	uint8_t rotationType);
+	RotationType rotationType);
 
 Transform getTransformParent(
 	Transform transform);

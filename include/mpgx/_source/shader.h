@@ -12,6 +12,8 @@
 	"precision highp float;\n"  \
 	"precision highp int;\n"
 
+#include <string.h>
+
 typedef struct _VkShader
 {
 	Window window;
@@ -140,12 +142,12 @@ inline static Shader createGlShader(
 	if (api == OPENGL_GRAPHICS_API)
 	{
 		sources[0] = OPENGL_SHADER_HEADER;
-		lengths[0] = strlen(OPENGL_SHADER_HEADER);
+		lengths[0] = (GLint)strlen(OPENGL_SHADER_HEADER);
 	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
 	{
 		sources[0] = OPENGL_ES_SHADER_HEADER;
-		lengths[0] = strlen(OPENGL_ES_SHADER_HEADER);
+		lengths[0] = (GLint)strlen(OPENGL_ES_SHADER_HEADER);
 	}
 	else
 	{

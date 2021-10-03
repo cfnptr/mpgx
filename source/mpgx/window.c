@@ -138,6 +138,7 @@ bool initializeGraphics(
 		return false;
 	}
 
+#ifndef NDEBUG
 	vkDebugUtilsMessenger =
 		createVkDebugUtilsMessenger(vkInstance);
 
@@ -152,6 +153,8 @@ bool initializeGraphics(
 	}
 #endif
 
+#endif
+
 	graphicsInitialized = true;
 	return true;
 }
@@ -160,9 +163,13 @@ void terminateGraphics()
 	assert(graphicsInitialized == true);
 
 #if MPGX_SUPPORT_VULKAN
+
+#ifndef NDEBUG
 	destroyVkDebugUtilsMessenger(
 		vkInstance,
 		vkDebugUtilsMessenger);
+#endif
+
 	vkDestroyInstance(
 		vkInstance,
 		NULL);

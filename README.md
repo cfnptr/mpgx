@@ -43,7 +43,7 @@ cmake --build build/
 | MPGX_USE_VULKAN     | Use modern Vulkan API library | ON            |
 
 ## Third-party
-* [cmmt](https://github.com/cfnptr/cmmt/) (BSD-3-Clause License)
+* [cmmt](https://github.com/cfnptr/cmmt/) (Apache-2.0 License)
 * [freetype](https://www.freetype.org/) (FreeType License)
 * [glad](https://glad.dav1d.de/) (MIT License)
 * [glfw](https://www.glfw.org/) (Zlib License)

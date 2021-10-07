@@ -868,12 +868,15 @@ inline static VkSwapchain createVkSwapchain(
 	Window window,
 	VkSurfaceKHR surface,
 	VkPhysicalDevice physicalDevice,
+	bool isGpuIntegrated,
 	uint32_t graphicsQueueFamilyIndex,
 	uint32_t presentQueueFamilyIndex,
 	VkDevice device,
 	VmaAllocator allocator,
+	VkQueue graphicsQueue,
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
+	VkCommandPool transferCommandPool,
 	bool useStencilBuffer,
 	Vec2U framebufferSize)
 {
@@ -984,13 +987,20 @@ inline static VkSwapchain createVkSwapchain(
 
 	// TODO: possibly optimize with fully dedicated memory block
 	Image depthImage = createVkImage(
+		device,
 		allocator,
+		graphicsQueue,
+		transferCommandPool,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		depthFormat,
+		isGpuIntegrated,
 		window,
 		IMAGE_2D_TYPE,
 		IMAGE_FORMAT_COUNT,
-		imageSize);
+		NULL,
+		imageSize,
+		1,
+		true);
 
 	if (depthImage == NULL)
 	{
@@ -1123,12 +1133,15 @@ inline static bool resizeVkSwapchain(
 	Window window,
 	VkSurfaceKHR surface,
 	VkPhysicalDevice physicalDevice,
+	bool isGpuIntegrated,
 	uint32_t graphicsQueueFamilyIndex,
 	uint32_t presentQueueFamilyIndex,
 	VkDevice device,
 	VmaAllocator allocator,
+	VkQueue graphicsQueue,
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
+	VkCommandPool transferCommandPool,
 	VkSwapchain swapchain,
 	bool useStencilBuffer,
 	Vec2U framebufferSize)
@@ -1246,13 +1259,20 @@ inline static bool resizeVkSwapchain(
 
 	// TODO: possibly optimize with fully dedicated memory block
 	Image depthImage = createVkImage(
+		device,
 		allocator,
+		graphicsQueue,
+		transferCommandPool,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		depthFormat,
+		isGpuIntegrated,
 		window,
 		IMAGE_2D_TYPE,
 		IMAGE_FORMAT_COUNT,
-		imageSize);
+		NULL,
+		imageSize,
+		1,
+		true);
 
 	if (depthImage == NULL)
 		return false;

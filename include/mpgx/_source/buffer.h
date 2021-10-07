@@ -14,10 +14,7 @@
 
 #pragma once
 #include "mpgx/_source/opengl.h"
-
-#if MPGX_SUPPORT_VULKAN
-#include "mpgx/_source/vulkan.h"
-#endif
+#include <string.h>
 
 // TODO: possibly add buffer map/unmap functions
 // https://github.com/InjectorGames/InjectorEngine/blob/master/Source/Graphics/Vulkan/VkGpuBuffer.cpp
@@ -105,7 +102,7 @@ inline static Buffer createVkBuffer(
 	if (buffer == NULL)
 		return NULL;
 
-	VkBufferUsageFlags vkUsage;
+	VkBufferUsageFlags vkUsage = _vkUsage;
 
 	switch (type)
 	{
@@ -113,33 +110,29 @@ inline static Buffer createVkBuffer(
 		free(buffer);
 		return NULL;
 	case VERTEX_BUFFER_TYPE:
-		vkUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		break;
 	case INDEX_BUFFER_TYPE:
-		vkUsage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+		vkUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		break;
 	case UNIFORM_BUFFER_TYPE:
-		vkUsage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		vkUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		break;
 	}
 
-	VkBufferUsageFlagBits usage = vkUsage | _vkUsage;
-
 	if (data != NULL)
-		usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 	VkBufferCreateInfo bufferCreateInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 		NULL,
 		0,
 		size,
-		usage,
+		vkUsage,
 		VK_SHARING_MODE_EXCLUSIVE,
 		0,
 		NULL,
 	};
-
-	bool isGpuIntegrated = isVkGpuIntegrated(window);
 
 	VmaAllocationCreateInfo allocationCreateInfo;
 
@@ -151,19 +144,12 @@ inline static Buffer createVkBuffer(
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 
-	// TODO: investigate if this solution optimal
+	bool isGpuIntegrated = isVkGpuIntegrated(window);
 
-	if (isGpuIntegrated == true)
-	{
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-	}
+	if (isConstant == true && isGpuIntegrated == false)
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	else
-	{
-		if (isConstant == true)
-			allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-		else
-			allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-	}
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
 	VkBuffer handle;
 	VmaAllocation allocation;
@@ -186,6 +172,31 @@ inline static Buffer createVkBuffer(
 	{
 		if (isConstant == true && isGpuIntegrated == false)
 		{
+			VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+				VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+				NULL,
+				transferCommandPool,
+				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				1,
+			};
+
+			VkCommandBuffer commandBuffer;
+
+			vkResult = vkAllocateCommandBuffers(
+				device,
+				&commandBufferAllocateInfo,
+				&commandBuffer);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
+
 			bufferCreateInfo.usage = vkUsage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
@@ -202,6 +213,11 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
+				vkFreeCommandBuffers(
+					device,
+					transferCommandPool,
+					1,
+					&commandBuffer);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -223,35 +239,11 @@ inline static Buffer createVkBuffer(
 					allocator,
 					stagingBuffer,
 					stagingAllocation);
-				vmaDestroyBuffer(
-					allocator,
-					handle,
-					allocation);
-				free(buffer);
-				return NULL;
-			}
-
-			VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-				VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-				NULL,
-				transferCommandPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				1,
-			};
-
-			VkCommandBuffer commandBuffer;
-
-			vkResult = vkAllocateCommandBuffers(
-				device,
-				&commandBufferAllocateInfo,
-				&commandBuffer);
-
-			if (vkResult != VK_SUCCESS)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
+				vkFreeCommandBuffers(
+					device,
+					transferCommandPool,
+					1,
+					&commandBuffer);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -273,15 +265,15 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
 				vkFreeCommandBuffers(
 					device,
 					transferCommandPool,
 					1,
 					&commandBuffer);
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -307,15 +299,15 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
 				vkFreeCommandBuffers(
 					device,
 					transferCommandPool,
 					1,
 					&commandBuffer);
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -344,15 +336,15 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
 				vkFreeCommandBuffers(
 					device,
 					transferCommandPool,
 					1,
 					&commandBuffer);
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -365,15 +357,15 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
 				vkFreeCommandBuffers(
 					device,
 					transferCommandPool,
 					1,
 					&commandBuffer);
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -382,15 +374,15 @@ inline static Buffer createVkBuffer(
 				return NULL;
 			}
 
+			vmaDestroyBuffer(
+				allocator,
+				stagingBuffer,
+				stagingAllocation);
 			vkFreeCommandBuffers(
 				device,
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
 		}
 		else
 		{

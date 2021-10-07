@@ -26,8 +26,6 @@
 #include "cmmt/common.h"
 #include <stdio.h>
 
-// TODO: OpenGL renderbuffer optimization
-
 // TODO: replace fopen with file funcs
 
 struct ImageData
@@ -1746,7 +1744,8 @@ Image createImage(
 	ImageFormat format,
 	const void** data,
 	Vec3U size,
-	uint8_t levelCount)
+	uint8_t levelCount,
+	bool isConstant)
 {
 	assert(window != NULL);
 	assert(type < IMAGE_TYPE_COUNT);
@@ -1755,7 +1754,6 @@ Image createImage(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
-	assert(levelCount >= 0);
 	assert(levelCount <= getImageLevelCount(size));
 	assert(window->isRecording == false);
 
@@ -1766,14 +1764,23 @@ Image createImage(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+
 		image = createVkImage(
-			window->vkWindow->allocator,
-			0,
+			vkWindow->device,
+			vkWindow->allocator,
+			vkWindow->graphicsQueue,
+			vkWindow->transferCommandPool,
+			VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_FORMAT_UNDEFINED,
+			vkWindow->isGpuIntegrated,
 			window,
 			type,
 			format,
-			size);
+			data,
+			size,
+			levelCount,
+			isConstant);
 #else
 		abort();
 #endif
@@ -1785,9 +1792,10 @@ Image createImage(
 			window,
 			type,
 			format,
-			size,
 			data,
-			levelCount);
+			size,
+			levelCount,
+			isConstant);
 	}
 	else
 	{
@@ -1844,7 +1852,8 @@ Image createImageFromFile(
 	Window window,
 	ImageFormat format,
 	const char* filePath,
-	bool generateMipmap)
+	bool generateMipmap,
+	bool isConstant)
 {
 	assert(window != NULL);
 	assert(filePath != NULL);
@@ -1876,7 +1885,8 @@ Image createImageFromFile(
 		format,
 		(const void**)&pixels,
 		vec3U(width, height, 1),
-		generateMipmap ? 0 : 1);
+		generateMipmap ? 0 : 1,
+		isConstant);
 
 	stbi_image_free(pixels);
 	return image;
@@ -1886,7 +1896,8 @@ Image createImageFromData(
 	ImageFormat format,
 	const void* data,
 	size_t size,
-	bool generateMipmap)
+	bool generateMipmap,
+	bool isConstant)
 {
 	assert(window != NULL);
 	assert(data != NULL);
@@ -1923,7 +1934,8 @@ Image createImageFromData(
 		format,
 		(const void**)&pixels,
 		vec3U(width, height, 1),
-		generateMipmap ? 0 : 1);
+		generateMipmap ? 0 : 1,
+		isConstant);
 
 	stbi_image_free(pixels);
 	return image;
@@ -1997,9 +2009,8 @@ void setImageData(
 	assert(size.x + offset.x <= image->vk.size.x);
 	assert(size.y + offset.y <= image->vk.size.y);
 	assert(size.z + offset.z <= image->vk.size.z);
+	assert(image->vk.isConstant == false);
 	assert(image->vk.window->isRecording == false);
-
-	// TODO: check for static image in Vulkan API
 
 	GraphicsAPI api = image->vk.window->api;
 
@@ -2049,6 +2060,11 @@ Vec3U getImageSize(Image image)
 {
 	assert(image != NULL);
 	return image->vk.size;
+}
+bool isImageConstant(Image image)
+{
+	assert(image != NULL);
+	return image->vk.isConstant;
 }
 
 uint8_t getImageLevelCount(Vec3U imageSize)

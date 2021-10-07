@@ -17,6 +17,7 @@
 
 #if MPGX_SUPPORT_VULKAN
 #define GLFW_INCLUDE_VULKAN
+#include "vk_mem_alloc.h"
 #endif
 
 #include "glad/glad.h"

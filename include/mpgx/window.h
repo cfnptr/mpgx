@@ -551,18 +551,21 @@ Image createImage(
 	ImageFormat format,
 	const void** data,
 	Vec3U size,
-	uint8_t levelCount);
+	uint8_t levelCount,
+	bool isConstant);
 Image createImageFromFile(
 	Window window,
 	ImageFormat format,
 	const char* filePath,
-	bool generateMipmap);
+	bool generateMipmap,
+	bool isConstant);
 Image createImageFromData(
 	Window window,
 	ImageFormat format,
 	const void* data,
 	size_t size,
-	bool generateMipmap);
+	bool generateMipmap,
+	bool isConstant);
 void destroyImage(Image image);
 
 void setImageData(
@@ -575,6 +578,8 @@ Window getImageWindow(Image image);
 ImageType getImageType(Image image);
 ImageFormat getImageFormat(Image image);
 Vec3U getImageSize(Image image);
+bool isImageConstant(Image image);
+
 uint8_t getImageLevelCount(Vec3U imageSize);
 
 Sampler createSampler(

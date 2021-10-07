@@ -19,7 +19,7 @@ layout(location = 0) out vec4 o_Color;
 
 layout(push_constant) uniform PushConstant
 {
-    vec4 color;
+    layout(offset = 64) vec4 color;
 } p;
 
 layout(binding = 0) uniform sampler2D u_Texture;

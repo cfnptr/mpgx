@@ -31,6 +31,10 @@ typedef struct Text* Text;
 
 // TODO: add text fallback fonts
 
+// TODO: add text mode ->
+// generate texture once on init from string
+// and use for rendering
+
 Font createFont(
 	const void* data,
 	size_t size);

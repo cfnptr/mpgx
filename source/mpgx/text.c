@@ -42,6 +42,10 @@ struct Text
 	Mesh mesh;
 	Vec2F textSize;
 	size_t uniCharCount;
+#if MPGX_SUPPORT_VULKAN
+	VkImageView imageView;
+	VkDescriptorSet* descriptorSets;
+#endif
 };
 
 typedef struct Glyph
@@ -58,6 +62,11 @@ typedef struct VkPipelineHandle
 	Sampler sampler;
 	Mat4F mvp;
 	Vec4F color;
+#if MPGX_SUPPORT_VULKAN
+	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorPool descriptorPool;
+	uint32_t bufferCount;
+#endif
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
@@ -622,7 +631,8 @@ Text createText(
 			R8G8B8A8_UNORM_IMAGE_FORMAT,
 			(const void**)&pixels,
 			vec3U(fontSize, fontSize, 1),
-			1);
+			1,
+			isConstant);
 
 		if (texture == NULL)
 		{
@@ -763,7 +773,8 @@ Text createText(
 			R8G8B8A8_UNORM_IMAGE_FORMAT,
 			(const void**)&pixels,
 			vec3U(pixelLength, pixelLength, 1),
-			1);
+			1,
+			isConstant);
 
 		free(pixels);
 
@@ -1229,7 +1240,8 @@ bool bakeText(
 					R8G8B8A8_UNORM_IMAGE_FORMAT,
 					(const void**)&pixels,
 					vec3U(pixelLength, pixelLength, 1),
-					1);
+					1,
+					false);
 
 				free(pixels);
 				pixels = NULL;
@@ -1402,7 +1414,8 @@ bool bakeText(
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
 				(const void**)&pixels,
 				vec3U(text->fontSize, text->fontSize, 1),
-				1);
+				1,
+				false);
 
 			if (texture == NULL)
 			{
@@ -1541,7 +1554,8 @@ bool bakeText(
 				R8G8B8A8_UNORM_IMAGE_FORMAT,
 				(const void**)&pixels,
 				vec3U(pixelLength, pixelLength, 1),
-				1);
+				1,
+				false);
 
 			free(pixels);
 
@@ -1702,6 +1716,303 @@ Sampler createTextSampler(Window window)
 		DEFAULT_MIPMAP_LOD_BIAS);
 }
 
+#if MPGX_SUPPORT_VULKAN
+static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
+	{
+		0,
+		sizeof(Vec2F) * 2,
+		VK_VERTEX_INPUT_RATE_VERTEX,
+	},
+};
+static const VkVertexInputAttributeDescription vertexInputAttributeDescriptions[2] = {
+	{
+		0,
+		0,
+		VK_FORMAT_R32G32_SFLOAT,
+		0,
+	},
+	{
+		1,
+		0,
+		VK_FORMAT_R32G32_SFLOAT,
+		sizeof(Vec2F),
+	},
+};
+static const VkPushConstantRange pushConstantRanges[2] = {
+	{
+		VK_SHADER_STAGE_VERTEX_BIT,
+		0,
+		sizeof(Mat4F),
+	},
+	{
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		sizeof(Mat4F),
+		sizeof(Vec4F),
+	},
+};
+
+inline static VkDescriptorSetLayout createVkDescriptorSetLayout(
+	VkDevice device)
+{
+	VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[1] = {
+		{
+			0,
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			1,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			NULL,
+		},
+	};
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		NULL,
+		0,
+		1,
+		descriptorSetLayoutBindings,
+	};
+
+	VkDescriptorSetLayout descriptorSetLayout;
+
+	VkResult result = vkCreateDescriptorSetLayout(
+		device,
+		&descriptorSetLayoutCreateInfo,
+		NULL,
+		&descriptorSetLayout);
+
+	if(result != VK_SUCCESS)
+		return NULL;
+
+	return descriptorSetLayout;
+}
+inline static VkDescriptorPool createVkDescriptorPool(
+	VkDevice device,
+	uint32_t bufferCount)
+{
+	VkDescriptorPoolSize descriptorPoolSizes[1] = {
+		{
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			bufferCount,
+		},
+	};
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		NULL,
+		0,
+		bufferCount,
+		1,
+		descriptorPoolSizes,
+	};
+
+	VkDescriptorPool descriptorPool;
+
+	VkResult result = vkCreateDescriptorPool(
+		device,
+		&descriptorPoolCreateInfo,
+		NULL,
+		&descriptorPool);
+
+	if (result != VK_SUCCESS)
+		return NULL;
+
+	return descriptorPool;
+}
+
+static void onVkHandleDestroy(
+	Window window,
+	void* handle)
+{
+	PipelineHandle* pipelineHandle = handle;
+	VkWindow vkWindow = getVkWindow(window);
+	VkDevice device = vkWindow->device;
+
+	vkDestroyDescriptorPool(
+		device,
+		pipelineHandle->vk.descriptorPool,
+		NULL);
+	vkDestroyDescriptorSetLayout(
+		device,
+		pipelineHandle->vk.descriptorSetLayout,
+		NULL);
+	free(pipelineHandle);
+}
+static void onVkUniformsSet(Pipeline pipeline)
+{
+	PipelineHandle* handle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
+	VkPipelineLayout layout = pipeline->vk.layout;
+
+	vkCmdPushConstants(
+		commandBuffer,
+		layout,
+		VK_SHADER_STAGE_VERTEX_BIT,
+		0,
+		sizeof(Mat4F),
+		&handle->vk.mvp);
+	vkCmdPushConstants(
+		commandBuffer,
+		layout,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		sizeof(Mat4F),
+		sizeof(Vec4F),
+		&handle->vk.color);
+}
+static void onVkHandleBind(Pipeline pipeline)
+{
+	PipelineHandle* handle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	uint32_t bufferIndex = vkWindow->bufferIndex;
+
+	// TODO:
+	/* vkCmdBindDescriptorSets(
+		vkWindow->currenCommandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		pipeline->vk.layout,
+		0,
+		1,
+		&handle->vk.descriptorSets[bufferIndex],
+		0,
+		NULL); */
+}
+static void onVkHandleResize(
+	Pipeline pipeline,
+	void* createInfo)
+{
+	Window window = pipeline->vk.window;
+	VkWindow vkWindow = getVkWindow(window);
+	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
+	PipelineHandle* handle = pipeline->vk.handle;
+
+	// TODO:
+	/*if (bufferCount != handle->vk.bufferCount)
+	{
+		VkDevice device = vkWindow->device;
+
+		free(handle->vk.descriptorSets);
+
+		vkDestroyDescriptorPool(
+			device,
+			handle->vk.descriptorPool,
+			NULL);
+
+		VkDescriptorPool descriptorPool = createVkDescriptorPool(
+			device,
+			bufferCount);
+
+		if (descriptorPool == NULL)
+			abort();
+
+		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+			device,
+			handle->vk.descriptorSetLayout,
+			descriptorPool,
+			bufferCount,
+			handle->vk.sampler->vk.handle,
+			handle->vk.imageView);
+
+		if (descriptorSets == NULL)
+			abort();
+
+		handle->vk.descriptorPool = descriptorPool;
+		handle->vk.descriptorSets = descriptorSets;
+		handle->vk.bufferCount = bufferCount;
+	}*/
+
+	Vec2U framebufferSize =
+		getWindowFramebufferSize(window);
+	Vec4I size = vec4I(0, 0,
+		(int32_t)framebufferSize.x,
+		(int32_t)framebufferSize.y);
+	pipeline->vk.state.viewport = size;
+	pipeline->vk.state.scissor = size;
+
+	VkPipelineCreateInfo _createInfo = {
+		1,
+		vertexInputBindingDescriptions,
+		2,
+		vertexInputAttributeDescriptions,
+		1,
+		&handle->vk.descriptorSetLayout,
+		2,
+		pushConstantRanges,
+	};
+
+	*(VkPipelineCreateInfo*)createInfo = _createInfo;
+}
+inline static Pipeline createVkHandle(
+	Window window,
+	Shader* shaders,
+	uint8_t shaderCount,
+	const PipelineState* state,
+	PipelineHandle* handle)
+{
+	VkWindow vkWindow = getVkWindow(window);
+	VkDevice device = vkWindow->device;
+
+	VkDescriptorSetLayout descriptorSetLayout =
+		createVkDescriptorSetLayout(device);
+
+	if (descriptorSetLayout == NULL)
+		return NULL;
+
+	VkPipelineCreateInfo createInfo = {
+		1,
+		vertexInputBindingDescriptions,
+		2,
+		vertexInputAttributeDescriptions,
+		1,
+		&descriptorSetLayout,
+		2,
+		pushConstantRanges,
+	};
+
+	Pipeline pipeline = createPipeline(
+		window,
+		TEXT_PIPELINE_NAME,
+		shaders,
+		shaderCount,
+		state,
+		onVkHandleDestroy,
+		onVkHandleBind,
+		onVkUniformsSet,
+		onVkHandleResize,
+		handle,
+		&createInfo);
+
+	if (pipeline == NULL)
+	{
+		vkDestroyDescriptorSetLayout(
+			device,
+			descriptorSetLayout,
+			NULL);
+		return NULL;
+	}
+
+	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
+
+	VkDescriptorPool descriptorPool = createVkDescriptorPool(
+		device,
+		bufferCount);
+
+	if (descriptorPool == NULL)
+	{
+		destroyPipeline(
+			pipeline,
+			false);
+		vkDestroyDescriptorSetLayout(
+			device,
+			descriptorSetLayout,
+			NULL);
+		return NULL;
+	}
+
+	handle->vk.descriptorSetLayout = descriptorSetLayout;
+	handle->vk.descriptorPool = descriptorPool;
+	handle->vk.bufferCount = bufferCount;
+	return pipeline;
+}
+#endif
+
 static void onGlHandleDestroy(
 	Window window,
 	void* handle)
@@ -1857,7 +2168,20 @@ Pipeline createExtTextPipeline(
 
 	Pipeline pipeline;
 
-	if (api == OPENGL_GRAPHICS_API ||
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		pipeline = createVkHandle(
+			window,
+			shaders,
+			2,
+			state,
+			handle);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		pipeline = createGlHandle(

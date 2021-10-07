@@ -15,10 +15,6 @@
 #pragma once
 #include "mpgx/_source/opengl.h"
 
-#if MPGX_SUPPORT_VULKAN
-#include "mpgx/_source/vulkan.h"
-#endif
-
 typedef struct _VkSampler
 {
 	Window window;

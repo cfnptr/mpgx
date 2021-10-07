@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TODO: OpenGL renderbuffer optimization
+
 #pragma once
 #include "mpgx/_source/image.h"
 
@@ -53,8 +55,32 @@ inline static Framebuffer createVkFramebuffer(
 	if (framebuffer == NULL)
 		return NULL;
 
+	Image* colorAttachments;
+
+	if (_colorAttachments != NULL)
+	{
+		colorAttachments = malloc(
+			sizeof(Image) * colorAttachmentCount);
+
+		if (colorAttachments == NULL)
+		{
+			free(framebuffer);
+			return NULL;
+		}
+
+		for (size_t i = 0; i < colorAttachmentCount; i++)
+		{
+			Image colorAttachment = _colorAttachments[i];
+			colorAttachments[i] = colorAttachment;
+		}
+	}
+	else
+	{
+		colorAttachments = NULL;
+	}
+
 	// TODO:
-	VkRenderPassCreateInfo renderPassCreateInfo;
+	/*VkRenderPassCreateInfo renderPassCreateInfo;
 
 	VkRenderPass renderPass;
 
@@ -77,9 +103,13 @@ inline static Framebuffer createVkFramebuffer(
 	{
 		free(framebuffer);
 		return NULL;
-	}
+	}*/
 
-	framebuffer->vk.handle = handle;
+	framebuffer->vk.window = window;
+	framebuffer->vk.colorAttachments = colorAttachments;
+	framebuffer->vk.colorAttachmentCount = colorAttachmentCount;
+	framebuffer->vk.depthStencilAttachment = depthStencilAttachment;
+	framebuffer->vk.handle = NULL; // TODO:
 	return framebuffer;
 }
 inline static void destroyVkFramebuffer(
@@ -90,6 +120,8 @@ inline static void destroyVkFramebuffer(
 		device,
 		framebuffer->vk.handle,
 		NULL);
+
+	free(framebuffer->vk.colorAttachments);
 	free(framebuffer);
 }
 inline static void beginVkFramebufferRender(
@@ -153,8 +185,6 @@ inline static Framebuffer createGlFramebuffer(
 			return NULL;
 		}
 
-		GLenum colorIndex = 0;
-
 		for (size_t i = 0; i < colorAttachmentCount; i++)
 		{
 			Image colorAttachment = _colorAttachments[i];
@@ -173,11 +203,10 @@ inline static Framebuffer createGlFramebuffer(
 			case R8G8B8A8_SRGB_IMAGE_FORMAT:
 				glFramebufferTexture2D(
 					GL_FRAMEBUFFER,
-					GL_COLOR_ATTACHMENT0 + colorIndex,
+					GL_COLOR_ATTACHMENT0 + (GLenum)i,
 					colorAttachment->gl.glType,
 					colorAttachment->gl.handle,
 					GL_ZERO);
-				colorIndex++;
 				break;
 			}
 
@@ -282,10 +311,10 @@ inline static Framebuffer createGlFramebuffer(
 	}
 
 	framebuffer->gl.window = window;
-	framebuffer->gl.handle = handle;
 	framebuffer->gl.colorAttachments = colorAttachments;
 	framebuffer->gl.colorAttachmentCount = colorAttachmentCount;
 	framebuffer->gl.depthStencilAttachment = depthStencilAttachment;
+	framebuffer->gl.handle = handle;
 	return framebuffer;
 }
 inline static void destroyGlFramebuffer(Framebuffer framebuffer)

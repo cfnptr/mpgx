@@ -13,13 +13,7 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/_source/opengl.h"
-
-#if MPGX_SUPPORT_VULKAN
-#include "vk_mem_alloc.h"
-#endif
-
-#include <string.h>
+#include "mpgx/_source/buffer.h"
 
 // TODO: handle Vulkan unsupported formats on platforms
 // VkGetPhysicalDeviceImageFormatProperties
@@ -31,6 +25,7 @@ typedef struct _VkImage
 	ImageType type;
 	ImageFormat format;
 	Vec3U size;
+	bool isConstant;
 #if MPGX_SUPPORT_VULKAN
 	VkImage handle;
 	VmaAllocation allocation;
@@ -42,6 +37,7 @@ typedef struct _GlImage
 	ImageType type;
 	ImageFormat format;
 	Vec3U size;
+	bool isConstant;
 	GLenum glType;
 	GLenum dataType;
 	GLenum dataFormat;
@@ -55,13 +51,20 @@ union Image
 
 #if MPGX_SUPPORT_VULKAN
 inline static Image createVkImage(
+	VkDevice device,
 	VmaAllocator allocator,
-	VkImageUsageFlags _vkUsage,
+	VkQueue transferQueue,
+	VkCommandPool transferCommandPool,
+	VkImageUsageFlags vkUsage,
 	VkFormat _vkFormat,
+	bool isGpuIntegrated,
 	Window window,
 	ImageType type,
 	ImageFormat format,
-	Vec3U size)
+	const void** data,
+	Vec3U size,
+	uint8_t levelCount,
+	bool isConstant)
 {
 	// TODO: mipmap generation, multisampling
 
@@ -83,47 +86,63 @@ inline static Image createVkImage(
 		abort();
 
 	VkFormat vkFormat;
-	VkImageUsageFlags vkUsage;
+	size_t bufferSize;
 
-	if (_vkFormat == VK_FORMAT_UNDEFINED)
+	// TODO: remove _vkFormat and parse from mine value if required
+
+	switch (format)
 	{
-		switch (format)
-		{
-		default:
-			free(image);
-			return NULL;
-		case R8G8B8A8_UNORM_IMAGE_FORMAT:
+	default:
+		free(image);
+		return NULL;
+	case R8G8B8A8_UNORM_IMAGE_FORMAT:
+		if (_vkFormat == VK_FORMAT_UNDEFINED)
 			vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
-			vkUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-			break;
-		case R8G8B8A8_SRGB_IMAGE_FORMAT:
-			vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
-			vkUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-			break;
-		case D16_UNORM_IMAGE_FORMAT:
-			vkFormat = VK_FORMAT_D16_UNORM;
-			vkUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-			break;
-		case D32_SFLOAT_IMAGE_FORMAT:
-			vkFormat = VK_FORMAT_D32_SFLOAT;
-			vkUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-			break;
-		case D24_UNORM_S8_UINT_IMAGE_FORMAT:
-			vkFormat = VK_FORMAT_D24_UNORM_S8_UINT;
-			vkUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-			break;
-		case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
-			vkFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
-			vkUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-			break;
-		}
+		else
+			vkFormat = _vkFormat;
 
-		vkUsage |= _vkUsage;
-	}
-	else
-	{
-		vkFormat = _vkFormat;
-		vkUsage = _vkUsage;
+		bufferSize = size.x * size.y * size.z * 4;
+		break;
+	case R8G8B8A8_SRGB_IMAGE_FORMAT:
+		if (_vkFormat == VK_FORMAT_UNDEFINED)
+			vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
+		else
+			vkFormat = _vkFormat;
+
+		bufferSize = size.x * size.y * size.z * 4;
+		break;
+	case D16_UNORM_IMAGE_FORMAT:
+		if (_vkFormat == VK_FORMAT_UNDEFINED)
+			vkFormat = VK_FORMAT_D16_UNORM;
+		else
+			vkFormat = _vkFormat;
+
+		bufferSize = size.x * size.y * size.z * 2;
+		break;
+	case D32_SFLOAT_IMAGE_FORMAT:
+		if (_vkFormat == VK_FORMAT_UNDEFINED)
+			vkFormat = VK_FORMAT_D32_SFLOAT;
+		else
+			vkFormat = _vkFormat;
+
+		bufferSize = size.x * size.y * size.z * 4;
+		break;
+	case D24_UNORM_S8_UINT_IMAGE_FORMAT:
+		if (_vkFormat == VK_FORMAT_UNDEFINED)
+			vkFormat = VK_FORMAT_D24_UNORM_S8_UINT;
+		else
+			vkFormat = _vkFormat;
+
+		bufferSize = size.x * size.y * size.z * 4;
+		break;
+	case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
+		if (_vkFormat == VK_FORMAT_UNDEFINED)
+			vkFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
+		else
+			vkFormat = _vkFormat;
+
+		bufferSize = size.x * size.y * size.z * 5; // TODO: correct?
+		break;
 	}
 
 	VkImageCreateInfo imageCreateInfo = {
@@ -136,7 +155,7 @@ inline static Image createVkImage(
 		1,
 		1,
 		VK_SAMPLE_COUNT_1_BIT,
-		VK_IMAGE_TILING_OPTIMAL,
+		isConstant ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR,
 		vkUsage,
 		VK_SHARING_MODE_EXCLUSIVE,
 		0,
@@ -155,10 +174,15 @@ inline static Image createVkImage(
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 
+	if (isConstant == true && isGpuIntegrated == false)
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	else
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
 	VkImage handle;
 	VmaAllocation allocation;
 
-	VkResult result = vmaCreateImage(
+	VkResult vkResult = vmaCreateImage(
 		allocator,
 		&imageCreateInfo,
 		&allocationCreateInfo,
@@ -166,17 +190,106 @@ inline static Image createVkImage(
 		&allocation,
 		NULL);
 
-	if (result != VK_SUCCESS)
+	if (vkResult != VK_SUCCESS)
 	{
 		free(image);
 		return NULL;
+	}
+
+	if (data != NULL)
+	{
+		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			NULL,
+			transferCommandPool,
+			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			1,
+		};
+
+		VkCommandBuffer commandBuffer;
+
+		vkResult = vkAllocateCommandBuffers(
+			device,
+			&commandBufferAllocateInfo,
+			&commandBuffer);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		VkBufferCreateInfo bufferCreateInfo = {
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+			NULL,
+			0,
+			// TODO:
+		};
+
+		VkBuffer stagingBuffer;
+		VmaAllocation stagingAllocation;
+
+		vkResult = vmaCreateBuffer(
+			allocator,
+			&bufferCreateInfo,
+			&allocationCreateInfo,
+			&stagingBuffer,
+			&stagingAllocation,
+			NULL);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		bool result = setVkBufferData(
+			allocator,
+			stagingAllocation,
+			data[0],
+			bufferSize,
+			0);
+
+		if (result == false)
+		{
+			vmaDestroyBuffer(
+				allocator,
+				stagingBuffer,
+				stagingAllocation);
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		// TODO:
 	}
 
 	image->vk.window = window;
 	image->vk.type = type;
 	image->vk.format = format;
 	image->vk.size = size;
-	image->vk.handle = handle;
+	image->vk.isConstant = isConstant;
 	image->vk.handle = handle;
 	image->vk.allocation = allocation;
 	return image;
@@ -187,9 +300,10 @@ inline static Image createGlImage(
 	Window window,
 	ImageType type,
 	ImageFormat format,
-	Vec3U size,
 	const void** data,
-	uint8_t levelCount)
+	Vec3U size,
+	uint8_t levelCount,
+	bool isConstant)
 {
 	Image image = malloc(
 		sizeof(union Image));
@@ -380,6 +494,7 @@ inline static Image createGlImage(
 	image->gl.type = type;
 	image->gl.format = format;
 	image->gl.size = size;
+	image->gl.isConstant = isConstant;
 	image->gl.glType = glType;
 	image->gl.dataType = dataType;
 	image->gl.dataFormat = dataFormat;

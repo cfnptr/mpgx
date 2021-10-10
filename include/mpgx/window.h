@@ -527,6 +527,7 @@ BufferType getBufferType(Buffer buffer);
 size_t getBufferSize(Buffer buffer);
 bool isBufferConstant(Buffer buffer);
 
+// TODO: set data[], also for images. (use GL: glMapBuffer)
 void setBufferData(
 	Buffer buffer,
 	const void* data,

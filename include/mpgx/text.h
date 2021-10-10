@@ -34,6 +34,7 @@ typedef struct Text* Text;
 // TODO: add text mode ->
 // generate texture once on init from string
 // and use for rendering
+// struct TextImage
 
 Font createFont(
 	const void* data,
@@ -43,14 +44,14 @@ Font createFontFromFile(
 void destroyFont(Font font);
 
 Text createText(
-	Window window,
+	Pipeline pipeline,
 	Font font,
 	uint32_t fontSize,
 	const char* data,
 	bool isConstant);
 void destroyText(Text text);
 
-Window getTextWindow(Text text);
+Pipeline getTextPipeline(Text text);
 bool isTextConstant(Text text);
 Vec2F getTextSize(Text text);
 size_t getTextIndexCount(Text text);
@@ -86,9 +87,7 @@ bool setTextData(
 bool bakeText(
 	Text text,
 	bool reuse);
-size_t drawText(
-	Text text,
-	Pipeline pipeline);
+size_t drawText(Text text);
 
 Sampler createTextSampler(Window window);
 

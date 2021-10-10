@@ -174,31 +174,6 @@ inline static Buffer createVkBuffer(
 	{
 		if (isConstant == true && isGpuIntegrated == false)
 		{
-			VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-				VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-				NULL,
-				transferCommandPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				1,
-			};
-
-			VkCommandBuffer commandBuffer;
-
-			vkResult = vkAllocateCommandBuffers(
-				device,
-				&commandBufferAllocateInfo,
-				&commandBuffer);
-
-			if (vkResult != VK_SUCCESS)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					handle,
-					allocation);
-				free(buffer);
-				return NULL;
-			}
-
 			bufferCreateInfo.usage = vkUsage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
@@ -215,11 +190,6 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
-				vkFreeCommandBuffers(
-					device,
-					transferCommandPool,
-					1,
-					&commandBuffer);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -241,11 +211,35 @@ inline static Buffer createVkBuffer(
 					allocator,
 					stagingBuffer,
 					stagingAllocation);
-				vkFreeCommandBuffers(
-					device,
-					transferCommandPool,
-					1,
-					&commandBuffer);
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
+
+			VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+				VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+				NULL,
+				transferCommandPool,
+				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				1,
+			};
+
+			VkCommandBuffer commandBuffer;
+
+			vkResult = vkAllocateCommandBuffers(
+				device,
+				&commandBufferAllocateInfo,
+				&commandBuffer);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -267,15 +261,15 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
 				vkFreeCommandBuffers(
 					device,
 					transferCommandPool,
 					1,
 					&commandBuffer);
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -301,15 +295,15 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
 				vkFreeCommandBuffers(
 					device,
 					transferCommandPool,
 					1,
 					&commandBuffer);
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -338,15 +332,15 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
 				vkFreeCommandBuffers(
 					device,
 					transferCommandPool,
 					1,
 					&commandBuffer);
+				vmaDestroyBuffer(
+					allocator,
+					stagingBuffer,
+					stagingAllocation);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -357,25 +351,6 @@ inline static Buffer createVkBuffer(
 
 			vkResult = vkQueueWaitIdle(transferQueue);
 
-			if (vkResult != VK_SUCCESS)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
-				vkFreeCommandBuffers(
-					device,
-					transferCommandPool,
-					1,
-					&commandBuffer);
-				vmaDestroyBuffer(
-					allocator,
-					handle,
-					allocation);
-				free(buffer);
-				return NULL;
-			}
-
 			vmaDestroyBuffer(
 				allocator,
 				stagingBuffer,
@@ -385,6 +360,16 @@ inline static Buffer createVkBuffer(
 				transferCommandPool,
 				1,
 				&commandBuffer);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vmaDestroyBuffer(
+					allocator,
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
 		}
 		else
 		{

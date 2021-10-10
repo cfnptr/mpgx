@@ -324,18 +324,6 @@ inline static bool getBestVkDepthFormat(
 
 	vkGetPhysicalDeviceFormatProperties(
 		physicalDevice,
-		VK_FORMAT_D32_SFLOAT_S8_UINT,
-		&properties);
-
-	if(properties.optimalTilingFeatures &
-	   VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-	{
-		*depthFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
-		return true;
-	}
-
-	vkGetPhysicalDeviceFormatProperties(
-		physicalDevice,
 		VK_FORMAT_D24_UNORM_S8_UINT,
 		&properties);
 
@@ -343,6 +331,18 @@ inline static bool getBestVkDepthFormat(
 	   VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
 	{
 		*depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
+		return true;
+	}
+
+	vkGetPhysicalDeviceFormatProperties(
+		physicalDevice,
+		VK_FORMAT_D32_SFLOAT_S8_UINT,
+		&properties);
+
+	if(properties.optimalTilingFeatures &
+	   VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+	{
+		*depthFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
 		return true;
 	}
 

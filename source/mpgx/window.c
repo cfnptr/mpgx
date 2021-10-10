@@ -313,7 +313,7 @@ Window createWindow(
 		{
 			glfwWindowHint(
 				GLFW_DEPTH_BITS,
-				32);
+				24);
 			glfwWindowHint(
 				GLFW_STENCIL_BITS,
 				8);
@@ -2015,8 +2015,19 @@ void setImageData(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow =
+			image->vk.window->vkWindow;
+
 		setVkImageData(
-			image,
+			vkWindow->allocator,
+			image->vk.stagingBuffer,
+			image->vk.stagingAllocation,
+			vkWindow->device,
+			vkWindow->graphicsQueue,
+			vkWindow->transferCommandPool,
+			image->vk.handle,
+			image->vk.vkAspect,
+			image->vk.sizeMultiplier,
 			data,
 			size,
 			offset);
@@ -2215,8 +2226,16 @@ void destroySampler(Sampler sampler)
 		if (api == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
+			VkWindow vkWindow = window->vkWindow;
+
+			VkResult result = vkDeviceWaitIdle(
+				vkWindow->device);
+
+			if (result != VK_SUCCESS)
+				abort();
+
 			destroyVkSampler(
-				window->vkWindow->device,
+				vkWindow->device,
 				sampler);
 #else
 			abort();
@@ -2324,6 +2343,12 @@ Framebuffer createFramebuffer(
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
+
+		VkResult result = vkDeviceWaitIdle(
+			vkWindow->device);
+
+		if (result != VK_SUCCESS)
+			abort();
 
 		framebuffer = createVkFramebuffer(
 			vkWindow->device,
@@ -2993,6 +3018,13 @@ void destroyPipeline(
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow =
 				pipeline->vk.window->vkWindow;
+
+			VkResult result = vkDeviceWaitIdle(
+				vkWindow->device);
+
+			if (result != VK_SUCCESS)
+				abort();
+
 			destroyVkPipeline(
 				vkWindow->device,
 				pipeline);
@@ -3460,7 +3492,7 @@ size_t drawMesh(
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 		drawGlMesh(
 			mesh,

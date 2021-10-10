@@ -45,8 +45,7 @@ static size_t onRenderHandleDraw(
 		pipeline,
 		renderHandle->color);
 	return drawText(
-		renderHandle->text,
-		pipeline);
+		renderHandle->text);
 }
 Renderer createTextRenderer(
 	Transform transform,
@@ -89,7 +88,7 @@ Render createTextRender(
 		getTransformTransformer(transform));
 	assert(getPipelineWindow(
 		getRendererPipeline(renderer)) ==
-		getTextWindow(text));
+		getPipelineWindow(getTextPipeline(text)));
 	assert(color.x >= 0.0f &&
 		color.y >= 0.0f &&
 		color.z >= 0.0f &&

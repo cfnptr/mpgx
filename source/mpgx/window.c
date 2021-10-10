@@ -723,7 +723,7 @@ void destroyWindow(Window window)
 		for (size_t i = 0; i < samplerCount; i++)
 			destroyVkSampler(device, samplers[i]);
 		for (size_t i = 0; i < imageCount; i++)
-			destroyVkImage(allocator, images[i]);
+			destroyVkImage(device, allocator, images[i]);
 		for (size_t i = 0; i < bufferCount; i++)
 			destroyVkBuffer(allocator, buffers[i]);
 
@@ -1818,8 +1818,11 @@ Image createImage(
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
+				VkWindow vkWindow = window->vkWindow;
+
 				destroyVkImage(
-					window->vkWindow->allocator,
+					vkWindow->device,
+					vkWindow->allocator,
 					image);
 #else
 				abort();
@@ -1971,6 +1974,7 @@ void destroyImage(Image image)
 				abort();
 
 			destroyVkImage(
+				vkWindow->device,
 				vkWindow->allocator,
 				image);
 #else
@@ -2022,6 +2026,7 @@ void setImageData(
 			vkWindow->allocator,
 			image->vk.stagingBuffer,
 			image->vk.stagingAllocation,
+			image->vk.stagingFence,
 			vkWindow->device,
 			vkWindow->graphicsQueue,
 			vkWindow->transferCommandPool,

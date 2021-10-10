@@ -349,6 +349,7 @@ inline static Buffer createVkBuffer(
 				return NULL;
 			}
 
+			// TODO: wait for fence instead of queue
 			vkResult = vkQueueWaitIdle(transferQueue);
 
 			vmaDestroyBuffer(

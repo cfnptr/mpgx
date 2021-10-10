@@ -31,6 +31,7 @@ typedef struct _VkImage
 	VmaAllocation allocation;
 	VkBuffer stagingBuffer;
 	VmaAllocation stagingAllocation;
+	VkFence stagingFence;
 	VkFormat vkFormat;
 	VkImageAspectFlagBits vkAspect;
 	uint8_t sizeMultiplier;
@@ -182,6 +183,10 @@ inline static Image createVkImage(
 		size.x * size.y * size.z *
 		sizeMultiplier;
 
+	VkBuffer stagingBuffer;
+	VmaAllocation stagingAllocation;
+	VkFence stagingFence;
+
 	if (data[0] != NULL)
 	{
 		VkBufferCreateInfo bufferCreateInfo = {
@@ -196,9 +201,6 @@ inline static Image createVkImage(
 		};
 
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-
-		VkBuffer stagingBuffer;
-		VmaAllocation stagingAllocation;
 
 		vkResult = vmaCreateBuffer(
 			allocator,
@@ -393,23 +395,17 @@ inline static Image createVkImage(
 			return NULL;
 		}
 
-		VkSubmitInfo submitInfo = {
-			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		VkFenceCreateInfo fenceCreateInfo = {
+			VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 			NULL,
 			0,
-			NULL,
-			NULL,
-			1,
-			&commandBuffer,
-			0,
-			NULL,
 		};
 
-		vkResult = vkQueueSubmit(
-			transferQueue,
-			1,
-			&submitInfo,
-			NULL);
+		vkResult = vkCreateFence(
+			device,
+			&fenceCreateInfo,
+			NULL,
+			&stagingFence);
 
 		if (vkResult != VK_SUCCESS)
 		{
@@ -430,7 +426,53 @@ inline static Image createVkImage(
 			return NULL;
 		}
 
-		vkResult = vkQueueWaitIdle(transferQueue);
+		VkSubmitInfo submitInfo = {
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			NULL,
+			0,
+			NULL,
+			NULL,
+			1,
+			&commandBuffer,
+			0,
+			NULL,
+		};
+
+		vkResult = vkQueueSubmit(
+			transferQueue,
+			1,
+			&submitInfo,
+			stagingFence);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vkDestroyFence(
+				device,
+				stagingFence,
+				NULL);
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyBuffer(
+				allocator,
+				stagingBuffer,
+				stagingAllocation);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		vkResult = vkWaitForFences(
+			device,
+			1,
+			&stagingFence,
+			VK_TRUE,
+			UINT64_MAX);
 
 		vkFreeCommandBuffers(
 			device,
@@ -440,6 +482,10 @@ inline static Image createVkImage(
 
 		if (vkResult != VK_SUCCESS)
 		{
+			vkDestroyFence(
+				device,
+				stagingFence,
+				NULL);
 			vmaDestroyBuffer(
 				allocator,
 				stagingBuffer,
@@ -454,64 +500,22 @@ inline static Image createVkImage(
 
 		if (isConstant == true)
 		{
+			vkDestroyFence(
+				device,
+				stagingFence,
+				NULL);
 			vmaDestroyBuffer(
 				allocator,
 				stagingBuffer,
 				stagingAllocation);
 
-			image->vk.stagingBuffer = NULL;
-			image->vk.stagingAllocation = NULL;
-		}
-		else
-		{
-			image->vk.stagingBuffer = stagingBuffer;
-			image->vk.stagingAllocation = stagingAllocation;
+			stagingBuffer = NULL;
+			stagingAllocation = NULL;
+			stagingFence = NULL;
 		}
 	}
 	else
 	{
-		VkBuffer stagingBuffer;
-		VmaAllocation stagingAllocation;
-
-		if (isConstant == false)
-		{
-			VkBufferCreateInfo bufferCreateInfo = {
-				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-				NULL,
-				0,
-				bufferSize,
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_SHARING_MODE_EXCLUSIVE,
-				0,
-				NULL,
-			};
-
-			allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-
-			vkResult = vmaCreateBuffer(
-				allocator,
-				&bufferCreateInfo,
-				&allocationCreateInfo,
-				&stagingBuffer,
-				&stagingAllocation,
-				NULL);
-
-			if (vkResult != VK_SUCCESS)
-			{
-				vmaDestroyImage(
-					allocator,
-					handle,
-					allocation);
-				free(image);
-				return NULL;
-			}
-		}
-		else
-		{
-			stagingBuffer = NULL;
-			stagingAllocation = NULL;
-		}
-
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
 			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 			NULL,
@@ -529,10 +533,6 @@ inline static Image createVkImage(
 
 		if (vkResult != VK_SUCCESS)
 		{
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
 			vmaDestroyImage(
 				allocator,
 				handle,
@@ -559,10 +559,6 @@ inline static Image createVkImage(
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
 			vmaDestroyImage(
 				allocator,
 				handle,
@@ -611,10 +607,33 @@ inline static Image createVkImage(
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			vmaDestroyBuffer(
+			vmaDestroyImage(
 				allocator,
-				stagingBuffer,
-				stagingAllocation);
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		VkFenceCreateInfo fenceCreateInfo = {
+			VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+			NULL,
+			0,
+		};
+
+		vkResult = vkCreateFence(
+			device,
+			&fenceCreateInfo,
+			NULL,
+			&stagingFence);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
 			vmaDestroyImage(
 				allocator,
 				handle,
@@ -639,19 +658,19 @@ inline static Image createVkImage(
 			transferQueue,
 			1,
 			&submitInfo,
-			NULL);
+			stagingFence);
 
 		if (vkResult != VK_SUCCESS)
 		{
+			vkDestroyFence(
+				device,
+				stagingFence,
+				NULL);
 			vkFreeCommandBuffers(
 				device,
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
 			vmaDestroyImage(
 				allocator,
 				handle,
@@ -660,7 +679,12 @@ inline static Image createVkImage(
 			return NULL;
 		}
 
-		vkResult = vkQueueWaitIdle(transferQueue);
+		vkResult = vkWaitForFences(
+			device,
+			1,
+			&stagingFence,
+			VK_TRUE,
+			UINT64_MAX);
 
 		vkFreeCommandBuffers(
 			device,
@@ -670,10 +694,10 @@ inline static Image createVkImage(
 
 		if (vkResult != VK_SUCCESS)
 		{
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
+			vkDestroyFence(
+				device,
+				stagingFence,
+				NULL);
 			vmaDestroyImage(
 				allocator,
 				handle,
@@ -682,8 +706,50 @@ inline static Image createVkImage(
 			return NULL;
 		}
 
-		image->vk.stagingBuffer = stagingBuffer;
-		image->vk.stagingAllocation = stagingAllocation;
+		if (isConstant == false)
+		{
+			VkBufferCreateInfo bufferCreateInfo = {
+				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+				NULL,
+				0,
+				bufferSize,
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_SHARING_MODE_EXCLUSIVE,
+				0,
+				NULL,
+			};
+
+			allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+
+			vkResult = vmaCreateBuffer(
+				allocator,
+				&bufferCreateInfo,
+				&allocationCreateInfo,
+				&stagingBuffer,
+				&stagingAllocation,
+				NULL);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vmaDestroyImage(
+					allocator,
+					handle,
+					allocation);
+				free(image);
+				return NULL;
+			}
+		}
+		else
+		{
+			vkDestroyFence(
+				device,
+				stagingFence,
+				NULL);
+
+			stagingBuffer = NULL;
+			stagingAllocation = NULL;
+			stagingFence = NULL;
+		}
 	}
 
 	image->vk.window = window;
@@ -693,15 +759,23 @@ inline static Image createVkImage(
 	image->vk.isConstant = isConstant;
 	image->vk.handle = handle;
 	image->vk.allocation = allocation;
+	image->vk.stagingBuffer = stagingBuffer;
+	image->vk.stagingAllocation = stagingAllocation;
+	image->vk.stagingFence = stagingFence;
 	image->vk.vkFormat = vkFormat;
 	image->vk.vkAspect = vkAspect;
 	image->vk.sizeMultiplier = sizeMultiplier;
 	return image;
 }
 inline static void destroyVkImage(
+	VkDevice device,
 	VmaAllocator allocator,
 	Image image)
 {
+	vkDestroyFence(
+		device,
+		image->vk.stagingFence,
+		NULL);
 	vmaDestroyBuffer(
 		allocator,
 		image->vk.stagingBuffer,
@@ -713,14 +787,11 @@ inline static void destroyVkImage(
 	free(image);
 }
 
-// TODO: improve with async data transfer
-// vkQueueWaitIdle is bottleneck
-// possibly use Fence in vkQueueSubmit
-
 inline static bool setVkImageData(
 	VmaAllocator allocator,
 	VkBuffer stagingBuffer,
 	VmaAllocation stagingAllocation,
+	VkFence stagingFence,
 	VkDevice device,
 	VkQueue transferQueue,
 	VkCommandPool transferCommandPool,
@@ -733,6 +804,14 @@ inline static bool setVkImageData(
 {
 	// TODO: properly add staging buffer image data offset
 	assert(offset.x == 0 && offset.y == 0 && offset.z == 0);
+
+	VkResult vkResult = vkResetFences(
+		device,
+		1,
+		&stagingFence);
+
+	if (vkResult != VK_SUCCESS)
+		return false;
 
 	size_t dataSize =
 		size.x * size.y * size.z *
@@ -758,7 +837,7 @@ inline static bool setVkImageData(
 
 	VkCommandBuffer commandBuffer;
 
-	VkResult vkResult = vkAllocateCommandBuffers(
+	vkResult = vkAllocateCommandBuffers(
 		device,
 		&commandBufferAllocateInfo,
 		&commandBuffer);
@@ -891,7 +970,7 @@ inline static bool setVkImageData(
 		transferQueue,
 		1,
 		&submitInfo,
-		NULL);
+		stagingFence);
 
 	if (vkResult != VK_SUCCESS)
 	{
@@ -903,7 +982,22 @@ inline static bool setVkImageData(
 		return false;
 	}
 
-	vkResult = vkQueueWaitIdle(transferQueue);
+	vkResult = vkWaitForFences(
+		device,
+		1,
+		&stagingFence,
+		VK_TRUE,
+		UINT64_MAX);
+
+	if (vkResult != VK_SUCCESS)
+	{
+		vkFreeCommandBuffers(
+			device,
+			transferCommandPool,
+			1,
+			&commandBuffer);
+		return false;
+	}
 
 	vkFreeCommandBuffers(
 		device,

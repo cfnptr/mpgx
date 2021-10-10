@@ -1090,18 +1090,14 @@ inline static VkWindow createVkWindow(
 	}
 
 	VkSwapchain swapchain = createVkSwapchain(
-		window,
 		surface,
 		physicalDevice,
-		isGpuIntegrated,
 		graphicsQueueFamilyIndex,
 		presentQueueFamilyIndex,
 		device,
 		allocator,
-		graphicsQueue,
 		graphicsCommandPool,
 		presentCommandPool,
-		transferCommandPool,
 		useStencilBuffer,
 		framebufferSize);
 
@@ -1376,18 +1372,14 @@ inline static bool beginVkWindowRecord(
 			isWindowUseStencilBuffer(window);
 
 		bool result = resizeVkSwapchain(
-			window,
 			vkWindow->surface,
 			vkWindow->physicalDevice,
-			vkWindow->isGpuIntegrated,
 			vkWindow->graphicsQueueFamilyIndex,
 			vkWindow->presentQueueFamilyIndex,
 			device,
 			vkWindow->allocator,
-			vkWindow->graphicsQueue,
 			vkWindow->graphicsCommandPool,
 			vkWindow->presentCommandPool,
-			vkWindow->transferCommandPool,
 			swapchain,
 			useStencilBuffer,
 			framebufferSize);
@@ -1445,18 +1437,14 @@ inline static bool beginVkWindowRecord(
 				isWindowUseStencilBuffer(window);
 
 			bool result = resizeVkSwapchain(
-				window,
 				vkWindow->surface,
 				vkWindow->physicalDevice,
-				vkWindow->isGpuIntegrated,
 				vkWindow->graphicsQueueFamilyIndex,
 				vkWindow->presentQueueFamilyIndex,
 				device,
 				vkWindow->allocator,
-				vkWindow->graphicsQueue,
 				vkWindow->graphicsCommandPool,
 				vkWindow->presentCommandPool,
-				vkWindow->transferCommandPool,
 				swapchain,
 				useStencilBuffer,
 				framebufferSize);
@@ -1624,18 +1612,14 @@ inline static bool endVkWindowRecord(
 			getWindowFramebufferSize(window);
 
 		bool result = resizeVkSwapchain(
-			window,
 			vkWindow->surface,
 			vkWindow->physicalDevice,
-			vkWindow->isGpuIntegrated,
 			graphicsQueueFamilyIndex,
 			presentQueueFamilyIndex,
 			vkWindow->device,
 			vkWindow->allocator,
-			vkWindow->graphicsQueue,
 			vkWindow->graphicsCommandPool,
 			vkWindow->presentCommandPool,
-			vkWindow->transferCommandPool,
 			swapchain,
 			useStencilBuffer,
 			framebufferSize);

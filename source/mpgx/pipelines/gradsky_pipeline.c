@@ -256,7 +256,8 @@ inline static VkDescriptorPool createVkDescriptorPool(
 }
 inline static VkImageView createVkImageView(
 	VkDevice device,
-	VkImage image)
+	VkImage image,
+	VkFormat format)
 {
 	VkImageViewCreateInfo imageViewCreateInfo = {
 		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -264,12 +265,12 @@ inline static VkImageView createVkImageView(
 		0,
 		image,
 		VK_IMAGE_VIEW_TYPE_2D,
-		VK_FORMAT_R8G8B8A8_SRGB,
+		format,
 		{
-			0,
-			0,
-			0,
-			0,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
 		},
 		{
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -514,6 +515,7 @@ inline static Pipeline createVkHandle(
 	uint8_t shaderCount,
 	VkSampler sampler,
 	VkImage image,
+	VkFormat format,
 	const PipelineState* state,
 	PipelineHandle* handle)
 {
@@ -544,7 +546,7 @@ inline static Pipeline createVkHandle(
 		shaderCount,
 		state,
 		onVkHandleDestroy,
-		NULL,
+		onVkHandleBind,
 		onVkUniformsSet,
 		onVkHandleResize,
 		handle,
@@ -579,7 +581,8 @@ inline static Pipeline createVkHandle(
 
 	VkImageView imageView = createVkImageView(
 		device,
-		image);
+		image,
+		format);
 
 	if (imageView == NULL)
 	{
@@ -807,6 +810,7 @@ Pipeline createExtGradSkyPipeline(
 			2,
 			sampler->vk.handle,
 			texture->vk.handle,
+			texture->vk.vkFormat,
 			state,
 			handle);
 #else

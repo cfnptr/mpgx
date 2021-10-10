@@ -14,7 +14,7 @@
 
 #pragma once
 #include "cmmt/common.h"
-#include "mpgx/_source/image.h"
+#include <string.h>
 
 typedef struct VkSwapchainBuffer
 {
@@ -28,7 +28,8 @@ typedef struct VkSwapchainBuffer
 struct VkSwapchain
 {
 	VkSwapchainKHR handle;
-	Image depthImage;
+	VkImage depthImage;
+	VmaAllocation depthAllocation;
 	VkImageView depthImageView;
 	VkRenderPass renderPass;
 	VkSwapchainBuffer*  buffers;
@@ -306,6 +307,33 @@ inline static bool getBestVkDepthFormat(
 {
 	VkFormatProperties properties;
 
+	if (useStencilBuffer == false)
+	{
+		vkGetPhysicalDeviceFormatProperties(
+			physicalDevice,
+			VK_FORMAT_D32_SFLOAT,
+			&properties);
+
+		if(properties.optimalTilingFeatures &
+		   VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+		{
+			*depthFormat = VK_FORMAT_D32_SFLOAT;
+			return true;
+		}
+	}
+
+	vkGetPhysicalDeviceFormatProperties(
+		physicalDevice,
+		VK_FORMAT_D32_SFLOAT_S8_UINT,
+		&properties);
+
+	if(properties.optimalTilingFeatures &
+	   VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+	{
+		*depthFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
+		return true;
+	}
+
 	vkGetPhysicalDeviceFormatProperties(
 		physicalDevice,
 		VK_FORMAT_D24_UNORM_S8_UINT,
@@ -348,6 +376,61 @@ inline static bool getBestVkDepthFormat(
 	return false;
 }
 
+inline static bool createVkDepthImage(
+	VmaAllocator allocator,
+	VkFormat format,
+	VkExtent2D extent,
+	VkImage* _depthImage,
+	VmaAllocation* _depthAllocation)
+{
+	VkImageCreateInfo imageCreateInfo = {
+		VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		NULL,
+		0,
+		VK_IMAGE_TYPE_2D,
+		format,
+		{ extent.width, extent.height, 1, },
+		1,
+		1,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		VK_SHARING_MODE_EXCLUSIVE,
+		0,
+		NULL,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+	};
+
+	VmaAllocationCreateInfo allocationCreateInfo;
+
+	memset(
+		&allocationCreateInfo,
+		0,
+		sizeof(VmaAllocationCreateInfo));
+
+	// TODO: possibly optimize with fully dedicated memory block
+	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
+	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
+
+	VkImage depthImage;
+	VmaAllocation depthAllocation;
+
+	VkResult vkResult = vmaCreateImage(
+		allocator,
+		&imageCreateInfo,
+		&allocationCreateInfo,
+		&depthImage,
+		&depthAllocation,
+		NULL);
+
+	if (vkResult != VK_SUCCESS)
+		return false;
+
+	*_depthImage = depthImage;
+	*_depthAllocation = depthAllocation;
+	return true;
+}
 inline static VkImageView createVkDepthImageView(
 	VkDevice device,
 	VkImage image,
@@ -359,7 +442,7 @@ inline static VkImageView createVkDepthImageView(
 		0,
 		image,
 		VK_IMAGE_VIEW_TYPE_2D,
-		format,
+		 format,
 		{
 			VK_COMPONENT_SWIZZLE_IDENTITY,
 			VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -865,18 +948,14 @@ inline static bool createVkSwapchainBuffers(
 }
 
 inline static VkSwapchain createVkSwapchain(
-	Window window,
 	VkSurfaceKHR surface,
 	VkPhysicalDevice physicalDevice,
-	bool isGpuIntegrated,
 	uint32_t graphicsQueueFamilyIndex,
 	uint32_t presentQueueFamilyIndex,
 	VkDevice device,
 	VmaAllocator allocator,
-	VkQueue graphicsQueue,
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
-	VkCommandPool transferCommandPool,
 	bool useStencilBuffer,
 	Vec2U framebufferSize)
 {
@@ -980,29 +1059,17 @@ inline static VkSwapchain createVkSwapchain(
 		return NULL;
 	}
 
-	Vec3U imageSize = vec3U(
-		surfaceExtent.width,
-		surfaceExtent.height,
-		1);
+	VkImage depthImage;
+	VmaAllocation depthAllocation;
 
-	// TODO: possibly optimize with fully dedicated memory block
-	Image depthImage = createVkImage(
-		device,
+	result = createVkDepthImage(
 		allocator,
-		graphicsQueue,
-		transferCommandPool,
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		depthFormat,
-		isGpuIntegrated,
-		window,
-		IMAGE_2D_TYPE,
-		IMAGE_FORMAT_COUNT,
-		NULL,
-		imageSize,
-		1,
-		true);
+		surfaceExtent,
+		&depthImage,
+		&depthAllocation);
 
-	if (depthImage == NULL)
+	if (result == false)
 	{
 		vkDestroySwapchainKHR(
 			device,
@@ -1014,14 +1081,15 @@ inline static VkSwapchain createVkSwapchain(
 
 	VkImageView depthImageView = createVkDepthImageView(
 		device,
-		depthImage->vk.handle,
+		depthImage,
 		depthFormat);
 
 	if (depthImageView == NULL)
 	{
-		destroyVkImage(
+		vmaDestroyImage(
 			allocator,
-			depthImage);
+			depthImage,
+			depthAllocation);
 		vkDestroySwapchainKHR(
 			device,
 			handle,
@@ -1041,9 +1109,10 @@ inline static VkSwapchain createVkSwapchain(
 			device,
 			depthImageView,
 			NULL);
-		destroyVkImage(
+		vmaDestroyImage(
 			allocator,
-			depthImage);
+			depthImage,
+			depthAllocation);
 		vkDestroySwapchainKHR(
 			device,
 			handle,
@@ -1079,9 +1148,10 @@ inline static VkSwapchain createVkSwapchain(
 			device,
 			depthImageView,
 			NULL);
-		destroyVkImage(
+		vmaDestroyImage(
 			allocator,
-			depthImage);
+			depthImage,
+			depthAllocation);
 		vkDestroySwapchainKHR(
 			device,
 			handle,
@@ -1092,6 +1162,7 @@ inline static VkSwapchain createVkSwapchain(
 
 	swapchain->handle = handle;
 	swapchain->depthImage = depthImage;
+	swapchain->depthAllocation = depthAllocation;
 	swapchain->depthImageView = depthImageView;
 	swapchain->renderPass = renderPass;
 	swapchain->buffers = buffers;
@@ -1119,9 +1190,10 @@ inline static void destroyVkSwapchain(
 		device,
 		swapchain->depthImageView,
 		NULL);
-	destroyVkImage(
+	vmaDestroyImage(
 		allocator,
-		swapchain->depthImage);
+		swapchain->depthImage,
+		swapchain->depthAllocation);
 	vkDestroySwapchainKHR(
 		device,
 		swapchain->handle,
@@ -1130,18 +1202,14 @@ inline static void destroyVkSwapchain(
 }
 
 inline static bool resizeVkSwapchain(
-	Window window,
 	VkSurfaceKHR surface,
 	VkPhysicalDevice physicalDevice,
-	bool isGpuIntegrated,
 	uint32_t graphicsQueueFamilyIndex,
 	uint32_t presentQueueFamilyIndex,
 	VkDevice device,
 	VmaAllocator allocator,
-	VkQueue graphicsQueue,
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
-	VkCommandPool transferCommandPool,
 	VkSwapchain swapchain,
 	bool useStencilBuffer,
 	Vec2U framebufferSize)
@@ -1162,9 +1230,10 @@ inline static bool resizeVkSwapchain(
 		device,
 		swapchain->depthImageView,
 		NULL);
-	destroyVkImage(
+	vmaDestroyImage(
 		allocator,
-		swapchain->depthImage);
+		swapchain->depthImage,
+		swapchain->depthAllocation);
 
 	swapchain->bufferCount = 0;
 	swapchain->buffers = NULL;
@@ -1252,41 +1321,30 @@ inline static bool resizeVkSwapchain(
 	if (result == false)
 		return false;
 
-	Vec3U imageSize = vec3U(
-		surfaceExtent.width,
-		surfaceExtent.height,
-		1);
+	VkImage depthImage;
+	VmaAllocation depthAllocation;
 
-	// TODO: possibly optimize with fully dedicated memory block
-	Image depthImage = createVkImage(
-		device,
+	result = createVkDepthImage(
 		allocator,
-		graphicsQueue,
-		transferCommandPool,
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		depthFormat,
-		isGpuIntegrated,
-		window,
-		IMAGE_2D_TYPE,
-		IMAGE_FORMAT_COUNT,
-		NULL,
-		imageSize,
-		1,
-		true);
+		surfaceExtent,
+		&depthImage,
+		&depthAllocation);
 
-	if (depthImage == NULL)
+	if (result == false)
 		return false;
 
 	VkImageView depthImageView = createVkDepthImageView(
 		device,
-		depthImage->vk.handle,
+		depthImage,
 		depthFormat);
 
 	if (depthImageView == NULL)
 	{
-		destroyVkImage(
+		vmaDestroyImage(
 			allocator,
-			depthImage);
+			depthImage,
+			depthAllocation);
 		return false;
 	}
 
@@ -1301,9 +1359,10 @@ inline static bool resizeVkSwapchain(
 			device,
 			depthImageView,
 			NULL);
-		destroyVkImage(
+		vmaDestroyImage(
 			allocator,
-			depthImage);
+			depthImage,
+			depthAllocation);
 		return false;
 	}
 
@@ -1334,9 +1393,10 @@ inline static bool resizeVkSwapchain(
 			device,
 			depthImageView,
 			NULL);
-		destroyVkImage(
+		vmaDestroyImage(
 			allocator,
-			depthImage);
+			depthImage,
+			depthAllocation);
 		return false;
 	}
 

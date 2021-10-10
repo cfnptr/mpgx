@@ -237,14 +237,14 @@ void createRenderData(
 	assert(window != NULL);
 	assert(data != NULL);
 
-	GraphicsAPI graphicsAPI = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Mat4F proj;
 	Mat4F viewProj;
 
 	if (camera.persp.type == PERSP_CAMERA_TYPE)
 	{
-		if (graphicsAPI == VULKAN_GRAPHICS_API)
+		if (api == VULKAN_GRAPHICS_API)
 		{
 			proj = perspZeroOneMat4F(
 				camera.persp.fieldOfView,
@@ -268,8 +268,8 @@ void createRenderData(
 					false);
 			}
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
 		{
 			proj = perspNegOneMat4F(
 				camera.persp.fieldOfView,
@@ -300,7 +300,7 @@ void createRenderData(
 	}
 	else if (camera.ortho.type == ORTHO_CAMERA_TYPE)
 	{
-		if (graphicsAPI == VULKAN_GRAPHICS_API)
+		if (api == VULKAN_GRAPHICS_API)
 		{
 			proj = orthoZeroOneMat4F(
 				camera.ortho.leftFrustum,
@@ -326,8 +326,8 @@ void createRenderData(
 					false);
 			}
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
 		{
 			proj = orthoNegOneMat4F(
 				camera.ortho.leftFrustum,

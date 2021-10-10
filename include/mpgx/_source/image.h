@@ -29,6 +29,7 @@ typedef struct _VkImage
 #if MPGX_SUPPORT_VULKAN
 	VkImage handle;
 	VmaAllocation allocation;
+	VkFormat vkFormat;
 #endif
 } _VkImage;
 typedef struct _GlImage
@@ -56,8 +57,6 @@ inline static Image createVkImage(
 	VkQueue transferQueue,
 	VkCommandPool transferCommandPool,
 	VkImageUsageFlags vkUsage,
-	VkFormat _vkFormat,
-	bool isGpuIntegrated,
 	Window window,
 	ImageType type,
 	ImageFormat format,
@@ -86,9 +85,8 @@ inline static Image createVkImage(
 		abort();
 
 	VkFormat vkFormat;
+	VkImageAspectFlags aspect;
 	size_t bufferSize;
-
-	// TODO: remove _vkFormat and parse from mine value if required
 
 	switch (format)
 	{
@@ -96,54 +94,39 @@ inline static Image createVkImage(
 		free(image);
 		return NULL;
 	case R8G8B8A8_UNORM_IMAGE_FORMAT:
-		if (_vkFormat == VK_FORMAT_UNDEFINED)
-			vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
-		else
-			vkFormat = _vkFormat;
-
+		vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
+		aspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		bufferSize = size.x * size.y * size.z * 4;
 		break;
 	case R8G8B8A8_SRGB_IMAGE_FORMAT:
-		if (_vkFormat == VK_FORMAT_UNDEFINED)
-			vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
-		else
-			vkFormat = _vkFormat;
-
+		vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
+		aspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		bufferSize = size.x * size.y * size.z * 4;
 		break;
 	case D16_UNORM_IMAGE_FORMAT:
-		if (_vkFormat == VK_FORMAT_UNDEFINED)
-			vkFormat = VK_FORMAT_D16_UNORM;
-		else
-			vkFormat = _vkFormat;
-
+		vkFormat = VK_FORMAT_D16_UNORM;
+		aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		bufferSize = size.x * size.y * size.z * 2;
 		break;
 	case D32_SFLOAT_IMAGE_FORMAT:
-		if (_vkFormat == VK_FORMAT_UNDEFINED)
-			vkFormat = VK_FORMAT_D32_SFLOAT;
-		else
-			vkFormat = _vkFormat;
-
+		vkFormat = VK_FORMAT_D32_SFLOAT;
+		aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		bufferSize = size.x * size.y * size.z * 4;
 		break;
 	case D24_UNORM_S8_UINT_IMAGE_FORMAT:
-		if (_vkFormat == VK_FORMAT_UNDEFINED)
-			vkFormat = VK_FORMAT_D24_UNORM_S8_UINT;
-		else
-			vkFormat = _vkFormat;
-
+		vkFormat = VK_FORMAT_D24_UNORM_S8_UINT;
+		aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		bufferSize = size.x * size.y * size.z * 4;
 		break;
 	case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
-		if (_vkFormat == VK_FORMAT_UNDEFINED)
-			vkFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
-		else
-			vkFormat = _vkFormat;
-
+		vkFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
+		aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		bufferSize = size.x * size.y * size.z * 5; // TODO: correct?
 		break;
 	}
+
+	if (data[0] != NULL)
+		vkUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	VkImageCreateInfo imageCreateInfo = {
 		VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -174,11 +157,6 @@ inline static Image createVkImage(
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 
-	if (isConstant == true && isGpuIntegrated == false)
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-	else
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
 	VkImage handle;
 	VmaAllocation allocation;
 
@@ -196,7 +174,7 @@ inline static Image createVkImage(
 		return NULL;
 	}
 
-	if (data != NULL)
+	if (data[0] != NULL)
 	{
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
 			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -227,8 +205,14 @@ inline static Image createVkImage(
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 			NULL,
 			0,
-			// TODO:
+			bufferSize,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_SHARING_MODE_EXCLUSIVE,
+			0,
+			NULL,
 		};
+
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
 		VkBuffer stagingBuffer;
 		VmaAllocation stagingAllocation;
@@ -282,7 +266,357 @@ inline static Image createVkImage(
 			return NULL;
 		}
 
-		// TODO:
+		VkCommandBufferBeginInfo commandBufferBeginInfo = {
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			NULL,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			NULL,
+		};
+
+		vkResult = vkBeginCommandBuffer(
+			commandBuffer,
+			&commandBufferBeginInfo);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vmaDestroyBuffer(
+				allocator,
+				stagingBuffer,
+				stagingAllocation);
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		VkImageMemoryBarrier imageMemoryBarrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			NULL,
+			0,
+			VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED,
+			VK_QUEUE_FAMILY_IGNORED,
+			handle,
+			{
+				aspect,
+				0,
+				1,
+				0,
+				1,
+			},
+		};
+
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			0,
+			0,
+			NULL,
+			0,
+			NULL,
+			1,
+			&imageMemoryBarrier);
+
+		VkBufferImageCopy bufferImageCopy = {
+			0,
+			0,
+			0,
+			{
+				aspect,
+				0,
+				0,
+				1,
+			},
+			{
+				0, 0, 0,
+			},
+			{
+				size.x, size.y, size.z
+			}
+		};
+
+		vkCmdCopyBufferToImage(
+			commandBuffer,
+			stagingBuffer,
+			handle,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&bufferImageCopy);
+
+		imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			0,
+			0,
+			NULL,
+			0,
+			NULL,
+			1,
+			&imageMemoryBarrier);
+
+		// TODO: Transition/sync
+
+		vkResult = vkEndCommandBuffer(commandBuffer);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vmaDestroyBuffer(
+				allocator,
+				stagingBuffer,
+				stagingAllocation);
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		VkSubmitInfo submitInfo = {
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			NULL,
+			0,
+			NULL,
+			NULL,
+			1,
+			&commandBuffer,
+			0,
+			NULL,
+		};
+
+		vkResult = vkQueueSubmit(
+			transferQueue,
+			1,
+			&submitInfo,
+			NULL);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vmaDestroyBuffer(
+				allocator,
+				stagingBuffer,
+				stagingAllocation);
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		vkResult = vkQueueWaitIdle(transferQueue);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vmaDestroyBuffer(
+				allocator,
+				stagingBuffer,
+				stagingAllocation);
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		vmaDestroyBuffer(
+			allocator,
+			stagingBuffer,
+			stagingAllocation);
+		vkFreeCommandBuffers(
+			device,
+			transferCommandPool,
+			1,
+			&commandBuffer);
+	}
+	else
+	{
+		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			NULL,
+			transferCommandPool,
+			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			1,
+		};
+
+		VkCommandBuffer commandBuffer;
+
+		vkResult = vkAllocateCommandBuffers(
+			device,
+			&commandBufferAllocateInfo,
+			&commandBuffer);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		VkCommandBufferBeginInfo commandBufferBeginInfo = {
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			NULL,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			NULL,
+		};
+
+		vkResult = vkBeginCommandBuffer(
+			commandBuffer,
+			&commandBufferBeginInfo);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		VkImageMemoryBarrier imageMemoryBarrier = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			NULL,
+			0,
+			VK_ACCESS_SHADER_READ_BIT,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_QUEUE_FAMILY_IGNORED,
+			VK_QUEUE_FAMILY_IGNORED,
+			handle,
+			{
+				aspect,
+				0,
+				1,
+				0,
+				1,
+			},
+		};
+
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			0,
+			0,
+			NULL,
+			0,
+			NULL,
+			1,
+			&imageMemoryBarrier);
+
+		vkResult = vkEndCommandBuffer(commandBuffer);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		VkSubmitInfo submitInfo = {
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			NULL,
+			0,
+			NULL,
+			NULL,
+			1,
+			&commandBuffer,
+			0,
+			NULL,
+		};
+
+		vkResult = vkQueueSubmit(
+			transferQueue,
+			1,
+			&submitInfo,
+			NULL);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		vkResult = vkQueueWaitIdle(transferQueue);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vkFreeCommandBuffers(
+				device,
+				transferCommandPool,
+				1,
+				&commandBuffer);
+			vmaDestroyImage(
+				allocator,
+				handle,
+				allocation);
+			free(image);
+			return NULL;
+		}
+
+		vkFreeCommandBuffers(
+			device,
+			transferCommandPool,
+			1,
+			&commandBuffer);
 	}
 
 	image->vk.window = window;
@@ -292,6 +626,7 @@ inline static Image createVkImage(
 	image->vk.isConstant = isConstant;
 	image->vk.handle = handle;
 	image->vk.allocation = allocation;
+	image->vk.vkFormat = vkFormat;
 	return image;
 }
 #endif

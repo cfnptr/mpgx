@@ -313,7 +313,7 @@ Window createWindow(
 		{
 			glfwWindowHint(
 				GLFW_DEPTH_BITS,
-				24);
+				32);
 			glfwWindowHint(
 				GLFW_STENCIL_BITS,
 				8);
@@ -322,7 +322,7 @@ Window createWindow(
 		{
 			glfwWindowHint(
 				GLFW_DEPTH_BITS,
-				24);
+				32);
 			glfwWindowHint(
 				GLFW_STENCIL_BITS,
 				0);
@@ -1772,8 +1772,6 @@ Image createImage(
 			vkWindow->graphicsQueue,
 			vkWindow->transferCommandPool,
 			VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_FORMAT_UNDEFINED,
-			vkWindow->isGpuIntegrated,
 			window,
 			type,
 			format,

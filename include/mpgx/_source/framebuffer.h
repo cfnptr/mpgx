@@ -16,23 +16,35 @@
 
 #pragma once
 #include "mpgx/_source/image.h"
+#include "mpgx/_source/pipeline.h"
 
 typedef struct _VkFramebuffer
 {
 	Window window;
+	Vec2U size;
 	Image* colorAttachments;
-	size_t colorAttachmentCount;
+	uint8_t colorAttachmentCount;
 	Image depthStencilAttachment;
+	Pipeline* pipelines;
+	size_t pipelineCapacity;
+	size_t pipelineCount;
 #if MPGX_SUPPORT_VULKAN
+	VkRenderPass renderPass;
+	VkImageView* imageViews;
+	uint8_t attachmentCount;
 	VkFramebuffer handle;
 #endif
 } _VkFramebuffer;
 typedef struct _GlFramebuffer
 {
 	Window window;
+	Vec2U size;
 	Image* colorAttachments;
-	size_t colorAttachmentCount;
+	uint8_t colorAttachmentCount;
 	Image depthStencilAttachment;
+	Pipeline* pipelines;
+	size_t pipelineCapacity;
+	size_t pipelineCount;
 	GLuint handle;
 } _GlFramebuffer;
 union Framebuffer
@@ -42,13 +54,137 @@ union Framebuffer
 };
 
 #if MPGX_SUPPORT_VULKAN
+inline static VkRenderPass createVkShadowRenderPass(
+	VkDevice device,
+	VkFormat format)
+{
+	VkAttachmentDescription attachmentDescription = {
+		0,
+		format,
+		VK_SAMPLE_COUNT_1_BIT,
+		VK_ATTACHMENT_LOAD_OP_CLEAR,
+		VK_ATTACHMENT_STORE_OP_STORE,
+		VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		VK_ATTACHMENT_STORE_OP_DONT_CARE,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+	};
+	VkAttachmentReference attachmentReference = {
+		0,
+		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+	};
+	VkSubpassDescription subpassDescription = {
+		0,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		0,
+		NULL,
+		0,
+		NULL,
+		NULL,
+		&attachmentReference,
+		0,
+		NULL,
+	};
+
+	VkSubpassDependency subpassDependencies[2] = {
+		{
+			VK_SUBPASS_EXTERNAL,
+			0,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+			VK_ACCESS_SHADER_READ_BIT,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_DEPENDENCY_BY_REGION_BIT,
+		},
+		{
+			0,
+			VK_SUBPASS_EXTERNAL,
+			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_ACCESS_SHADER_READ_BIT,
+			VK_DEPENDENCY_BY_REGION_BIT,
+		},
+	};
+
+	VkRenderPassCreateInfo renderPassCreateInfo = {
+		VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		NULL,
+		0,
+		1,
+		&attachmentDescription,
+		1,
+		&subpassDescription,
+		2,
+		subpassDependencies,
+	};
+
+	VkRenderPass renderPass;
+
+	VkResult vkResult = vkCreateRenderPass(
+		device,
+		&renderPassCreateInfo,
+		NULL,
+		&renderPass);
+
+	if (vkResult != VK_SUCCESS)
+		return NULL;
+
+	return renderPass;
+}
+inline static VkImageView createVkImageView(
+	VkDevice device,
+	VkImage image,
+	VkFormat format,
+	VkImageAspectFlags aspect)
+{
+	VkImageViewCreateInfo imageViewCreateInfo = {
+		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		NULL,
+		0,
+		image,
+		VK_IMAGE_VIEW_TYPE_2D,
+		format,
+		{
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+		},
+		{
+			aspect,
+			0,
+			1,
+			0,
+			1,
+		},
+	};
+
+	VkImageView imageView;
+
+	VkResult vkResult = vkCreateImageView(
+		device,
+		&imageViewCreateInfo,
+		NULL,
+		&imageView);
+
+	if (vkResult != VK_SUCCESS)
+		return NULL;
+
+	return imageView;
+}
 inline static Framebuffer createVkFramebuffer(
 	VkDevice device,
+	VkRenderPass renderPass,
 	Window window,
+	Vec2U size,
 	Image* _colorAttachments,
-	size_t colorAttachmentCount,
-	Image depthStencilAttachment)
+	uint8_t colorAttachmentCount,
+	Image depthStencilAttachment,
+	size_t pipelineCapacity)
 {
+	assert(colorAttachmentCount < UINT8_MAX);
+
 	Framebuffer framebuffer = malloc(
 		sizeof(union Framebuffer));
 
@@ -57,7 +193,7 @@ inline static Framebuffer createVkFramebuffer(
 
 	Image* colorAttachments;
 
-	if (_colorAttachments != NULL)
+	if (colorAttachmentCount != 0)
 	{
 		colorAttachments = malloc(
 			sizeof(Image) * colorAttachmentCount);
@@ -70,8 +206,11 @@ inline static Framebuffer createVkFramebuffer(
 
 		for (size_t i = 0; i < colorAttachmentCount; i++)
 		{
-			Image colorAttachment = _colorAttachments[i];
-			colorAttachments[i] = colorAttachment;
+			assert(
+				_colorAttachments[i]->vk.size.x == size.x &&
+				_colorAttachments[i]->vk.size.y == size.y);
+			assert(_colorAttachments[i]->vk.window == window);
+			colorAttachments[i] = _colorAttachments[i];
 		}
 	}
 	else
@@ -79,16 +218,87 @@ inline static Framebuffer createVkFramebuffer(
 		colorAttachments = NULL;
 	}
 
-	// TODO:
-	/*VkRenderPassCreateInfo renderPassCreateInfo;
+	uint8_t attachmentCount = colorAttachmentCount;
 
-	VkRenderPass renderPass;
+	if (depthStencilAttachment != NULL)
+		attachmentCount++;
+
+	VkImageView* imageViews = malloc(
+		attachmentCount * sizeof(VkImageView));
+
+	if (imageViews == NULL)
+	{
+		free(colorAttachments);
+		free(framebuffer);
+		return NULL;
+	}
+
+	for (uint8_t i = 0; i < colorAttachmentCount; i++)
+	{
+		Image attachment = colorAttachments[i];
+
+		VkImageView imageView = createVkImageView(
+			device,
+			attachment->vk.handle,
+			attachment->vk.vkFormat,
+			attachment->vk.vkAspect);
+
+		if (imageView == NULL)
+		{
+			for (uint8_t j = 0; j < i; j++)
+			{
+				vkDestroyImageView(
+					device,
+					imageViews[j],
+					NULL);
+			}
+
+			free(imageViews);
+			free(colorAttachments);
+			free(framebuffer);
+			return NULL;
+		}
+
+		imageViews[i] = imageView;
+	}
+
+	if (depthStencilAttachment != NULL)
+	{
+		VkImageView imageView = createVkImageView(
+			device,
+			depthStencilAttachment->vk.handle,
+			depthStencilAttachment->vk.vkFormat,
+			depthStencilAttachment->vk.vkAspect);
+
+		if (imageView == NULL)
+		{
+			for (uint8_t i = 0; i < colorAttachmentCount; i++)
+			{
+				vkDestroyImageView(
+					device,
+					imageViews[i],
+					NULL);
+			}
+
+			free(imageViews);
+			free(colorAttachments);
+			free(framebuffer);
+			return NULL;
+		}
+
+		imageViews[colorAttachmentCount] = imageView;
+	}
 
 	VkFramebufferCreateInfo framebufferCreateInfo = {
 		VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
 		NULL,
 		0,
-
+		renderPass,
+		attachmentCount,
+		imageViews,
+		size.x,
+		size.y,
+		1,
 	};
 
 	VkFramebuffer handle;
@@ -101,38 +311,146 @@ inline static Framebuffer createVkFramebuffer(
 
 	if (result != VK_SUCCESS)
 	{
+		for (uint8_t i = 0; i < attachmentCount; i++)
+		{
+			vkDestroyImageView(
+				device,
+				imageViews[i],
+				NULL);
+		}
+
+		free(imageViews);
+		free(colorAttachments);
 		free(framebuffer);
 		return NULL;
-	}*/
+	}
+
+	Pipeline* pipelines = malloc(
+		sizeof(Pipeline) * pipelineCapacity);
+
+	if (pipelines == NULL)
+	{
+		vkDestroyFramebuffer(
+			device,
+			handle,
+			NULL);
+
+		for (uint8_t i = 0; i < attachmentCount; i++)
+		{
+			vkDestroyImageView(
+				device,
+				imageViews[i],
+				NULL);
+		}
+
+		free(imageViews);
+		free(colorAttachments);
+		free(framebuffer);
+		return NULL;
+	}
 
 	framebuffer->vk.window = window;
+	framebuffer->vk.size = size;
 	framebuffer->vk.colorAttachments = colorAttachments;
 	framebuffer->vk.colorAttachmentCount = colorAttachmentCount;
 	framebuffer->vk.depthStencilAttachment = depthStencilAttachment;
-	framebuffer->vk.handle = NULL; // TODO:
+	framebuffer->vk.pipelines = pipelines;
+	framebuffer->vk.pipelineCapacity = pipelineCapacity;
+	framebuffer->vk.pipelineCount = 0;
+	framebuffer->vk.renderPass = renderPass;
+	framebuffer->vk.imageViews = imageViews;
+	framebuffer->vk.attachmentCount = attachmentCount;
+	framebuffer->vk.handle = handle;
 	return framebuffer;
 }
 inline static void destroyVkFramebuffer(
 	VkDevice device,
 	Framebuffer framebuffer)
 {
+	size_t pipelineCount = framebuffer->vk.pipelineCount;
+	Pipeline* pipelines = framebuffer->vk.pipelines;
+	Window window = framebuffer->vk.window;
+
+	for (size_t i = 0; i < pipelineCount; i++)
+	{
+		Pipeline pipeline = pipelines[i];
+
+		if (pipeline->vk.onHandleDestroy != NULL)
+		{
+			pipeline->vk.onHandleDestroy(
+				window,
+				pipeline->vk.handle);
+		}
+
+		destroyVkPipeline(device, pipeline);
+	}
+
+	free(pipelines);
+
 	vkDestroyFramebuffer(
 		device,
 		framebuffer->vk.handle,
+		NULL);
+
+	uint8_t attachmentCount = framebuffer->vk.attachmentCount;
+	VkImageView* imageViews = framebuffer->vk.imageViews;
+
+	for (uint8_t i = 0; i < attachmentCount; i++)
+	{
+		vkDestroyImageView(
+			device,
+			imageViews[i],
+			NULL);
+	}
+
+	free(imageViews);
+
+	vkDestroyRenderPass(
+		device,
+		framebuffer->vk.renderPass,
 		NULL);
 
 	free(framebuffer->vk.colorAttachments);
 	free(framebuffer);
 }
 inline static void beginVkFramebufferRender(
-	Framebuffer framebuffer)
+	VkCommandBuffer commandBuffer,
+	VkRenderPass renderPass,
+	VkFramebuffer framebuffer,
+	Vec2U size,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
 {
-	// TODO:
+	VkClearValue clearValues[2];
+	clearValues[0].color.float32[0] = clearColor.x;
+	clearValues[0].color.float32[1] = clearColor.y;
+	clearValues[0].color.float32[2] = clearColor.z;
+	clearValues[0].color.float32[3] = clearColor.w;
+	clearValues[1].depthStencil.depth = clearDepth;
+	clearValues[1].depthStencil.stencil = clearStencil;
+
+	VkRenderPassBeginInfo renderPassBeginInfo = {
+		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+		NULL,
+		renderPass,
+		framebuffer,
+		{
+			0, 0, size.x, size.y,
+		},
+		2,
+		clearValues,
+	};
+
+	vkCmdBeginRenderPass(
+		commandBuffer,
+		&renderPassBeginInfo,
+		VK_SUBPASS_CONTENTS_INLINE);
 }
 inline static void endVkFramebufferRender(
-	Window window)
+	VkCommandBuffer commandBuffer)
 {
-	// TODO:
+	vkCmdEndRenderPass(commandBuffer);
 }
 inline static void clearVkFramebuffer(
 	bool clearColorBuffer,
@@ -148,9 +466,11 @@ inline static void clearVkFramebuffer(
 
 inline static Framebuffer createGlFramebuffer(
 	Window window,
+	Vec2U size,
 	Image* _colorAttachments,
-	size_t colorAttachmentCount,
-	Image depthStencilAttachment)
+	uint8_t colorAttachmentCount,
+	Image depthStencilAttachment,
+	size_t pipelineCapacity)
 {
 	Framebuffer framebuffer = malloc(
 		sizeof(union Framebuffer));
@@ -187,6 +507,11 @@ inline static Framebuffer createGlFramebuffer(
 
 		for (size_t i = 0; i < colorAttachmentCount; i++)
 		{
+			assert(
+				_colorAttachments[i]->gl.size.x == size.x &&
+				_colorAttachments[i]->gl.size.y == size.y);
+			assert(_colorAttachments[i]->gl.window == window);
+
 			Image colorAttachment = _colorAttachments[i];
 			ImageFormat format = colorAttachment->gl.format;
 
@@ -310,15 +635,52 @@ inline static Framebuffer createGlFramebuffer(
 		return NULL;
 	}
 
+	Pipeline* pipelines = malloc(
+		sizeof(Pipeline) * pipelineCapacity);
+
+	if (pipelines == NULL)
+	{
+		free(colorAttachments);
+		glDeleteFramebuffers(
+			GL_ONE,
+			&handle);
+		free(framebuffer);
+		return NULL;
+	}
+
 	framebuffer->gl.window = window;
+	framebuffer->gl.size = size;
 	framebuffer->gl.colorAttachments = colorAttachments;
 	framebuffer->gl.colorAttachmentCount = colorAttachmentCount;
 	framebuffer->gl.depthStencilAttachment = depthStencilAttachment;
+	framebuffer->gl.pipelines = pipelines;
+	framebuffer->gl.pipelineCapacity = 0;
+	framebuffer->gl.pipelineCount = 0;
 	framebuffer->gl.handle = handle;
 	return framebuffer;
 }
 inline static void destroyGlFramebuffer(Framebuffer framebuffer)
 {
+	size_t pipelineCount = framebuffer->gl.pipelineCount;
+	Pipeline* pipelines = framebuffer->gl.pipelines;
+	Window window = framebuffer->vk.window;
+
+	for (size_t i = 0; i < pipelineCount; i++)
+	{
+		Pipeline pipeline = pipelines[i];
+
+		if (pipeline->vk.onHandleDestroy != NULL)
+		{
+			pipeline->vk.onHandleDestroy(
+				window,
+				pipeline->vk.handle);
+		}
+
+		destroyGlPipeline(pipeline);
+	}
+
+	free(pipelines);
+
 	makeWindowContextCurrent(
 		framebuffer->gl.window);
 
@@ -340,9 +702,6 @@ inline static void beginGlFramebufferRender(
 }
 inline static void endGlFramebufferRender()
 {
-	/*glBindFramebuffer(
-		GL_FRAMEBUFFER,
-		GL_ZERO);*/
 	assertOpenGL();
 }
 inline static void clearGlFramebuffer(

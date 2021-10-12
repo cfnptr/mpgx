@@ -256,10 +256,10 @@ Pipeline createExtColorPipeline(
 	assert(window != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
-	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
-	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
-	assert(getShaderWindow(vertexShader) == window);
-	assert(getShaderWindow(fragmentShader) == window);
+	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
+	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
+	assert(vertexShader->vk.window == window);
+	assert(fragmentShader->vk.window == window);
 
 	PipelineHandle* handle = malloc(
 		sizeof(PipelineHandle));

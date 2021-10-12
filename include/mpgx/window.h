@@ -28,6 +28,8 @@
 #define DEFAULT_MIN_DEPTH 0
 #define DEFAULT_MAX_DEPTH 1
 
+// TODO: do complete library object creation "if()" audit! (and other my libraries)
+
 // TODO: fix a new framebuffer sRGB difference
 
 // TODO: use glPolygonOffset to improve shadow mapping
@@ -423,7 +425,6 @@ Window createWindow(
 	size_t samplerCapacity,
 	size_t framebufferCapacity,
 	size_t shaderCapacity,
-	size_t pipelineCapacity,
 	size_t meshCapacity);
 Window createAnyWindow(
 	bool useStencilBuffer,
@@ -437,8 +438,7 @@ Window createAnyWindow(
 	size_t imageCapacity,
 	size_t samplerCapacity,
 	size_t framebufferCapacity,
-	size_t shaderCapacity,
-	size_t pipelineCapacity);
+	size_t shaderCapacity);
 void destroyWindow(Window window);
 
 bool isWindowEmpty(Window window);
@@ -554,7 +554,8 @@ Image createImage(
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant);
+	bool isConstant,
+	bool isAttachment);
 Image createImageFromFile(
 	Window window,
 	ImageFormat format,
@@ -612,32 +613,6 @@ bool isSamplerUseCompare(Sampler sampler);
 Vec2F getSamplerMipmapLodRange(Sampler sampler);
 float getSamplerMipmapLodBias(Sampler sampler);
 
-Framebuffer createFramebuffer(
-	Window window,
-	Image* colorAttachments,
-	size_t colorAttachmentCount,
-	Image depthStencilAttachment);
-void destroyFramebuffer(Framebuffer framebuffer);
-
-Image* getFramebufferColorAttachments(
-	Framebuffer framebuffer);
-size_t getFramebufferColorAttachmentCount(
-	Framebuffer framebuffer);
-Image getFramebufferDepthStencilAttachment(
-	Framebuffer framebuffer);
-
-void beginFramebufferRender(Framebuffer framebuffer);
-void endFramebufferRender(Window window);
-
-void clearFramebuffer(
-	Window window,
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil);
-
 Shader createShader(
 	Window window,
 	ShaderType type,
@@ -652,8 +627,38 @@ void destroyShader(Shader shader);
 Window getShaderWindow(Shader shader);
 ShaderType getShaderType(Shader shader);
 
-Pipeline createPipeline(
+Framebuffer createShadowFramebuffer(
 	Window window,
+	Vec2U size,
+	Image depthStencilAttachment,
+	size_t pipelineCapacity);
+void destroyFramebuffer(Framebuffer framebuffer);
+
+Window getFramebufferWindow(Framebuffer framebuffer);
+Vec2U getFramebufferSize(Framebuffer framebuffer);
+Image* getFramebufferColorAttachments(Framebuffer framebuffer);
+uint8_t getFramebufferColorAttachmentCount(Framebuffer framebuffer);
+Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer);
+bool isFramebufferEmpty(Framebuffer framebuffer);
+
+void beginFramebufferRender(
+	Framebuffer framebuffer,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil);
+void endFramebufferRender(Window window);
+
+void clearFramebuffer(
+	Window window,
+	bool clearColorBuffer,
+	bool clearDepthBuffer,
+	bool clearStencilBuffer,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil);
+
+Pipeline createPipeline(
+	Framebuffer framebuffer,
 	const char* name,
 	Shader* shaders,
 	uint8_t shaderCount,
@@ -668,7 +673,7 @@ void destroyPipeline(
 	Pipeline pipeline,
 	bool destroyShaders);
 
-Window getPipelineWindow(Pipeline pipeline);
+Framebuffer getPipelineFramebuffer(Pipeline pipeline);
 const char* getPipelineName(Pipeline pipeline);
 Shader* getPipelineShaders(Pipeline pipeline);
 uint8_t getPipelineShaderCount(Pipeline pipeline);

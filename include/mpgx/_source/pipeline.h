@@ -18,7 +18,7 @@
 
 typedef struct _VkPipeline
 {
-	Window window;
+	Framebuffer framebuffer;
 	const char* name;
 	Shader* shaders;
 	uint8_t shaderCount;
@@ -36,7 +36,7 @@ typedef struct _VkPipeline
 } _VkPipeline;
 typedef struct _GlPipeline
 {
-	Window window;
+	Framebuffer framebuffer;
 	const char* name;
 	Shader* shaders;
 	uint8_t shaderCount;
@@ -68,6 +68,7 @@ union Pipeline
 #if MPGX_SUPPORT_VULKAN
 typedef struct VkPipelineCreateInfo
 {
+	VkRenderPass renderPass;
 	uint32_t vertexBindingDescriptionCount;
 	const VkVertexInputBindingDescription* vertexBindingDescriptions;
 	uint32_t vertexAttributeDescriptionCount;
@@ -301,9 +302,8 @@ inline static VkPipeline createVkPipelineHandle(
 	VkPipelineCache cache,
 	VkPipelineLayout layout,
 	VkDevice device,
-	VkRenderPass renderPass,
 	VkPipelineCreateInfo* createInfo,
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	PipelineState state)
@@ -313,6 +313,8 @@ inline static VkPipeline createVkPipelineHandle(
 
 	if (shaderStageCreateInfos == NULL)
 		return NULL;
+
+	Window window = getFramebufferWindow(framebuffer);
 
 	for (uint8_t i = 0; i < shaderCount; i++)
 	{
@@ -588,7 +590,7 @@ inline static VkPipeline createVkPipelineHandle(
 		&colorBlendStateCreateInfo,
 		&dynamicStateCreateInfo,
 		layout,
-		renderPass,
+		createInfo->renderPass,
 		0,
 		NULL,
 		-1
@@ -614,9 +616,8 @@ inline static VkPipeline createVkPipelineHandle(
 
 inline static Pipeline createVkPipeline(
 	VkDevice device,
-	VkRenderPass renderPass,
 	VkPipelineCreateInfo* createInfo,
-	Window window,
+	Framebuffer framebuffer,
 	const char* name,
 	Shader* _shaders,
 	uint8_t shaderCount,
@@ -701,9 +702,8 @@ inline static Pipeline createVkPipeline(
 		cache,
 		layout,
 		device,
-		renderPass,
 		createInfo,
-		window,
+		framebuffer,
 		shaders,
 		shaderCount,
 		state);
@@ -723,7 +723,7 @@ inline static Pipeline createVkPipeline(
 		return NULL;
 	}
 
-	pipeline->vk.window = window;
+	pipeline->vk.framebuffer = framebuffer;
 	pipeline->vk.name = name;
 	pipeline->vk.shaders = shaders;
 	pipeline->vk.shaderCount = shaderCount;
@@ -932,7 +932,7 @@ inline static bool getGlBlendOperator(
 	}
 }
 inline static Pipeline createGlPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	const char* name,
 	Shader* _shaders,
 	uint8_t shaderCount,
@@ -1016,6 +1016,7 @@ inline static Pipeline createGlPipeline(
 		state.clockwiseFrontFace == true ?
 		GL_CW : GL_CCW;
 
+	Window window = getFramebufferWindow(framebuffer);
 	makeWindowContextCurrent(window);
 
 	GLuint glHandle = glCreateProgram();
@@ -1097,7 +1098,7 @@ inline static Pipeline createGlPipeline(
 		return NULL;
 	}
 
-	pipeline->gl.window = window;
+	pipeline->gl.framebuffer = framebuffer;
 	pipeline->gl.name = name;
 	pipeline->gl.shaders = shaders;
 	pipeline->gl.shaderCount = shaderCount;
@@ -1124,8 +1125,8 @@ inline static Pipeline createGlPipeline(
 inline static void destroyGlPipeline(
 	Pipeline pipeline)
 {
-	makeWindowContextCurrent(
-		pipeline->gl.window);
+	makeWindowContextCurrent(getFramebufferWindow(
+		pipeline->gl.framebuffer));
 
 	glDeleteProgram(
 		pipeline->gl.glHandle);

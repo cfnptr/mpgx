@@ -87,7 +87,8 @@ target_link_libraries(mpgx PUBLIC
 	${MPGX_LINK_LIBRARIES})
 target_include_directories(mpgx PUBLIC
 	${PROJECT_BINARY_DIR}
-	${PROJECT_SOURCE_DIR}/include)
+	${PROJECT_SOURCE_DIR}/include
+	${PROJECT_SOURCE_DIR}/libraries/stb)
 
 if (MPGX_BUILD_EXAMPLES)
 	add_executable(mpgx-window-example

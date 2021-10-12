@@ -61,14 +61,14 @@ inline static Image createVkImage(
 	VmaAllocator allocator,
 	VkQueue transferQueue,
 	VkCommandPool transferCommandPool,
-	VkImageUsageFlags vkUsage,
 	Window window,
 	ImageType type,
 	ImageFormat format,
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant)
+	bool isConstant,
+	bool isAttachment)
 {
 	// TODO: mipmap generation, multisampling
 
@@ -93,6 +93,8 @@ inline static Image createVkImage(
 	VkImageAspectFlags vkAspect;
 	uint8_t sizeMultiplier;
 
+	VkImageUsageFlagBits vkUsage = VK_IMAGE_USAGE_SAMPLED_BIT;
+
 	switch (format)
 	{
 	default:
@@ -102,31 +104,49 @@ inline static Image createVkImage(
 		vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 4;
+
+		if (isAttachment == true)
+			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		break;
 	case R8G8B8A8_SRGB_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 4;
+
+		if (isAttachment == true)
+			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		break;
 	case D16_UNORM_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_D16_UNORM;
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 2;
+
+		if (isAttachment == true)
+			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D32_SFLOAT_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_D32_SFLOAT;
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 4;
+
+		if (isAttachment == true)
+			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D24_UNORM_S8_UINT_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 4;
+
+		if (isAttachment == true)
+			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 5; // TODO: correct?
+
+		if (isAttachment == true)
+			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	}
 
@@ -143,7 +163,7 @@ inline static Image createVkImage(
 		1,
 		1,
 		VK_SAMPLE_COUNT_1_BIT,
-		isConstant ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR,
+		isConstant == true ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR,
 		vkUsage,
 		VK_SHARING_MODE_EXCLUSIVE,
 		0,
@@ -1019,8 +1039,11 @@ inline static Image createGlImage(
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant)
+	bool isConstant,
+	bool isAttachment)
 {
+	// TODO: use isAttachment for renderbuffer optimization
+
 	Image image = malloc(
 		sizeof(union Image));
 

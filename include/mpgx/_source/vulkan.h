@@ -1357,14 +1357,12 @@ inline static const char* getVkWindowGpuName(
 inline static bool beginVkWindowRecord(
 	Window window,
 	VkWindow vkWindow,
+	Vec2U framebufferSize,
 	bool isResized,
 	void(*onResize)(Window))
 {
 	VkSwapchain swapchain = vkWindow->swapchain;
 	VkDevice device = vkWindow->device;
-
-	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
 
 	if (isResized == true)
 	{
@@ -1467,11 +1465,25 @@ inline static bool beginVkWindowRecord(
 		vkWindow->allocator,
 		bufferIndex);
 
-	VkSwapchainBuffer buffer =
-		swapchain->buffers[bufferIndex];
+	VkSwapchainBuffer buffer = swapchain->buffers[bufferIndex];
+	VkCommandBuffer graphicsCommandBuffer = buffer.graphicsCommandBuffer;
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		NULL,
+		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+		NULL,
+	};
+
+	vkResult = vkBeginCommandBuffer(
+		graphicsCommandBuffer,
+		&commandBufferBeginInfo);
+
+	if (vkResult != VK_SUCCESS)
+		return false;
 
 	vkWindow->bufferIndex = bufferIndex;
-	vkWindow->currenCommandBuffer = buffer.graphicsCommandBuffer;
+	vkWindow->currenCommandBuffer = graphicsCommandBuffer;
 	return true;
 }
 inline static bool endVkWindowRecord(
@@ -1641,33 +1653,14 @@ inline static bool endVkWindowRecord(
 }
 
 inline static bool beginVkWindowRender(
-	Window window,
-	VkWindow vkWindow,
+	VkRenderPass renderPass,
+	VkFramebuffer framebuffer,
+	VkCommandBuffer commandBuffer,
+	Vec2U framebufferSize,
 	Vec4F clearColor,
 	float clearDepth,
 	uint32_t clearStencil)
 {
-	VkSwapchain swapchain = vkWindow->swapchain;
-
-	VkSwapchainBuffer buffer = swapchain->buffers[
-		vkWindow->bufferIndex];
-	VkCommandBuffer graphicsCommandBuffer =
-		buffer.graphicsCommandBuffer;
-
-	VkCommandBufferBeginInfo commandBufferBeginInfo = {
-		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		NULL,
-		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-		NULL,
-	};
-
-	VkResult vkResult = vkBeginCommandBuffer(
-		graphicsCommandBuffer,
-		&commandBufferBeginInfo);
-
-	if (vkResult != VK_SUCCESS)
-		return false;
-
 	VkClearValue clearValues[2];
 	clearValues[0].color.float32[0] = clearColor.x;
 	clearValues[0].color.float32[1] = clearColor.y;
@@ -1675,9 +1668,6 @@ inline static bool beginVkWindowRender(
 	clearValues[0].color.float32[3] = clearColor.w;
 	clearValues[1].depthStencil.depth = clearDepth;
 	clearValues[1].depthStencil.stencil = clearStencil;
-
-	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
 
 	VkRect2D renderArea = {
 		{
@@ -1693,24 +1683,23 @@ inline static bool beginVkWindowRender(
 	VkRenderPassBeginInfo renderPassBeginInfo = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 		NULL,
-		swapchain->renderPass,
-		buffer.framebuffer,
+		renderPass,
+		framebuffer,
 		renderArea,
 		2,
 		clearValues,
 	};
 
 	vkCmdBeginRenderPass(
-		graphicsCommandBuffer,
+		commandBuffer,
 		&renderPassBeginInfo,
 		VK_SUBPASS_CONTENTS_INLINE);
 	return true;
 }
 inline static void endVkWindowRender(
-	VkWindow vkWindow)
+	VkCommandBuffer commandBuffer)
 {
-	vkCmdEndRenderPass(
-		vkWindow->currenCommandBuffer);
+	vkCmdEndRenderPass(commandBuffer);
 }
 
 inline static bool getVkCompareOperator(

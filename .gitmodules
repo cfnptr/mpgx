@@ -13,3 +13,6 @@
 [submodule "libraries/glad"]
 	path = libraries/glad
 	url = https://github.com/cfnptr/glad
+[submodule "libraries/stb"]
+	path = libraries/stb
+	url = https://github.com/nothings/stb

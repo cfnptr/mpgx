@@ -705,12 +705,12 @@ Pipeline createExtTexSprPipeline(
 	assert(fragmentShader != NULL);
 	assert(texture != NULL);
 	assert(sampler != NULL);
-	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
-	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
-	assert(getShaderWindow(vertexShader) == window);
-	assert(getShaderWindow(fragmentShader) == window);
-	assert(getImageWindow(texture) == window);
-	assert(getSamplerWindow(sampler) == window);
+	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
+	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
+	assert(vertexShader->vk.window == window);
+	assert(fragmentShader->vk.window == window);
+	assert(texture->vk.window == window);
+	assert(sampler->vk.window == window);
 
 	PipelineHandle* handle = malloc(
 		sizeof(PipelineHandle));

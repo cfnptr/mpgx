@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "mpgx/window.h"
+#include "mpgx/file.h"
+
 #include "mpgx/_source/mesh.h"
 #include "mpgx/_source/sampler.h"
 #include "mpgx/_source/framebuffer.h"
@@ -21,12 +23,13 @@
 #include FT_FREETYPE_H
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include "stb_image.h"
 
 #include "cmmt/common.h"
 #include <stdio.h>
 
-// TODO: replace fopen with file funcs
+// TODO: possibly create Vulkan window staging buffer
+// recreate if staging more data, and stage/destroy on frame render end.
 
 struct ImageData
 {
@@ -57,9 +60,6 @@ struct Window
 	Shader* shaders;
 	size_t shaderCapacity;
 	size_t shaderCount;
-	Pipeline* pipelines;
-	size_t pipelineCapacity;
-	size_t pipelineCount;
 	Mesh* meshes;
 	size_t meshCapacity;
 	size_t meshCount;
@@ -213,9 +213,8 @@ Window createWindow(
 	size_t bufferCapacity,
 	size_t imageCapacity,
 	size_t samplerCapacity,
-	size_t framebufferCapacity,
 	size_t shaderCapacity,
-	size_t pipelineCapacity,
+	size_t framebufferCapacity,
 	size_t meshCapacity)
 {
 	assert(api < GRAPHICS_API_COUNT);
@@ -226,9 +225,8 @@ Window createWindow(
 	assert(bufferCapacity != 0);
 	assert(imageCapacity != 0);
 	assert(samplerCapacity != 0);
-	assert(framebufferCapacity != 0);
 	assert(shaderCapacity != 0);
-	assert(pipelineCapacity != 0);
+	assert(framebufferCapacity != 0);
 	assert(graphicsInitialized == true);
 	assert(meshCapacity != 0);
 
@@ -472,28 +470,11 @@ Window createWindow(
 		return NULL;
 	}
 
-	Framebuffer* framebuffers = malloc(
-		sizeof(Framebuffer) * framebufferCapacity);
-
-	if (framebuffers == NULL)
-	{
-		free(samplers);
-		free(images);
-		free(buffers);
-#if MPGX_SUPPORT_VULKAN
-		destroyVkWindow(vkInstance, vkWindow);
-#endif
-		glfwDestroyWindow(handle);
-		free(window);
-		return NULL;
-	}
-
 	Shader* shaders = malloc(
 		sizeof(Shader) * shaderCapacity);
 
 	if (shaders == NULL)
 	{
-		free(framebuffers);
 		free(samplers);
 		free(images);
 		free(buffers);
@@ -505,13 +486,12 @@ Window createWindow(
 		return NULL;
 	}
 
-	Pipeline* pipelines = malloc(
-		sizeof(Pipeline) * pipelineCapacity);
+	Framebuffer* framebuffers = malloc(
+		sizeof(Framebuffer) * framebufferCapacity);
 
-	if (pipelines == NULL)
+	if (framebuffers == NULL)
 	{
 		free(shaders);
-		free(framebuffers);
 		free(samplers);
 		free(images);
 		free(buffers);
@@ -528,9 +508,8 @@ Window createWindow(
 
 	if (meshes == NULL)
 	{
-		free(pipelines);
-		free(shaders);
 		free(framebuffers);
+		free(shaders);
 		free(samplers);
 		free(images);
 		free(meshes);
@@ -557,15 +536,12 @@ Window createWindow(
 	window->samplers = samplers;
 	window->samplerCapacity = samplerCapacity;
 	window->samplerCount = 0;
-	window->framebuffers = framebuffers;
-	window->framebufferCapacity = framebufferCapacity;
-	window->framebufferCount = 0;
 	window->shaders = shaders;
 	window->shaderCapacity = shaderCapacity;
 	window->shaderCount = 0;
-	window->pipelines = pipelines;
-	window->pipelineCapacity = pipelineCapacity;
-	window->pipelineCount = 0;
+	window->framebuffers = framebuffers;
+	window->framebufferCapacity = framebufferCapacity;
+	window->framebufferCount = 0;
 	window->meshes = meshes;
 	window->meshCapacity = meshCapacity;
 	window->meshCount = 0;
@@ -589,26 +565,12 @@ Window createAnyWindow(
 	void* updateArgument,
 	bool visible,
 	size_t bufferCapacity,
-	size_t meshCapacity,
 	size_t imageCapacity,
 	size_t samplerCapacity,
-	size_t framebufferCapacity,
 	size_t shaderCapacity,
-	size_t pipelineCapacity)
+	size_t framebufferCapacity,
+	size_t meshCapacity)
 {
-	assert(size.x > 0);
-	assert(size.y > 0);
-	assert(title != NULL);
-	assert(updateFunction != NULL);
-	assert(bufferCapacity != 0);
-	assert(meshCapacity != 0);
-	assert(imageCapacity != 0);
-	assert(samplerCapacity != 0);
-	assert(framebufferCapacity != 0);
-	assert(shaderCapacity != 0);
-	assert(pipelineCapacity != 0);
-	assert(graphicsInitialized == true);
-
 	Window window = createWindow(
 		VULKAN_GRAPHICS_API,
 		useStencilBuffer,
@@ -620,9 +582,8 @@ Window createAnyWindow(
 		bufferCapacity,
 		imageCapacity,
 		samplerCapacity,
-		framebufferCapacity,
 		shaderCapacity,
-		pipelineCapacity,
+		framebufferCapacity,
 		meshCapacity);
 
 	if (window != NULL)
@@ -639,9 +600,8 @@ Window createAnyWindow(
 		bufferCapacity,
 		imageCapacity,
 		samplerCapacity,
-		framebufferCapacity,
 		shaderCapacity,
-		pipelineCapacity,
+		framebufferCapacity,
 		meshCapacity);
 
 	if (window != NULL)
@@ -658,9 +618,8 @@ Window createAnyWindow(
 		bufferCapacity,
 		imageCapacity,
 		samplerCapacity,
-		framebufferCapacity,
 		shaderCapacity,
-		pipelineCapacity,
+		framebufferCapacity,
 		meshCapacity);
 
 	return window;
@@ -672,8 +631,6 @@ void destroyWindow(Window window)
 
 	Mesh* meshes = window->meshes;
 	size_t meshCount = window->meshCount;
-	Pipeline* pipelines = window->pipelines;
-	size_t pipelineCount = window->pipelineCount;
 	Shader* shaders = window->shaders;
 	size_t shaderCount = window->shaderCount;
 	Framebuffer* framebuffers = window->framebuffers;
@@ -686,18 +643,6 @@ void destroyWindow(Window window)
 	size_t bufferCount = window->bufferCount;
 
 	GraphicsAPI api = window->api;
-
-	for (size_t i = 0; i < pipelineCount; i++)
-	{
-		Pipeline pipeline = pipelines[i];
-
-		if (pipeline->vk.onHandleDestroy != NULL)
-		{
-			pipeline->vk.onHandleDestroy(
-				window,
-				pipeline->vk.handle);
-		}
-	}
 
     if (api == VULKAN_GRAPHICS_API)
 	{
@@ -712,8 +657,6 @@ void destroyWindow(Window window)
 		if (result != VK_SUCCESS)
 			abort();
 
-		for (size_t i = 0; i < pipelineCount; i++)
-			destroyVkPipeline(device, pipelines[i]);
 		for (size_t i = 0; i < meshCount; i++)
 			destroyVkMesh(meshes[i]);
 		for (size_t i = 0; i < shaderCount; i++)
@@ -735,8 +678,6 @@ void destroyWindow(Window window)
     else if (api == OPENGL_GRAPHICS_API ||
     	api == OPENGL_ES_GRAPHICS_API)
 	{
-		for (size_t i = 0; i < pipelineCount; i++)
-			destroyGlPipeline(pipelines[i]);
 		for (size_t i = 0; i < meshCount; i++)
 			destroyGlMesh(meshes[i]);
 		for (size_t i = 0; i < shaderCount; i++)
@@ -760,7 +701,6 @@ void destroyWindow(Window window)
 	free(images);
 	free(framebuffers);
 	free(shaders);
-	free(pipelines);
 
 	glfwDestroyWindow(window->handle);
 	free(window);
@@ -774,9 +714,8 @@ bool isWindowEmpty(Window window)
 		window->bufferCount == 0 &&
 		window->imageCount == 0 &&
 		window->samplerCount == 0 &&
-		window->framebufferCount == 0 &&
 		window->shaderCount == 0 &&
-		window->pipelineCount == 0 &&
+		window->framebufferCount == 0 &&
 		window->meshCount == 0;
 }
 GraphicsAPI getWindowGraphicsAPI(Window window)
@@ -1124,11 +1063,11 @@ void updateWindow(Window window)
 #if MPGX_SUPPORT_VULKAN
 static void onVkResize(Window window)
 {
+	// TODO: refactor vulkan framebuffer system
 	Pipeline* pipelines = window->pipelines;
 	size_t pipelineCount = window->pipelineCount;
 	VkWindow vkWindow = window->vkWindow;
 	VkDevice device = vkWindow->device;
-	VkRenderPass renderPass = vkWindow->swapchain->renderPass;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
@@ -1151,7 +1090,6 @@ static void onVkResize(Window window)
 			pipeline->vk.cache,
 			pipeline->vk.layout,
 			device,
-			renderPass,
 			&createInfo,
 			window,
 			pipeline->vk.shaders,
@@ -1222,6 +1160,7 @@ bool beginWindowRecord(Window window)
 		bool result = beginVkWindowRecord(
 			window,
 			window->vkWindow,
+			window->framebufferSize,
 			isResized,
 			onVkResize);
 
@@ -1349,9 +1288,17 @@ void beginWindowRender(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+		VkSwapchain swapchain = vkWindow->swapchain;
+
+		VkSwapchainBuffer buffer = swapchain->buffers[
+			vkWindow->bufferIndex];
+
 		bool result = beginVkWindowRender(
-			window,
-			window->vkWindow,
+			swapchain->renderPass,
+			buffer.framebuffer,
+			vkWindow->currenCommandBuffer,
+			window->framebufferSize,
 			clearColor,
 			clearDepth,
 			clearStencil);
@@ -1389,7 +1336,8 @@ void endWindowRender(Window window)
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		endVkWindowRender(window->vkWindow);
+		endVkWindowRender(
+			window->vkWindow->currenCommandBuffer);
 #else
 		abort();
 #endif
@@ -1397,6 +1345,7 @@ void endWindowRender(Window window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+		// NOOP
 	}
 	else
 	{
@@ -1745,7 +1694,8 @@ Image createImage(
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant)
+	bool isConstant,
+	bool isAttachment)
 {
 	assert(window != NULL);
 	assert(type < IMAGE_TYPE_COUNT);
@@ -1771,14 +1721,14 @@ Image createImage(
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
 			vkWindow->transferCommandPool,
-			VK_IMAGE_USAGE_SAMPLED_BIT,
 			window,
 			type,
 			format,
 			data,
 			size,
 			levelCount,
-			isConstant);
+			isConstant,
+			isAttachment);
 #else
 		abort();
 #endif
@@ -1793,7 +1743,8 @@ Image createImage(
 			data,
 			size,
 			levelCount,
-			isConstant);
+			isConstant,
+			isAttachment);
 	}
 	else
 	{
@@ -1887,7 +1838,8 @@ Image createImageFromFile(
 		(const void**)&pixels,
 		vec3U(width, height, 1),
 		generateMipmap ? 0 : 1,
-		isConstant);
+		isConstant,
+		false);
 
 	stbi_image_free(pixels);
 	return image;
@@ -1936,7 +1888,8 @@ Image createImageFromData(
 		(const void**)&pixels,
 		vec3U(width, height, 1),
 		generateMipmap ? 0 : 1,
-		isConstant);
+		isConstant,
+		false);
 
 	stbi_image_free(pixels);
 	return image;
@@ -2324,298 +2277,6 @@ float getSamplerMipmapLodBias(Sampler sampler)
 	return sampler->vk.mipmapLodBias;
 }
 
-Framebuffer createFramebuffer(
-	Window window,
-	Image* colorAttachments,
-	size_t colorAttachmentCount,
-	Image depthStencilAttachment)
-{
-	assert(window != NULL);
-	assert((colorAttachments == NULL &&
-		colorAttachmentCount == 0) ||
-		(colorAttachments != NULL &&
-		colorAttachmentCount != 0));
-	assert(colorAttachments != NULL ||
-		depthStencilAttachment != NULL);
-	assert(getImageWindow(depthStencilAttachment) == window);
-	assert(window->isRecording == false);
-
-	GraphicsAPI api = window->api;
-
-	Framebuffer framebuffer;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		VkWindow vkWindow = window->vkWindow;
-
-		VkResult result = vkDeviceWaitIdle(
-			vkWindow->device);
-
-		if (result != VK_SUCCESS)
-			abort();
-
-		framebuffer = createVkFramebuffer(
-			vkWindow->device,
-			window,
-			colorAttachments,
-			colorAttachmentCount,
-			depthStencilAttachment);
-#else
-		abort();
-#endif
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		framebuffer = createGlFramebuffer(
-			window,
-			colorAttachments,
-			colorAttachmentCount,
-			depthStencilAttachment);
-	}
-	else
-	{
-		abort();
-	}
-
-	if (framebuffer == NULL)
-		return NULL;
-
-	size_t count = window->framebufferCount;
-
-	if (count == window->framebufferCapacity)
-	{
-		size_t capacity = window->framebufferCapacity * 2;
-
-		Framebuffer* framebuffers = realloc(
-			window->framebuffers,
-			sizeof(Framebuffer) * capacity);
-
-		if (framebuffers == NULL)
-		{
-			if (api == VULKAN_GRAPHICS_API)
-			{
-#if MPGX_SUPPORT_VULKAN
-				destroyVkFramebuffer(
-					window->vkWindow->device,
-					framebuffer);
-#else
-				abort();
-#endif
-			}
-			else if (api == OPENGL_GRAPHICS_API ||
-				api == OPENGL_ES_GRAPHICS_API)
-			{
-				destroyGlFramebuffer(framebuffer);
-			}
-			else
-			{
-				abort();
-			}
-
-			return NULL;
-		}
-
-		window->framebuffers = framebuffers;
-		window->framebufferCapacity = capacity;
-	}
-
-	window->framebuffers[count] = framebuffer;
-	window->framebufferCount = count + 1;
-	return framebuffer;
-}
-void destroyFramebuffer(Framebuffer framebuffer)
-{
-	if (framebuffer == NULL)
-		return;
-
-	assert(framebuffer->vk.window->isRecording == false);
-
-	Window window = framebuffer->vk.window;
-	Framebuffer* framebuffers = window->framebuffers;
-	size_t framebufferCount = window->framebufferCount;
-
-	for (size_t i = 0; i < framebufferCount; i++)
-	{
-		if (framebuffer != framebuffers[i])
-			continue;
-
-		for (size_t j = i + 1; j < framebufferCount; j++)
-			framebuffers[j - 1] = framebuffers[j];
-
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
-		{
-#if MPGX_SUPPORT_VULKAN
-			destroyVkFramebuffer(
-				window->vkWindow->device,
-				framebuffer);
-#else
-			abort();
-#endif
-		}
-		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
-		{
-			destroyGlFramebuffer(framebuffer);
-		}
-		else
-		{
-			abort();
-		}
-
-		window->framebufferCount--;
-		return;
-	}
-
-	abort();
-}
-
-Image* getFramebufferColorAttachments(
-	Framebuffer framebuffer)
-{
-	assert(framebuffer != NULL);
-	return framebuffer->vk.colorAttachments;
-}
-size_t getFramebufferColorAttachmentCount(
-	Framebuffer framebuffer)
-{
-	assert(framebuffer != NULL);
-	return framebuffer->vk.colorAttachmentCount;
-}
-Image getFramebufferDepthStencilAttachment(
-	Framebuffer framebuffer)
-{
-	assert(framebuffer != NULL);
-	return framebuffer->vk.depthStencilAttachment;
-}
-
-void beginFramebufferRender(Framebuffer framebuffer)
-{
-	assert(framebuffer != NULL);
-	assert(framebuffer->vk.window->isRecording == true);
-	assert(framebuffer->vk.window->isRendering == false);
-
-	Window window = framebuffer->vk.window;
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		beginVkFramebufferRender(framebuffer);
-#else
-		abort();
-#endif
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		beginGlFramebufferRender(
-			framebuffer->gl.handle);
-	}
-	else
-	{
-		abort();
-	}
-
-	window->isRendering = true;
-}
-
-void endFramebufferRender(Window window)
-{
-	assert(window != NULL);
-	assert(window->isRecording == true);
-	assert(window->isRendering == true);
-
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		endVkFramebufferRender(window);
-#else
-		abort();
-#endif
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		endGlFramebufferRender();
-	}
-	else
-	{
-		abort();
-	}
-
-	window->isRendering = false;
-}
-
-void clearFramebuffer(
-	Window window,
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil)
-{
-	assert(window != NULL);
-	assert(
-		clearColorBuffer == true ||
-		clearDepthBuffer == true ||
-		clearStencilBuffer == true);
-	assert(window->useStencilBuffer == true ||
-		clearStencilBuffer == false);
-	assert(
-		clearColor.x >= 0.0f &&
-		clearColor.y >= 0.0f &&
-		clearColor.z >= 0.0f &&
-		clearColor.w >= 0.0f);
-	assert(
-		clearColor.x <= 1.0f &&
-		clearColor.y <= 1.0f &&
-		clearColor.z <= 1.0f &&
-		clearColor.w <= 1.0f);
-	assert(
-		clearDepth >= 0.0f &&
-		clearDepth <= 1.0f);
-	assert(window->isRecording == true);
-
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		clearVkFramebuffer(
-			clearColorBuffer,
-			clearDepthBuffer,
-			clearStencilBuffer,
-			clearColor,
-			clearDepth,
-			clearStencil);
-#else
-		abort();
-#endif
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
-	{
-		clearGlFramebuffer(
-			clearColorBuffer,
-			clearDepthBuffer,
-			clearStencilBuffer,
-			clearColor,
-			clearDepth,
-			clearStencil);
-	}
-	else
-	{
-		abort();
-	}
-}
-
 Shader createShader(
 	Window window,
 	ShaderType type,
@@ -2646,7 +2307,7 @@ Shader createShader(
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+			 api == OPENGL_ES_GRAPHICS_API)
 	{
 		shader = createGlShader(
 			window,
@@ -2686,7 +2347,7 @@ Shader createShader(
 #endif
 			}
 			else if (api == OPENGL_GRAPHICS_API ||
-				api == OPENGL_ES_GRAPHICS_API)
+					 api == OPENGL_ES_GRAPHICS_API)
 			{
 				destroyGlShader(shader);
 			}
@@ -2715,14 +2376,14 @@ Shader createShaderFromFile(
 	assert(window != NULL);
 	assert(filePath != NULL);
 
-	FILE* file = fopen(
+	FILE* file = openFile(
 		filePath,
 		"rb");
 
 	if (file == NULL)
 		return NULL;
 
-	int seekResult = fseek(
+	int seekResult = seekFile(
 		file,
 		0,
 		SEEK_END);
@@ -2733,9 +2394,9 @@ Shader createShaderFromFile(
 		return NULL;
 	}
 
-	size_t fileSize = ftell(file);
+	size_t fileSize = tellFile(file);
 
-	seekResult = fseek(
+	seekResult = seekFile(
 		file,
 		0,
 		SEEK_SET);
@@ -2768,7 +2429,7 @@ Shader createShaderFromFile(
 			file);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+			 api == OPENGL_ES_GRAPHICS_API)
 	{
 		code = malloc(fileSize + 1);
 
@@ -2839,7 +2500,7 @@ void destroyShader(Shader shader)
 #endif
 		}
 		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
+				 api == OPENGL_ES_GRAPHICS_API)
 		{
 			destroyGlShader(shader);
 		}
@@ -2866,8 +2527,366 @@ ShaderType getShaderType(Shader shader)
 	return shader->vk.type;
 }
 
-Pipeline createPipeline(
+inline static bool addWindowFramebuffer(
 	Window window,
+	Framebuffer framebuffer)
+{
+	size_t count = window->framebufferCount;
+
+	if (count == window->framebufferCapacity)
+	{
+		size_t capacity = window->framebufferCapacity * 2;
+
+		Framebuffer* framebuffers = realloc(
+			window->framebuffers,
+			sizeof(Framebuffer) * capacity);
+
+		if (framebuffers == NULL)
+			return false;
+
+		window->framebuffers = framebuffers;
+		window->framebufferCapacity = capacity;
+	}
+
+	window->framebuffers[count] = framebuffer;
+	window->framebufferCount = count + 1;
+	return true;
+}
+Framebuffer createShadowFramebuffer(
+	Window window,
+	Vec2U size,
+	Image depthStencilAttachment,
+	size_t pipelineCapacity)
+{
+	assert(window != NULL);
+	assert(depthStencilAttachment != NULL);
+	assert(
+		depthStencilAttachment->vk.size.x == size.x &&
+		depthStencilAttachment->vk.size.y == size.y);
+	assert(depthStencilAttachment->vk.window == window);
+	assert(pipelineCapacity != 0);
+	assert(window->isRecording == false);
+
+	GraphicsAPI api = window->api;
+
+	Framebuffer framebuffer;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+		VkDevice device = vkWindow->device;
+
+		VkRenderPass renderPass = createVkShadowRenderPass(
+			device,
+			depthStencilAttachment->vk.vkFormat);
+
+		if (renderPass == NULL)
+			return NULL;
+
+		framebuffer = createVkFramebuffer(
+			device,
+			renderPass,
+			window,
+			size,
+			NULL,
+			0,
+			depthStencilAttachment,
+			pipelineCapacity);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+			 api == OPENGL_ES_GRAPHICS_API)
+	{
+		framebuffer = createGlFramebuffer(
+			window,
+			size,
+			NULL,
+			0,
+			depthStencilAttachment,
+			pipelineCapacity);
+	}
+	else
+	{
+		abort();
+	}
+
+	if (framebuffer == NULL)
+		return NULL;
+
+	bool result = addWindowFramebuffer(
+		window,
+		framebuffer);
+
+	if (result == false)
+	{
+		if (api == VULKAN_GRAPHICS_API)
+		{
+#if MPGX_SUPPORT_VULKAN
+			destroyVkFramebuffer(
+				window->vkWindow->device,
+				framebuffer);
+#else
+			abort();
+#endif
+		}
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
+		{
+			destroyGlFramebuffer(framebuffer);
+		}
+		else
+		{
+			abort();
+		}
+
+		return NULL;
+	}
+
+	return framebuffer;
+}
+void destroyFramebuffer(Framebuffer framebuffer)
+{
+	if (framebuffer == NULL)
+		return;
+
+	assert(framebuffer->vk.window->isRecording == false);
+
+	Window window = framebuffer->vk.window;
+	Framebuffer* framebuffers = window->framebuffers;
+	size_t framebufferCount = window->framebufferCount;
+
+	for (size_t i = 0; i < framebufferCount; i++)
+	{
+		if (framebuffer != framebuffers[i])
+			continue;
+
+		for (size_t j = i + 1; j < framebufferCount; j++)
+			framebuffers[j - 1] = framebuffers[j];
+
+		GraphicsAPI api = window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
+		{
+#if MPGX_SUPPORT_VULKAN
+			VkWindow vkWindow = window->vkWindow;
+
+			VkResult result = vkDeviceWaitIdle(
+				vkWindow->device);
+
+			if (result != VK_SUCCESS)
+				abort();
+
+			destroyVkFramebuffer(
+				vkWindow->device,
+				framebuffer);
+#else
+			abort();
+#endif
+		}
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
+		{
+			destroyGlFramebuffer(framebuffer);
+		}
+		else
+		{
+			abort();
+		}
+
+		window->framebufferCount--;
+		return;
+	}
+
+	abort();
+}
+
+Window getFramebufferWindow(Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->vk.window;
+}
+Vec2U getFramebufferSize(Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->vk.size;
+}
+Image* getFramebufferColorAttachments(Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->vk.colorAttachments;
+}
+uint8_t getFramebufferColorAttachmentCount(Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->vk.colorAttachmentCount;
+}
+Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->vk.depthStencilAttachment;
+}
+bool isFramebufferEmpty(Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->vk.pipelineCount == 0;
+}
+
+void beginFramebufferRender(
+	Framebuffer framebuffer,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
+{
+	assert(framebuffer != NULL);
+	assert(
+		clearColor.x >= 0.0f &&
+		clearColor.y >= 0.0f &&
+		clearColor.z >= 0.0f &&
+		clearColor.w >= 0.0f);
+	assert(
+		clearColor.x <= 1.0f &&
+		clearColor.y <= 1.0f &&
+		clearColor.z <= 1.0f &&
+		clearColor.w <= 1.0f);
+	assert(
+		clearDepth >= 0.0f &&
+		clearDepth <= 1.0f);
+	assert(framebuffer->vk.window->isRecording == true);
+	assert(framebuffer->vk.window->isRendering == false);
+
+	Window window = framebuffer->vk.window;
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+
+		beginVkFramebufferRender(
+			vkWindow->currenCommandBuffer,
+			framebuffer->vk.renderPass,
+			framebuffer->vk.handle,
+			framebuffer->vk.size,
+			clearColor,
+			clearDepth,
+			clearStencil);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		beginGlFramebufferRender(
+			framebuffer->gl.handle);
+	}
+	else
+	{
+		abort();
+	}
+
+	window->isRendering = true;
+}
+
+void endFramebufferRender(Window window)
+{
+	assert(window != NULL);
+	assert(window->isRecording == true);
+	assert(window->isRendering == true);
+
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		endVkFramebufferRender(
+			window->vkWindow->currenCommandBuffer);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		endGlFramebufferRender();
+	}
+	else
+	{
+		abort();
+	}
+
+	window->isRendering = false;
+}
+
+void clearFramebuffer(
+	Window window,
+	bool clearColorBuffer,
+	bool clearDepthBuffer,
+	bool clearStencilBuffer,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
+{
+	assert(window != NULL);
+	assert(
+		clearColorBuffer == true ||
+		clearDepthBuffer == true ||
+		clearStencilBuffer == true);
+	assert(window->useStencilBuffer == true ||
+		clearStencilBuffer == false);
+	assert(
+		clearColor.x >= 0.0f &&
+		clearColor.y >= 0.0f &&
+		clearColor.z >= 0.0f &&
+		clearColor.w >= 0.0f);
+	assert(
+		clearColor.x <= 1.0f &&
+		clearColor.y <= 1.0f &&
+		clearColor.z <= 1.0f &&
+		clearColor.w <= 1.0f);
+	assert(
+		clearDepth >= 0.0f &&
+		clearDepth <= 1.0f);
+	assert(window->isRecording == true);
+
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		clearVkFramebuffer(
+			clearColorBuffer,
+			clearDepthBuffer,
+			clearStencilBuffer,
+			clearColor,
+			clearDepth,
+			clearStencil);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		clearGlFramebuffer(
+			clearColorBuffer,
+			clearDepthBuffer,
+			clearStencilBuffer,
+			clearColor,
+			clearDepth,
+			clearStencil);
+	}
+	else
+	{
+		abort();
+	}
+}
+
+Pipeline createPipeline(
+	Framebuffer framebuffer,
 	const char* name,
 	Shader* shaders,
 	uint8_t shaderCount,
@@ -2879,7 +2898,7 @@ Pipeline createPipeline(
 	void* handle,
 	void* createInfo)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 	assert(name != NULL);
 	assert(shaders != NULL);
 	assert(shaderCount != 0);
@@ -2898,8 +2917,9 @@ Pipeline createPipeline(
 	assert(state->lineWidth > 0.0f);
 	assert(state->viewport.z >= 0 && state->viewport.w >= 0);
 	assert(state->scissor.z >= 0 && state->scissor.w >= 0);
-	assert(window->isRecording == false);
+	assert(framebuffer->vk.window->isRecording == false);
 
+	Window window = framebuffer->vk.window;
 	GraphicsAPI api = window->api;
 
 	Pipeline pipeline;
@@ -2908,13 +2928,11 @@ Pipeline createPipeline(
 	{
 #if MPGX_SUPPORT_VULKAN
 		assert(createInfo != NULL);
-		VkWindow vkWindow = window->vkWindow;
 
 		pipeline = createVkPipeline(
-			vkWindow->device,
-			vkWindow->swapchain->renderPass,
+			window->vkWindow->device,
 			createInfo,
-			window,
+			framebuffer,
 			name,
 			shaders,
 			shaderCount,
@@ -2936,7 +2954,7 @@ Pipeline createPipeline(
 		assert(state->discardRasterizer == false);
 
 		pipeline = createGlPipeline(
-			window,
+			framebuffer,
 			name,
 			shaders,
 			shaderCount,
@@ -2955,14 +2973,14 @@ Pipeline createPipeline(
 	if (pipeline == NULL)
 		return NULL;
 
-	size_t count = window->pipelineCount;
+	size_t count = framebuffer->vk.pipelineCount;
 
-	if (count == window->pipelineCapacity)
+	if (count == framebuffer->vk.pipelineCapacity)
 	{
-		size_t capacity = window->pipelineCapacity * 2;
+		size_t capacity = framebuffer->vk.pipelineCapacity * 2;
 
 		Pipeline* pipelines = realloc(
-			window->pipelines,
+			framebuffer->vk.pipelines,
 			sizeof(Pipeline) * capacity);
 
 		if (pipelines == NULL)
@@ -2971,12 +2989,12 @@ Pipeline createPipeline(
 			return NULL;
 		}
 
-		window->pipelines = pipelines;
-		window->pipelineCapacity = capacity;
+		framebuffer->vk.pipelines = pipelines;
+		framebuffer->vk.pipelineCapacity = capacity;
 	}
 
-	window->pipelines[count] = pipeline;
-	window->pipelineCount = count + 1;
+	framebuffer->vk.pipelines[count] = pipeline;
+	framebuffer->vk.pipelineCount = count + 1;
 	return pipeline;
 }
 void destroyPipeline(
@@ -2986,11 +3004,13 @@ void destroyPipeline(
 	if (pipeline == NULL)
 		return;
 
-	assert(pipeline->vk.window->isRecording == false);
+	assert(pipeline->vk.framebuffer->
+		vk.window->isRecording == false);
 
-	Window window = pipeline->vk.window;
-	Pipeline* pipelines = window->pipelines;
-	size_t pipelineCount = window->pipelineCount;
+	Framebuffer framebuffer = pipeline->vk.framebuffer;
+	Window window = framebuffer->vk.window;
+	size_t pipelineCount = framebuffer->vk.pipelineCount;
+	Pipeline* pipelines = framebuffer->vk.pipelines;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
@@ -3021,8 +3041,7 @@ void destroyPipeline(
 		if (api == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
-			VkWindow vkWindow =
-				pipeline->vk.window->vkWindow;
+			VkWindow vkWindow = window->vkWindow;
 
 			VkResult result = vkDeviceWaitIdle(
 				vkWindow->device);
@@ -3047,17 +3066,17 @@ void destroyPipeline(
 			abort();
 		}
 
-		window->pipelineCount--;
+		framebuffer->vk.pipelineCount--;
 		return;
 	}
 
 	abort();
 }
 
-Window getPipelineWindow(Pipeline pipeline)
+Framebuffer getPipelineFramebuffer(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->vk.window;
+	return pipeline->vk.framebuffer;
 }
 const char* getPipelineName(Pipeline pipeline)
 {
@@ -3103,17 +3122,18 @@ void* getPipelineHandle(Pipeline pipeline)
 void bindPipeline(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	assert(pipeline->vk.window->isRecording == true);
 
-	GraphicsAPI api = pipeline->vk.window->api;
+	assert(pipeline->vk.framebuffer->
+		vk.window->isRecording == true);
+
+	Window window = pipeline->vk.framebuffer->vk.window;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		VkWindow vkWindow =
-			pipeline->vk.window->vkWindow;
 		bindVkPipeline(
-			vkWindow->currenCommandBuffer,
+			window->vkWindow->currenCommandBuffer,
 			pipeline);
 #else
 		abort();
@@ -3469,7 +3489,8 @@ size_t drawMesh(
 {
 	assert(mesh != NULL);
 	assert(pipeline != NULL);
-	assert(mesh->vk.window == pipeline->vk.window);
+	assert(mesh->vk.window ==
+		pipeline->vk.framebuffer->vk.window);
 	assert(mesh->vk.window->isRecording == true);
 
 	if (mesh->vk.vertexBuffer == NULL ||
@@ -3479,7 +3500,7 @@ size_t drawMesh(
 		return 0;
 	}
 
-	GraphicsAPI api = pipeline->vk.window->api;
+	GraphicsAPI api = pipeline->vk.framebuffer->vk.window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{

@@ -25,6 +25,10 @@
 // TODO: make better look
 // TODO: possibly bake in separated text pipeline thread
 
+// TODO: on integrated GPU system occurs artifacts
+// due to the text vertex buffer change during frame rendering,
+// because memory is shared.
+
 struct Font
 {
 	uint8_t* data;
@@ -791,7 +795,8 @@ Text createText(
 			(const void**)&pixels,
 			vec3U(fontSize, fontSize, 1),
 			1,
-			isConstant);
+			isConstant,
+			false);
 
 		if (texture == NULL)
 		{
@@ -1001,7 +1006,8 @@ Text createText(
 			(const void**)&pixels,
 			vec3U(pixelLength, pixelLength, 1),
 			1,
-			isConstant);
+			isConstant,
+			false);
 
 		free(pixels);
 
@@ -1569,6 +1575,7 @@ bool bakeText(
 					(const void**)&pixels,
 					vec3U(pixelLength, pixelLength, 1),
 					1,
+					false,
 					false);
 
 				free(pixels);
@@ -1798,6 +1805,7 @@ bool bakeText(
 				(const void**)&pixels,
 				vec3U(text->fontSize, text->fontSize, 1),
 				1,
+				false,
 				false);
 
 			if (texture == NULL)
@@ -1997,6 +2005,7 @@ bool bakeText(
 				(const void**)&pixels,
 				vec3U(pixelLength, pixelLength, 1),
 				1,
+				false,
 				false);
 
 			free(pixels);
@@ -2352,7 +2361,8 @@ static void onVkHandleResize(
 {
 	Window window = pipeline->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
-	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
+	VkSwapchain swapchain = vkWindow->swapchain;
+	uint32_t bufferCount = swapchain->bufferCount;
 	PipelineHandle* handle = pipeline->vk.handle;
 
 	// TODO: resize each text
@@ -2399,6 +2409,7 @@ static void onVkHandleResize(
 	pipeline->vk.state.scissor = size;
 
 	VkPipelineCreateInfo _createInfo = {
+		swapchain->renderPass,
 		1,
 		vertexInputBindingDescriptions,
 		2,
@@ -2428,6 +2439,7 @@ inline static Pipeline createVkHandle(
 		return NULL;
 
 	VkPipelineCreateInfo createInfo = {
+		vkWindow->swapchain->renderPass,
 		1,
 		vertexInputBindingDescriptions,
 		2,
@@ -2600,11 +2612,11 @@ Pipeline createExtTextPipeline(
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
 	assert(sampler != NULL);
-	assert(getShaderType(vertexShader) == VERTEX_SHADER_TYPE);
-	assert(getShaderType(fragmentShader) == FRAGMENT_SHADER_TYPE);
-	assert(getShaderWindow(vertexShader) == window);
-	assert(getShaderWindow(fragmentShader) == window);
-	assert(getSamplerWindow(sampler) == window);
+	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
+	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
+	assert(vertexShader->vk.window == window);
+	assert(fragmentShader->vk.window == window);
+	assert(sampler->vk.window == window);
 
 	PipelineHandle* handle = malloc(
 		sizeof(PipelineHandle));

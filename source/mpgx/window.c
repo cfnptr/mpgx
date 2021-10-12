@@ -45,6 +45,7 @@ struct Window
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
+	Framebuffer framebuffer;
 	Buffer* buffers;
 	size_t bufferCapacity;
 	size_t bufferCount;
@@ -63,9 +64,9 @@ struct Window
 	Mesh* meshes;
 	size_t meshCapacity;
 	size_t meshCount;
-	Vec2U framebufferSize;
 	double updateTime;
 	double deltaTime;
+
 	bool isRecording;
 	bool isRendering;
 #if MPGX_SUPPORT_VULKAN
@@ -393,6 +394,8 @@ Window createWindow(
 	Vec2U framebufferSize =
 		vec2U(width, height);
 
+	// TODO: create window framebuffer
+
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
@@ -527,6 +530,7 @@ Window createWindow(
 	window->onUpdate = onUpdate;
 	window->updateArgument = updateArgument;
 	window->handle = handle;
+	window->framebuffer = framebuffer;
 	window->buffers = buffers;
 	window->bufferCapacity = bufferCapacity;
 	window->bufferCount = 0;
@@ -545,7 +549,6 @@ Window createWindow(
 	window->meshes = meshes;
 	window->meshCapacity = meshCapacity;
 	window->meshCount = 0;
-	window->framebufferSize = framebufferSize;
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
 	window->isRecording = false;
@@ -567,8 +570,8 @@ Window createAnyWindow(
 	size_t bufferCapacity,
 	size_t imageCapacity,
 	size_t samplerCapacity,
-	size_t shaderCapacity,
 	size_t framebufferCapacity,
+	size_t shaderCapacity,
 	size_t meshCapacity)
 {
 	Window window = createWindow(
@@ -760,11 +763,6 @@ Vec2F getWindowContentScale(Window window)
 		&scale.y);
 
 	return scale;
-}
-Vec2U getWindowFramebufferSize(Window window)
-{
-	assert(window != NULL);
-	return window->framebufferSize;
 }
 const char* getWindowClipboard(Window window)
 {
@@ -1025,6 +1023,13 @@ void requestWindowAttention(Window window)
 	glfwRequestWindowAttention(window->handle);
 }
 
+Framebuffer getWindowFramebuffer(Window window)
+{
+	// TODO: return current vulkan rendering framebuffer
+	// in OpenGL emulate this option by changing gl frambuffer values
+	assert(window != NULL);
+	return window->framebuffer;
+}
 void makeWindowContextCurrent(Window window)
 {
 	assert(window != NULL);
@@ -2555,15 +2560,15 @@ inline static bool addWindowFramebuffer(
 Framebuffer createShadowFramebuffer(
 	Window window,
 	Vec2U size,
-	Image depthStencilAttachment,
+	Image depthAttachment,
 	size_t pipelineCapacity)
 {
 	assert(window != NULL);
-	assert(depthStencilAttachment != NULL);
+	assert(depthAttachment != NULL);
 	assert(
-		depthStencilAttachment->vk.size.x == size.x &&
-		depthStencilAttachment->vk.size.y == size.y);
-	assert(depthStencilAttachment->vk.window == window);
+		depthAttachment->vk.size.x == size.x &&
+		depthAttachment->vk.size.y == size.y);
+	assert(depthAttachment->vk.window == window);
 	assert(pipelineCapacity != 0);
 	assert(window->isRecording == false);
 
@@ -2579,7 +2584,7 @@ Framebuffer createShadowFramebuffer(
 
 		VkRenderPass renderPass = createVkShadowRenderPass(
 			device,
-			depthStencilAttachment->vk.vkFormat);
+			depthAttachment->vk.vkFormat);
 
 		if (renderPass == NULL)
 			return NULL;
@@ -2589,23 +2594,21 @@ Framebuffer createShadowFramebuffer(
 			renderPass,
 			window,
 			size,
-			NULL,
-			0,
-			depthStencilAttachment,
+			&depthAttachment,
+			1,
 			pipelineCapacity);
 #else
 		abort();
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 		framebuffer = createGlFramebuffer(
 			window,
 			size,
-			NULL,
-			0,
-			depthStencilAttachment,
+			&depthAttachment,
+			1,
 			pipelineCapacity);
 	}
 	else
@@ -2713,25 +2716,34 @@ Vec2U getFramebufferSize(Framebuffer framebuffer)
 	assert(framebuffer != NULL);
 	return framebuffer->vk.size;
 }
-Image* getFramebufferColorAttachments(Framebuffer framebuffer)
+Image* getFramebufferAttachments(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	return framebuffer->vk.colorAttachments;
+	return framebuffer->vk.attachments;
 }
-uint8_t getFramebufferColorAttachmentCount(Framebuffer framebuffer)
+uint8_t getFramebufferAttachmentCount(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	return framebuffer->vk.colorAttachmentCount;
-}
-Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer)
-{
-	assert(framebuffer != NULL);
-	return framebuffer->vk.depthStencilAttachment;
+	return framebuffer->vk.attachmentCount;
 }
 bool isFramebufferEmpty(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
 	return framebuffer->vk.pipelineCount == 0;
+}
+
+bool setFramebufferAttachments(
+	Framebuffer framebuffer,
+	Vec2U size,
+	Image* attachments,
+	size_t attachmentCount)
+{
+	assert(framebuffer != NULL);
+	assert(attachments != NULL);
+	assert(attachmentCount != 0);
+	assert(framebuffer->vk.window->isRecording == false);
+
+	// TODO:
 }
 
 void beginFramebufferRender(

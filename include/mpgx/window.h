@@ -434,11 +434,11 @@ Window createAnyWindow(
 	void* updateArgument,
 	bool isVisible,
 	size_t bufferCapacity,
-	size_t meshCapacity,
 	size_t imageCapacity,
 	size_t samplerCapacity,
 	size_t framebufferCapacity,
-	size_t shaderCapacity);
+	size_t shaderCapacity,
+	size_t meshCapacity);
 void destroyWindow(Window window);
 
 bool isWindowEmpty(Window window);
@@ -449,7 +449,6 @@ void* getWindowUpdateArgument(Window window);
 double getWindowUpdateTime(Window window);
 double getWindowDeltaTime(Window window);
 Vec2F getWindowContentScale(Window window);
-Vec2U getWindowFramebufferSize(Window window);
 const char* getWindowClipboard(Window window);
 const char* getWindowGpuName(Window window);
 
@@ -501,6 +500,7 @@ void hideWindow(Window window);
 void focusWindow(Window window);
 void requestWindowAttention(Window window);
 
+Framebuffer getWindowCurrentFramebuffer(Window window);
 void makeWindowContextCurrent(Window window);
 void updateWindow(Window window);
 
@@ -630,16 +630,21 @@ ShaderType getShaderType(Shader shader);
 Framebuffer createShadowFramebuffer(
 	Window window,
 	Vec2U size,
-	Image depthStencilAttachment,
+	Image depthAttachment,
 	size_t pipelineCapacity);
 void destroyFramebuffer(Framebuffer framebuffer);
 
 Window getFramebufferWindow(Framebuffer framebuffer);
 Vec2U getFramebufferSize(Framebuffer framebuffer);
-Image* getFramebufferColorAttachments(Framebuffer framebuffer);
-uint8_t getFramebufferColorAttachmentCount(Framebuffer framebuffer);
-Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer);
+Image* getFramebufferAttachments(Framebuffer framebuffer);
+uint8_t getFramebufferAttachmentCount(Framebuffer framebuffer);
 bool isFramebufferEmpty(Framebuffer framebuffer);
+
+bool setFramebufferAttachments(
+	Framebuffer framebuffer,
+	Vec2U size,
+	Image* attachments,
+	size_t attachmentCount);
 
 void beginFramebufferRender(
 	Framebuffer framebuffer,

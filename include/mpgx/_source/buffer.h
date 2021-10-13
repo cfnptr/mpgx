@@ -19,6 +19,13 @@
 // TODO: possibly add buffer map/unmap functions
 // https://github.com/InjectorGames/InjectorEngine/blob/master/Source/Graphics/Vulkan/VkGpuBuffer.cpp
 
+typedef struct _BaseBuffer
+{
+	Window window;
+	BufferType type;
+	size_t size;
+	bool isConstant;
+} _BaseBuffer;
 typedef struct _VkBuffer
 {
 	Window window;
@@ -41,11 +48,13 @@ typedef struct _GlBuffer
 } _GlBuffer;
 union Buffer
 {
+	_BaseBuffer base;
 	_VkBuffer vk;
 	_GlBuffer gl;
 };
 
 #if MPGX_SUPPORT_VULKAN
+// TODO: add separated memory map functions
 inline static bool setVkBufferData(
 	VmaAllocator allocator,
 	VmaAllocation allocation,
@@ -76,12 +85,13 @@ inline static bool setVkBufferData(
 		offset,
 		size);
 
-	if (result != VK_SUCCESS)
-		return false;
-
 	vmaUnmapMemory(
 		allocator,
 		allocation);
+
+	if (result != VK_SUCCESS)
+		return false;
+
 	return true;
 }
 inline static Buffer createVkBuffer(
@@ -516,5 +526,3 @@ inline static void destroyGlBuffer(
 
 	free(buffer);
 }
-
-// TODO: image data set (demo_set_image_layout) from cube.c

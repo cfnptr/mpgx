@@ -14,14 +14,14 @@
 
 #pragma once
 #include "mpgx/_source/shader.h"
-#include <assert.h>
+#include "mpgx/_source/framebuffer.h"
 
 typedef struct _VkPipeline
 {
 	Framebuffer framebuffer;
 	const char* name;
 	Shader* shaders;
-	uint8_t shaderCount;
+	size_t shaderCount;
 	PipelineState state;
 	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
@@ -39,7 +39,7 @@ typedef struct _GlPipeline
 	Framebuffer framebuffer;
 	const char* name;
 	Shader* shaders;
-	uint8_t shaderCount;
+	size_t shaderCount;
 	PipelineState state;
 	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
@@ -68,7 +68,6 @@ union Pipeline
 #if MPGX_SUPPORT_VULKAN
 typedef struct VkPipelineCreateInfo
 {
-	VkRenderPass renderPass;
 	uint32_t vertexBindingDescriptionCount;
 	const VkVertexInputBindingDescription* vertexBindingDescriptions;
 	uint32_t vertexAttributeDescriptionCount;
@@ -299,13 +298,14 @@ inline static bool getVkBlendOperator(
 }
 
 inline static VkPipeline createVkPipelineHandle(
+	VkRenderPass renderPass,
 	VkPipelineCache cache,
 	VkPipelineLayout layout,
 	VkDevice device,
+	Window window,
 	VkPipelineCreateInfo* createInfo,
-	Framebuffer framebuffer,
 	Shader* shaders,
-	uint8_t shaderCount,
+	size_t shaderCount,
 	PipelineState state)
 {
 	VkPipelineShaderStageCreateInfo* shaderStageCreateInfos =
@@ -314,9 +314,7 @@ inline static VkPipeline createVkPipelineHandle(
 	if (shaderStageCreateInfos == NULL)
 		return NULL;
 
-	Window window = getFramebufferWindow(framebuffer);
-
-	for (uint8_t i = 0; i < shaderCount; i++)
+	for (size_t i = 0; i < shaderCount; i++)
 	{
 		Shader shader = shaders[i];
 		assert(shader->vk.window == window);
@@ -590,7 +588,7 @@ inline static VkPipeline createVkPipelineHandle(
 		&colorBlendStateCreateInfo,
 		&dynamicStateCreateInfo,
 		layout,
-		createInfo->renderPass,
+		renderPass,
 		0,
 		NULL,
 		-1
@@ -620,7 +618,7 @@ inline static Pipeline createVkPipeline(
 	Framebuffer framebuffer,
 	const char* name,
 	Shader* _shaders,
-	uint8_t shaderCount,
+	size_t shaderCount,
 	PipelineState state,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
@@ -643,7 +641,7 @@ inline static Pipeline createVkPipeline(
 		return NULL;
 	}
 
-	for (uint8_t i = 0; i < shaderCount; i++)
+	for (size_t i = 0; i < shaderCount; i++)
 		shaders[i] = _shaders[i];
 
 	VkPipelineCacheCreateInfo cacheCreateInfo = {
@@ -699,11 +697,12 @@ inline static Pipeline createVkPipeline(
 	}
 
 	VkPipeline vkHandle = createVkPipelineHandle(
+		framebuffer->vk.renderPass,
 		cache,
 		layout,
 		device,
+		framebuffer->vk.window,
 		createInfo,
-		framebuffer,
 		shaders,
 		shaderCount,
 		state);
@@ -935,7 +934,7 @@ inline static Pipeline createGlPipeline(
 	Framebuffer framebuffer,
 	const char* name,
 	Shader* _shaders,
-	uint8_t shaderCount,
+	size_t shaderCount,
 	PipelineState state,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
@@ -1016,7 +1015,7 @@ inline static Pipeline createGlPipeline(
 		state.clockwiseFrontFace == true ?
 		GL_CW : GL_CCW;
 
-	Window window = getFramebufferWindow(framebuffer);
+	Window window = framebuffer->gl.window;
 	makeWindowContextCurrent(window);
 
 	GLuint glHandle = glCreateProgram();
@@ -1125,8 +1124,8 @@ inline static Pipeline createGlPipeline(
 inline static void destroyGlPipeline(
 	Pipeline pipeline)
 {
-	makeWindowContextCurrent(getFramebufferWindow(
-		pipeline->gl.framebuffer));
+	makeWindowContextCurrent(
+		pipeline->gl.framebuffer->gl.window);
 
 	glDeleteProgram(
 		pipeline->gl.glHandle);

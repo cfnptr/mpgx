@@ -25,7 +25,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "cmmt/common.h"
 #include <stdio.h>
 
 // TODO: possibly create Vulkan window staging buffer
@@ -216,6 +215,7 @@ Window createWindow(
 	size_t samplerCapacity,
 	size_t shaderCapacity,
 	size_t framebufferCapacity,
+	size_t pipelineCapacity,
 	size_t meshCapacity)
 {
 	assert(api < GRAPHICS_API_COUNT);
@@ -228,8 +228,9 @@ Window createWindow(
 	assert(samplerCapacity != 0);
 	assert(shaderCapacity != 0);
 	assert(framebufferCapacity != 0);
-	assert(graphicsInitialized == true);
+	assert(pipelineCapacity != 0);
 	assert(meshCapacity != 0);
+	assert(graphicsInitialized == true);
 
 	glfwDefaultWindowHints();
 
@@ -394,7 +395,7 @@ Window createWindow(
 	Vec2U framebufferSize =
 		vec2U(width, height);
 
-	// TODO: create window framebuffer
+	Framebuffer framebuffer;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -408,6 +409,31 @@ Window createWindow(
 
 		if (vkWindow == NULL)
 		{
+			glfwDestroyWindow(handle);
+			free(window);
+			return NULL;
+		}
+
+		VkSwapchain swapchain = vkWindow->swapchain;
+		VkSwapchainBuffer firtBuffer = swapchain->buffers[0];
+
+		VkImageView imageViews[2] = {
+			firtBuffer.imageView,
+			swapchain->depthImageView,
+		};
+
+		framebuffer = createDefaultVkFramebuffer(
+			swapchain->renderPass,
+			imageViews,
+			firtBuffer.framebuffer,
+			window,
+			framebufferSize,
+			2,
+			pipelineCapacity);
+
+		if (framebuffer == NULL)
+		{
+			destroyVkWindow(vkInstance, vkWindow);
 			glfwDestroyWindow(handle);
 			free(window);
 			return NULL;
@@ -436,6 +462,10 @@ Window createWindow(
 
 	if (buffers == NULL)
 	{
+		if (api == VULKAN_GRAPHICS_API)
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+		else
+			destroyGlFramebuffer(framebuffer);
 #if MPGX_SUPPORT_VULKAN
 		destroyVkWindow(vkInstance, vkWindow);
 #endif
@@ -450,6 +480,11 @@ Window createWindow(
 	if (images == NULL)
 	{
 		free(buffers);
+
+		if (api == VULKAN_GRAPHICS_API)
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+		else
+			destroyGlFramebuffer(framebuffer);
 #if MPGX_SUPPORT_VULKAN
 		destroyVkWindow(vkInstance, vkWindow);
 #endif
@@ -465,6 +500,11 @@ Window createWindow(
 	{
 		free(images);
 		free(buffers);
+
+		if (api == VULKAN_GRAPHICS_API)
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+		else
+			destroyGlFramebuffer(framebuffer);
 #if MPGX_SUPPORT_VULKAN
 		destroyVkWindow(vkInstance, vkWindow);
 #endif
@@ -481,6 +521,11 @@ Window createWindow(
 		free(samplers);
 		free(images);
 		free(buffers);
+
+		if (api == VULKAN_GRAPHICS_API)
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+		else
+			destroyGlFramebuffer(framebuffer);
 #if MPGX_SUPPORT_VULKAN
 		destroyVkWindow(vkInstance, vkWindow);
 #endif
@@ -498,6 +543,11 @@ Window createWindow(
 		free(samplers);
 		free(images);
 		free(buffers);
+
+		if (api == VULKAN_GRAPHICS_API)
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+		else
+			destroyGlFramebuffer(framebuffer);
 #if MPGX_SUPPORT_VULKAN
 		destroyVkWindow(vkInstance, vkWindow);
 #endif
@@ -517,6 +567,11 @@ Window createWindow(
 		free(images);
 		free(meshes);
 		free(buffers);
+
+		if (api == VULKAN_GRAPHICS_API)
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+		else
+			destroyGlFramebuffer(framebuffer);
 #if MPGX_SUPPORT_VULKAN
 		destroyVkWindow(vkInstance, vkWindow);
 #endif
@@ -570,8 +625,9 @@ Window createAnyWindow(
 	size_t bufferCapacity,
 	size_t imageCapacity,
 	size_t samplerCapacity,
-	size_t framebufferCapacity,
 	size_t shaderCapacity,
+	size_t framebufferCapacity,
+	size_t pipelineCapacity,
 	size_t meshCapacity)
 {
 	Window window = createWindow(
@@ -587,6 +643,7 @@ Window createAnyWindow(
 		samplerCapacity,
 		shaderCapacity,
 		framebufferCapacity,
+		pipelineCapacity,
 		meshCapacity);
 
 	if (window != NULL)
@@ -605,6 +662,7 @@ Window createAnyWindow(
 		samplerCapacity,
 		shaderCapacity,
 		framebufferCapacity,
+		pipelineCapacity,
 		meshCapacity);
 
 	if (window != NULL)
@@ -623,6 +681,7 @@ Window createAnyWindow(
 		samplerCapacity,
 		shaderCapacity,
 		framebufferCapacity,
+		pipelineCapacity,
 		meshCapacity);
 
 	return window;
@@ -673,6 +732,10 @@ void destroyWindow(Window window)
 		for (size_t i = 0; i < bufferCount; i++)
 			destroyVkBuffer(allocator, buffers[i]);
 
+		destroyVkFramebuffer(
+			device,
+			window->framebuffer);
+
 		destroyVkWindow(
 			vkInstance,
 			vkWindow);
@@ -693,6 +756,8 @@ void destroyWindow(Window window)
 			destroyGlImage(images[i]);
 		for (size_t i = 0; i < bufferCount; i++)
 			destroyGlBuffer(buffers[i]);
+
+		destroyGlFramebuffer(window->framebuffer);
 	}
     else
 	{
@@ -1025,8 +1090,6 @@ void requestWindowAttention(Window window)
 
 Framebuffer getWindowFramebuffer(Window window)
 {
-	// TODO: return current vulkan rendering framebuffer
-	// in OpenGL emulate this option by changing gl frambuffer values
 	assert(window != NULL);
 	return window->framebuffer;
 }
@@ -1066,13 +1129,21 @@ void updateWindow(Window window)
 }
 
 #if MPGX_SUPPORT_VULKAN
-static void onVkResize(Window window)
+static bool onVkResize(
+	VkDevice device,
+	VkSwapchain swapchain,
+	Framebuffer framebuffer,
+	Vec2U newSize)
 {
-	// TODO: refactor vulkan framebuffer system
-	Pipeline* pipelines = window->pipelines;
-	size_t pipelineCount = window->pipelineCount;
-	VkWindow vkWindow = window->vkWindow;
-	VkDevice device = vkWindow->device;
+	VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
+	framebuffer->vk.size = newSize;
+	framebuffer->vk.renderPass = swapchain->renderPass;
+	framebuffer->vk.imageViews[0] = firstBuffer.imageView;
+	framebuffer->vk.imageViews[1] = swapchain->depthImageView;
+	framebuffer->vk.handle = firstBuffer.framebuffer;
+
+	Pipeline* pipelines = framebuffer->vk.pipelines;
+	size_t pipelineCount = framebuffer->vk.pipelineCount;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
@@ -1081,51 +1152,40 @@ static void onVkResize(Window window)
 
 		if (pipeline->vk.onHandleResize != NULL)
 		{
-			pipeline->vk.onHandleResize(
+			bool result = pipeline->vk.onHandleResize(
 				pipeline,
+				newSize,
 				&createInfo);
+
+			if (result == false)
+				return false;
 		}
+
+		VkPipeline vkHandle = createVkPipelineHandle(
+			swapchain->renderPass,
+			pipeline->vk.cache,
+			pipeline->vk.layout,
+			device,
+			framebuffer->vk.window,
+			&createInfo,
+			pipeline->vk.shaders,
+			pipeline->vk.shaderCount,
+			pipeline->vk.state);
+
+		if (vkHandle == NULL)
+			return false;
 
 		vkDestroyPipeline(
 			device,
 			pipeline->vk.vkHandle,
 			NULL);
 
-		VkPipeline vkHandle = createVkPipelineHandle(
-			pipeline->vk.cache,
-			pipeline->vk.layout,
-			device,
-			&createInfo,
-			window,
-			pipeline->vk.shaders,
-			pipeline->vk.shaderCount,
-			pipeline->vk.state);
-
-		if (vkHandle == NULL)
-			abort();
-
 		pipeline->vk.vkHandle = vkHandle;
 	}
+
+	return true;
 }
 #endif
-
-static void onGlResize(Window window)
-{
-	Pipeline* pipelines = window->pipelines;
-	size_t pipelineCount = window->pipelineCount;
-
-	for (size_t i = 0; i < pipelineCount; i++)
-	{
-		Pipeline pipeline = pipelines[i];
-
-		if (pipeline->gl.onHandleResize != NULL)
-		{
-			pipeline->gl.onHandleResize(
-				pipeline,
-				NULL);
-		}
-	}
-}
 
 bool beginWindowRecord(Window window)
 {
@@ -1143,34 +1203,153 @@ bool beginWindowRecord(Window window)
 	if (width <= 0 || height <= 0)
 		return false;
 
-	Vec2U framebufferSize =
-		vec2U(width, height);
-	Vec2U currentFramebufferSize =
-		window->framebufferSize;
-
-	bool isResized = false;
-
-	if (framebufferSize.x != currentFramebufferSize.x ||
-		framebufferSize.y != currentFramebufferSize.y)
-	{
-		window->framebufferSize = framebufferSize;
-		isResized = true;
-	}
+	Vec2U newSize = vec2U(width, height);
+	Framebuffer framebuffer = window->framebuffer;
 
 	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		bool result = beginVkWindowRecord(
-			window,
-			window->vkWindow,
-			window->framebufferSize,
-			isResized,
-			onVkResize);
+		VkWindow vkWindow = window->vkWindow;
+		VkSwapchain swapchain = vkWindow->swapchain;
+		VkDevice device = vkWindow->device;
 
-		if (result == false)
+		if (!compVec2U(newSize, framebuffer->gl.size))
+		{
+			bool result = resizeVkSwapchain(
+				vkWindow->surface,
+				vkWindow->physicalDevice,
+				vkWindow->graphicsQueueFamilyIndex,
+				vkWindow->presentQueueFamilyIndex,
+				device,
+				vkWindow->allocator,
+				vkWindow->graphicsCommandPool,
+				vkWindow->presentCommandPool,
+				swapchain,
+				window->useStencilBuffer,
+				newSize);
+
+			if (result == false)
+				return false;
+
+			vkWindow->frameIndex = 0;
+
+			result = onVkResize(
+				device,
+				swapchain,
+				framebuffer,
+				newSize);
+
+			if (result == false)
+				return false;
+		}
+
+		uint32_t frameIndex = vkWindow->frameIndex;
+		VkFence fence = vkWindow->fences[frameIndex];
+
+		VkResult vkResult = vkWaitForFences(
+			device,
+			1,
+			&fence,
+			VK_TRUE,
+			UINT64_MAX);
+
+		if (vkResult != VK_SUCCESS &&
+			vkResult != VK_TIMEOUT)
+		{
 			return false;
+		}
+
+		vkResult = vkResetFences(
+			device,
+			1,
+			&fence);
+
+		if (vkResult != VK_SUCCESS)
+			return false;
+
+		VkSemaphore* imageAcquiredSemaphores =
+			vkWindow->imageAcquiredSemaphores;
+		VkSwapchainKHR handle = swapchain->handle;
+
+		uint32_t bufferIndex;
+
+		do
+		{
+			vkResult = vkAcquireNextImageKHR(
+				device,
+				handle,
+				UINT64_MAX,
+				imageAcquiredSemaphores[frameIndex],
+				NULL,
+				&bufferIndex);
+
+			if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
+			{
+				bool result = resizeVkSwapchain(
+					vkWindow->surface,
+					vkWindow->physicalDevice,
+					vkWindow->graphicsQueueFamilyIndex,
+					vkWindow->presentQueueFamilyIndex,
+					device,
+					vkWindow->allocator,
+					vkWindow->graphicsCommandPool,
+					vkWindow->presentCommandPool,
+					swapchain,
+					window->useStencilBuffer,
+					newSize);
+
+				if (result == false)
+					return false;
+
+				vkWindow->frameIndex = 0;
+
+				result = onVkResize(
+					device,
+					swapchain,
+					framebuffer,
+					newSize);
+
+				if (result == false)
+					return false;
+			}
+			else if (vkResult != VK_SUCCESS &&
+				vkResult != VK_SUBOPTIMAL_KHR &&
+				vkResult == VK_ERROR_SURFACE_LOST_KHR)
+			{
+				return false;
+			}
+		} while (vkResult != VK_SUCCESS);
+
+		vmaSetCurrentFrameIndex(
+			vkWindow->allocator,
+			bufferIndex);
+
+		VkSwapchainBuffer buffer = swapchain->buffers[bufferIndex];
+		framebuffer->vk.renderPass = swapchain->renderPass;
+		framebuffer->vk.imageViews[0] = buffer.imageView;
+		framebuffer->vk.imageViews[1] = swapchain->depthImageView;
+		framebuffer->vk.handle = buffer.framebuffer;
+
+		VkCommandBuffer graphicsCommandBuffer = buffer.graphicsCommandBuffer;
+
+		VkCommandBufferBeginInfo commandBufferBeginInfo = {
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			NULL,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			NULL,
+		};
+
+		vkResult = vkBeginCommandBuffer(
+			graphicsCommandBuffer,
+			&commandBufferBeginInfo);
+
+		if (vkResult != VK_SUCCESS)
+			return false;
+
+		vkWindow->bufferIndex = bufferIndex;
+		vkWindow->currenCommandBuffer = graphicsCommandBuffer;
 #else
 		abort();
 #endif
@@ -1178,8 +1357,26 @@ bool beginWindowRecord(Window window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		if (isResized == true)
-			onGlResize(window);
+		if (!compVec2U(newSize, framebuffer->gl.size))
+		{
+			framebuffer->gl.size = newSize;
+
+			Pipeline* pipelines = framebuffer->gl.pipelines;
+			size_t pipelineCount = framebuffer->gl.pipelineCount;
+
+			for (size_t i = 0; i < pipelineCount; i++)
+			{
+				Pipeline pipeline = pipelines[i];
+
+				if (pipeline->gl.onHandleResize != NULL)
+				{
+					pipeline->gl.onHandleResize(
+						pipeline,
+						newSize,
+						NULL);
+				}
+			}
+		}
 	}
 	else
 	{
@@ -1190,10 +1387,6 @@ bool beginWindowRecord(Window window)
 	return true;
 }
 
-inline static void endGlWindowRecord(GLFWwindow* window)
-{
-	glfwSwapBuffers(window);
-}
 void endWindowRecord(Window window)
 {
 	assert(window != NULL);
@@ -1205,13 +1398,181 @@ void endWindowRecord(Window window)
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		bool result = endVkWindowRecord(
-			window,
-			window->vkWindow,
-			onVkResize);
+		VkWindow vkWindow = window->vkWindow;
+		VkSwapchain swapchain = vkWindow->swapchain;
 
-		if (result == false)
+		uint32_t graphicsQueueFamilyIndex =
+			vkWindow->graphicsQueueFamilyIndex;
+		uint32_t presentQueueFamilyIndex =
+			vkWindow->presentQueueFamilyIndex;
+
+		uint32_t bufferIndex = vkWindow->bufferIndex;
+
+		VkSwapchainBuffer* buffer =
+			&swapchain->buffers[bufferIndex];
+		VkCommandBuffer graphicsCommandBuffer =
+			buffer->graphicsCommandBuffer;
+
+		if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
+		{
+			VkImageMemoryBarrier imageMemoryBarrier = {
+				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+				NULL,
+				0,
+				0,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				graphicsQueueFamilyIndex,
+				presentQueueFamilyIndex,
+				buffer->image,
+				{
+					VK_IMAGE_ASPECT_COLOR_BIT,
+					0,
+					1,
+					0,
+					1,
+				},
+			};
+
+			vkCmdPipelineBarrier(
+				graphicsCommandBuffer,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				0,
+				0,
+				NULL,
+				0,
+				NULL,
+				1,
+				&imageMemoryBarrier);
+		}
+
+		VkResult vkResult = vkEndCommandBuffer(
+			graphicsCommandBuffer);
+
+		if (vkResult != VK_SUCCESS)
 			abort();
+
+		uint32_t frameIndex = vkWindow->frameIndex;
+
+		VkSemaphore drawCompleteSemaphore =
+			vkWindow->drawCompleteSemaphores[frameIndex];
+
+		VkPipelineStageFlags pipelineStage =
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		VkSubmitInfo submitInfo = {
+			VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			NULL,
+			1,
+			&vkWindow->imageAcquiredSemaphores[frameIndex],
+			&pipelineStage,
+			1,
+			&graphicsCommandBuffer,
+			1,
+			&drawCompleteSemaphore,
+		};
+
+		vkResult = vkQueueSubmit(
+			vkWindow->graphicsQueue,
+			1,
+			&submitInfo,
+			vkWindow->fences[frameIndex]);
+
+		if (vkResult != VK_SUCCESS)
+			abort();
+
+		VkSwapchainKHR handle = swapchain->handle;
+
+		VkPresentInfoKHR presentInfo = {
+			VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			NULL,
+			1,
+			&drawCompleteSemaphore,
+			1,
+			&handle,
+			&bufferIndex,
+			NULL,
+		};
+
+		VkSemaphore imageOwnershipSemaphore =
+			vkWindow->imageOwnershipSemaphores[frameIndex];
+		VkQueue presentQueue = vkWindow->presentQueue;
+
+		if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
+		{
+			submitInfo.pWaitSemaphores = &drawCompleteSemaphore;
+			submitInfo.pCommandBuffers = &buffer->presentCommandBuffer;
+			submitInfo.pSignalSemaphores = &imageOwnershipSemaphore;
+
+			vkResult = vkQueueSubmit(
+				presentQueue,
+				1,
+				&submitInfo,
+				NULL);
+
+			if (vkResult != VK_SUCCESS)
+				abort();
+
+			presentInfo.pWaitSemaphores =
+				&imageOwnershipSemaphore;
+		}
+
+		vkResult = vkQueuePresentKHR(
+			presentQueue,
+			&presentInfo);
+
+		vkWindow->frameIndex =
+			(frameIndex + 1) % VK_FRAME_LAG;
+
+		if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			int width, height;
+
+			glfwGetFramebufferSize(
+				window->handle,
+				&width,
+				&height);
+
+			if (width <= 0 || height <= 0)
+				return;
+
+			Vec2U newSize = vec2U(width, height);
+			Framebuffer framebuffer = window->framebuffer;
+			VkDevice device = vkWindow->device;
+
+			bool result = resizeVkSwapchain(
+				vkWindow->surface,
+				vkWindow->physicalDevice,
+				graphicsQueueFamilyIndex,
+				presentQueueFamilyIndex,
+				device,
+				vkWindow->allocator,
+				vkWindow->graphicsCommandPool,
+				vkWindow->presentCommandPool,
+				swapchain,
+				window->useStencilBuffer,
+				newSize);
+
+			if (result == false)
+				abort();
+
+			vkWindow->frameIndex = 0;
+
+			result = onVkResize(
+				device,
+				swapchain,
+				framebuffer,
+				newSize);
+
+			if (result == false)
+				abort();
+		}
+		else if (vkResult != VK_SUCCESS &&
+			vkResult != VK_SUBOPTIMAL_KHR &&
+			vkResult == VK_ERROR_SURFACE_LOST_KHR)
+		{
+			abort();
+		}
 #else
 		abort();
 #endif
@@ -1219,7 +1580,7 @@ void endWindowRecord(Window window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		endGlWindowRecord(window->handle);
+		glfwSwapBuffers(window->handle);
 	}
 	else
 	{
@@ -1227,137 +1588,6 @@ void endWindowRecord(Window window)
 	}
 
 	window->isRecording = false;
-}
-
-inline static void beginGlWindowRender(
-	bool useStencilBuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil)
-{
-	glBindFramebuffer(
-		GL_FRAMEBUFFER,
-		GL_ZERO);
-
-	glClearColor(
-		clearColor.x,
-		clearColor.y,
-		clearColor.z,
-		clearColor.w);
-	glColorMask(
-		GL_TRUE, GL_TRUE,
-		GL_TRUE, GL_TRUE);
-
-	glClearDepth(clearDepth);
-	glDepthMask(GL_TRUE);
-
-	GLbitfield clearMask =
-		GL_COLOR_BUFFER_BIT |
-		GL_DEPTH_BUFFER_BIT;
-
-	if (useStencilBuffer == true)
-	{
-		glClearStencil((GLint)clearStencil);
-		glStencilMask(UINT32_MAX);
-		clearMask |= GL_STENCIL_BUFFER_BIT;
-	}
-
-	glClear(clearMask);
-	assertOpenGL();
-}
-void beginWindowRender(
-	Window window,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil)
-{
-	assert(window != NULL);
-	assert(
-		clearColor.x >= 0.0f &&
-		clearColor.y >= 0.0f &&
-		clearColor.z >= 0.0f &&
-		clearColor.w >= 0.0f);
-	assert(
-		clearColor.x <= 1.0f &&
-		clearColor.y <= 1.0f &&
-		clearColor.z <= 1.0f &&
-		clearColor.w <= 1.0f);
-	assert(
-		clearDepth >= 0.0f &&
-		clearDepth <= 1.0f);
-	assert(window->isRecording == true);
-	assert(window->isRendering == false);
-
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		VkWindow vkWindow = window->vkWindow;
-		VkSwapchain swapchain = vkWindow->swapchain;
-
-		VkSwapchainBuffer buffer = swapchain->buffers[
-			vkWindow->bufferIndex];
-
-		bool result = beginVkWindowRender(
-			swapchain->renderPass,
-			buffer.framebuffer,
-			vkWindow->currenCommandBuffer,
-			window->framebufferSize,
-			clearColor,
-			clearDepth,
-			clearStencil);
-
-		if (result == false)
-			abort();
-#else
-		abort();
-#endif
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		beginGlWindowRender(
-			window->useStencilBuffer,
-			clearColor,
-			clearDepth,
-			clearStencil);
-	}
-	else
-	{
-		abort();
-	}
-
-	window->isRendering = true;
-}
-void endWindowRender(Window window)
-{
-	assert(window != NULL);
-	assert(window->isRecording == true);
-	assert(window->isRendering == true);
-
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		endVkWindowRender(
-			window->vkWindow->currenCommandBuffer);
-#else
-		abort();
-#endif
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		// NOOP
-	}
-	else
-	{
-		abort();
-	}
-
-	window->isRendering = false;
 }
 
 Buffer createBuffer(
@@ -1462,9 +1692,9 @@ void destroyBuffer(Buffer buffer)
 	if (buffer == NULL)
 		return;
 
-	assert(buffer->vk.window->isRecording == false);
+	assert(buffer->base.window->isRecording == false);
 
-	Window window = buffer->vk.window;
+	Window window = buffer->base.window;
 	Buffer* buffers = window->buffers;
 	size_t bufferCount = window->bufferCount;
 
@@ -1472,9 +1702,6 @@ void destroyBuffer(Buffer buffer)
 	{
 		if (buffer != buffers[i])
 			continue;
-
-		for (size_t j = i + 1; j < bufferCount; j++)
-			buffers[j - 1] = buffers[j];
 
 		GraphicsAPI api = window->api;
 
@@ -1506,6 +1733,9 @@ void destroyBuffer(Buffer buffer)
 			abort();
 		}
 
+		for (size_t j = i + 1; j < bufferCount; j++)
+			buffers[j - 1] = buffers[j];
+
 		window->bufferCount--;
 		return;
 	}
@@ -1516,22 +1746,22 @@ void destroyBuffer(Buffer buffer)
 Window getBufferWindow(Buffer buffer)
 {
 	assert(buffer != NULL);
-	return buffer->vk.window;
+	return buffer->base.window;
 }
 BufferType getBufferType(Buffer buffer)
 {
 	assert(buffer != NULL);
-	return buffer->vk.type;
+	return buffer->base.type;
 }
 size_t getBufferSize(Buffer buffer)
 {
 	assert(buffer != NULL);
-	return buffer->vk.size;
+	return buffer->base.size;
 }
 bool isBufferConstant(Buffer buffer)
 {
 	assert(buffer != NULL);
-	return buffer->vk.isConstant;
+	return buffer->base.isConstant;
 }
 
 void setBufferData(
@@ -1543,16 +1773,17 @@ void setBufferData(
 	assert(buffer != NULL);
 	assert(data != NULL);
 	assert(size != 0);
-	assert(buffer->vk.isConstant == false);
-	assert(size + offset <= buffer->vk.size);
+	assert(buffer->base.isConstant == false);
+	assert(size + offset <= buffer->base.size);
 
-	GraphicsAPI api = buffer->vk.window->api;
+	Window window = buffer->base.window;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		bool result = setVkBufferData(
-			buffer->vk.window->vkWindow->allocator,
+			window->vkWindow->allocator,
 			buffer->vk.allocation,
 			data,
 			size,
@@ -1915,9 +2146,6 @@ void destroyImage(Image image)
 		if (image != images[i])
 			continue;
 
-		for (size_t j = i + 1; j < imageCount; j++)
-			images[j - 1] = images[j];
-
 		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
@@ -1948,6 +2176,9 @@ void destroyImage(Image image)
 		{
 			abort();
 		}
+
+		for (size_t j = i + 1; j < imageCount; j++)
+			images[j - 1] = images[j];
 
 		window->imageCount--;
 		return;
@@ -2181,9 +2412,6 @@ void destroySampler(Sampler sampler)
 		if (sampler != samplers[i])
 			continue;
 
-		for (size_t j = i + 1; j < samplerCount; j++)
-			samplers[j - 1] = samplers[j];
-
 		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
@@ -2213,6 +2441,9 @@ void destroySampler(Sampler sampler)
 		{
 			abort();
 		}
+
+		for (size_t j = i + 1; j < samplerCount; j++)
+			samplers[j - 1] = samplers[j];
 
 		window->samplerCount--;
 		return;
@@ -2489,9 +2720,6 @@ void destroyShader(Shader shader)
 		if (shader != shaders[i])
 			continue;
 
-		for (size_t j = i + 1; j < shaderCount; j++)
-			shaders[j - 1] = shaders[j];
-
 		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
@@ -2513,6 +2741,9 @@ void destroyShader(Shader shader)
 		{
 			abort();
 		}
+
+		for (size_t j = i + 1; j < shaderCount; j++)
+			shaders[j - 1] = shaders[j];
 
 		window->shaderCount--;
 		return;
@@ -2565,8 +2796,7 @@ Framebuffer createShadowFramebuffer(
 {
 	assert(window != NULL);
 	assert(depthAttachment != NULL);
-	assert(
-		depthAttachment->vk.size.x == size.x &&
+	assert(depthAttachment->vk.size.x == size.x &&
 		depthAttachment->vk.size.y == size.y);
 	assert(depthAttachment->vk.window == window);
 	assert(pipelineCapacity != 0);
@@ -2650,7 +2880,9 @@ Framebuffer createShadowFramebuffer(
 
 	return framebuffer;
 }
-void destroyFramebuffer(Framebuffer framebuffer)
+void destroyFramebuffer(
+	Framebuffer framebuffer,
+	bool destroyAttachments)
 {
 	if (framebuffer == NULL)
 		return;
@@ -2666,8 +2898,14 @@ void destroyFramebuffer(Framebuffer framebuffer)
 		if (framebuffer != framebuffers[i])
 			continue;
 
-		for (size_t j = i + 1; j < framebufferCount; j++)
-			framebuffers[j - 1] = framebuffers[j];
+		if (destroyAttachments == true)
+		{
+			Image* attachments = framebuffer->vk.attachments;
+			size_t attachmentCount = framebuffer->vk.attachmentCount;
+
+			for (size_t j = 0; j < attachmentCount; j++)
+				destroyImage(attachments[i]);
+		}
 
 		GraphicsAPI api = window->api;
 
@@ -2699,6 +2937,9 @@ void destroyFramebuffer(Framebuffer framebuffer)
 			abort();
 		}
 
+		for (size_t j = i + 1; j < framebufferCount; j++)
+			framebuffers[j - 1] = framebuffers[j];
+
 		window->framebufferCount--;
 		return;
 	}
@@ -2719,12 +2960,23 @@ Vec2U getFramebufferSize(Framebuffer framebuffer)
 Image* getFramebufferAttachments(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
+	assert(!(framebuffer->vk.isDefault == true &&
+		(framebuffer->vk.window->api == OPENGL_GRAPHICS_API ||
+		framebuffer->vk.window->api == OPENGL_ES_GRAPHICS_API)));
 	return framebuffer->vk.attachments;
 }
 uint8_t getFramebufferAttachmentCount(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
+	assert(!(framebuffer->vk.isDefault == true &&
+		(framebuffer->vk.window->api == OPENGL_GRAPHICS_API ||
+		framebuffer->vk.window->api == OPENGL_ES_GRAPHICS_API)));
 	return framebuffer->vk.attachmentCount;
+}
+bool isFramebufferDefault(Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->vk.isDefault;
 }
 bool isFramebufferEmpty(Framebuffer framebuffer)
 {
@@ -2741,10 +2993,16 @@ bool setFramebufferAttachments(
 	assert(framebuffer != NULL);
 	assert(attachments != NULL);
 	assert(attachmentCount != 0);
+	assert(!(framebuffer->vk.isDefault == true &&
+		(framebuffer->vk.window->api == OPENGL_GRAPHICS_API ||
+		framebuffer->vk.window->api == OPENGL_ES_GRAPHICS_API)));
 	assert(framebuffer->vk.window->isRecording == false);
 
 	// TODO:
 }
+
+// TODO: set ass window render framebuffer
+// check for rendering buffer on pipeline bind
 
 void beginFramebufferRender(
 	Framebuffer framebuffer,
@@ -2901,7 +3159,7 @@ Pipeline createPipeline(
 	Framebuffer framebuffer,
 	const char* name,
 	Shader* shaders,
-	uint8_t shaderCount,
+	size_t shaderCount,
 	const PipelineState* state,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
@@ -3029,13 +3287,9 @@ void destroyPipeline(
 		if (pipeline != pipelines[i])
 			continue;
 
-		for (size_t j = i + 1; j < pipelineCount; j++)
-			pipelines[j - 1] = pipelines[j];
-
 		if (pipeline->vk.onHandleDestroy != NULL)
 		{
 			pipeline->vk.onHandleDestroy(
-				window,
 				pipeline->vk.handle);
 		}
 
@@ -3078,6 +3332,9 @@ void destroyPipeline(
 			abort();
 		}
 
+		for (size_t j = i + 1; j < pipelineCount; j++)
+			pipelines[j - 1] = pipelines[j];
+
 		framebuffer->vk.pipelineCount--;
 		return;
 	}
@@ -3100,7 +3357,7 @@ Shader* getPipelineShaders(Pipeline pipeline)
 	assert(pipeline != NULL);
 	return pipeline->vk.shaders;
 }
-uint8_t getPipelineShaderCount(Pipeline pipeline)
+size_t getPipelineShaderCount(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->vk.shaderCount;
@@ -3177,25 +3434,25 @@ Mesh createMesh(
 #ifndef NDEBUG
 	if (vertexBuffer != NULL)
 	{
-		assert(vertexBuffer->vk.window == window);
-		assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
+		assert(vertexBuffer->base.window == window);
+		assert(vertexBuffer->base.type == VERTEX_BUFFER_TYPE);
 	}
 	if (indexBuffer != NULL)
 	{
-		assert(indexBuffer->vk.window == window);
-		assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
+		assert(indexBuffer->base.window == window);
+		assert(indexBuffer->base.type == INDEX_BUFFER_TYPE);
 
 		if (drawIndex == UINT16_DRAW_INDEX)
 		{
 			assert(indexCount * sizeof(uint16_t) +
 				indexOffset * sizeof(uint16_t) <=
-				indexBuffer->vk.size);
+				indexBuffer->base.size);
 		}
 		else if (drawIndex == UINT32_DRAW_INDEX)
 		{
 			assert(indexCount * sizeof(uint32_t) +
 				indexOffset * sizeof(uint32_t) <=
-				indexBuffer->vk.size);
+				indexBuffer->base.size);
 		}
 		else
 		{
@@ -3289,9 +3546,9 @@ void destroyMesh(
 	if (mesh == NULL)
 		return;
 
-	assert(mesh->vk.window->isRecording == false);
+	assert(mesh->base.window->isRecording == false);
 
-	Window window = mesh->vk.window;
+	Window window = mesh->base.window;
 	Mesh* meshes = window->meshes;
 	size_t meshCount = window->meshCount;
 
@@ -3300,13 +3557,10 @@ void destroyMesh(
 		if (mesh != meshes[i])
 			continue;
 
-		for (size_t j = i + 1; j < meshCount; j++)
-			meshes[j - 1] = meshes[j];
-
 		if (destroyBuffers == true)
 		{
-			destroyBuffer(mesh->vk.vertexBuffer);
-			destroyBuffer(mesh->vk.indexBuffer);
+			destroyBuffer(mesh->base.vertexBuffer);
+			destroyBuffer(mesh->base.indexBuffer);
 		}
 
 		GraphicsAPI api = window->api;
@@ -3320,7 +3574,7 @@ void destroyMesh(
 #endif
 		}
 		else if (api == OPENGL_GRAPHICS_API ||
-				 api == OPENGL_ES_GRAPHICS_API)
+			api == OPENGL_ES_GRAPHICS_API)
 		{
 			destroyGlMesh(mesh);
 		}
@@ -3328,6 +3582,9 @@ void destroyMesh(
 		{
 			abort();
 		}
+
+		for (size_t j = i + 1; j < meshCount; j++)
+			meshes[j - 1] = meshes[j];
 
 		window->meshCount--;
 		return;
@@ -3339,41 +3596,41 @@ void destroyMesh(
 Window getMeshWindow(Mesh mesh)
 {
 	assert(mesh != NULL);
-	return mesh->vk.window;
+	return mesh->base.window;
 }
 DrawIndex getMeshDrawIndex(Mesh mesh)
 {
 	assert(mesh != NULL);
-	return mesh->vk.drawIndex;
+	return mesh->base.drawIndex;
 }
 
 size_t getMeshIndexCount(
 	Mesh mesh)
 {
 	assert(mesh != NULL);
-	return mesh->vk.indexCount;
+	return mesh->base.indexCount;
 }
 void setMeshIndexCount(
 	Mesh mesh,
 	size_t indexCount)
 {
 	assert(mesh != NULL);
-	assert(mesh->vk.window->isRecording == false);
+	assert(mesh->base.window->isRecording == false);
 
 #ifndef NDEBUG
-	if (mesh->vk.indexBuffer != NULL)
+	if (mesh->base.indexBuffer != NULL)
 	{
-		if (mesh->vk.drawIndex == UINT16_DRAW_INDEX)
+		if (mesh->base.drawIndex == UINT16_DRAW_INDEX)
 		{
 			assert(indexCount * sizeof(uint16_t) +
-				   mesh->vk.indexOffset * sizeof(uint16_t) <=
-				   mesh->vk.indexBuffer->vk.size);
+				mesh->base.indexOffset * sizeof(uint16_t) <=
+				mesh->base.indexBuffer->base.size);
 		}
-		else if (mesh->vk.drawIndex == UINT32_DRAW_INDEX)
+		else if (mesh->base.drawIndex == UINT32_DRAW_INDEX)
 		{
 			assert(indexCount * sizeof(uint32_t) +
-				   mesh->vk.indexOffset * sizeof(uint32_t) <=
-				   mesh->vk.indexBuffer->vk.size);
+				mesh->base.indexOffset * sizeof(uint32_t) <=
+				mesh->base.indexBuffer->base.size);
 		}
 		else
 		{
@@ -3382,36 +3639,36 @@ void setMeshIndexCount(
 	}
 #endif
 
-	mesh->vk.indexCount = indexCount;
+	mesh->base.indexCount = indexCount;
 }
 
 size_t getMeshIndexOffset(
 	Mesh mesh)
 {
 	assert(mesh != NULL);
-	return mesh->vk.indexOffset;
+	return mesh->base.indexOffset;
 }
 void setMeshIndexOffset(
 	Mesh mesh,
 	size_t indexOffset)
 {
 	assert(mesh != NULL);
-	assert(mesh->vk.window->isRecording == false);
+	assert(mesh->base.window->isRecording == false);
 
 #ifndef NDEBUG
-	if (mesh->vk.indexBuffer != NULL)
+	if (mesh->base.indexBuffer != NULL)
 	{
-		if (mesh->vk.drawIndex == UINT16_DRAW_INDEX)
+		if (mesh->base.drawIndex == UINT16_DRAW_INDEX)
 		{
-			assert(mesh->vk.indexCount * sizeof(uint16_t) +
-				   indexOffset * sizeof(uint16_t) <=
-				   mesh->vk.indexBuffer->vk.size);
+			assert(mesh->base.indexCount * sizeof(uint16_t) +
+				indexOffset * sizeof(uint16_t) <=
+				mesh->base.indexBuffer->base.size);
 		}
-		else if (mesh->vk.drawIndex == UINT32_DRAW_INDEX)
+		else if (mesh->base.drawIndex == UINT32_DRAW_INDEX)
 		{
-			assert(mesh->vk.indexCount * sizeof(uint32_t) +
-				   indexOffset * sizeof(uint32_t) <=
-				   mesh->vk.indexBuffer->vk.size);
+			assert(mesh->base.indexCount * sizeof(uint32_t) +
+				indexOffset * sizeof(uint32_t) <=
+				mesh->base.indexBuffer->base.size);
 		}
 		else
 		{
@@ -3420,38 +3677,38 @@ void setMeshIndexOffset(
 	}
 #endif
 
-	mesh->vk.indexOffset = indexOffset;
+	mesh->base.indexOffset = indexOffset;
 }
 
 Buffer getMeshVertexBuffer(
 	Mesh mesh)
 {
 	assert(mesh != NULL);
-	return mesh->vk.vertexBuffer;
+	return mesh->base.vertexBuffer;
 }
 void setMeshVertexBuffer(
 	Mesh mesh,
 	Buffer vertexBuffer)
 {
 	assert(mesh != NULL);
-	assert(mesh->vk.window->isRecording == false);
+	assert(mesh->base.window->isRecording == false);
 
 #ifndef NDEBUG
 	if (vertexBuffer != NULL)
 	{
-		assert(mesh->vk.window == vertexBuffer->vk.window);
-		assert(vertexBuffer->vk.type == VERTEX_BUFFER_TYPE);
+		assert(mesh->base.window == vertexBuffer->base.window);
+		assert(vertexBuffer->base.type == VERTEX_BUFFER_TYPE);
 	}
 #endif
 
-	mesh->vk.vertexBuffer = vertexBuffer;
+	mesh->base.vertexBuffer = vertexBuffer;
 }
 
 Buffer getMeshIndexBuffer(
 	Mesh mesh)
 {
 	assert(mesh != NULL);
-	return mesh->vk.indexBuffer;
+	return mesh->base.indexBuffer;
 }
 void setMeshIndexBuffer(
 	Mesh mesh,
@@ -3462,25 +3719,25 @@ void setMeshIndexBuffer(
 {
 	assert(mesh != NULL);
 	assert(drawIndex < DRAW_INDEX_COUNT);
-	assert(mesh->vk.window->isRecording == false);
+	assert(mesh->base.window->isRecording == false);
 
 #ifndef NDEBUG
 	if (indexBuffer != NULL)
 	{
-		assert(mesh->vk.window == indexBuffer->vk.window);
-		assert(indexBuffer->vk.type == INDEX_BUFFER_TYPE);
+		assert(mesh->base.window == indexBuffer->base.window);
+		assert(indexBuffer->base.type == INDEX_BUFFER_TYPE);
 
 		if (drawIndex == UINT16_DRAW_INDEX)
 		{
 			assert(indexCount * sizeof(uint16_t) +
-				   indexOffset * sizeof(uint16_t) <=
-				   indexBuffer->vk.size);
+				indexOffset * sizeof(uint16_t) <=
+				indexBuffer->base.size);
 		}
 		else if (drawIndex == UINT32_DRAW_INDEX)
 		{
 			assert(indexCount * sizeof(uint32_t) +
-				   indexOffset * sizeof(uint32_t) <=
-				   indexBuffer->vk.size);
+				indexOffset * sizeof(uint32_t) <=
+				indexBuffer->base.size);
 		}
 		else
 		{
@@ -3489,10 +3746,10 @@ void setMeshIndexBuffer(
 	}
 #endif
 
-	mesh->vk.drawIndex = drawIndex;
-	mesh->vk.indexCount = indexCount;
-	mesh->vk.indexOffset = indexOffset;
-	mesh->vk.indexBuffer = indexBuffer;
+	mesh->base.drawIndex = drawIndex;
+	mesh->base.indexCount = indexCount;
+	mesh->base.indexOffset = indexOffset;
+	mesh->base.indexBuffer = indexBuffer;
 }
 
 size_t drawMesh(
@@ -3501,29 +3758,27 @@ size_t drawMesh(
 {
 	assert(mesh != NULL);
 	assert(pipeline != NULL);
-	assert(mesh->vk.window ==
-		pipeline->vk.framebuffer->vk.window);
-	assert(mesh->vk.window->isRecording == true);
+	assert(mesh->base.window == mesh->base.window);
+	assert(mesh->base.window->isRecording == true);
 
-	if (mesh->vk.vertexBuffer == NULL ||
-		mesh->vk.indexBuffer == NULL ||
-		mesh->vk.indexCount == 0)
+	if (mesh->base.vertexBuffer == NULL ||
+		mesh->base.indexBuffer == NULL ||
+		mesh->base.indexCount == 0)
 	{
 		return 0;
 	}
 
-	GraphicsAPI api = pipeline->vk.framebuffer->vk.window->api;
+	Window window = mesh->base.window;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		if (pipeline->vk.onUniformsSet != NULL)
-			pipeline->vk.onUniformsSet(pipeline);
+		if (pipeline->base.onUniformsSet != NULL)
+			pipeline->base.onUniformsSet(pipeline);
 
-		VkWindow vkWindow =
-			mesh->vk.window->vkWindow;
 		drawVkMesh(
-			vkWindow->currenCommandBuffer,
+			window->vkWindow->currenCommandBuffer,
 			mesh);
 #else
 		abort();
@@ -3541,5 +3796,5 @@ size_t drawMesh(
 		abort();
 	}
 
-	return mesh->vk.indexCount;
+	return mesh->base.indexCount;
 }

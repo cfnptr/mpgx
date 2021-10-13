@@ -27,6 +27,7 @@ typedef struct UniformBuffer
 } UniformBuffer;
 typedef struct VkPipelineHandle
 {
+	Window window;
 	Mat4F mvp;
 	Mat4F normal;
 	UniformBuffer u;
@@ -40,6 +41,7 @@ typedef struct VkPipelineHandle
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
+	Window window;
 	Mat4F mvp;
 	Mat4F normal;
 	UniformBuffer u;
@@ -287,12 +289,10 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 	return descriptorSets;
 }
 
-static void onVkHandleDestroy(
-	Window window,
-	void* handle)
+static void onVkHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
-	VkWindow vkWindow = getVkWindow(window);
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkDevice device = vkWindow->device;
 
 	free(pipelineHandle->vk.descriptorSets);
@@ -312,15 +312,15 @@ static void onVkHandleDestroy(
 }
 static void onVkHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	uint32_t bufferIndex = vkWindow->bufferIndex;
-	Buffer buffer = handle->vk.uniformBuffers[bufferIndex];
+	Buffer buffer = pipelineHandle->vk.uniformBuffers[bufferIndex];
 
 	bool result = setVkBufferData(
 		vkWindow->allocator,
 		buffer->vk.allocation,
-		&handle->vk.u,
+		&pipelineHandle->vk.u,
 		sizeof(UniformBuffer),
 		0);
 
@@ -333,14 +333,14 @@ static void onVkHandleBind(Pipeline pipeline)
 		pipeline->vk.layout,
 		0,
 		1,
-		&handle->vk.descriptorSets[bufferIndex],
+		&pipelineHandle->vk.descriptorSets[bufferIndex],
 		0,
 		NULL);
 }
 static void onVkUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 	VkPipelineLayout layout = pipeline->vk.layout;
 
@@ -350,46 +350,36 @@ static void onVkUniformsSet(Pipeline pipeline)
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(Mat4F),
-		&handle->vk.mvp);
+		&pipelineHandle->vk.mvp);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		sizeof(Mat4F),
 		sizeof(Mat4F),
-		&handle->vk.normal);
+		&pipelineHandle->vk.normal);
 }
-static void onVkHandleResize(
+static bool onVkHandleResize(
 	Pipeline pipeline,
+	Vec2U newSize,
 	void* createInfo)
 {
-	Window window = pipeline->vk.window;
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	Window window = pipelineHandle->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
-	PipelineHandle* handle = pipeline->vk.handle;
 
-	if (bufferCount != handle->vk.bufferCount)
+	if (bufferCount != pipelineHandle->vk.bufferCount)
 	{
 		VkDevice device = vkWindow->device;
 		VmaAllocator allocator = vkWindow->allocator;
-
-		free(handle->vk.descriptorSets);
-
-		destroyVkUniformBuffers(
-			vkWindow->allocator,
-			handle->vk.bufferCount,
-			handle->vk.uniformBuffers);
-		vkDestroyDescriptorPool(
-			device,
-			handle->vk.descriptorPool,
-			NULL);
 
 		VkDescriptorPool descriptorPool = createVkDescriptorPool(
 			device,
 			bufferCount);
 
 		if (descriptorPool == NULL)
-			abort();
+			return false;
 
 		Buffer* uniformBuffers = createVkUniformBuffers(
 			device,
@@ -400,29 +390,54 @@ static void onVkHandleResize(
 			bufferCount);
 
 		if (uniformBuffers == NULL)
-			abort();
+		{
+			vkDestroyDescriptorPool(
+				device,
+				descriptorPool,
+				NULL);
+			return false;
+		}
 
 		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
 			device,
-			handle->vk.descriptorSetLayout,
+			pipelineHandle->vk.descriptorSetLayout,
 			descriptorPool,
 			bufferCount,
 			uniformBuffers);
 
 		if (descriptorSets == NULL)
-			abort();
+		{
+			destroyVkUniformBuffers(
+				allocator,
+				bufferCount,
+				uniformBuffers);
+			vkDestroyDescriptorPool(
+				device,
+				descriptorPool,
+				NULL);
+			return false;
+		}
 
-		handle->vk.descriptorPool = descriptorPool;
-		handle->vk.uniformBuffers = uniformBuffers;
-		handle->vk.descriptorSets = descriptorSets;
-		handle->vk.bufferCount = bufferCount;
+		free(pipelineHandle->vk.descriptorSets);
+
+		destroyVkUniformBuffers(
+			allocator,
+			pipelineHandle->vk.bufferCount,
+			pipelineHandle->vk.uniformBuffers);
+		vkDestroyDescriptorPool(
+			device,
+			pipelineHandle->vk.descriptorPool,
+			NULL);
+
+		pipelineHandle->vk.descriptorPool = descriptorPool;
+		pipelineHandle->vk.uniformBuffers = uniformBuffers;
+		pipelineHandle->vk.descriptorSets = descriptorSets;
+		pipelineHandle->vk.bufferCount = bufferCount;
 	}
 
-	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
 	Vec4I size = vec4I(0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+		(int32_t)newSize.x,
+		(int32_t)newSize.y);
 	pipeline->vk.state.viewport = size;
 	pipeline->vk.state.scissor = size;
 
@@ -432,20 +447,22 @@ static void onVkHandleResize(
 		2,
 		vertexInputAttributeDescriptions,
 		1,
-		&handle->vk.descriptorSetLayout,
+		&pipelineHandle->vk.descriptorSetLayout,
 		1,
 		pushConstantRanges,
 	};
 
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
+	return true;
 }
 inline static Pipeline createVkHandle(
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* handle)
+	PipelineHandle* pipelineHandle)
 {
+	Window window = framebuffer->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	VkDevice device = vkWindow->device;
 
@@ -467,7 +484,7 @@ inline static Pipeline createVkHandle(
 	};
 
 	Pipeline pipeline = createPipeline(
-		window,
+		framebuffer,
 		DIFFUSE_PIPELINE_NAME,
 		shaders,
 		shaderCount,
@@ -476,7 +493,7 @@ inline static Pipeline createVkHandle(
 		onVkHandleBind,
 		onVkUniformsSet,
 		onVkHandleResize,
-		handle,
+		pipelineHandle,
 		&createInfo);
 
 	if (pipeline == NULL)
@@ -557,18 +574,16 @@ inline static Pipeline createVkHandle(
 		return NULL;
 	}
 
-	handle->vk.descriptorSetLayout = descriptorSetLayout;
-	handle->vk.descriptorPool = descriptorPool;
-	handle->vk.uniformBuffers = uniformBuffers;
-	handle->vk.descriptorSets = descriptorSets;
-	handle->vk.bufferCount = bufferCount;
+	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
+	pipelineHandle->vk.descriptorPool = descriptorPool;
+	pipelineHandle->vk.uniformBuffers = uniformBuffers;
+	pipelineHandle->vk.descriptorSets = descriptorSets;
+	pipelineHandle->vk.bufferCount = bufferCount;
 	return pipeline;
 }
 #endif
 
-static void onGlHandleDestroy(
-	Window window,
-	void* handle)
+static void onGlHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
 	destroyGlBuffer(pipelineHandle->gl.uniformBuffer);
@@ -576,13 +591,13 @@ static void onGlHandleDestroy(
 }
 static void onGlHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->gl.handle;
-	Buffer uniformBuffer = handle->gl.uniformBuffer;
+	PipelineHandle* pipelineHandle = pipeline->gl.handle;
+	Buffer uniformBuffer = pipelineHandle->gl.uniformBuffer;
 
 	setGlBufferData(
 		uniformBuffer->gl.glType,
 		uniformBuffer->gl.handle,
-		&handle->gl.u,
+		&pipelineHandle->gl.u,
 		sizeof(UniformBuffer),
 		0);
 
@@ -594,18 +609,18 @@ static void onGlHandleBind(Pipeline pipeline)
 }
 static void onGlUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->gl.handle;
+	PipelineHandle* pipelineHandle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
-		handle->gl.mvpLocation,
+		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&handle->gl.mvp);
+		(const GLfloat*)&pipelineHandle->gl.mvp);
 	glUniformMatrix4fv(
-		handle->gl.normalLocation,
+		pipelineHandle->gl.normalLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&handle->gl.normal);
+		(const GLfloat*)&pipelineHandle->gl.normal);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -627,27 +642,27 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
-static void onGlHandleResize(
+static bool onGlHandleResize(
 	Pipeline pipeline,
+	Vec2U newSize,
 	void* createInfo)
 {
-	Vec2U framebufferSize = getWindowFramebufferSize(
-		pipeline->gl.window);
 	Vec4I size = vec4I(0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+		(int32_t)newSize.x,
+		(int32_t)newSize.y);
 	pipeline->gl.state.viewport = size;
 	pipeline->gl.state.scissor = size;
+	return true;
 }
 inline static Pipeline createGlHandle(
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* handle)
+	PipelineHandle* pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
-		window,
+		framebuffer,
 		DIFFUSE_PIPELINE_NAME,
 		shaders,
 		shaderCount,
@@ -656,7 +671,7 @@ inline static Pipeline createGlHandle(
 		onGlHandleBind,
 		onGlUniformsSet,
 		onGlHandleResize,
-		handle,
+		pipelineHandle,
 		NULL);
 
 	if (pipeline == NULL)
@@ -696,7 +711,7 @@ inline static Pipeline createGlHandle(
 	assertOpenGL();
 
 	Buffer uniformBuffer = createGlBuffer(
-		window,
+		framebuffer->gl.window,
 		UNIFORM_BUFFER_TYPE,
 		NULL,
 		sizeof(UniformBuffer),
@@ -710,30 +725,30 @@ inline static Pipeline createGlHandle(
 		return NULL;
 	}
 
-	handle->gl.mvpLocation = mvpLocation;
-	handle->gl.normalLocation = normalLocation;
-	handle->gl.uniformBuffer = uniformBuffer;
+	pipelineHandle->gl.mvpLocation = mvpLocation;
+	pipelineHandle->gl.normalLocation = normalLocation;
+	pipelineHandle->gl.uniformBuffer = uniformBuffer;
 	return pipeline;
 }
 
 Pipeline createExtDiffusePipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	const PipelineState* state)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
 	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
-	assert(vertexShader->vk.window == window);
-	assert(fragmentShader->vk.window == window);
+	assert(vertexShader->vk.window == framebuffer->vk.window);
+	assert(fragmentShader->vk.window == framebuffer->vk.window);
 
-	PipelineHandle* handle = malloc(
+	PipelineHandle* pipelineHandle = malloc(
 		sizeof(PipelineHandle));
 
-	if (handle == NULL)
+	if (pipelineHandle == NULL)
 		return NULL;
 
 	Shader shaders[2] = {
@@ -741,6 +756,7 @@ Pipeline createExtDiffusePipeline(
 		fragmentShader,
 	};
 
+	Window window = framebuffer->vk.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Pipeline pipeline;
@@ -749,11 +765,11 @@ Pipeline createExtDiffusePipeline(
 	{
 #if MPGX_SUPPORT_VULKAN
 		pipeline = createVkHandle(
-			window,
+			framebuffer,
 			shaders,
 			2,
 			state,
-			handle);
+			pipelineHandle);
 #else
 		abort();
 #endif
@@ -762,11 +778,11 @@ Pipeline createExtDiffusePipeline(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		pipeline = createGlHandle(
-			window,
+			framebuffer,
 			shaders,
 			2,
 			state,
-			handle);
+			pipelineHandle);
 	}
 	else
 	{
@@ -775,7 +791,7 @@ Pipeline createExtDiffusePipeline(
 
 	if (pipeline == NULL)
 	{
-		free(handle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
@@ -793,20 +809,21 @@ Pipeline createExtDiffusePipeline(
 			0.0f),
 	};
 
-	handle->vk.mvp = identMat4F();
-	handle->vk.normal = identMat4F();
-	handle->vk.u = u;
+	pipelineHandle->vk.window = window;
+	pipelineHandle->vk.mvp = identMat4F();
+	pipelineHandle->vk.normal = identMat4F();
+	pipelineHandle->vk.u = u;
 	return pipeline;
 }
 Pipeline createDiffusePipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 
 	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
+		framebuffer->vk.size;
 	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
@@ -838,7 +855,7 @@ Pipeline createDiffusePipeline(
 	};
 
 	return createExtDiffusePipeline(
-		window,
+		framebuffer,
 		vertexShader,
 		fragmentShader,
 		&state);

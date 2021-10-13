@@ -397,10 +397,12 @@ typedef union Pipeline* Pipeline;
 typedef struct ImageData* ImageData;
 
 typedef void(*OnWindowUpdate)(void* argument);
-typedef void(*OnPipelineHandleDestroy)(Window window, void* handle);
+typedef void(*OnPipelineHandleDestroy)(void* handle);
 typedef void(*OnPipelineHandleBind)(Pipeline pipeline);
 typedef void(*OnPipelineUniformsSet)(Pipeline pipeline);
-typedef void(*OnPipelineHandleResize)(Pipeline pipeline, void* createInfo);
+
+typedef bool(*OnPipelineHandleResize)(
+	Pipeline pipeline, Vec2U newSize, void* createInfo);
 
 bool initializeGraphics(
 	const char* appName,
@@ -423,8 +425,9 @@ Window createWindow(
 	size_t bufferCapacity,
 	size_t imageCapacity,
 	size_t samplerCapacity,
-	size_t framebufferCapacity,
 	size_t shaderCapacity,
+	size_t framebufferCapacity,
+	size_t pipelineCapacity,
 	size_t meshCapacity);
 Window createAnyWindow(
 	bool useStencilBuffer,
@@ -436,8 +439,9 @@ Window createAnyWindow(
 	size_t bufferCapacity,
 	size_t imageCapacity,
 	size_t samplerCapacity,
-	size_t framebufferCapacity,
 	size_t shaderCapacity,
+	size_t framebufferCapacity,
+	size_t pipelineCapacity,
 	size_t meshCapacity);
 void destroyWindow(Window window);
 
@@ -500,19 +504,12 @@ void hideWindow(Window window);
 void focusWindow(Window window);
 void requestWindowAttention(Window window);
 
-Framebuffer getWindowCurrentFramebuffer(Window window);
+Framebuffer getWindowFramebuffer(Window window);
 void makeWindowContextCurrent(Window window);
 void updateWindow(Window window);
 
 bool beginWindowRecord(Window window);
 void endWindowRecord(Window window);
-
-void beginWindowRender(
-	Window window,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil);
-void endWindowRender(Window window);
 
 Buffer createBuffer(
 	Window window,
@@ -632,12 +629,15 @@ Framebuffer createShadowFramebuffer(
 	Vec2U size,
 	Image depthAttachment,
 	size_t pipelineCapacity);
-void destroyFramebuffer(Framebuffer framebuffer);
+void destroyFramebuffer(
+	Framebuffer framebuffer,
+	bool destroyAttachments);
 
 Window getFramebufferWindow(Framebuffer framebuffer);
 Vec2U getFramebufferSize(Framebuffer framebuffer);
 Image* getFramebufferAttachments(Framebuffer framebuffer);
 uint8_t getFramebufferAttachmentCount(Framebuffer framebuffer);
+bool isFramebufferDefault(Framebuffer framebuffer);
 bool isFramebufferEmpty(Framebuffer framebuffer);
 
 bool setFramebufferAttachments(
@@ -666,7 +666,7 @@ Pipeline createPipeline(
 	Framebuffer framebuffer,
 	const char* name,
 	Shader* shaders,
-	uint8_t shaderCount,
+	size_t shaderCount,
 	const PipelineState* state,
 	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
@@ -681,7 +681,7 @@ void destroyPipeline(
 Framebuffer getPipelineFramebuffer(Pipeline pipeline);
 const char* getPipelineName(Pipeline pipeline);
 Shader* getPipelineShaders(Pipeline pipeline);
-uint8_t getPipelineShaderCount(Pipeline pipeline);
+size_t getPipelineShaderCount(Pipeline pipeline);
 const PipelineState* getPipelineState(Pipeline pipeline);
 OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline);
 OnPipelineHandleBind getPipelineOnHandleBind(Pipeline pipeline);

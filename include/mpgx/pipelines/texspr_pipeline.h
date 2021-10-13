@@ -18,14 +18,14 @@
 #define TEX_SPR_PIPELINE_NAME "TexSpr"
 
 Pipeline createExtTexSprPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
 	const PipelineState* state);
 Pipeline createTexSprPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,

@@ -27,6 +27,7 @@ struct GradSkyAmbient
 
 typedef struct VkPipelineHandle
 {
+	Window window;
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
@@ -42,6 +43,7 @@ typedef struct VkPipelineHandle
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
+	Window window;
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
@@ -254,46 +256,6 @@ inline static VkDescriptorPool createVkDescriptorPool(
 
 	return descriptorPool;
 }
-inline static VkImageView createVkImageView(
-	VkDevice device,
-	VkImage image,
-	VkFormat format)
-{
-	VkImageViewCreateInfo imageViewCreateInfo = {
-		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-		NULL,
-		0,
-		image,
-		VK_IMAGE_VIEW_TYPE_2D,
-		format,
-		{
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-		},
-		{
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			0,
-			1,
-			0,
-			1,
-		},
-	};
-
-	VkImageView imageView;
-
-	VkResult result = vkCreateImageView(
-		device,
-		&imageViewCreateInfo,
-		NULL,
-		&imageView);
-
-	if(result != VK_SUCCESS)
-		return NULL;
-
-	return imageView;
-}
 inline static VkDescriptorSet* createVkDescriptorSets(
 	VkDevice device,
 	VkDescriptorSetLayout descriptorSetLayout,
@@ -377,12 +339,10 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 	return descriptorSets;
 }
 
-static void onVkHandleDestroy(
-	Window window,
-	void* handle)
+static void onVkHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
-	VkWindow vkWindow = getVkWindow(window);
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkDevice device = vkWindow->device;
 
 	free(pipelineHandle->vk.descriptorSets);
@@ -402,8 +362,8 @@ static void onVkHandleDestroy(
 }
 static void onVkUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 	VkPipelineLayout layout = pipeline->vk.layout;
 
@@ -413,26 +373,26 @@ static void onVkUniformsSet(Pipeline pipeline)
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(Mat4F),
-		&handle->vk.mvp);
+		&pipelineHandle->vk.mvp);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
 		sizeof(Mat4F),
 		sizeof(Vec4F),
-		&handle->vk.sunDir);
+		&pipelineHandle->vk.sunDir);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
 		sizeof(Mat4F) + sizeof(Vec4F),
 		sizeof(Vec4F),
-		&handle->vk.sunColor);
+		&pipelineHandle->vk.sunColor);
 }
 static void onVkHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	uint32_t bufferIndex = vkWindow->bufferIndex;
 
 	vkCmdBindDescriptorSets(
@@ -441,58 +401,63 @@ static void onVkHandleBind(Pipeline pipeline)
 		pipeline->vk.layout,
 		0,
 		1,
-		&handle->vk.descriptorSets[bufferIndex],
+		&pipelineHandle->vk.descriptorSets[bufferIndex],
 		0,
 		NULL);
 }
-static void onVkHandleResize(
+static bool onVkHandleResize(
 	Pipeline pipeline,
+	Vec2U newSize,
 	void* createInfo)
 {
-	Window window = pipeline->vk.window;
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	Window window = pipelineHandle->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
-	PipelineHandle* handle = pipeline->vk.handle;
 
-	if (bufferCount != handle->vk.bufferCount)
+	if (bufferCount != pipelineHandle->vk.bufferCount)
 	{
 		VkDevice device = vkWindow->device;
-
-		free(handle->vk.descriptorSets);
-
-		vkDestroyDescriptorPool(
-			device,
-			handle->vk.descriptorPool,
-			NULL);
 
 		VkDescriptorPool descriptorPool = createVkDescriptorPool(
 			device,
 			bufferCount);
 
 		if (descriptorPool == NULL)
-			abort();
+			return false;
 
 		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
 			device,
-			handle->vk.descriptorSetLayout,
+			pipelineHandle->vk.descriptorSetLayout,
 			descriptorPool,
 			bufferCount,
-			handle->vk.sampler->vk.handle,
-			handle->vk.imageView);
+			pipelineHandle->vk.sampler->vk.handle,
+			pipelineHandle->vk.imageView);
 
 		if (descriptorSets == NULL)
-			abort();
+		{
+			vkDestroyDescriptorPool(
+				device,
+				descriptorPool,
+				NULL);
+			return false;
+		}
 
-		handle->vk.descriptorPool = descriptorPool;
-		handle->vk.descriptorSets = descriptorSets;
-		handle->vk.bufferCount = bufferCount;
+		free(pipelineHandle->vk.descriptorSets);
+
+		vkDestroyDescriptorPool(
+			device,
+			pipelineHandle->vk.descriptorPool,
+			NULL);
+
+		pipelineHandle->vk.descriptorPool = descriptorPool;
+		pipelineHandle->vk.descriptorSets = descriptorSets;
+		pipelineHandle->vk.bufferCount = bufferCount;
 	}
 
-	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
 	Vec4I size = vec4I(0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+		(int32_t)newSize.x,
+		(int32_t)newSize.y);
 	pipeline->vk.state.viewport = size;
 	pipeline->vk.state.scissor = size;
 
@@ -502,23 +467,25 @@ static void onVkHandleResize(
 		1,
 		vertexInputAttributeDescriptions,
 		1,
-		&handle->vk.descriptorSetLayout,
+		&pipelineHandle->vk.descriptorSetLayout,
 		2,
 		pushConstantRanges,
 	};
 
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
+	return true;
 }
 inline static Pipeline createVkHandle(
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	VkSampler sampler,
 	VkImage image,
 	VkFormat format,
 	const PipelineState* state,
-	PipelineHandle* handle)
+	PipelineHandle* pipelineHandle)
 {
+	Window window = framebuffer->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	VkDevice device = vkWindow->device;
 
@@ -540,7 +507,7 @@ inline static Pipeline createVkHandle(
 	};
 
 	Pipeline pipeline = createPipeline(
-		window,
+		framebuffer,
 		GRAD_SKY_PIPELINE_NAME,
 		shaders,
 		shaderCount,
@@ -549,7 +516,7 @@ inline static Pipeline createVkHandle(
 		onVkHandleBind,
 		onVkUniformsSet,
 		onVkHandleResize,
-		handle,
+		pipelineHandle,
 		&createInfo);
 
 	if (pipeline == NULL)
@@ -582,7 +549,8 @@ inline static Pipeline createVkHandle(
 	VkImageView imageView = createVkImageView(
 		device,
 		image,
-		format);
+		format,
+		VK_IMAGE_ASPECT_COLOR_BIT);
 
 	if (imageView == NULL)
 	{
@@ -627,58 +595,57 @@ inline static Pipeline createVkHandle(
 		return NULL;
 	}
 
-	handle->vk.descriptorSetLayout = descriptorSetLayout;
-	handle->vk.descriptorPool = descriptorPool;
-	handle->vk.imageView = imageView;
-	handle->vk.descriptorSets = descriptorSets;
-	handle->vk.bufferCount = bufferCount;
+	pipelineHandle->vk.window = window;
+	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
+	pipelineHandle->vk.descriptorPool = descriptorPool;
+	pipelineHandle->vk.imageView = imageView;
+	pipelineHandle->vk.descriptorSets = descriptorSets;
+	pipelineHandle->vk.bufferCount = bufferCount;
 	return pipeline;
 }
 #endif
 
-static void onGlHandleDestroy(
-	Window window,
-	void* handle)
+static void onGlHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
 	free(pipelineHandle);
 }
 static void onGlHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->gl.handle;
+	PipelineHandle* pipelineHandle = pipeline->gl.handle;
 
 	glUniform1i(
-		handle->gl.textureLocation,
+		pipelineHandle->gl.textureLocation,
 		0);
 
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
-		handle->gl.texture->gl.handle);
+		pipelineHandle->gl.texture->gl.handle);
 	glBindSampler(
 		0,
-		handle->gl.sampler->gl.handle);
+		pipelineHandle->gl.sampler->gl.handle);
 
 	assertOpenGL();
 }
 static void onGlUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->gl.handle;
+	PipelineHandle* pipelineHandle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
-		handle->gl.mvpLocation,
+		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&handle->gl.mvp);
+		(const GLfloat*)&pipelineHandle->gl.mvp);
 	glUniform4fv(
-		handle->gl.sunDirLocation,
+		pipelineHandle->gl.sunDirLocation,
 		1,
-		(const GLfloat*)&handle->gl.sunDir);
+		(const GLfloat*)&pipelineHandle->gl.sunDir);
 	glUniform4fv(
-		handle->gl.sunColorLocation,
+		pipelineHandle->gl.sunColorLocation,
 		1,
-		(const GLfloat*)&handle->gl.sunColor);
+		(const GLfloat*)&pipelineHandle->gl.sunColor);
 
 	glEnableVertexAttribArray(0);
 
@@ -692,27 +659,27 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
-static void onGlHandleResize(
+static bool onGlHandleResize(
 	Pipeline pipeline,
+	Vec2U newSize,
 	void* createInfo)
 {
-	Vec2U framebufferSize = getWindowFramebufferSize(
-		pipeline->gl.window);
 	Vec4I size = vec4I(0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+		(int32_t)newSize.x,
+		(int32_t)newSize.y);
 	pipeline->gl.state.viewport = size;
 	pipeline->gl.state.scissor = size;
+	return true;
 }
 inline static Pipeline createGlHandle(
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* handle)
+	PipelineHandle* pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
-		window,
+		framebuffer,
 		GRAD_SKY_PIPELINE_NAME,
 		shaders,
 		shaderCount,
@@ -721,7 +688,7 @@ inline static Pipeline createGlHandle(
 		onGlHandleBind,
 		onGlUniformsSet,
 		onGlHandleResize,
-		handle,
+		pipelineHandle,
 		NULL);
 
 	if (pipeline == NULL)
@@ -759,37 +726,37 @@ inline static Pipeline createGlHandle(
 
 	assertOpenGL();
 
-	handle->gl.mvpLocation = mvpLocation;
-	handle->gl.sunDirLocation = sunDirLocation;
-	handle->gl.sunColorLocation = sunColorLocation;
-	handle->gl.textureLocation = textureLocation;
+	pipelineHandle->gl.mvpLocation = mvpLocation;
+	pipelineHandle->gl.sunDirLocation = sunDirLocation;
+	pipelineHandle->gl.sunColorLocation = sunColorLocation;
+	pipelineHandle->gl.textureLocation = textureLocation;
 	return pipeline;
 }
 
 Pipeline createExtGradSkyPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
 	const PipelineState* state)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
 	assert(texture != NULL);
 	assert(sampler != NULL);
 	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
-	assert(vertexShader->vk.window == window);
-	assert(fragmentShader->vk.window == window);
-	assert(texture->vk.window == window);
-	assert(sampler->vk.window == window);
+	assert(vertexShader->vk.window == framebuffer->vk.window);
+	assert(fragmentShader->vk.window == framebuffer->vk.window);
+	assert(texture->vk.window == framebuffer->vk.window);
+	assert(sampler->vk.window == framebuffer->vk.window);
 
-	PipelineHandle* handle = malloc(
+	PipelineHandle* pipelineHandle = malloc(
 		sizeof(PipelineHandle));
 
-	if (handle == NULL)
+	if (pipelineHandle == NULL)
 		return NULL;
 
 	Shader shaders[2] = {
@@ -797,7 +764,8 @@ Pipeline createExtGradSkyPipeline(
 		fragmentShader,
 	};
 
-	GraphicsAPI api = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getWindowGraphicsAPI(
+		framebuffer->vk.window);
 
 	Pipeline pipeline;
 
@@ -805,14 +773,14 @@ Pipeline createExtGradSkyPipeline(
 	{
 #if MPGX_SUPPORT_VULKAN
 		pipeline = createVkHandle(
-			window,
+			framebuffer,
 			shaders,
 			2,
 			sampler->vk.handle,
 			texture->vk.handle,
 			texture->vk.vkFormat,
 			state,
-			handle);
+			pipelineHandle);
 #else
 		abort();
 #endif
@@ -821,11 +789,11 @@ Pipeline createExtGradSkyPipeline(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		pipeline = createGlHandle(
-			window,
+			framebuffer,
 			shaders,
 			2,
 			state,
-			handle);
+			pipelineHandle);
 	}
 	else
 	{
@@ -834,29 +802,29 @@ Pipeline createExtGradSkyPipeline(
 
 	if (pipeline == NULL)
 	{
-		free(handle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
-	handle->vk.texture = texture;
-	handle->vk.sampler = sampler;
-	handle->vk.mvp = identMat4F();
-	handle->vk.mvp = identMat4F();
-	handle->vk.sunDir = zeroVec4F();
-	handle->vk.sunColor = oneVec4F();
+	pipelineHandle->vk.texture = texture;
+	pipelineHandle->vk.sampler = sampler;
+	pipelineHandle->vk.mvp = identMat4F();
+	pipelineHandle->vk.mvp = identMat4F();
+	pipelineHandle->vk.sunDir = zeroVec4F();
+	pipelineHandle->vk.sunColor = oneVec4F();
 	return pipeline;
 }
 Pipeline createGradSkyPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 
 	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
+		framebuffer->vk.size;
 	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
@@ -888,7 +856,7 @@ Pipeline createGradSkyPipeline(
 	};
 
 	return createExtGradSkyPipeline(
-		window,
+		framebuffer,
 		vertexShader,
 		fragmentShader,
 		texture,

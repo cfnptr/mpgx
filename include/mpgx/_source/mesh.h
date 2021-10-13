@@ -16,6 +16,15 @@
 #include "mpgx/_source/buffer.h"
 #include "mpgx/_source/pipeline.h"
 
+typedef struct _BaseMesh
+{
+	Window window;
+	DrawIndex drawIndex;
+	size_t indexCount;
+	size_t indexOffset;
+	Buffer vertexBuffer;
+	Buffer indexBuffer;
+} _BaseMesh;
 typedef struct _VkMesh
 {
 	Window window;
@@ -37,6 +46,7 @@ typedef struct _GlMesh
 } _GlMesh;
 union Mesh
 {
+	_BaseMesh base;
 	_VkMesh vk;
 	_GlMesh gl;
 };

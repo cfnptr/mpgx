@@ -16,14 +16,20 @@
 
 #pragma once
 #include "mpgx/_source/image.h"
-#include "mpgx/_source/pipeline.h"
 
+typedef struct _BaseFramebuffer
+{
+	// TODO: base
+	// also rename all .vk to .base
+	// recheck buffer, mesh, etc. after all errors check
+} _BaseFramebuffer;
 typedef struct _VkFramebuffer
 {
 	Window window;
 	Vec2U size;
 	Image* attachments;
 	uint8_t attachmentCount;
+	bool isDefault;
 	Pipeline* pipelines;
 	size_t pipelineCapacity;
 	size_t pipelineCount;
@@ -39,6 +45,7 @@ typedef struct _GlFramebuffer
 	Vec2U size;
 	Image* attachments;
 	uint8_t attachmentCount;
+	bool isDefault;
 	Pipeline* pipelines;
 	size_t pipelineCapacity;
 	size_t pipelineCount;
@@ -169,6 +176,56 @@ inline static VkImageView createVkImageView(
 		return NULL;
 
 	return imageView;
+}
+inline static Framebuffer createDefaultVkFramebuffer(
+	VkRenderPass renderPass,
+	VkImageView* _imageViews,
+	VkFramebuffer handle,
+	Window window,
+	Vec2U size,
+	size_t attachmentCount,
+	size_t pipelineCapacity)
+{
+	Framebuffer framebuffer = malloc(
+		sizeof(union Framebuffer));
+
+	if (framebuffer == NULL)
+		return NULL;
+
+	VkImageView* imageViews = malloc(
+		attachmentCount * sizeof(VkImageView));
+
+	if (imageViews == NULL)
+	{
+		free(framebuffer);
+		return NULL;
+	}
+
+	for (size_t i = 0; i < attachmentCount; i++)
+		imageViews[i] = _imageViews[i];
+
+	Pipeline* pipelines = malloc(
+		pipelineCapacity * sizeof(Pipeline));
+
+	if (pipelines == NULL)
+	{
+		free(imageViews);
+		free(framebuffer);
+		return NULL;
+	}
+
+	framebuffer->vk.window = window;
+	framebuffer->vk.size = size;
+	framebuffer->vk.attachments = NULL;
+	framebuffer->vk.attachmentCount = attachmentCount;
+	framebuffer->vk.isDefault = true;
+	framebuffer->vk.pipelines = pipelines;
+	framebuffer->vk.pipelineCapacity = pipelineCapacity;
+	framebuffer->vk.pipelineCount = 0;
+	framebuffer->vk.renderPass = renderPass;
+	framebuffer->vk.imageViews = imageViews;
+	framebuffer->vk.handle = handle;
+	return framebuffer;
 }
 inline static Framebuffer createVkFramebuffer(
 	VkDevice device,
@@ -303,6 +360,7 @@ inline static Framebuffer createVkFramebuffer(
 	framebuffer->vk.size = size;
 	framebuffer->vk.attachments = attachments;
 	framebuffer->vk.attachmentCount = attachmentCount;
+	framebuffer->vk.isDefault = false;
 	framebuffer->vk.pipelines = pipelines;
 	framebuffer->vk.pipelineCapacity = pipelineCapacity;
 	framebuffer->vk.pipelineCount = 0;
@@ -311,54 +369,59 @@ inline static Framebuffer createVkFramebuffer(
 	framebuffer->vk.handle = handle;
 	return framebuffer;
 }
+
+inline static void destroyVkPipeline(
+	VkDevice device, Pipeline pipeline);
+
 inline static void destroyVkFramebuffer(
 	VkDevice device,
 	Framebuffer framebuffer)
 {
 	size_t pipelineCount = framebuffer->vk.pipelineCount;
 	Pipeline* pipelines = framebuffer->vk.pipelines;
-	Window window = framebuffer->vk.window;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
 		Pipeline pipeline = pipelines[i];
 
-		if (pipeline->vk.onHandleDestroy != NULL)
-		{
-			pipeline->vk.onHandleDestroy(
-				window,
-				pipeline->vk.handle);
-		}
+		OnPipelineHandleDestroy onDestroy =
+			getPipelineOnHandleDestroy(pipeline);
+
+		if (onDestroy != NULL)
+			onDestroy(getPipelineHandle(pipeline));
 
 		destroyVkPipeline(device, pipeline);
 	}
 
 	free(pipelines);
 
-	vkDestroyFramebuffer(
-		device,
-		framebuffer->vk.handle,
-		NULL);
-
 	size_t attachmentCount = framebuffer->vk.attachmentCount;
 	VkImageView* imageViews = framebuffer->vk.imageViews;
 
-	for (size_t i = 0; i < attachmentCount; i++)
+	if (framebuffer->vk.isDefault == false)
 	{
-		vkDestroyImageView(
+		vkDestroyFramebuffer(
 			device,
-			imageViews[i],
+			framebuffer->vk.handle,
+			NULL);
+
+		for (size_t i = 0; i < attachmentCount; i++)
+		{
+			vkDestroyImageView(
+				device,
+				imageViews[i],
+				NULL);
+		}
+
+		free(framebuffer->vk.attachments);
+
+		vkDestroyRenderPass(
+			device,
+			framebuffer->vk.renderPass,
 			NULL);
 	}
 
 	free(imageViews);
-	free(framebuffer->vk.attachments);
-
-	vkDestroyRenderPass(
-		device,
-		framebuffer->vk.renderPass,
-		NULL);
-
 	free(framebuffer);
 }
 inline static void beginVkFramebufferRender(
@@ -412,6 +475,37 @@ inline static void clearVkFramebuffer(
 }
 #endif
 
+inline static Framebuffer createDefaultGlFramebuffer(
+	Window window,
+	Vec2U size,
+	size_t pipelineCapacity)
+{
+	Framebuffer framebuffer = malloc(
+		sizeof(union Framebuffer));
+
+	if (framebuffer == NULL)
+		return NULL;
+
+	Pipeline* pipelines = malloc(
+		sizeof(Pipeline) * pipelineCapacity);
+
+	if (pipelines == NULL)
+	{
+		free(framebuffer);
+		return NULL;
+	}
+
+	framebuffer->gl.window = window;
+	framebuffer->gl.size = size;
+	framebuffer->gl.attachments = NULL;
+	framebuffer->gl.attachmentCount = 0;
+	framebuffer->gl.isDefault = true;
+	framebuffer->gl.pipelines = pipelines;
+	framebuffer->gl.pipelineCapacity = pipelineCapacity;
+	framebuffer->gl.pipelineCount = 0;
+	framebuffer->gl.handle = GL_ZERO;
+	return framebuffer;
+}
 inline static Framebuffer createGlFramebuffer(
 	Window window,
 	Vec2U size,
@@ -579,43 +673,50 @@ inline static Framebuffer createGlFramebuffer(
 	framebuffer->gl.size = size;
 	framebuffer->gl.attachments = attachments;
 	framebuffer->gl.attachmentCount = attachmentCount;
+	framebuffer->gl.isDefault = false;
 	framebuffer->gl.pipelines = pipelines;
 	framebuffer->gl.pipelineCapacity = 0;
 	framebuffer->gl.pipelineCount = 0;
 	framebuffer->gl.handle = handle;
 	return framebuffer;
 }
-inline static void destroyGlFramebuffer(Framebuffer framebuffer)
+
+inline static void destroyGlPipeline(Pipeline pipeline);
+
+inline static void destroyGlFramebuffer(
+	Framebuffer framebuffer)
 {
 	size_t pipelineCount = framebuffer->gl.pipelineCount;
 	Pipeline* pipelines = framebuffer->gl.pipelines;
-	Window window = framebuffer->gl.window;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
 		Pipeline pipeline = pipelines[i];
 
-		if (pipeline->gl.onHandleDestroy != NULL)
-		{
-			pipeline->gl.onHandleDestroy(
-				window,
-				pipeline->gl.handle);
-		}
+		OnPipelineHandleDestroy onDestroy =
+			getPipelineOnHandleDestroy(pipeline);
+
+		if (onDestroy != NULL)
+			onDestroy(getPipelineHandle(pipeline));
 
 		destroyGlPipeline(pipeline);
 	}
 
 	free(pipelines);
 
-	makeWindowContextCurrent(
-		framebuffer->gl.window);
+	if (framebuffer->gl.isDefault == false)
+	{
+		makeWindowContextCurrent(
+			framebuffer->gl.window);
 
-	glDeleteFramebuffers(
-		GL_ONE,
-		&framebuffer->gl.handle);
-	assertOpenGL();
+		glDeleteFramebuffers(
+			GL_ONE,
+			&framebuffer->gl.handle);
+		assertOpenGL();
 
-	free(framebuffer->gl.attachments);
+		free(framebuffer->gl.attachments);
+	}
+
 	free(framebuffer);
 }
 inline static void beginGlFramebufferRender(

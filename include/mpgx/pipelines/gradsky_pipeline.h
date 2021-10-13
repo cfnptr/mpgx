@@ -29,14 +29,14 @@ Vec4F getGradSkyAmbientColor(
 Sampler createGradSkySampler(Window window);
 
 Pipeline createExtGradSkyPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
 	const PipelineState* state);
 Pipeline createGradSkyPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,

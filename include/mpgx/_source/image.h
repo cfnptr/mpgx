@@ -14,6 +14,7 @@
 
 #pragma once
 #include "mpgx/_source/buffer.h"
+#include <assert.h>
 
 // TODO: handle Vulkan unsupported formats on platforms
 // VkGetPhysicalDeviceImageFormatProperties
@@ -1008,16 +1009,6 @@ inline static bool setVkImageData(
 		&stagingFence,
 		VK_TRUE,
 		UINT64_MAX);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		vkFreeCommandBuffers(
-			device,
-			transferCommandPool,
-			1,
-			&commandBuffer);
-		return false;
-	}
 
 	vkFreeCommandBuffers(
 		device,

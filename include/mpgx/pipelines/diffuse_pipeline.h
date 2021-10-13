@@ -18,12 +18,12 @@
 #define DIFFUSE_PIPELINE_NAME "Diffuse"
 
 Pipeline createExtDiffusePipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	const PipelineState* state);
 Pipeline createDiffusePipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader);
 

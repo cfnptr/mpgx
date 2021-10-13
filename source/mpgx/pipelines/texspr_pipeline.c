@@ -277,9 +277,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 	return descriptorSets;
 }
 
-static void onVkHandleDestroy(
-	Window window,
-	void* handle)
+static void onVkHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
 	VkWindow vkWindow = getVkWindow(window);
@@ -302,7 +300,7 @@ static void onVkHandleDestroy(
 }
 static void onVkUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->vk.handle;
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 	VkPipelineLayout layout = pipeline->vk.layout;
@@ -313,32 +311,32 @@ static void onVkUniformsSet(Pipeline pipeline)
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(Mat4F),
-		&handle->vk.mvp);
+		&pipelineHandle->vk.mvp);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		sizeof(Mat4F),
 		sizeof(Vec2F),
-		&handle->vk.size);
+		&pipelineHandle->vk.size);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		sizeof(Mat4F) + sizeof(Vec2F),
 		sizeof(Vec2F),
-		&handle->vk.offset);
+		&pipelineHandle->vk.offset);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
 		sizeof(Mat4F) + sizeof(Vec2F) * 2,
 		sizeof(Vec4F),
-		&handle->vk.color);
+		&pipelineHandle->vk.color);
 }
 static void onVkHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->vk.handle;
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
 	uint32_t bufferIndex = vkWindow->bufferIndex;
 
@@ -348,7 +346,7 @@ static void onVkHandleBind(Pipeline pipeline)
 		pipeline->vk.layout,
 		0,
 		1,
-		&handle->vk.descriptorSets[bufferIndex],
+		&pipelineHandle->vk.descriptorSets[bufferIndex],
 		0,
 		NULL);
 }
@@ -359,17 +357,17 @@ static void onVkHandleResize(
 	Window window = pipeline->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
-	PipelineHandle* handle = pipeline->vk.handle;
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
 
-	if (bufferCount != handle->vk.bufferCount)
+	if (bufferCount != pipelineHandle->vk.bufferCount)
 	{
 		VkDevice device = vkWindow->device;
 
-		free(handle->vk.descriptorSets);
+		free(pipelineHandle->vk.descriptorSets);
 
 		vkDestroyDescriptorPool(
 			device,
-			handle->vk.descriptorPool,
+			pipelineHandle->vk.descriptorPool,
 			NULL);
 
 		VkDescriptorPool descriptorPool = createVkDescriptorPool(
@@ -381,18 +379,18 @@ static void onVkHandleResize(
 
 		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
 			device,
-			handle->vk.descriptorSetLayout,
+			pipelineHandle->vk.descriptorSetLayout,
 			descriptorPool,
 			bufferCount,
-			handle->vk.sampler->vk.handle,
-			handle->vk.imageView);
+			pipelineHandle->vk.sampler->vk.handle,
+			pipelineHandle->vk.imageView);
 
 		if (descriptorSets == NULL)
 			abort();
 
-		handle->vk.descriptorPool = descriptorPool;
-		handle->vk.descriptorSets = descriptorSets;
-		handle->vk.bufferCount = bufferCount;
+		pipelineHandle->vk.descriptorPool = descriptorPool;
+		pipelineHandle->vk.descriptorSets = descriptorSets;
+		pipelineHandle->vk.bufferCount = bufferCount;
 	}
 
 	Vec2U framebufferSize =
@@ -409,7 +407,7 @@ static void onVkHandleResize(
 		2,
 		vertexInputAttributeDescriptions,
 		1,
-		&handle->vk.descriptorSetLayout,
+		&pipelineHandle->vk.descriptorSetLayout,
 		2,
 		pushConstantRanges,
 	};
@@ -424,7 +422,7 @@ inline static Pipeline createVkHandle(
 	VkImage image,
 	VkFormat format,
 	const PipelineState* state,
-	PipelineHandle* handle)
+	PipelineHandle* pipelineHandle)
 {
 	VkWindow vkWindow = getVkWindow(window);
 	VkDevice device = vkWindow->device;
@@ -456,7 +454,7 @@ inline static Pipeline createVkHandle(
 		onVkHandleBind,
 		onVkUniformsSet,
 		onVkHandleResize,
-		handle,
+		pipelineHandle,
 		&createInfo);
 
 	if (pipeline == NULL)
@@ -534,63 +532,60 @@ inline static Pipeline createVkHandle(
 		return NULL;
 	}
 
-	handle->vk.descriptorSetLayout = descriptorSetLayout;
-	handle->vk.descriptorPool = descriptorPool;
-	handle->vk.imageView = imageView;
-	handle->vk.descriptorSets = descriptorSets;
-	handle->vk.bufferCount = bufferCount;
+	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
+	pipelineHandle->vk.descriptorPool = descriptorPool;
+	pipelineHandle->vk.imageView = imageView;
+	pipelineHandle->vk.descriptorSets = descriptorSets;
+	pipelineHandle->vk.bufferCount = bufferCount;
 	return pipeline;
 }
 #endif
 
-static void onGlHandleDestroy(
-	Window window,
-	void* handle)
+static void onGlHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
 	free(pipelineHandle);
 }
 static void onGlHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* handle =
-		pipeline->gl.handle;
+	PipelineHandle* pipelineHandle = pipeline->gl.handle;
 
 	glUniform1i(
-		handle->gl.textureLocation,
+		pipelineHandle->gl.textureLocation,
 		0);
 
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
-		handle->gl.texture->gl.handle);
+		pipelineHandle->gl.texture->gl.handle);
 	glBindSampler(
 		0,
-		handle->gl.sampler->gl.handle);
+		pipelineHandle->gl.sampler->gl.handle);
 
 	assertOpenGL();
 }
 static void onGlUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->gl.handle;
+	PipelineHandle* pipelineHandle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
-		handle->gl.mvpLocation,
+		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&handle->gl.mvp);
+		(const GLfloat*)&pipelineHandle->gl.mvp);
 	glUniform4fv(
-		handle->gl.colorLocation,
+		pipelineHandle->gl.colorLocation,
 		1,
-		(const GLfloat*)&handle->gl.color);
+		(const GLfloat*)&pipelineHandle->gl.color);
 	glUniform2fv(
-		handle->gl.sizeLocation,
+		pipelineHandle->gl.sizeLocation,
 		1,
-		(const GLfloat*)&handle->gl.size);
+		(const GLfloat*)&pipelineHandle->gl.size);
 	glUniform2fv(
-		handle->gl.offsetLocation,
+		pipelineHandle->gl.offsetLocation,
 		1,
-		(const GLfloat*)&handle->gl.offset);
+		(const GLfloat*)&pipelineHandle->gl.offset);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -629,7 +624,7 @@ inline static Pipeline createGlHandle(
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* handle)
+	PipelineHandle* pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
 		window,
@@ -641,7 +636,7 @@ inline static Pipeline createGlHandle(
 		onGlHandleBind,
 		onGlUniformsSet,
 		onGlHandleResize,
-		handle,
+		pipelineHandle,
 		NULL);
 
 	if (pipeline == NULL)
@@ -684,11 +679,11 @@ inline static Pipeline createGlHandle(
 
 	assertOpenGL();
 
-	handle->gl.mvpLocation = mvpLocation;
-	handle->gl.colorLocation = colorLocation;
-	handle->gl.sizeLocation = sizeLocation;
-	handle->gl.offsetLocation = offsetLocation;
-	handle->gl.textureLocation = textureLocation;
+	pipelineHandle->gl.mvpLocation = mvpLocation;
+	pipelineHandle->gl.colorLocation = colorLocation;
+	pipelineHandle->gl.sizeLocation = sizeLocation;
+	pipelineHandle->gl.offsetLocation = offsetLocation;
+	pipelineHandle->gl.textureLocation = textureLocation;
 	return pipeline;
 }
 
@@ -712,10 +707,10 @@ Pipeline createExtTexSprPipeline(
 	assert(texture->vk.window == window);
 	assert(sampler->vk.window == window);
 
-	PipelineHandle* handle = malloc(
+	PipelineHandle* pipelineHandle = malloc(
 		sizeof(PipelineHandle));
 
-	if (handle == NULL)
+	if (pipelineHandle == NULL)
 		return NULL;
 
 	Shader shaders[2] = {
@@ -738,7 +733,7 @@ Pipeline createExtTexSprPipeline(
 			texture->vk.handle,
 			texture->vk.vkFormat,
 			state,
-			handle);
+			pipelineHandle);
 #else
 		abort();
 #endif
@@ -751,7 +746,7 @@ Pipeline createExtTexSprPipeline(
 			shaders,
 			2,
 			state,
-			handle);
+			pipelineHandle);
 	}
 	else
 	{
@@ -760,16 +755,16 @@ Pipeline createExtTexSprPipeline(
 
 	if (pipeline == NULL)
 	{
-		free(handle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
-	handle->vk.texture = texture;
-	handle->vk.sampler = sampler;
-	handle->vk.mvp = identMat4F();
-	handle->vk.size = oneVec2F();
-	handle->vk.offset = zeroVec2F();
-	handle->vk.color = oneVec4F();
+	pipelineHandle->vk.texture = texture;
+	pipelineHandle->vk.sampler = sampler;
+	pipelineHandle->vk.mvp = identMat4F();
+	pipelineHandle->vk.size = oneVec2F();
+	pipelineHandle->vk.offset = zeroVec2F();
+	pipelineHandle->vk.color = oneVec4F();
 	return pipeline;
 }
 Pipeline createTexSprPipeline(
@@ -782,7 +777,7 @@ Pipeline createTexSprPipeline(
 	assert(window != NULL);
 
 	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
+		framebuffer->vk.size;
 	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);

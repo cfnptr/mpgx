@@ -18,12 +18,12 @@
 #define COLOR_PIPELINE_NAME "Color"
 
 Pipeline createExtColorPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	const PipelineState* state);
 Pipeline createColorPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader);
 

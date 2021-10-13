@@ -19,11 +19,13 @@
 
 typedef struct VkPipelineHandle
 {
+	Window window;
 	Mat4F mvp;
 	Vec4F color;
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
+	Window window;
 	Mat4F mvp;
 	Vec4F color;
 	GLint mvpLocation;
@@ -64,17 +66,15 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 	},
 };
 
-static void onVkHandleDestroy(
-	Window window,
-	void* handle)
+static void onVkHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
 	free(pipelineHandle);
 }
 static void onVkUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 	VkPipelineLayout layout = pipeline->vk.layout;
 
@@ -84,24 +84,23 @@ static void onVkUniformsSet(Pipeline pipeline)
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(Mat4F),
-		&handle->vk.mvp);
+		&pipelineHandle->vk.mvp);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
 		sizeof(Mat4F),
 		sizeof(Vec4F),
-		&handle->vk.color);
+		&pipelineHandle->vk.color);
 }
-static void onVkHandleResize(
+static bool onVkHandleResize(
 	Pipeline pipeline,
+	Vec2U newSize,
 	void* createInfo)
 {
-	Vec2U framebufferSize = getWindowFramebufferSize(
-		pipeline->vk.window);
 	pipeline->vk.state.viewport = vec4I(0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+		(int32_t)newSize.x,
+		(int32_t)newSize.y);
 
 	VkPipelineCreateInfo _createInfo = {
 		1,
@@ -115,14 +114,15 @@ static void onVkHandleResize(
 	};
 
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
+	return true;
 }
 
 inline static Pipeline createVkHandle(
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* handle)
+	PipelineHandle* pipelineHandle)
 {
 	VkPipelineCreateInfo createInfo = {
 		1,
@@ -136,7 +136,7 @@ inline static Pipeline createVkHandle(
 	};
 
 	return createPipeline(
-		window,
+		framebuffer,
 		SPRITE_PIPELINE_NAME,
 		shaders,
 		shaderCount,
@@ -145,31 +145,29 @@ inline static Pipeline createVkHandle(
 		NULL,
 		onVkUniformsSet,
 		onVkHandleResize,
-		handle,
+		pipelineHandle,
 		&createInfo);
 }
 #endif
 
-static void onGlHandleDestroy(
-	Window window,
-	void* handle)
+static void onGlHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
 	free(pipelineHandle);
 }
 static void onGlUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->gl.handle;
+	PipelineHandle* pipelineHandle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
-		handle->gl.mvpLocation,
+		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&handle->gl.mvp);
+		(const GLfloat*)&pipelineHandle->gl.mvp);
 	glUniform4fv(
-		handle->gl.colorLocation,
+		pipelineHandle->gl.colorLocation,
 		1,
-		(const GLfloat*)&handle->gl.color);
+		(const GLfloat*)&pipelineHandle->gl.color);
 
 	glEnableVertexAttribArray(0);
 
@@ -183,27 +181,27 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
-static void onGlHandleResize(
+static bool onGlHandleResize(
 	Pipeline pipeline,
+	Vec2U newSize,
 	void* createInfo)
 {
-	Vec2U framebufferSize = getWindowFramebufferSize(
-		pipeline->gl.window);
 	Vec4I size = vec4I(0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+		(int32_t)newSize.x,
+		(int32_t)newSize.y);
 	pipeline->gl.state.viewport = size;
 	pipeline->gl.state.scissor = size;
+	return true;
 }
 inline static Pipeline createGlHandle(
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* handle)
+	PipelineHandle* pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
-		window,
+		framebuffer,
 		SPRITE_PIPELINE_NAME,
 		shaders,
 		shaderCount,
@@ -212,7 +210,7 @@ inline static Pipeline createGlHandle(
 		NULL,
 		onGlUniformsSet,
 		onGlHandleResize,
-		handle,
+		pipelineHandle,
 		NULL);
 
 	if (pipeline == NULL)
@@ -241,29 +239,29 @@ inline static Pipeline createGlHandle(
 
 	assertOpenGL();
 
-	handle->gl.mvpLocation = mvpLocation;
-	handle->gl.colorLocation = colorLocation;
+	pipelineHandle->gl.mvpLocation = mvpLocation;
+	pipelineHandle->gl.colorLocation = colorLocation;
 	return pipeline;
 }
 
 Pipeline createExtSpritePipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	const PipelineState* state)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
 	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
-	assert(vertexShader->vk.window == window);
-	assert(fragmentShader->vk.window == window);
+	assert(vertexShader->vk.window == framebuffer->vk.window);
+	assert(fragmentShader->vk.window == framebuffer->vk.window);
 
-	PipelineHandle* handle = malloc(
+	PipelineHandle* pipelineHandle = malloc(
 		sizeof(PipelineHandle));
 
-	if (handle == NULL)
+	if (pipelineHandle == NULL)
 		return NULL;
 
 	Shader shaders[2] = {
@@ -271,6 +269,7 @@ Pipeline createExtSpritePipeline(
 		fragmentShader,
 	};
 
+	Window window = framebuffer->vk.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Pipeline pipeline;
@@ -279,11 +278,11 @@ Pipeline createExtSpritePipeline(
 	{
 #if MPGX_SUPPORT_VULKAN
 		pipeline = createVkHandle(
-			window,
+			framebuffer,
 			shaders,
 			2,
 			state,
-			handle);
+			pipelineHandle);
 #else
 		abort();
 #endif
@@ -292,11 +291,11 @@ Pipeline createExtSpritePipeline(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		pipeline = createGlHandle(
-			window,
+			framebuffer,
 			shaders,
 			2,
 			state,
-			handle);
+			pipelineHandle);
 	}
 	else
 	{
@@ -305,23 +304,24 @@ Pipeline createExtSpritePipeline(
 
 	if (pipeline == NULL)
 	{
-		free(handle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
-	handle->vk.mvp = identMat4F();
-	handle->vk.color = oneVec4F();
+	pipelineHandle->vk.window = window;
+	pipelineHandle->vk.mvp = identMat4F();
+	pipelineHandle->vk.color = oneVec4F();
 	return pipeline;
 }
 Pipeline createSpritePipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 
 	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
+		framebuffer->vk.size;
 	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
@@ -353,7 +353,7 @@ Pipeline createSpritePipeline(
 	};
 
 	return createExtSpritePipeline(
-		window,
+		framebuffer,
 		vertexShader,
 		fragmentShader,
 		&state);

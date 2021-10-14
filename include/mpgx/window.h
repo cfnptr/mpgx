@@ -37,6 +37,8 @@
 
 // TODO: add framebuffer, renderer, transformer enumerators
 
+// TODO: possibly switch to the ktx texture format
+
 static const Vec2U defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
 	DEFAULT_WINDOW_HEIGHT,

@@ -478,15 +478,13 @@ Window createWindow(
 #if MPGX_SUPPORT_VULKAN
 			destroyVkFramebuffer(vkWindow->device, framebuffer);
 			destroyVkWindow(vkInstance, vkWindow);
-#else
-			abort();
 #endif
 		}
 		else
 		{
 			destroyGlFramebuffer(framebuffer);
 		}
-		
+
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -500,12 +498,17 @@ Window createWindow(
 		free(buffers);
 
 		if (api == VULKAN_GRAPHICS_API)
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-		else
-			destroyGlFramebuffer(framebuffer);
+		{
 #if MPGX_SUPPORT_VULKAN
-		destroyVkWindow(vkInstance, vkWindow);
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+			destroyVkWindow(vkInstance, vkWindow);
 #endif
+		}
+		else
+		{
+			destroyGlFramebuffer(framebuffer);
+		}
+
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -520,12 +523,17 @@ Window createWindow(
 		free(buffers);
 
 		if (api == VULKAN_GRAPHICS_API)
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-		else
-			destroyGlFramebuffer(framebuffer);
+		{
 #if MPGX_SUPPORT_VULKAN
-		destroyVkWindow(vkInstance, vkWindow);
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+			destroyVkWindow(vkInstance, vkWindow);
 #endif
+		}
+		else
+		{
+			destroyGlFramebuffer(framebuffer);
+		}
+
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -541,12 +549,17 @@ Window createWindow(
 		free(buffers);
 
 		if (api == VULKAN_GRAPHICS_API)
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-		else
-			destroyGlFramebuffer(framebuffer);
+		{
 #if MPGX_SUPPORT_VULKAN
-		destroyVkWindow(vkInstance, vkWindow);
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+			destroyVkWindow(vkInstance, vkWindow);
 #endif
+		}
+		else
+		{
+			destroyGlFramebuffer(framebuffer);
+		}
+
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -563,12 +576,17 @@ Window createWindow(
 		free(buffers);
 
 		if (api == VULKAN_GRAPHICS_API)
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-		else
-			destroyGlFramebuffer(framebuffer);
+		{
 #if MPGX_SUPPORT_VULKAN
-		destroyVkWindow(vkInstance, vkWindow);
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+			destroyVkWindow(vkInstance, vkWindow);
 #endif
+		}
+		else
+		{
+			destroyGlFramebuffer(framebuffer);
+		}
+
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;
@@ -587,12 +605,17 @@ Window createWindow(
 		free(buffers);
 
 		if (api == VULKAN_GRAPHICS_API)
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-		else
-			destroyGlFramebuffer(framebuffer);
+		{
 #if MPGX_SUPPORT_VULKAN
-		destroyVkWindow(vkInstance, vkWindow);
+			destroyVkFramebuffer(vkWindow->device, framebuffer);
+			destroyVkWindow(vkInstance, vkWindow);
 #endif
+		}
+		else
+		{
+			destroyGlFramebuffer(framebuffer);
+		}
+
 		glfwDestroyWindow(handle);
 		free(window);
 		return NULL;

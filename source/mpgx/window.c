@@ -14,10 +14,11 @@
 
 #include "mpgx/window.h"
 #include "mpgx/file.h"
-
 #include "mpgx/_source/mesh.h"
 #include "mpgx/_source/sampler.h"
 #include "mpgx/_source/framebuffer.h"
+
+#include "cmmt/common.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H

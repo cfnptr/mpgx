@@ -470,6 +470,8 @@ inline static void endVkFramebufferRender(
 	vkCmdEndRenderPass(commandBuffer);
 }
 inline static void clearVkFramebuffer(
+	VkCommandBuffer commandBuffer,
+	Vec2U framebufferSize,
 	bool clearColorBuffer,
 	bool clearDepthBuffer,
 	bool clearStencilBuffer,
@@ -477,7 +479,68 @@ inline static void clearVkFramebuffer(
 	float clearDepth,
 	uint32_t clearStencil)
 {
-	// TODO:
+	VkClearAttachment clearAttachments[3];
+	size_t attachmentCount = 0;
+
+	if (clearColorBuffer == true)
+	{
+		VkClearValue clearValue;
+		clearValue.color.float32[0] = clearColor.x;
+		clearValue.color.float32[1] = clearColor.y;
+		clearValue.color.float32[2] = clearColor.z;
+		clearValue.color.float32[3] = clearColor.w;
+
+		VkClearAttachment clearAttachment = {
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0,
+			clearValue,
+		};
+
+		clearAttachments[attachmentCount++] = clearAttachment;
+	}
+	if (clearDepthBuffer == true)
+	{
+		VkClearValue clearValue;
+		clearValue.depthStencil.depth = clearDepth;
+
+		VkClearAttachment clearAttachment = {
+			VK_IMAGE_ASPECT_DEPTH_BIT,
+			0,
+			clearValue,
+		};
+
+		clearAttachments[attachmentCount++] = clearAttachment;
+	}
+	if (clearStencilBuffer == true)
+	{
+		VkClearValue clearValue;
+		clearValue.depthStencil.stencil = clearStencil;
+
+		VkClearAttachment clearAttachment = {
+			VK_IMAGE_ASPECT_STENCIL_BIT,
+			0,
+			clearValue,
+		};
+
+		clearAttachments[attachmentCount++] = clearAttachment;
+	}
+
+	VkClearRect clearRect = {
+		{
+			0, 0,
+			framebufferSize.x,
+			framebufferSize.y,
+		},
+		0,
+		1,
+	};
+
+	vkCmdClearAttachments(
+		commandBuffer,
+		attachmentCount,
+		clearAttachments,
+		1,
+		&clearRect);
 }
 #endif
 
@@ -663,7 +726,7 @@ inline static Framebuffer createGlFramebuffer(
 	}
 
 	Pipeline* pipelines = malloc(
-		sizeof(Pipeline) * pipelineCapacity);
+		pipelineCapacity * sizeof(Pipeline));
 
 	if (pipelines == NULL)
 	{
@@ -681,7 +744,7 @@ inline static Framebuffer createGlFramebuffer(
 	framebuffer->gl.attachmentCount = attachmentCount;
 	framebuffer->gl.isDefault = false;
 	framebuffer->gl.pipelines = pipelines;
-	framebuffer->gl.pipelineCapacity = 0;
+	framebuffer->gl.pipelineCapacity = pipelineCapacity;
 	framebuffer->gl.pipelineCount = 0;
 	framebuffer->gl.handle = handle;
 	return framebuffer;
@@ -726,11 +789,39 @@ inline static void destroyGlFramebuffer(
 	free(framebuffer);
 }
 inline static void beginGlFramebufferRender(
-	GLuint framebuffer)
+	GLuint framebuffer,
+	bool useStencilBuffer,
+	Vec4F clearColor,
+	float clearDepth,
+	uint32_t clearStencil)
 {
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,
 		framebuffer);
+	glClearColor(
+		clearColor.x,
+		clearColor.y,
+		clearColor.z,
+		clearColor.w);
+	glColorMask(
+		GL_TRUE, GL_TRUE,
+		GL_TRUE, GL_TRUE);
+
+	glClearDepth(clearDepth);
+	glDepthMask(GL_TRUE);
+
+	GLbitfield clearMask =
+		GL_COLOR_BUFFER_BIT |
+		GL_DEPTH_BUFFER_BIT;
+
+	if (useStencilBuffer == true)
+	{
+		glClearStencil((GLint)clearStencil);
+		glStencilMask(UINT32_MAX);
+		clearMask |= GL_STENCIL_BUFFER_BIT;
+	}
+
+	glClear(clearMask);
 	assertOpenGL();
 }
 inline static void endGlFramebufferRender()

@@ -602,6 +602,46 @@ inline static VkDevice createVkDevice(
 	uint32_t preferredExtensionCount,
 	bool* supportedExtensions)
 {
+	float priority = 1.0f;
+
+	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = {
+		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+		NULL,
+		0,
+		graphicsQueueFamilyIndex,
+		1,
+		&priority,
+	};
+	VkDeviceQueueCreateInfo presentQueueCreateInfo = {
+		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+		NULL,
+		0,
+		presentQueueFamilyIndex,
+		1,
+		&priority,
+	};
+	const VkDeviceQueueCreateInfo oneCreateInfos[1] = {
+		graphicsQueueCreateInfo,
+	};
+	const VkDeviceQueueCreateInfo twoCreateInfos[2] = {
+		graphicsQueueCreateInfo,
+		presentQueueCreateInfo,
+	};
+
+	const VkDeviceQueueCreateInfo* queueCreateInfos;
+	uint32_t queueCreateInfoCount;
+
+	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
+	{
+		queueCreateInfos = oneCreateInfos;
+		queueCreateInfoCount = 1;
+	}
+	else
+	{
+		queueCreateInfos = twoCreateInfos;
+		queueCreateInfoCount = 2;
+	}
+
 	uint32_t propertyCount;
 
 	VkResult result = vkEnumerateDeviceExtensionProperties(
@@ -687,47 +727,8 @@ inline static VkDevice createVkDevice(
 
 	free(properties);
 
-	float priority = 1.0f;
-
-	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = {
-		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-		NULL,
-		0,
-		graphicsQueueFamilyIndex,
-		1,
-		&priority,
-	};
-	VkDeviceQueueCreateInfo presentQueueCreateInfo = {
-		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-		NULL,
-		0,
-		presentQueueFamilyIndex,
-		1,
-		&priority,
-	};
-	const VkDeviceQueueCreateInfo oneCreateInfos[1] = {
-		graphicsQueueCreateInfo,
-	};
-	const VkDeviceQueueCreateInfo twoCreateInfos[2] = {
-		graphicsQueueCreateInfo,
-		presentQueueCreateInfo,
-	};
-
-	const VkDeviceQueueCreateInfo* queueCreateInfos;
-	uint32_t queueCreateInfoCount;
-
-	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-	{
-		queueCreateInfos = oneCreateInfos;
-		queueCreateInfoCount = 1;
-	}
-	else
-	{
-		queueCreateInfos = twoCreateInfos;
-		queueCreateInfoCount = 2;
-	}
-
-	// TODO: enabled device features
+	// TODO: vkGetPhysicalDeviceFeatures2()
+	// enable MacOS samplers comparison
 
 	VkDeviceCreateInfo deviceCreateInfo = {
 		VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,

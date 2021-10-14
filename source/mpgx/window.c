@@ -3090,7 +3090,11 @@ void beginFramebufferRender(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		beginGlFramebufferRender(
-			framebuffer->gl.handle);
+			framebuffer->gl.handle,
+			window->useStencilBuffer,
+			clearColor,
+			clearDepth,
+			clearStencil);
 	}
 	else
 	{
@@ -3163,13 +3167,15 @@ void clearFramebuffer(
 		clearDepth <= 1.0f);
 	assert(framebuffer->base.window->isRecording == true);
 
-	// TODO:
-	GraphicsAPI api = framebuffer->base.window->api;
+	Window window = framebuffer->base.window;
+	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		clearVkFramebuffer(
+			window->vkWindow->currenCommandBuffer,
+			framebuffer->vk.size,
 			clearColorBuffer,
 			clearDepthBuffer,
 			clearStencilBuffer,

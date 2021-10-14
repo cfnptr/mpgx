@@ -21,6 +21,7 @@
 
 typedef struct VkPipelineHandle
 {
+	Window window;
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
@@ -37,6 +38,7 @@ typedef struct VkPipelineHandle
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
+	Window window;
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
@@ -261,7 +263,7 @@ static void onVkHandleDestroy(void* handle)
 static void onVkUniformsSet(Pipeline pipeline)
 {
 	PipelineHandle* pipelineHandle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 	VkPipelineLayout layout = pipeline->vk.layout;
 
@@ -297,7 +299,7 @@ static void onVkUniformsSet(Pipeline pipeline)
 static void onVkHandleBind(Pipeline pipeline)
 {
 	PipelineHandle* pipelineHandle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	uint32_t bufferIndex = vkWindow->bufferIndex;
 
 	vkCmdBindDescriptorSets(
@@ -310,32 +312,25 @@ static void onVkHandleBind(Pipeline pipeline)
 		0,
 		NULL);
 }
-static void onVkHandleResize(
+static bool onVkHandleResize(
 	Pipeline pipeline,
+	Vec2U newSize,
 	void* createInfo)
 {
-	Window window = pipeline->vk.window;
-	VkWindow vkWindow = getVkWindow(window);
-	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
 	if (bufferCount != pipelineHandle->vk.bufferCount)
 	{
 		VkDevice device = vkWindow->device;
-
-		free(pipelineHandle->vk.descriptorSets);
-
-		vkDestroyDescriptorPool(
-			device,
-			pipelineHandle->vk.descriptorPool,
-			NULL);
 
 		VkDescriptorPool descriptorPool = createVkDescriptorPool(
 			device,
 			bufferCount);
 
 		if (descriptorPool == NULL)
-			abort();
+			return false;
 
 		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
 			device,
@@ -346,18 +341,29 @@ static void onVkHandleResize(
 			pipelineHandle->vk.imageView);
 
 		if (descriptorSets == NULL)
-			abort();
+		{
+			vkDestroyDescriptorPool(
+				device,
+				descriptorPool,
+				NULL);
+			return false;
+		}
+
+		free(pipelineHandle->vk.descriptorSets);
+
+		vkDestroyDescriptorPool(
+			device,
+			pipelineHandle->vk.descriptorPool,
+			NULL);
 
 		pipelineHandle->vk.descriptorPool = descriptorPool;
 		pipelineHandle->vk.descriptorSets = descriptorSets;
 		pipelineHandle->vk.bufferCount = bufferCount;
 	}
 
-	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
 	Vec4I size = vec4I(0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+		(int32_t)newSize.x,
+		(int32_t)newSize.y);
 	pipeline->vk.state.viewport = size;
 	pipeline->vk.state.scissor = size;
 
@@ -373,18 +379,18 @@ static void onVkHandleResize(
 	};
 
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
+	return true;
 }
 inline static Pipeline createVkHandle(
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	VkSampler sampler,
-	VkImage image,
-	VkFormat format,
+	Image image,
 	const PipelineState* state,
 	PipelineHandle* pipelineHandle)
 {
-	VkWindow vkWindow = getVkWindow(window);
+	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
 
 	VkDescriptorSetLayout descriptorSetLayout =
@@ -405,7 +411,7 @@ inline static Pipeline createVkHandle(
 	};
 
 	Pipeline pipeline = createPipeline(
-		window,
+		framebuffer,
 		TEX_COL_PIPELINE_NAME,
 		shaders,
 		shaderCount,
@@ -446,8 +452,9 @@ inline static Pipeline createVkHandle(
 
 	VkImageView imageView = createVkImageView(
 		device,
-		image,
-		format);
+		image->vk.handle,
+		image->vk.vkFormat,
+		image->vk.vkAspect);
 
 	if (imageView == NULL)
 	{
@@ -567,27 +574,27 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
-static void onGlHandleResize(
+static bool onGlHandleResize(
 	Pipeline pipeline,
+	Vec2U newSize,
 	void* createInfo)
 {
-	Vec2U framebufferSize = getWindowFramebufferSize(
-		pipeline->gl.window);
 	Vec4I size = vec4I(0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+		(int32_t)newSize.x,
+		(int32_t)newSize.y);
 	pipeline->gl.state.viewport = size;
 	pipeline->gl.state.scissor = size;
+	return true;
 }
 inline static Pipeline createGlHandle(
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
 	PipelineHandle* pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
-		window,
+		framebuffer,
 		TEX_COL_PIPELINE_NAME,
 		shaders,
 		shaderCount,
@@ -648,24 +655,24 @@ inline static Pipeline createGlHandle(
 }
 
 Pipeline createExtTexColPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
 	const PipelineState* state)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
 	assert(texture != NULL);
 	assert(sampler != NULL);
-	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
-	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
-	assert(vertexShader->vk.window == window);
-	assert(fragmentShader->vk.window == window);
-	assert(texture->vk.window == window);
-	assert(sampler->vk.window == window);
+	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
+	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
+	assert(vertexShader->base.window == framebuffer->base.window);
+	assert(fragmentShader->base.window == framebuffer->base.window);
+	assert(texture->base.window == framebuffer->base.window);
+	assert(sampler->base.window == framebuffer->base.window);
 
 	PipelineHandle* pipelineHandle = malloc(
 		sizeof(PipelineHandle));
@@ -678,6 +685,7 @@ Pipeline createExtTexColPipeline(
 		fragmentShader,
 	};
 
+	Window window = framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Pipeline pipeline;
@@ -686,12 +694,11 @@ Pipeline createExtTexColPipeline(
 	{
 #if MPGX_SUPPORT_VULKAN
 		pipeline = createVkHandle(
-			window,
+			framebuffer,
 			shaders,
 			2,
 			sampler->vk.handle,
-			texture->vk.handle,
-			texture->vk.vkFormat,
+			texture,
 			state,
 			pipelineHandle);
 #else
@@ -702,7 +709,7 @@ Pipeline createExtTexColPipeline(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		pipeline = createGlHandle(
-			window,
+			framebuffer,
 			shaders,
 			2,
 			state,
@@ -719,6 +726,7 @@ Pipeline createExtTexColPipeline(
 		return NULL;
 	}
 
+	pipelineHandle->vk.window = window;
 	pipelineHandle->vk.texture = texture;
 	pipelineHandle->vk.sampler = sampler;
 	pipelineHandle->vk.mvp = identMat4F();
@@ -728,16 +736,16 @@ Pipeline createExtTexColPipeline(
 	return pipeline;
 }
 Pipeline createTexColPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 
 	Vec2U framebufferSize =
-		framebuffer->vk.size;
+		framebuffer->base.size;
 	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
@@ -769,7 +777,7 @@ Pipeline createTexColPipeline(
 	};
 
 	return createExtTexColPipeline(
-		window,
+		framebuffer,
 		vertexShader,
 		fragmentShader,
 		texture,

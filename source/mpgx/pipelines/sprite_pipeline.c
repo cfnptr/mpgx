@@ -253,10 +253,10 @@ Pipeline createExtSpritePipeline(
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
-	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
-	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
-	assert(vertexShader->vk.window == framebuffer->vk.window);
-	assert(fragmentShader->vk.window == framebuffer->vk.window);
+	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
+	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
+	assert(vertexShader->base.window == framebuffer->base.window);
+	assert(fragmentShader->base.window == framebuffer->base.window);
 
 	PipelineHandle* pipelineHandle = malloc(
 		sizeof(PipelineHandle));
@@ -269,7 +269,7 @@ Pipeline createExtSpritePipeline(
 		fragmentShader,
 	};
 
-	Window window = framebuffer->vk.window;
+	Window window = framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Pipeline pipeline;
@@ -321,7 +321,7 @@ Pipeline createSpritePipeline(
 	assert(framebuffer != NULL);
 
 	Vec2U framebufferSize =
-		framebuffer->vk.size;
+		framebuffer->base.size;
 	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);

@@ -17,6 +17,12 @@
 
 #include <string.h>
 
+typedef struct BasePipelineHandle
+{
+	Window window;
+	Mat4F mvp;
+	Vec4F color;
+} BasePipelineHandle;
 typedef struct VkPipelineHandle
 {
 	Window window;
@@ -33,6 +39,7 @@ typedef struct GlPipelineHandle
 } GlPipelineHandle;
 typedef union PipelineHandle
 {
+	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
 } PipelineHandle;
@@ -254,10 +261,10 @@ Pipeline createExtColorPipeline(
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
-	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
-	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
-	assert(vertexShader->vk.window == framebuffer->vk.window);
-	assert(fragmentShader->vk.window == framebuffer->vk.window);
+	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
+	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
+	assert(vertexShader->base.window == framebuffer->base.window);
+	assert(fragmentShader->base.window == framebuffer->base.window);
 
 	PipelineHandle* pipelineHandle = malloc(
 		sizeof(PipelineHandle));
@@ -270,7 +277,7 @@ Pipeline createExtColorPipeline(
 		fragmentShader,
 	};
 
-	Window window = framebuffer->vk.window;
+	Window window = framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Pipeline pipeline;
@@ -309,9 +316,9 @@ Pipeline createExtColorPipeline(
 		return NULL;
 	}
 
-	pipelineHandle->vk.window = window;
-	pipelineHandle->vk.mvp = identMat4F();
-	pipelineHandle->vk.color = oneVec4F();
+	pipelineHandle->base.window = window;
+	pipelineHandle->base.mvp = identMat4F();
+	pipelineHandle->base.color = oneVec4F();
 	return pipeline;
 }
 Pipeline createColorPipeline(
@@ -322,7 +329,7 @@ Pipeline createColorPipeline(
 	assert(framebuffer != NULL);
 
 	Vec2U framebufferSize =
-		framebuffer->vk.size;
+		framebuffer->base.size;
 	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
@@ -392,8 +399,8 @@ Vec4F getColorPipelineColor(
 		getPipelineName(pipeline),
 		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.color;
+		pipeline->base.handle;
+	return pipelineHandle->base.color;
 }
 void setColorPipelineColor(
 	Pipeline pipeline,
@@ -408,6 +415,6 @@ void setColorPipelineColor(
 		getPipelineName(pipeline),
 		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.color = color;
+		pipeline->base.handle;
+	pipelineHandle->base.color = color;
 }

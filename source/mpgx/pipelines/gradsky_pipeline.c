@@ -411,8 +411,7 @@ static bool onVkHandleResize(
 	void* createInfo)
 {
 	PipelineHandle* pipelineHandle = pipeline->vk.handle;
-	Window window = pipelineHandle->vk.window;
-	VkWindow vkWindow = getVkWindow(window);
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
 	if (bufferCount != pipelineHandle->vk.bufferCount)
@@ -480,8 +479,7 @@ inline static Pipeline createVkHandle(
 	Shader* shaders,
 	uint8_t shaderCount,
 	VkSampler sampler,
-	VkImage image,
-	VkFormat format,
+	Image image,
 	const PipelineState* state,
 	PipelineHandle* pipelineHandle)
 {
@@ -548,9 +546,9 @@ inline static Pipeline createVkHandle(
 
 	VkImageView imageView = createVkImageView(
 		device,
-		image,
-		format,
-		VK_IMAGE_ASPECT_COLOR_BIT);
+		image->vk.handle,
+		image->vk.vkFormat,
+		image->vk.vkAspect);
 
 	if (imageView == NULL)
 	{
@@ -746,12 +744,12 @@ Pipeline createExtGradSkyPipeline(
 	assert(fragmentShader != NULL);
 	assert(texture != NULL);
 	assert(sampler != NULL);
-	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
-	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
-	assert(vertexShader->vk.window == framebuffer->vk.window);
-	assert(fragmentShader->vk.window == framebuffer->vk.window);
-	assert(texture->vk.window == framebuffer->vk.window);
-	assert(sampler->vk.window == framebuffer->vk.window);
+	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
+	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
+	assert(vertexShader->base.window == framebuffer->base.window);
+	assert(fragmentShader->base.window == framebuffer->base.window);
+	assert(texture->base.window == framebuffer->base.window);
+	assert(sampler->base.window == framebuffer->base.window);
 
 	PipelineHandle* pipelineHandle = malloc(
 		sizeof(PipelineHandle));
@@ -765,7 +763,7 @@ Pipeline createExtGradSkyPipeline(
 	};
 
 	GraphicsAPI api = getWindowGraphicsAPI(
-		framebuffer->vk.window);
+		framebuffer->base.window);
 
 	Pipeline pipeline;
 
@@ -777,8 +775,7 @@ Pipeline createExtGradSkyPipeline(
 			shaders,
 			2,
 			sampler->vk.handle,
-			texture->vk.handle,
-			texture->vk.vkFormat,
+			texture,
 			state,
 			pipelineHandle);
 #else
@@ -824,7 +821,7 @@ Pipeline createGradSkyPipeline(
 	assert(framebuffer != NULL);
 
 	Vec2U framebufferSize =
-		framebuffer->vk.size;
+		framebuffer->base.size;
 	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);

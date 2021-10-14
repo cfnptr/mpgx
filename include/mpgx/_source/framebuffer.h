@@ -19,9 +19,14 @@
 
 typedef struct _BaseFramebuffer
 {
-	// TODO: base
-	// also rename all .vk to .base
-	// recheck buffer, mesh, etc. after all errors check
+	Window window;
+	Vec2U size;
+	Image* attachments;
+	uint8_t attachmentCount;
+	bool isDefault;
+	Pipeline* pipelines;
+	size_t pipelineCapacity;
+	size_t pipelineCount;
 } _BaseFramebuffer;
 typedef struct _VkFramebuffer
 {
@@ -53,6 +58,7 @@ typedef struct _GlFramebuffer
 } _GlFramebuffer;
 union Framebuffer
 {
+	_BaseFramebuffer base;
 	_VkFramebuffer vk;
 	_GlFramebuffer gl;
 };

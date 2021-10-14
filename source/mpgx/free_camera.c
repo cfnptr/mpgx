@@ -24,7 +24,7 @@
 
 struct FreeCamera
 {
-	Window window;
+	Framebuffer framebuffer;
 	Transform transform;
 	Vec2F rotation;
 	Vec2F lastCursorPosition;
@@ -36,7 +36,7 @@ struct FreeCamera
 };
 
 FreeCamera createFreeCamera(
-	Window window,
+	Framebuffer framebuffer,
 	Transformer transformer,
 	float moveSpeed,
 	float viewSpeed,
@@ -44,7 +44,7 @@ FreeCamera createFreeCamera(
 	float nearClipPlane,
 	float farClipPlane)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 	assert(transformer != NULL);
 
 	FreeCamera freeCamera = malloc(
@@ -68,11 +68,13 @@ FreeCamera createFreeCamera(
 		return NULL;
 	}
 
-	freeCamera->window = window;
+	Vec2F lasCursorPosition = getWindowCursorPosition(
+		getFramebufferWindow(framebuffer));
+
+	freeCamera->framebuffer = framebuffer;
 	freeCamera->transform = transform;
 	freeCamera->rotation = zeroVec2F();
-	freeCamera->lastCursorPosition =
-		getWindowCursorPosition(window);
+	freeCamera->lastCursorPosition = lasCursorPosition;
 	freeCamera->moveSpeed = moveSpeed;
 	freeCamera->viewSpeed = viewSpeed;
 	freeCamera->fieldOfView = fieldOfView;
@@ -89,10 +91,11 @@ void destroyFreeCamera(FreeCamera freeCamera)
 	free(freeCamera);
 }
 
-Window getFreeCameraWindow(FreeCamera freeCamera)
+Framebuffer getFreeCameraWindow(
+	FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
-	return freeCamera->window;
+	return freeCamera->framebuffer;
 }
 
 Transform getFreeCameraTransform(
@@ -222,7 +225,9 @@ void setFreeCameraFarClipPlane(
 void updateFreeCamera(FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
-	Window window = freeCamera->window;
+
+	Window window = getFramebufferWindow(
+		freeCamera->framebuffer);
 
 	if (isWindowFocused(window) == false)
 		return;
@@ -304,8 +309,8 @@ Camera getFreeCamera(FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 
-	Vec2U framebufferSize = getWindowFramebufferSize(
-		freeCamera->window);
+	Vec2U framebufferSize = getFramebufferSize(
+		freeCamera->framebuffer);
 
 	return perspCamera(
 		freeCamera->fieldOfView,

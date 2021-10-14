@@ -35,6 +35,8 @@
 // TODO: use glPolygonOffset to improve shadow mapping
 // https://docs.microsoft.com/en-gb/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps?redirectedfrom=MSDN
 
+// TODO: add framebuffer, renderer, transformer enumerators
+
 static const Vec2U defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
 	DEFAULT_WINDOW_HEIGHT,
@@ -651,10 +653,11 @@ void beginFramebufferRender(
 	Vec4F clearColor,
 	float clearDepth,
 	uint32_t clearStencil);
-void endFramebufferRender(Window window);
+void endFramebufferRender(
+	Framebuffer framebuffer);
 
 void clearFramebuffer(
-	Window window,
+	Framebuffer framebuffer,
 	bool clearColorBuffer,
 	bool clearDepthBuffer,
 	bool clearStencilBuffer,

@@ -20,6 +20,14 @@
 // VkGetPhysicalDeviceImageFormatProperties
 // https://stackoverflow.com/questions/38396578/vulkan-vkcreateimage-with-3-components
 
+typedef struct _BaseImage
+{
+	Window window;
+	ImageType type;
+	ImageFormat format;
+	Vec3U size;
+	bool isConstant;
+} _BaseImage;
 typedef struct _VkImage
 {
 	Window window;
@@ -52,6 +60,7 @@ typedef struct _GlImage
 } _GlImage;
 union Image
 {
+	_BaseImage base;
 	_VkImage vk;
 	_GlImage gl;
 };

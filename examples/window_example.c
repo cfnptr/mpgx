@@ -77,15 +77,18 @@ static void onWindowUpdate(void* handle)
 		renderData,
 		true);
 
-	beginWindowRender(
-		window,
+	Framebuffer framebuffer =
+		getWindowFramebuffer(window);
+
+	beginFramebufferRender(
+		framebuffer,
 		valVec4F(0.25f),
 		1.0f,
 		0);
 	drawRenderer(
 		client->diffuseRenderer,
 		renderData);
-	endWindowRender(window);
+	endFramebufferRender(framebuffer);
 
 	endWindowRecord(window);
 }
@@ -135,7 +138,7 @@ inline static Renderer createDiffuseRendererInstance(
 	}
 
 	Pipeline pipeline = createDiffusePipeline(
-		window,
+		getWindowFramebuffer(window),
 		vertexShader,
 		fragmentShader);
 
@@ -307,7 +310,7 @@ inline static Client* createClient()
 	}
 
 	FreeCamera freeCamera = createFreeCamera(
-		window,
+		getWindowFramebuffer(window),
 		transformer,
 		1.0f,
 		1.0f,

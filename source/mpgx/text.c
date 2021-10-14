@@ -64,6 +64,7 @@ typedef struct Glyph
 
 typedef struct VkPipelineHandle
 {
+	Window window;
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
@@ -75,6 +76,7 @@ typedef struct VkPipelineHandle
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
+	Window window;
 	Image texture;
 	Sampler sampler;
 	Mat4F mvp;
@@ -587,46 +589,6 @@ inline static bool createTextIndices(
 }
 
 #if MPGX_SUPPORT_VULKAN
-inline static VkImageView createVkImageView(
-	VkDevice device,
-	VkImage image,
-	VkFormat format)
-{
-	VkImageViewCreateInfo imageViewCreateInfo = {
-		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-		NULL,
-		0,
-		image,
-		VK_IMAGE_VIEW_TYPE_2D,
-		format,
-		{
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-		},
-		{
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			0,
-			1,
-			0,
-			1,
-		},
-	};
-
-	VkImageView imageView;
-
-	VkResult result = vkCreateImageView(
-		device,
-		&imageViewCreateInfo,
-		NULL,
-		&imageView);
-
-	if(result != VK_SUCCESS)
-		return NULL;
-
-	return imageView;
-}
 inline static VkDescriptorPool createVkDescriptorPool(
 	VkDevice device,
 	uint32_t bufferCount)
@@ -769,7 +731,8 @@ Text createText(
 		_data,
 		dataLength);
 
-	Window window = pipeline->vk.window;
+	Window window = pipeline->base.framebuffer->base.window;
+	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	if (uniCharCount == 0)
 	{
@@ -855,71 +818,81 @@ Text createText(
 		}
 
 #if MPGX_SUPPORT_VULKAN
-		VkWindow vkWindow = getVkWindow(window);
-		VkDevice device = vkWindow->device;
-
-		VkImageView imageView = createVkImageView(
-			device,
-			texture->vk.handle,
-			VK_FORMAT_R8G8B8A8_UNORM);
-
-		if (imageView == NULL)
+		if (api == VULKAN_GRAPHICS_API)
 		{
-			destroyMesh(mesh, true);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
+			VkWindow vkWindow = getVkWindow(window);
+			VkDevice device = vkWindow->device;
 
-		PipelineHandle* pipelineHandle = pipeline->vk.handle;
-		uint8_t bufferCount = pipelineHandle->vk.bufferCount;
-
-		VkDescriptorPool descriptorPool = createVkDescriptorPool(
-			device,
-			bufferCount);
-
-		if (descriptorPool == NULL)
-		{
-			vkDestroyImageView(
+			VkImageView imageView = createVkImageView(
 				device,
-				imageView,
-				NULL);
-			destroyMesh(mesh, true);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
+				texture->vk.handle,
+				texture->vk.vkFormat,
+				texture->vk.vkAspect);
 
-		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
-			device,
-			pipelineHandle->vk.descriptorSetLayout,
-			descriptorPool,
-			bufferCount,
-			pipelineHandle->vk.sampler->vk.handle,
-			imageView);
+			if (imageView == NULL)
+			{
+				destroyMesh(mesh, true);
+				destroyImage(texture);
+				free(data);
+				free(text);
+				return NULL;
+			}
 
-		if (descriptorSets == NULL)
-		{
-			vkDestroyDescriptorPool(
+			PipelineHandle* pipelineHandle = pipeline->vk.handle;
+			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
+
+			VkDescriptorPool descriptorPool = createVkDescriptorPool(
 				device,
+				bufferCount);
+
+			if (descriptorPool == NULL)
+			{
+				vkDestroyImageView(
+					device,
+					imageView,
+					NULL);
+				destroyMesh(mesh, true);
+				destroyImage(texture);
+				free(data);
+				free(text);
+				return NULL;
+			}
+
+			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+				device,
+				pipelineHandle->vk.descriptorSetLayout,
 				descriptorPool,
-				NULL);
-			vkDestroyImageView(
-				device,
-				imageView,
-				NULL);
-			destroyMesh(mesh, true);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
+				bufferCount,
+				pipelineHandle->vk.sampler->vk.handle,
+				imageView);
 
-		text->imageView = imageView;
-		text->descriptorPool = descriptorPool;
-		text->descriptorSets = descriptorSets;
+			if (descriptorSets == NULL)
+			{
+				vkDestroyDescriptorPool(
+					device,
+					descriptorPool,
+					NULL);
+				vkDestroyImageView(
+					device,
+					imageView,
+					NULL);
+				destroyMesh(mesh, true);
+				destroyImage(texture);
+				free(data);
+				free(text);
+				return NULL;
+			}
+
+			text->imageView = imageView;
+			text->descriptorPool = descriptorPool;
+			text->descriptorSets = descriptorSets;
+		}
+		else
+		{
+			text->imageView = NULL;
+			text->descriptorPool = NULL;
+			text->descriptorSets = NULL;
+		}
 #endif
 
 		text->data = data;
@@ -1116,71 +1089,81 @@ Text createText(
 		}
 
 #if MPGX_SUPPORT_VULKAN
-		VkWindow vkWindow = getVkWindow(window);
-		VkDevice device = vkWindow->device;
-
-		VkImageView imageView = createVkImageView(
-			device,
-			texture->vk.handle,
-			VK_FORMAT_R8G8B8A8_UNORM);
-
-		if (imageView == NULL)
+		if (api == VULKAN_GRAPHICS_API)
 		{
-			destroyMesh(mesh, true);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
+			VkWindow vkWindow = getVkWindow(window);
+			VkDevice device = vkWindow->device;
 
-		PipelineHandle* pipelineHandle = pipeline->vk.handle;
-		uint8_t bufferCount = pipelineHandle->vk.bufferCount;
-
-		VkDescriptorPool descriptorPool = createVkDescriptorPool(
-			device,
-			bufferCount);
-
-		if (descriptorPool == NULL)
-		{
-			vkDestroyImageView(
+			VkImageView imageView = createVkImageView(
 				device,
-				imageView,
-				NULL);
-			destroyMesh(mesh, true);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
+				texture->vk.handle,
+				texture->vk.vkFormat,
+				texture->vk.vkAspect);
 
-		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
-			device,
-			pipelineHandle->vk.descriptorSetLayout,
-			descriptorPool,
-			bufferCount,
-			pipelineHandle->vk.sampler->vk.handle,
-			imageView);
+			if (imageView == NULL)
+			{
+				destroyMesh(mesh, true);
+				destroyImage(texture);
+				free(data);
+				free(text);
+				return NULL;
+			}
 
-		if (descriptorSets == NULL)
-		{
-			vkDestroyDescriptorPool(
+			PipelineHandle* pipelineHandle = pipeline->vk.handle;
+			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
+
+			VkDescriptorPool descriptorPool = createVkDescriptorPool(
 				device,
+				bufferCount);
+
+			if (descriptorPool == NULL)
+			{
+				vkDestroyImageView(
+					device,
+					imageView,
+					NULL);
+				destroyMesh(mesh, true);
+				destroyImage(texture);
+				free(data);
+				free(text);
+				return NULL;
+			}
+
+			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+				device,
+				pipelineHandle->vk.descriptorSetLayout,
 				descriptorPool,
-				NULL);
-			vkDestroyImageView(
-				device,
-				imageView,
-				NULL);
-			destroyMesh(mesh, true);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
+				bufferCount,
+				pipelineHandle->vk.sampler->vk.handle,
+				imageView);
 
-		text->imageView = imageView;
-		text->descriptorPool = descriptorPool;
-		text->descriptorSets = descriptorSets;
+			if (descriptorSets == NULL)
+			{
+				vkDestroyDescriptorPool(
+					device,
+					descriptorPool,
+					NULL);
+				vkDestroyImageView(
+					device,
+					imageView,
+					NULL);
+				destroyMesh(mesh, true);
+				destroyImage(texture);
+				free(data);
+				free(text);
+				return NULL;
+			}
+
+			text->imageView = imageView;
+			text->descriptorPool = descriptorPool;
+			text->descriptorSets = descriptorSets;
+		}
+		else
+		{
+			text->imageView = NULL;
+			text->descriptorPool = NULL;
+			text->descriptorSets = NULL;
+		}
 #endif
 
 		text->data = data;
@@ -1204,24 +1187,32 @@ void destroyText(Text text)
 
 #if MPGX_SUPPORT_VULKAN
 	Pipeline pipeline = text->pipeline;
-	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
-	VkDevice device = vkWindow->device;
 
-	VkResult vkResult = vkQueueWaitIdle(
-		vkWindow->graphicsQueue);
+	GraphicsAPI api = getWindowGraphicsAPI(
+		pipeline->base.framebuffer->base.window);
 
-	if (vkResult != VK_SUCCESS)
-		abort();
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		VkWindow vkWindow = getVkWindow(
+			pipeline->vk.framebuffer->vk.window);
+		VkDevice device = vkWindow->device;
 
-	free(text->descriptorSets);
-	vkDestroyDescriptorPool(
-		device,
-		text->descriptorPool,
-		NULL);
-	vkDestroyImageView(
-		device,
-		text->imageView,
-		NULL);
+		VkResult vkResult = vkQueueWaitIdle(
+			vkWindow->graphicsQueue);
+
+		if (vkResult != VK_SUCCESS)
+			abort();
+
+		free(text->descriptorSets);
+		vkDestroyDescriptorPool(
+			device,
+			text->descriptorPool,
+			NULL);
+		vkDestroyImageView(
+			device,
+			text->imageView,
+			NULL);
+	}
 #endif
 
 	destroyMesh(
@@ -1483,11 +1474,13 @@ bool bakeText(
 	assert(text != NULL);
 	assert(text->isConstant == false);
 
-	Window window = text->pipeline->vk.window;
-	const char* _data = text->data;
+	Pipeline pipeline = text->pipeline;
+	Window window = pipeline->base.framebuffer->base.window;
+	GraphicsAPI api = getWindowGraphicsAPI(window);
 
-	size_t dataLength =
-		strlen(_data);
+	const char* _data = text->data;
+	size_t dataLength = strlen(_data);
+
 	size_t uniCharCount = getTextUniCharCount(
 		_data,
 		dataLength);
@@ -1556,12 +1549,6 @@ bool bakeText(
 			Image texture;
 
 #if MPGX_SUPPORT_VULKAN
-			VkWindow vkWindow = getVkWindow(window);
-			VkDevice device = vkWindow->device;
-			PipelineHandle* pipelineHandle = text->pipeline->vk.handle;
-			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
-			VkDescriptorPool descriptorPool = text->descriptorPool;
-
 			VkImageView imageView;
 			VkDescriptorSet* descriptorSets;
 #endif
@@ -1589,37 +1576,45 @@ bool bakeText(
 				}
 
 #if MPGX_SUPPORT_VULKAN
-				imageView = createVkImageView(
-					device,
-					texture->vk.handle,
-					VK_FORMAT_R8G8B8A8_UNORM);
-
-				if (imageView == NULL)
+				if (api == VULKAN_GRAPHICS_API)
 				{
-					destroyImage(texture);
-					free(glyphs);
-					free(uniChars);
-					return false;
-				}
+					VkWindow vkWindow = getVkWindow(window);
+					VkDevice device = vkWindow->device;
+					PipelineHandle* pipelineHandle = pipeline->vk.handle;
 
-				descriptorSets = createVkDescriptorSets(
-					device,
-					pipelineHandle->vk.descriptorSetLayout,
-					descriptorPool,
-					bufferCount,
-					pipelineHandle->vk.sampler->vk.handle,
-					imageView);
-
-				if (descriptorSets == NULL)
-				{
-					vkDestroyImageView(
+					imageView = createVkImageView(
 						device,
-						imageView,
-						NULL);
-					destroyImage(texture);
-					free(glyphs);
-					free(uniChars);
-					return false;
+						texture->vk.handle,
+						texture->vk.vkFormat,
+						texture->vk.vkAspect);
+
+					if (imageView == NULL)
+					{
+						destroyImage(texture);
+						free(glyphs);
+						free(uniChars);
+						return false;
+					}
+
+					descriptorSets = createVkDescriptorSets(
+						device,
+						pipelineHandle->vk.descriptorSetLayout,
+						text->descriptorPool,
+						pipelineHandle->vk.bufferCount,
+						pipelineHandle->vk.sampler->vk.handle,
+						imageView);
+
+					if (descriptorSets == NULL)
+					{
+						vkDestroyImageView(
+							device,
+							imageView,
+							NULL);
+						destroyImage(texture);
+						free(glyphs);
+						free(uniChars);
+						return false;
+					}
 				}
 #endif
 			}
@@ -1722,20 +1717,27 @@ bool bakeText(
 			else
 			{
 #if MPGX_SUPPORT_VULKAN
-				vkFreeDescriptorSets(
-					device,
-					descriptorPool,
-					bufferCount,
-					text->descriptorSets);
-				free(text->descriptorSets);
+				if (api == VULKAN_GRAPHICS_API)
+				{
+					VkWindow vkWindow = getVkWindow(window);
+					VkDevice device = vkWindow->device;
+					PipelineHandle* pipelineHandle = pipeline->vk.handle;
 
-				vkDestroyImageView(
-					device,
-					text->imageView,
-					NULL);
+					vkFreeDescriptorSets(
+						device,
+						text->descriptorPool,
+						pipelineHandle->vk.bufferCount,
+						text->descriptorSets);
+					free(text->descriptorSets);
 
-				text->imageView = imageView;
-				text->descriptorSets = descriptorSets;
+					vkDestroyImageView(
+						device,
+						text->imageView,
+						NULL);
+
+					text->imageView = imageView;
+					text->descriptorSets = descriptorSets;
+				}
 #endif
 
 				destroyImage(text->texture);
@@ -1861,62 +1863,66 @@ bool bakeText(
 			}
 
 #if MPGX_SUPPORT_VULKAN
-			VkWindow vkWindow = getVkWindow(window);
-			VkDevice device = vkWindow->device;
-
-			VkImageView imageView = createVkImageView(
-				device,
-				texture->vk.handle,
-				VK_FORMAT_R8G8B8A8_UNORM);
-
-			if (imageView == NULL)
+			if (api == VULKAN_GRAPHICS_API)
 			{
-				destroyMesh(mesh, true);
-				destroyImage(texture);
-				free(data);
-				free(text);
-				return false;
-			}
+				VkWindow vkWindow = getVkWindow(window);
+				VkDevice device = vkWindow->device;
 
-			PipelineHandle* pipelineHandle = text->pipeline->vk.handle;
-			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
-			VkDescriptorPool descriptorPool = text->descriptorPool;
+				VkImageView imageView = createVkImageView(
+					device,
+					texture->vk.handle,
+					texture->vk.vkFormat,
+					texture->vk.vkAspect);
 
-			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
-				device,
-				pipelineHandle->vk.descriptorSetLayout,
-				descriptorPool,
-				bufferCount,
-				pipelineHandle->vk.sampler->vk.handle,
-				imageView);
+				if (imageView == NULL)
+				{
+					destroyMesh(mesh, true);
+					destroyImage(texture);
+					free(data);
+					free(text);
+					return false;
+				}
 
-			if (descriptorSets == NULL)
-			{
+				PipelineHandle* pipelineHandle = pipeline->vk.handle;
+				uint8_t bufferCount = pipelineHandle->vk.bufferCount;
+				VkDescriptorPool descriptorPool = text->descriptorPool;
+
+				VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+					device,
+					pipelineHandle->vk.descriptorSetLayout,
+					descriptorPool,
+					bufferCount,
+					pipelineHandle->vk.sampler->vk.handle,
+					imageView);
+
+				if (descriptorSets == NULL)
+				{
+					vkDestroyImageView(
+						device,
+						imageView,
+						NULL);
+					destroyMesh(mesh, true);
+					destroyImage(texture);
+					free(data);
+					free(text);
+					return false;
+				}
+
+				vkFreeDescriptorSets(
+					device,
+					descriptorPool,
+					bufferCount,
+					text->descriptorSets);
+				free(text->descriptorSets);
+
 				vkDestroyImageView(
 					device,
-					imageView,
+					text->imageView,
 					NULL);
-				destroyMesh(mesh, true);
-				destroyImage(texture);
-				free(data);
-				free(text);
-				return false;
+
+				text->imageView = imageView;
+				text->descriptorSets = descriptorSets;
 			}
-
-			vkFreeDescriptorSets(
-				device,
-				descriptorPool,
-				bufferCount,
-				text->descriptorSets);
-			free(text->descriptorSets);
-
-			vkDestroyImageView(
-				device,
-				text->imageView,
-				NULL);
-
-			text->imageView = imageView;
-			text->descriptorSets = descriptorSets;
 #endif
 
 			destroyMesh(
@@ -2109,63 +2115,67 @@ bool bakeText(
 			}
 
 #if MPGX_SUPPORT_VULKAN
-			VkWindow vkWindow = getVkWindow(window);
-			VkDevice device = vkWindow->device;
-
-			VkImageView imageView = createVkImageView(
-				device,
-				texture->vk.handle,
-				VK_FORMAT_R8G8B8A8_UNORM);
-
-			if (imageView == NULL)
+			if (api == VULKAN_GRAPHICS_API)
 			{
-				destroyMesh(mesh, true);
-				destroyImage(texture);
-				free(data);
-				free(text);
-				return false;
-			}
+				VkWindow vkWindow = getVkWindow(window);
+				VkDevice device = vkWindow->device;
 
-			PipelineHandle* pipelineHandle = text->pipeline->vk.handle;
-			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
-			VkDescriptorPool descriptorPool = text->descriptorPool;
+				VkImageView imageView = createVkImageView(
+					device,
+					texture->vk.handle,
+					texture->vk.vkFormat,
+					texture->vk.vkAspect);
 
-			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
-				device,
-				pipelineHandle->vk.descriptorSetLayout,
-				descriptorPool,
-				bufferCount,
-				pipelineHandle->vk.sampler->vk.handle,
-				imageView);
+				if (imageView == NULL)
+				{
+					destroyMesh(mesh, true);
+					destroyImage(texture);
+					free(data);
+					free(text);
+					return false;
+				}
 
-			if (descriptorSets == NULL)
-			{
+				PipelineHandle* pipelineHandle = pipeline->vk.handle;
+				uint8_t bufferCount = pipelineHandle->vk.bufferCount;
+				VkDescriptorPool descriptorPool = text->descriptorPool;
+
+				VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+					device,
+					pipelineHandle->vk.descriptorSetLayout,
+					descriptorPool,
+					bufferCount,
+					pipelineHandle->vk.sampler->vk.handle,
+					imageView);
+
+				if (descriptorSets == NULL)
+				{
+					vkDestroyImageView(
+						device,
+						imageView,
+						NULL);
+					destroyMesh(mesh, true);
+					destroyImage(texture);
+					free(data);
+					free(text);
+					return false;
+				}
+
+				vkFreeDescriptorSets(
+					device,
+					descriptorPool,
+					bufferCount,
+					text->descriptorSets);
+				free(text->descriptorSets);
+
 				vkDestroyImageView(
 					device,
-					imageView,
+					text->imageView,
 					NULL);
-				destroyMesh(mesh, true);
-				destroyImage(texture);
-				free(data);
-				free(text);
-				return false;
+
+				text->imageView = imageView;
+				text->descriptorPool = descriptorPool;
+				text->descriptorSets = descriptorSets;
 			}
-
-			vkFreeDescriptorSets(
-				device,
-				descriptorPool,
-				bufferCount,
-				text->descriptorSets);
-			free(text->descriptorSets);
-
-			vkDestroyImageView(
-				device,
-				text->imageView,
-				NULL);
-
-			text->imageView = imageView;
-			text->descriptorPool = descriptorPool;
-			text->descriptorSets = descriptorSets;
 #endif
 
 			destroyMesh(
@@ -2194,7 +2204,7 @@ size_t drawText(Text text)
 	textPipeline->vk.texture = text->texture;
 
 #if MPGX_SUPPORT_VULKAN
-	Window window = pipeline->vk.window;
+	Window window = pipeline->base.framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	if (api == VULKAN_GRAPHICS_API)
@@ -2319,12 +2329,10 @@ inline static VkDescriptorSetLayout createVkDescriptorSetLayout(
 	return descriptorSetLayout;
 }
 
-static void onVkHandleDestroy(
-	Window window,
-	void* handle)
+static void onVkHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
-	VkWindow vkWindow = getVkWindow(window);
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkDevice device = vkWindow->device;
 
 	vkDestroyDescriptorSetLayout(
@@ -2335,8 +2343,8 @@ static void onVkHandleDestroy(
 }
 static void onVkUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipeline->vk.window);
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 	VkPipelineLayout layout = pipeline->vk.layout;
 
@@ -2346,24 +2354,25 @@ static void onVkUniformsSet(Pipeline pipeline)
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(Mat4F),
-		&handle->vk.mvp);
+		&pipelineHandle->vk.mvp);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
 		sizeof(Mat4F),
 		sizeof(Vec4F),
-		&handle->vk.color);
+		&pipelineHandle->vk.color);
 }
-static void onVkHandleResize(
+static bool onVkHandleResize(
 	Pipeline pipeline,
+	Vec2U newSize,
 	void* createInfo)
 {
-	Window window = pipeline->vk.window;
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	Window window = pipelineHandle->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	VkSwapchain swapchain = vkWindow->swapchain;
 	uint32_t bufferCount = swapchain->bufferCount;
-	PipelineHandle* handle = pipeline->vk.handle;
 
 	// TODO: resize each text
 	/*if (bufferCount != handle->vk.bufferCount)
@@ -2400,36 +2409,34 @@ static void onVkHandleResize(
 		handle->vk.bufferCount = bufferCount;
 	}*/
 
-	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
 	Vec4I size = vec4I(0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+		(int32_t)newSize.x,
+		(int32_t)newSize.y);
 	pipeline->vk.state.viewport = size;
 	pipeline->vk.state.scissor = size;
 
 	VkPipelineCreateInfo _createInfo = {
-		swapchain->renderPass,
 		1,
 		vertexInputBindingDescriptions,
 		2,
 		vertexInputAttributeDescriptions,
 		1,
-		&handle->vk.descriptorSetLayout,
+		&pipelineHandle->vk.descriptorSetLayout,
 		2,
 		pushConstantRanges,
 	};
 
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
+	return true;
 }
 inline static Pipeline createVkHandle(
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* handle)
+	PipelineHandle* pipelineHandle)
 {
-	VkWindow vkWindow = getVkWindow(window);
+	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
 
 	VkDescriptorSetLayout descriptorSetLayout =
@@ -2439,7 +2446,6 @@ inline static Pipeline createVkHandle(
 		return NULL;
 
 	VkPipelineCreateInfo createInfo = {
-		vkWindow->swapchain->renderPass,
 		1,
 		vertexInputBindingDescriptions,
 		2,
@@ -2451,7 +2457,7 @@ inline static Pipeline createVkHandle(
 	};
 
 	Pipeline pipeline = createPipeline(
-		window,
+		framebuffer,
 		TEXT_PIPELINE_NAME,
 		shaders,
 		shaderCount,
@@ -2460,7 +2466,7 @@ inline static Pipeline createVkHandle(
 		NULL,
 		onVkUniformsSet,
 		onVkHandleResize,
-		handle,
+		pipelineHandle,
 		&createInfo);
 
 	if (pipeline == NULL)
@@ -2472,33 +2478,30 @@ inline static Pipeline createVkHandle(
 		return NULL;
 	}
 
-	handle->vk.descriptorSetLayout = descriptorSetLayout;
-	handle->vk.bufferCount = vkWindow->swapchain->bufferCount;
+	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
+	pipelineHandle->vk.bufferCount = vkWindow->swapchain->bufferCount;
 	return pipeline;
 }
 #endif
 
-static void onGlHandleDestroy(
-	Window window,
-	void* handle)
+static void onGlHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
 	free(pipelineHandle);
 }
 static void onGlUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* handle =
-		pipeline->gl.handle;
+	PipelineHandle* pipelineHandle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
-		handle->gl.mvpLocation,
+		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const float*)&handle->gl.mvp);
+		(const float*)&pipelineHandle->gl.mvp);
 	glUniform4fv(
-		handle->gl.colorLocation,
+		pipelineHandle->gl.colorLocation,
 		1,
-		(const float*)&handle->gl.color);
+		(const float*)&pipelineHandle->gl.color);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -2519,40 +2522,40 @@ static void onGlUniformsSet(Pipeline pipeline)
 		(const void*)sizeof(Vec2F));
 
 	glUniform1i(
-		handle->gl.textureLocation,
+		pipelineHandle->gl.textureLocation,
 		0);
 
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
-		handle->gl.texture->gl.handle);
+		pipelineHandle->gl.texture->gl.handle);
 	glBindSampler(
 		0,
-		handle->gl.sampler->gl.handle);
+		pipelineHandle->gl.sampler->gl.handle);
 
 	assertOpenGL();
 }
-static void onGlHandleResize(
+static bool onGlHandleResize(
 	Pipeline pipeline,
+	Vec2U newSize,
 	void* createInfo)
 {
-	Vec2U framebufferSize = getWindowFramebufferSize(
-		pipeline->vk.window);
 	pipeline->vk.state.viewport = vec4I(
 		0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+		(int32_t)newSize.x,
+		(int32_t)newSize.y);
+	return true;
 }
 inline static Pipeline createGlHandle(
-	Window window,
+	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* handle)
+	PipelineHandle* pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
-		window,
+		framebuffer,
 		TEXT_PIPELINE_NAME,
 		shaders,
 		shaderCount,
@@ -2561,7 +2564,7 @@ inline static Pipeline createGlHandle(
 		NULL,
 		onGlUniformsSet,
 		onGlHandleResize,
-		handle,
+		pipelineHandle,
 		NULL);
 
 	if (pipeline == NULL)
@@ -2595,33 +2598,33 @@ inline static Pipeline createGlHandle(
 
 	assertOpenGL();
 
-	handle->gl.mvpLocation = mvpLocation;
-	handle->gl.colorLocation = colorLocation;
-	handle->gl.textureLocation = textureLocation;
+	pipelineHandle->gl.mvpLocation = mvpLocation;
+	pipelineHandle->gl.colorLocation = colorLocation;
+	pipelineHandle->gl.textureLocation = textureLocation;
 	return pipeline;
 }
 
 Pipeline createExtTextPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler,
 	const PipelineState* state)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
 	assert(sampler != NULL);
-	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
-	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
-	assert(vertexShader->vk.window == window);
-	assert(fragmentShader->vk.window == window);
-	assert(sampler->vk.window == window);
+	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
+	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
+	assert(vertexShader->base.window == framebuffer->base.window);
+	assert(fragmentShader->base.window == framebuffer->base.window);
+	assert(sampler->base.window == framebuffer->base.window);
 
-	PipelineHandle* handle = malloc(
+	PipelineHandle* pipelineHandle = malloc(
 		sizeof(PipelineHandle));
 
-	if (handle == NULL)
+	if (pipelineHandle == NULL)
 		return NULL;
 
 	Shader shaders[2] = {
@@ -2629,6 +2632,7 @@ Pipeline createExtTextPipeline(
 		fragmentShader,
 	};
 
+	Window window = framebuffer->vk.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Pipeline pipeline;
@@ -2637,11 +2641,11 @@ Pipeline createExtTextPipeline(
 	{
 #if MPGX_SUPPORT_VULKAN
 		pipeline = createVkHandle(
-			window,
+			framebuffer,
 			shaders,
 			2,
 			state,
-			handle);
+			pipelineHandle);
 #else
 		abort();
 #endif
@@ -2650,11 +2654,11 @@ Pipeline createExtTextPipeline(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		pipeline = createGlHandle(
-			window,
+			framebuffer,
 			shaders,
 			2,
 			state,
-			handle);
+			pipelineHandle);
 	}
 	else
 	{
@@ -2663,26 +2667,27 @@ Pipeline createExtTextPipeline(
 
 	if (pipeline == NULL)
 	{
-		free(handle);
+		free(pipelineHandle);
 		return NULL;
 	}
 
-	handle->vk.texture = NULL;
-	handle->vk.sampler = sampler;
-	handle->vk.mvp = identMat4F();
-	handle->vk.color = valVec4F(1.0f);
+	pipelineHandle->vk.window = window;
+	pipelineHandle->vk.texture = NULL;
+	pipelineHandle->vk.sampler = sampler;
+	pipelineHandle->vk.mvp = identMat4F();
+	pipelineHandle->vk.color = valVec4F(1.0f);
 	return pipeline;
 }
 Pipeline createTextPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 
 	Vec2U framebufferSize =
-		getWindowFramebufferSize(window);
+		framebuffer->base.size;
 
 	PipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
@@ -2713,7 +2718,7 @@ Pipeline createTextPipeline(
 	};
 
 	return createExtTextPipeline(
-		window,
+		framebuffer,
 		vertexShader,
 		fragmentShader,
 		sampler,

@@ -86,9 +86,12 @@ Render createTextRender(
 	assert(getTransformTransformer(
 		getRendererTransform(renderer)) ==
 		getTransformTransformer(transform));
-	assert(getPipelineWindow(
-		getRendererPipeline(renderer)) ==
-		getPipelineWindow(getTextPipeline(text)));
+	assert(getFramebufferWindow(
+		getPipelineFramebuffer(
+		getRendererPipeline(renderer))) ==
+		getFramebufferWindow(
+		getPipelineFramebuffer(
+		getTextPipeline(text))));
 	assert(color.x >= 0.0f &&
 		color.y >= 0.0f &&
 		color.z >= 0.0f &&

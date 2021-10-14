@@ -87,8 +87,9 @@ Render createSpriteRender(
 	assert(getTransformTransformer(
 		getRendererTransform(renderer)) ==
 		getTransformTransformer(transform));
-	assert(getPipelineWindow(
-		getRendererPipeline(renderer)) ==
+	assert(getFramebufferWindow(
+		getPipelineFramebuffer(
+		getRendererPipeline(renderer))) ==
 		getMeshWindow(mesh));
 	assert(color.x >= 0.0f &&
 		color.y >= 0.0f &&

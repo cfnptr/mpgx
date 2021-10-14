@@ -87,8 +87,9 @@ Render createDiffuseRender(
 	assert(getTransformTransformer(
 		getRendererTransform(renderer)) ==
 		getTransformTransformer(transform));
-	assert(getPipelineWindow(
-		getRendererPipeline(renderer)) ==
+	assert(getFramebufferWindow(
+		getPipelineFramebuffer(
+		getRendererPipeline(renderer))) ==
 		getMeshWindow(mesh));
 	assert(strcmp(
 		getPipelineName(

@@ -28,6 +28,11 @@
 
 #include <string.h>
 
+typedef struct _BaseShader
+{
+	Window window;
+	ShaderType type;
+} _BaseShader;
 typedef struct _VkShader
 {
 	Window window;
@@ -44,6 +49,7 @@ typedef struct _GlShader
 } _GlShader;
 union Shader
 {
+	_BaseShader base;
 	_GlShader gl;
 	_VkShader vk;
 };

@@ -25,6 +25,13 @@ typedef struct UniformBuffer
 	Vec4F lightColor;
 	Vec4F lightDirection;
 } UniformBuffer;
+typedef struct BasePipelineHandle
+{
+	Window window;
+	Mat4F mvp;
+	Mat4F normal;
+	UniformBuffer u;
+} BasePipelineHandle;
 typedef struct VkPipelineHandle
 {
 	Window window;
@@ -51,6 +58,7 @@ typedef struct GlPipelineHandle
 } GlPipelineHandle;
 typedef union PipelineHandle
 {
+	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
 } PipelineHandle;
@@ -740,10 +748,10 @@ Pipeline createExtDiffusePipeline(
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
-	assert(vertexShader->vk.type == VERTEX_SHADER_TYPE);
-	assert(fragmentShader->vk.type == FRAGMENT_SHADER_TYPE);
-	assert(vertexShader->vk.window == framebuffer->vk.window);
-	assert(fragmentShader->vk.window == framebuffer->vk.window);
+	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
+	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
+	assert(vertexShader->base.window == framebuffer->base.window);
+	assert(fragmentShader->base.window == framebuffer->base.window);
 
 	PipelineHandle* pipelineHandle = malloc(
 		sizeof(PipelineHandle));
@@ -756,7 +764,7 @@ Pipeline createExtDiffusePipeline(
 		fragmentShader,
 	};
 
-	Window window = framebuffer->vk.window;
+	Window window = framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	Pipeline pipeline;
@@ -809,10 +817,10 @@ Pipeline createExtDiffusePipeline(
 			0.0f),
 	};
 
-	pipelineHandle->vk.window = window;
-	pipelineHandle->vk.mvp = identMat4F();
-	pipelineHandle->vk.normal = identMat4F();
-	pipelineHandle->vk.u = u;
+	pipelineHandle->base.window = window;
+	pipelineHandle->base.mvp = identMat4F();
+	pipelineHandle->base.normal = identMat4F();
+	pipelineHandle->base.u = u;
 	return pipeline;
 }
 Pipeline createDiffusePipeline(
@@ -823,7 +831,7 @@ Pipeline createDiffusePipeline(
 	assert(framebuffer != NULL);
 
 	Vec2U framebufferSize =
-		framebuffer->vk.size;
+		framebuffer->base.size;
 	Vec4I size = vec4I(0, 0,
 		(int32_t)framebufferSize.x,
 		(int32_t)framebufferSize.y);
@@ -869,8 +877,8 @@ Mat4F getDiffusePipelineMvp(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.mvp;
+		pipeline->base.handle;
+	return pipelineHandle->base.mvp;
 }
 void setDiffusePipelineMvp(
 	Pipeline pipeline,
@@ -881,8 +889,8 @@ void setDiffusePipelineMvp(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.mvp = mvp;
+		pipeline->base.handle;
+	pipelineHandle->base.mvp = mvp;
 }
 
 Mat4F getDiffusePipelineNormal(
@@ -893,8 +901,8 @@ Mat4F getDiffusePipelineNormal(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.normal;
+		pipeline->base.handle;
+	return pipelineHandle->base.normal;
 }
 void setDiffusePipelineNormal(
 	Pipeline pipeline,
@@ -905,8 +913,8 @@ void setDiffusePipelineNormal(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.normal = normal;
+		pipeline->base.handle;
+	pipelineHandle->base.normal = normal;
 }
 
 Vec4F getDiffusePipelineObjectColor(
@@ -917,8 +925,8 @@ Vec4F getDiffusePipelineObjectColor(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.u.objectColor;
+		pipeline->base.handle;
+	return pipelineHandle->base.u.objectColor;
 }
 void setDiffusePipelineObjectColor(
 	Pipeline pipeline,
@@ -933,8 +941,8 @@ void setDiffusePipelineObjectColor(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.u.objectColor = objectColor;
+		pipeline->base.handle;
+	pipelineHandle->base.u.objectColor = objectColor;
 }
 
 Vec4F getDiffusePipelineAmbientColor(
@@ -945,8 +953,8 @@ Vec4F getDiffusePipelineAmbientColor(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.u.ambientColor;
+		pipeline->base.handle;
+	return pipelineHandle->base.u.ambientColor;
 }
 void setDiffusePipelineAmbientColor(
 	Pipeline pipeline,
@@ -961,8 +969,8 @@ void setDiffusePipelineAmbientColor(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.u.ambientColor = ambientColor;
+		pipeline->base.handle;
+	pipelineHandle->base.u.ambientColor = ambientColor;
 }
 
 Vec4F getDiffusePipelineLightColor(
@@ -973,8 +981,8 @@ Vec4F getDiffusePipelineLightColor(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.u.lightColor;
+		pipeline->base.handle;
+	return pipelineHandle->base.u.lightColor;
 }
 void setDiffusePipelineLightColor(
 	Pipeline pipeline,
@@ -989,8 +997,8 @@ void setDiffusePipelineLightColor(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.u.lightColor = lightColor;
+		pipeline->base.handle;
+	pipelineHandle->base.u.lightColor = lightColor;
 }
 
 Vec3F getDiffusePipelineLightDirection(
@@ -1001,9 +1009,9 @@ Vec3F getDiffusePipelineLightDirection(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
+		pipeline->base.handle;
 	Vec4F lightDirection =
-		pipelineHandle->vk.u.lightDirection;
+		pipelineHandle->base.u.lightDirection;
 	return vec3F(
 		lightDirection.x,
 		lightDirection.y,
@@ -1018,9 +1026,9 @@ void setDiffusePipelineLightDirection(
 		getPipelineName(pipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
+		pipeline->base.handle;
 	lightDirection = normVec3F(lightDirection);
-	pipelineHandle->vk.u.lightDirection = vec4F(
+	pipelineHandle->base.u.lightDirection = vec4F(
 		lightDirection.x,
 		lightDirection.y,
 		lightDirection.z,

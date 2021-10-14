@@ -92,13 +92,13 @@ size_t drawText(Text text);
 Sampler createTextSampler(Window window);
 
 Pipeline createExtTextPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler,
 	const PipelineState* state);
 Pipeline createTextPipeline(
-	Window window,
+	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler);

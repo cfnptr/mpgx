@@ -65,9 +65,8 @@ struct Window
 	size_t meshCount;
 	double updateTime;
 	double deltaTime;
-
 	bool isRecording;
-	bool isRendering;
+	Framebuffer renderFramebuffer;
 #if MPGX_SUPPORT_VULKAN
 	VkWindow vkWindow;
 #endif
@@ -455,6 +454,18 @@ Window createWindow(
 		}
 
 		//glEnable(GL_FRAMEBUFFER_SRGB);
+
+		framebuffer = createDefaultGlFramebuffer(
+			window,
+			framebufferSize,
+			pipelineCapacity);
+
+		if (framebuffer == NULL)
+		{
+			glfwDestroyWindow(handle);
+			free(window);
+			return NULL;
+		}
 	}
 
 	Buffer* buffers = malloc(
@@ -607,7 +618,7 @@ Window createWindow(
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
 	window->isRecording = false;
-	window->isRendering = false;
+	window->renderFramebuffer = NULL;
 #if MPGX_SUPPORT_VULKAN
 	window->vkWindow = vkWindow;
 #endif
@@ -1191,7 +1202,6 @@ bool beginWindowRecord(Window window)
 {
 	assert(window != NULL);
 	assert(window->isRecording == false);
-	assert(window->isRendering == false);
 
 	int width, height;
 
@@ -1391,7 +1401,7 @@ void endWindowRecord(Window window)
 {
 	assert(window != NULL);
 	assert(window->isRecording == true);
-	assert(window->isRendering == false);
+	assert(window->renderFramebuffer == NULL);
 
 	GraphicsAPI api = window->api;
 
@@ -2135,9 +2145,9 @@ void destroyImage(Image image)
 	if (image == NULL)
 		return;
 
-	assert(image->vk.window->isRecording == false);
+	assert(image->base.window->isRecording == false);
 
-	Window window = image->vk.window;
+	Window window = image->base.window;
 	Image* images = window->images;
 	size_t imageCount = window->imageCount;
 
@@ -2197,13 +2207,13 @@ void setImageData(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
-	assert(size.x + offset.x <= image->vk.size.x);
-	assert(size.y + offset.y <= image->vk.size.y);
-	assert(size.z + offset.z <= image->vk.size.z);
-	assert(image->vk.isConstant == false);
-	assert(image->vk.window->isRecording == false);
+	assert(size.x + offset.x <= image->base.size.x);
+	assert(size.y + offset.y <= image->base.size.y);
+	assert(size.z + offset.z <= image->base.size.z);
+	assert(image->base.isConstant == false);
+	assert(image->base.window->isRecording == false);
 
-	GraphicsAPI api = image->vk.window->api;
+	GraphicsAPI api = image->base.window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2247,27 +2257,27 @@ void setImageData(
 Window getImageWindow(Image image)
 {
 	assert(image != NULL);
-	return image->vk.window;
+	return image->base.window;
 }
 ImageType getImageType(Image image)
 {
 	assert(image != NULL);
-	return image->vk.type;
+	return image->base.type;
 }
 ImageFormat getImageFormat(Image image)
 {
 	assert(image != NULL);
-	return image->vk.format;
+	return image->base.format;
 }
 Vec3U getImageSize(Image image)
 {
 	assert(image != NULL);
-	return image->vk.size;
+	return image->base.size;
 }
 bool isImageConstant(Image image)
 {
 	assert(image != NULL);
-	return image->vk.isConstant;
+	return image->base.isConstant;
 }
 
 uint8_t getImageLevelCount(Vec3U imageSize)
@@ -2401,9 +2411,9 @@ void destroySampler(Sampler sampler)
 	if (sampler == NULL)
 		return;
 
-	assert(sampler->vk.window->isRecording == false);
+	assert(sampler->base.window->isRecording == false);
 
-	Window window = sampler->vk.window;
+	Window window = sampler->base.window;
 	Sampler* samplers = window->samplers;
 	size_t samplerCount = window->samplerCount;
 
@@ -2455,62 +2465,62 @@ void destroySampler(Sampler sampler)
 Window getSamplerWindow(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.window;
+	return sampler->base.window;
 }
 ImageFilter getSamplerMinImageFilter(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.minImageFilter;
+	return sampler->base.minImageFilter;
 }
 ImageFilter getSamplerMagImageFilter(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.magImageFilter;
+	return sampler->base.magImageFilter;
 }
 ImageFilter getSamplerMinMipmapFilter(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.minMipmapFilter;
+	return sampler->base.minMipmapFilter;
 }
 bool isSamplerUseMipmapping(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.useMipmapping;
+	return sampler->base.useMipmapping;
 }
 ImageWrap getSamplerImageWrapX(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.imageWrapX;
+	return sampler->base.imageWrapX;
 }
 ImageWrap getSamplerImageWrapY(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.imageWrapY;
+	return sampler->base.imageWrapY;
 }
 ImageWrap getSamplerImageWrapZ(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.imageWrapZ;
+	return sampler->base.imageWrapZ;
 }
 CompareOperator getSamplerCompareOperator(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.compareOperator;
+	return sampler->base.compareOperator;
 }
 bool isSamplerUseCompare(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.useCompare;
+	return sampler->base.useCompare;
 }
 Vec2F getSamplerMipmapLodRange(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.mipmapLodRange;
+	return sampler->base.mipmapLodRange;
 }
 float getSamplerMipmapLodBias(Sampler sampler)
 {
 	assert(sampler != NULL);
-	return sampler->vk.mipmapLodBias;
+	return sampler->base.mipmapLodBias;
 }
 
 Shader createShader(
@@ -2709,9 +2719,9 @@ void destroyShader(Shader shader)
 	if (shader == NULL)
 		return;
 
-	assert(shader->vk.window->isRecording == false);
+	assert(shader->base.window->isRecording == false);
 
-	Window window = shader->vk.window;
+	Window window = shader->base.window;
 	Shader* shaders = window->shaders;
 	size_t shaderCount = window->shaderCount;
 
@@ -2755,12 +2765,12 @@ void destroyShader(Shader shader)
 Window getShaderWindow(Shader shader)
 {
 	assert(shader != NULL);
-	return shader->vk.window;
+	return shader->base.window;
 }
 ShaderType getShaderType(Shader shader)
 {
 	assert(shader != NULL);
-	return shader->vk.type;
+	return shader->base.type;
 }
 
 inline static bool addWindowFramebuffer(
@@ -2796,9 +2806,9 @@ Framebuffer createShadowFramebuffer(
 {
 	assert(window != NULL);
 	assert(depthAttachment != NULL);
-	assert(depthAttachment->vk.size.x == size.x &&
-		depthAttachment->vk.size.y == size.y);
-	assert(depthAttachment->vk.window == window);
+	assert(depthAttachment->base.size.x == size.x &&
+		depthAttachment->base.size.y == size.y);
+	assert(depthAttachment->base.window == window);
 	assert(pipelineCapacity != 0);
 	assert(window->isRecording == false);
 
@@ -2887,9 +2897,9 @@ void destroyFramebuffer(
 	if (framebuffer == NULL)
 		return;
 
-	assert(framebuffer->vk.window->isRecording == false);
+	assert(framebuffer->base.window->isRecording == false);
 
-	Window window = framebuffer->vk.window;
+	Window window = framebuffer->base.window;
 	Framebuffer* framebuffers = window->framebuffers;
 	size_t framebufferCount = window->framebufferCount;
 
@@ -2900,8 +2910,8 @@ void destroyFramebuffer(
 
 		if (destroyAttachments == true)
 		{
-			Image* attachments = framebuffer->vk.attachments;
-			size_t attachmentCount = framebuffer->vk.attachmentCount;
+			Image* attachments = framebuffer->base.attachments;
+			size_t attachmentCount = framebuffer->base.attachmentCount;
 
 			for (size_t j = 0; j < attachmentCount; j++)
 				destroyImage(attachments[i]);
@@ -2950,38 +2960,38 @@ void destroyFramebuffer(
 Window getFramebufferWindow(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	return framebuffer->vk.window;
+	return framebuffer->base.window;
 }
 Vec2U getFramebufferSize(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	return framebuffer->vk.size;
+	return framebuffer->base.size;
 }
 Image* getFramebufferAttachments(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	assert(!(framebuffer->vk.isDefault == true &&
-		(framebuffer->vk.window->api == OPENGL_GRAPHICS_API ||
-		framebuffer->vk.window->api == OPENGL_ES_GRAPHICS_API)));
-	return framebuffer->vk.attachments;
+	assert(!(framebuffer->base.isDefault == true &&
+		(framebuffer->base.window->api == OPENGL_GRAPHICS_API ||
+		framebuffer->base.window->api == OPENGL_ES_GRAPHICS_API)));
+	return framebuffer->base.attachments;
 }
 uint8_t getFramebufferAttachmentCount(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	assert(!(framebuffer->vk.isDefault == true &&
-		(framebuffer->vk.window->api == OPENGL_GRAPHICS_API ||
-		framebuffer->vk.window->api == OPENGL_ES_GRAPHICS_API)));
-	return framebuffer->vk.attachmentCount;
+	assert(!(framebuffer->base.isDefault == true &&
+		(framebuffer->base.window->api == OPENGL_GRAPHICS_API ||
+		framebuffer->base.window->api == OPENGL_ES_GRAPHICS_API)));
+	return framebuffer->base.attachmentCount;
 }
 bool isFramebufferDefault(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	return framebuffer->vk.isDefault;
+	return framebuffer->base.isDefault;
 }
 bool isFramebufferEmpty(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	return framebuffer->vk.pipelineCount == 0;
+	return framebuffer->base.pipelineCount == 0;
 }
 
 bool setFramebufferAttachments(
@@ -2993,16 +3003,14 @@ bool setFramebufferAttachments(
 	assert(framebuffer != NULL);
 	assert(attachments != NULL);
 	assert(attachmentCount != 0);
-	assert(!(framebuffer->vk.isDefault == true &&
-		(framebuffer->vk.window->api == OPENGL_GRAPHICS_API ||
-		framebuffer->vk.window->api == OPENGL_ES_GRAPHICS_API)));
-	assert(framebuffer->vk.window->isRecording == false);
+	assert(!(framebuffer->base.isDefault == true &&
+		(framebuffer->base.window->api == OPENGL_GRAPHICS_API ||
+		framebuffer->base.window->api == OPENGL_ES_GRAPHICS_API)));
+	assert(framebuffer->base.window->isRecording == false);
 
 	// TODO:
+	return false;
 }
-
-// TODO: set ass window render framebuffer
-// check for rendering buffer on pipeline bind
 
 void beginFramebufferRender(
 	Framebuffer framebuffer,
@@ -3024,10 +3032,10 @@ void beginFramebufferRender(
 	assert(
 		clearDepth >= 0.0f &&
 		clearDepth <= 1.0f);
-	assert(framebuffer->vk.window->isRecording == true);
-	assert(framebuffer->vk.window->isRendering == false);
+	assert(framebuffer->base.window->isRecording == true);
+	assert(framebuffer->base.window->renderFramebuffer == NULL);
 
-	Window window = framebuffer->vk.window;
+	Window window = framebuffer->base.window;
 	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
@@ -3058,15 +3066,17 @@ void beginFramebufferRender(
 		abort();
 	}
 
-	window->isRendering = true;
+	window->renderFramebuffer = framebuffer;
 }
 
-void endFramebufferRender(Window window)
+void endFramebufferRender(
+	Framebuffer framebuffer)
 {
-	assert(window != NULL);
-	assert(window->isRecording == true);
-	assert(window->isRendering == true);
+	assert(framebuffer != NULL);
+	assert(framebuffer->base.window->isRecording == true);
+	assert(framebuffer->base.window->renderFramebuffer == framebuffer);
 
+	Window window = framebuffer->base.window;
 	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
@@ -3088,11 +3098,11 @@ void endFramebufferRender(Window window)
 		abort();
 	}
 
-	window->isRendering = false;
+	window->renderFramebuffer = NULL;
 }
 
 void clearFramebuffer(
-	Window window,
+	Framebuffer framebuffer,
 	bool clearColorBuffer,
 	bool clearDepthBuffer,
 	bool clearStencilBuffer,
@@ -3100,12 +3110,12 @@ void clearFramebuffer(
 	float clearDepth,
 	uint32_t clearStencil)
 {
-	assert(window != NULL);
+	assert(framebuffer != NULL);
 	assert(
 		clearColorBuffer == true ||
 		clearDepthBuffer == true ||
 		clearStencilBuffer == true);
-	assert(window->useStencilBuffer == true ||
+	assert(framebuffer->base.window->useStencilBuffer == true ||
 		clearStencilBuffer == false);
 	assert(
 		clearColor.x >= 0.0f &&
@@ -3120,9 +3130,10 @@ void clearFramebuffer(
 	assert(
 		clearDepth >= 0.0f &&
 		clearDepth <= 1.0f);
-	assert(window->isRecording == true);
+	assert(framebuffer->base.window->isRecording == true);
 
-	GraphicsAPI api = window->api;
+	// TODO:
+	GraphicsAPI api = framebuffer->base.window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -3187,9 +3198,9 @@ Pipeline createPipeline(
 	assert(state->lineWidth > 0.0f);
 	assert(state->viewport.z >= 0 && state->viewport.w >= 0);
 	assert(state->scissor.z >= 0 && state->scissor.w >= 0);
-	assert(framebuffer->vk.window->isRecording == false);
+	assert(framebuffer->base.window->isRecording == false);
 
-	Window window = framebuffer->vk.window;
+	Window window = framebuffer->base.window;
 	GraphicsAPI api = window->api;
 
 	Pipeline pipeline;
@@ -3243,14 +3254,14 @@ Pipeline createPipeline(
 	if (pipeline == NULL)
 		return NULL;
 
-	size_t count = framebuffer->vk.pipelineCount;
+	size_t count = framebuffer->base.pipelineCount;
 
-	if (count == framebuffer->vk.pipelineCapacity)
+	if (count == framebuffer->base.pipelineCapacity)
 	{
-		size_t capacity = framebuffer->vk.pipelineCapacity * 2;
+		size_t capacity = framebuffer->base.pipelineCapacity * 2;
 
 		Pipeline* pipelines = realloc(
-			framebuffer->vk.pipelines,
+			framebuffer->base.pipelines,
 			sizeof(Pipeline) * capacity);
 
 		if (pipelines == NULL)
@@ -3259,12 +3270,12 @@ Pipeline createPipeline(
 			return NULL;
 		}
 
-		framebuffer->vk.pipelines = pipelines;
-		framebuffer->vk.pipelineCapacity = capacity;
+		framebuffer->base.pipelines = pipelines;
+		framebuffer->base.pipelineCapacity = capacity;
 	}
 
-	framebuffer->vk.pipelines[count] = pipeline;
-	framebuffer->vk.pipelineCount = count + 1;
+	framebuffer->base.pipelines[count] = pipeline;
+	framebuffer->base.pipelineCount = count + 1;
 	return pipeline;
 }
 void destroyPipeline(
@@ -3274,29 +3285,29 @@ void destroyPipeline(
 	if (pipeline == NULL)
 		return;
 
-	assert(pipeline->vk.framebuffer->
-		vk.window->isRecording == false);
+	assert(pipeline->base.framebuffer->
+		base.window->isRecording == false);
 
-	Framebuffer framebuffer = pipeline->vk.framebuffer;
-	Window window = framebuffer->vk.window;
-	size_t pipelineCount = framebuffer->vk.pipelineCount;
-	Pipeline* pipelines = framebuffer->vk.pipelines;
+	Framebuffer framebuffer = pipeline->base.framebuffer;
+	Window window = framebuffer->base.window;
+	size_t pipelineCount = framebuffer->base.pipelineCount;
+	Pipeline* pipelines = framebuffer->base.pipelines;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
 		if (pipeline != pipelines[i])
 			continue;
 
-		if (pipeline->vk.onHandleDestroy != NULL)
+		if (pipeline->base.onHandleDestroy != NULL)
 		{
-			pipeline->vk.onHandleDestroy(
-				pipeline->vk.handle);
+			pipeline->base.onHandleDestroy(
+				pipeline->base.handle);
 		}
 
 		if (destroyShaders == true)
 		{
-			Shader* shaders = pipeline->vk.shaders;
-			uint8_t shaderCount = pipeline->vk.shaderCount;
+			Shader* shaders = pipeline->base.shaders;
+			uint8_t shaderCount = pipeline->base.shaderCount;
 
 			for (uint8_t j = 0; j < shaderCount; j++)
 				destroyShader(shaders[j]);
@@ -3335,7 +3346,7 @@ void destroyPipeline(
 		for (size_t j = i + 1; j < pipelineCount; j++)
 			pipelines[j - 1] = pipelines[j];
 
-		framebuffer->vk.pipelineCount--;
+		framebuffer->base.pipelineCount--;
 		return;
 	}
 
@@ -3345,57 +3356,60 @@ void destroyPipeline(
 Framebuffer getPipelineFramebuffer(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->vk.framebuffer;
+	return pipeline->base.framebuffer;
 }
 const char* getPipelineName(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->vk.name;
+	return pipeline->base.name;
 }
 Shader* getPipelineShaders(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->vk.shaders;
+	return pipeline->base.shaders;
 }
 size_t getPipelineShaderCount(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->vk.shaderCount;
+	return pipeline->base.shaderCount;
 }
 const PipelineState* getPipelineState(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return &pipeline->vk.state;
+	return &pipeline->base.state;
 }
 OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->vk.onHandleDestroy;
+	return pipeline->base.onHandleDestroy;
 }
 OnPipelineHandleBind getPipelineOnHandleBind(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->vk.onHandleBind;
+	return pipeline->base.onHandleBind;
 }
 OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->vk.onUniformsSet;
+	return pipeline->base.onUniformsSet;
 }
 void* getPipelineHandle(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->vk.handle;
+	return pipeline->base.handle;
 }
 
 void bindPipeline(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 
-	assert(pipeline->vk.framebuffer->
-		vk.window->isRecording == true);
+	assert(pipeline->base.framebuffer->
+		base.window->isRecording == true);
+	assert(pipeline->base.framebuffer ==
+		pipeline->base.framebuffer->
+		base.window->renderFramebuffer);
 
-	Window window = pipeline->vk.framebuffer->vk.window;
+	Window window = pipeline->base.framebuffer->base.window;
 	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)

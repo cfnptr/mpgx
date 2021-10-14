@@ -16,6 +16,19 @@
 #include "mpgx/_source/shader.h"
 #include "mpgx/_source/framebuffer.h"
 
+typedef struct _BasePipeline
+{
+	Framebuffer framebuffer;
+	const char* name;
+	Shader* shaders;
+	size_t shaderCount;
+	PipelineState state;
+	OnPipelineHandleDestroy onHandleDestroy;
+	OnPipelineHandleBind onHandleBind;
+	OnPipelineUniformsSet onUniformsSet;
+	OnPipelineHandleResize onHandleResize;
+	void* handle;
+} _BasePipeline;
 typedef struct _VkPipeline
 {
 	Framebuffer framebuffer;
@@ -61,6 +74,7 @@ typedef struct _GlPipeline
 } _GlPipeline;
 union Pipeline
 {
+	_BasePipeline base;
 	_VkPipeline vk;
 	_GlPipeline gl;
 };

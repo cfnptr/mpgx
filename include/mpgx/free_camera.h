@@ -21,7 +21,7 @@
 typedef struct FreeCamera* FreeCamera;
 
 FreeCamera createFreeCamera(
-	Window window,
+	Framebuffer framebuffer,
 	Transformer transformer,
 	float moveSpeed,
 	float viewSpeed,
@@ -30,7 +30,8 @@ FreeCamera createFreeCamera(
 	float farClipPlane);
 void destroyFreeCamera(FreeCamera freeCamera);
 
-Window getFreeCameraWindow(FreeCamera freeCamera);
+Framebuffer getFreeCameraFramebuffer(
+	FreeCamera freeCamera);
 
 Transform getFreeCameraTransform(
 	FreeCamera freeCamera);

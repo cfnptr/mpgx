@@ -15,6 +15,21 @@
 #pragma once
 #include "mpgx/_source/opengl.h"
 
+typedef struct _BaseSampler
+{
+	Window window;
+	ImageFilter minImageFilter;
+	ImageFilter magImageFilter;
+	ImageFilter minMipmapFilter;
+	bool useMipmapping;
+	ImageWrap imageWrapX;
+	ImageWrap imageWrapY;
+	ImageWrap imageWrapZ;
+	CompareOperator compareOperator;
+	bool useCompare;
+	Vec2F mipmapLodRange;
+	float mipmapLodBias;
+} _BaseSampler;
 typedef struct _VkSampler
 {
 	Window window;
@@ -51,6 +66,7 @@ typedef struct _GlSampler
 } _GlSampler;
 union Sampler
 {
+	_BaseSampler base;
 	_VkSampler vk;
 	_GlSampler gl;
 };

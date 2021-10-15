@@ -3043,26 +3043,32 @@ bool setFramebufferAttachments(
 	return false;
 }
 
+// TODO: add clear booleans as in clear function
+// possibly this will fix black Vulkan shadow map
+
 void beginFramebufferRender(
 	Framebuffer framebuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil)
+	bool clearColor,
+	bool clearDepth,
+	bool clearStencil,
+	Vec4F colorValue,
+	float depthValue,
+	uint32_t stencilValue)
 {
 	assert(framebuffer != NULL);
 	assert(
-		clearColor.x >= 0.0f &&
-		clearColor.y >= 0.0f &&
-		clearColor.z >= 0.0f &&
-		clearColor.w >= 0.0f);
+		colorValue.x >= 0.0f &&
+		colorValue.y >= 0.0f &&
+		colorValue.z >= 0.0f &&
+		colorValue.w >= 0.0f);
 	assert(
-		clearColor.x <= 1.0f &&
-		clearColor.y <= 1.0f &&
-		clearColor.z <= 1.0f &&
-		clearColor.w <= 1.0f);
+		colorValue.x <= 1.0f &&
+		colorValue.y <= 1.0f &&
+		colorValue.z <= 1.0f &&
+		colorValue.w <= 1.0f);
 	assert(
-		clearDepth >= 0.0f &&
-		clearDepth <= 1.0f);
+		depthValue >= 0.0f &&
+		depthValue <= 1.0f);
 	assert(framebuffer->base.window->isRecording == true);
 	assert(framebuffer->base.window->renderFramebuffer == NULL);
 
@@ -3081,7 +3087,10 @@ void beginFramebufferRender(
 			framebuffer->vk.size,
 			clearColor,
 			clearDepth,
-			clearStencil);
+			clearStencil,
+			colorValue,
+			depthValue,
+			stencilValue);
 #else
 		abort();
 #endif
@@ -3091,10 +3100,12 @@ void beginFramebufferRender(
 	{
 		beginGlFramebufferRender(
 			framebuffer->gl.handle,
-			window->useStencilBuffer,
 			clearColor,
 			clearDepth,
-			clearStencil);
+			clearStencil,
+			colorValue,
+			depthValue,
+			stencilValue);
 	}
 	else
 	{
@@ -3138,34 +3149,29 @@ void endFramebufferRender(
 
 void clearFramebuffer(
 	Framebuffer framebuffer,
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil)
+	bool clearColor,
+	bool clearDepth,
+	bool clearStencil,
+	Vec4F colorValue,
+	float depthValue,
+	uint32_t stencilValue)
 {
 	assert(framebuffer != NULL);
 	assert(
-		clearColorBuffer == true ||
-		clearDepthBuffer == true ||
-		clearStencilBuffer == true);
-	assert(framebuffer->base.window->useStencilBuffer == true ||
-		clearStencilBuffer == false);
+		colorValue.x >= 0.0f &&
+		colorValue.y >= 0.0f &&
+		colorValue.z >= 0.0f &&
+		colorValue.w >= 0.0f);
 	assert(
-		clearColor.x >= 0.0f &&
-		clearColor.y >= 0.0f &&
-		clearColor.z >= 0.0f &&
-		clearColor.w >= 0.0f);
+		colorValue.x <= 1.0f &&
+		colorValue.y <= 1.0f &&
+		colorValue.z <= 1.0f &&
+		colorValue.w <= 1.0f);
 	assert(
-		clearColor.x <= 1.0f &&
-		clearColor.y <= 1.0f &&
-		clearColor.z <= 1.0f &&
-		clearColor.w <= 1.0f);
-	assert(
-		clearDepth >= 0.0f &&
-		clearDepth <= 1.0f);
+		depthValue >= 0.0f &&
+		depthValue <= 1.0f);
 	assert(framebuffer->base.window->isRecording == true);
+	assert(framebuffer->base.window->renderFramebuffer != NULL);
 
 	Window window = framebuffer->base.window;
 	GraphicsAPI api = window->api;
@@ -3176,12 +3182,12 @@ void clearFramebuffer(
 		clearVkFramebuffer(
 			window->vkWindow->currenCommandBuffer,
 			framebuffer->vk.size,
-			clearColorBuffer,
-			clearDepthBuffer,
-			clearStencilBuffer,
 			clearColor,
 			clearDepth,
-			clearStencil);
+			clearStencil,
+			colorValue,
+			depthValue,
+			stencilValue);
 #else
 		abort();
 #endif
@@ -3190,12 +3196,12 @@ void clearFramebuffer(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		clearGlFramebuffer(
-			clearColorBuffer,
-			clearDepthBuffer,
-			clearStencilBuffer,
 			clearColor,
 			clearDepth,
-			clearStencil);
+			clearStencil,
+			colorValue,
+			depthValue,
+			stencilValue);
 	}
 	else
 	{

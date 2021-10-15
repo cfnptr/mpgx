@@ -435,17 +435,32 @@ inline static void beginVkFramebufferRender(
 	VkRenderPass renderPass,
 	VkFramebuffer framebuffer,
 	Vec2U size,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil)
+	bool clearColor,
+	bool clearDepth,
+	bool clearStencil,
+	Vec4F colorValue,
+	float depthValue,
+	uint32_t stencilValue)
 {
 	VkClearValue clearValues[2];
-	clearValues[0].color.float32[0] = clearColor.x;
-	clearValues[0].color.float32[1] = clearColor.y;
-	clearValues[0].color.float32[2] = clearColor.z;
-	clearValues[0].color.float32[3] = clearColor.w;
-	clearValues[1].depthStencil.depth = clearDepth;
-	clearValues[1].depthStencil.stencil = clearStencil;
+	size_t clearValueCount = 0;
+
+	if (clearColor == true)
+	{
+		VkClearValue clearValue;
+		clearValue.color.float32[0] = colorValue.x;
+		clearValue.color.float32[1] = colorValue.y;
+		clearValue.color.float32[2] = colorValue.z;
+		clearValue.color.float32[3] = colorValue.w;
+		clearValues[clearValueCount++] = clearValue;
+	}
+	if (clearDepth == true || clearStencil == true)
+	{
+		VkClearValue clearValue;
+		clearValue.depthStencil.depth = depthValue;
+		clearValue.depthStencil.stencil = stencilValue;
+		clearValues[clearValueCount++] = clearValue;
+	}
 
 	VkRenderPassBeginInfo renderPassBeginInfo = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -455,7 +470,7 @@ inline static void beginVkFramebufferRender(
 		{
 			0, 0, size.x, size.y,
 		},
-		2,
+		clearValueCount,
 		clearValues,
 	};
 
@@ -472,23 +487,23 @@ inline static void endVkFramebufferRender(
 inline static void clearVkFramebuffer(
 	VkCommandBuffer commandBuffer,
 	Vec2U framebufferSize,
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil)
+	bool clearColor,
+	bool clearDepth,
+	bool clearStencil,
+	Vec4F colorValue,
+	float depthValue,
+	uint32_t stencilValue)
 {
 	VkClearAttachment clearAttachments[3];
 	size_t attachmentCount = 0;
 
-	if (clearColorBuffer == true)
+	if (clearColor == true)
 	{
 		VkClearValue clearValue;
-		clearValue.color.float32[0] = clearColor.x;
-		clearValue.color.float32[1] = clearColor.y;
-		clearValue.color.float32[2] = clearColor.z;
-		clearValue.color.float32[3] = clearColor.w;
+		clearValue.color.float32[0] = colorValue.x;
+		clearValue.color.float32[1] = colorValue.y;
+		clearValue.color.float32[2] = colorValue.z;
+		clearValue.color.float32[3] = colorValue.w;
 
 		VkClearAttachment clearAttachment = {
 			VK_IMAGE_ASPECT_COLOR_BIT,
@@ -498,10 +513,10 @@ inline static void clearVkFramebuffer(
 
 		clearAttachments[attachmentCount++] = clearAttachment;
 	}
-	if (clearDepthBuffer == true)
+	if (clearDepth == true)
 	{
 		VkClearValue clearValue;
-		clearValue.depthStencil.depth = clearDepth;
+		clearValue.depthStencil.depth = depthValue;
 
 		VkClearAttachment clearAttachment = {
 			VK_IMAGE_ASPECT_DEPTH_BIT,
@@ -511,10 +526,10 @@ inline static void clearVkFramebuffer(
 
 		clearAttachments[attachmentCount++] = clearAttachment;
 	}
-	if (clearStencilBuffer == true)
+	if (clearStencil == true)
 	{
 		VkClearValue clearValue;
-		clearValue.depthStencil.stencil = clearStencil;
+		clearValue.depthStencil.stencil = stencilValue;
 
 		VkClearAttachment clearAttachment = {
 			VK_IMAGE_ASPECT_STENCIL_BIT,
@@ -790,33 +805,40 @@ inline static void destroyGlFramebuffer(
 }
 inline static void beginGlFramebufferRender(
 	GLuint framebuffer,
-	bool useStencilBuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil)
+	bool clearColor,
+	bool clearDepth,
+	bool clearStencil,
+	Vec4F colorValue,
+	float depthValue,
+	uint32_t stencilValue)
 {
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,
 		framebuffer);
-	glClearColor(
-		clearColor.x,
-		clearColor.y,
-		clearColor.z,
-		clearColor.w);
-	glColorMask(
-		GL_TRUE, GL_TRUE,
-		GL_TRUE, GL_TRUE);
 
-	glClearDepth(clearDepth);
-	glDepthMask(GL_TRUE);
+	GLbitfield clearMask = 0;
 
-	GLbitfield clearMask =
-		GL_COLOR_BUFFER_BIT |
-		GL_DEPTH_BUFFER_BIT;
-
-	if (useStencilBuffer == true)
+	if (clearColor == true)
 	{
-		glClearStencil((GLint)clearStencil);
+		glClearColor(
+			colorValue.x,
+			colorValue.y,
+			colorValue.z,
+			colorValue.w);
+		glColorMask(
+			GL_TRUE, GL_TRUE,
+			GL_TRUE, GL_TRUE);
+		clearMask |= GL_COLOR_BUFFER_BIT;
+	}
+	if (clearDepth == true)
+	{
+		glClearDepth(depthValue);
+		glDepthMask(GL_TRUE);
+		clearMask |= GL_DEPTH_BUFFER_BIT;
+	}
+	if (clearStencil == true)
+	{
+		glClearStencil((GLint)stencilValue);
 		glStencilMask(UINT32_MAX);
 		clearMask |= GL_STENCIL_BUFFER_BIT;
 	}
@@ -829,36 +851,36 @@ inline static void endGlFramebufferRender()
 	assertOpenGL();
 }
 inline static void clearGlFramebuffer(
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil)
+	bool clearColor,
+	bool clearDepth,
+	bool clearStencil,
+	Vec4F colorValue,
+	float depthValue,
+	uint32_t stencilValue)
 {
 	GLbitfield clearMask = 0;
 
-	if (clearColorBuffer == true)
+	if (clearColor == true)
 	{
 		glClearColor(
-			clearColor.x,
-			clearColor.y,
-			clearColor.z,
-			clearColor.w);
+			colorValue.x,
+			colorValue.y,
+			colorValue.z,
+			colorValue.w);
 		glColorMask(
 			GL_TRUE, GL_TRUE,
 			GL_TRUE, GL_TRUE);
 		clearMask |= GL_COLOR_BUFFER_BIT;
 	}
-	if (clearDepthBuffer == true)
+	if (clearDepth == true)
 	{
-		glClearDepth(clearDepth);
+		glClearDepth(depthValue);
 		glDepthMask(GL_TRUE);
 		clearMask |= GL_DEPTH_BUFFER_BIT;
 	}
-	if (clearStencilBuffer == true)
+	if (clearStencil == true)
 	{
-		glClearStencil((GLint)clearStencil);
+		glClearStencil((GLint)stencilValue);
 		glStencilMask(UINT32_MAX);
 		clearMask |= GL_STENCIL_BUFFER_BIT;
 	}

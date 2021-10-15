@@ -652,20 +652,23 @@ bool setFramebufferAttachments(
 
 void beginFramebufferRender(
 	Framebuffer framebuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil);
+	bool clearColor,
+	bool clearDepth,
+	bool clearStencil,
+	Vec4F colorValue,
+	float depthValue,
+	uint32_t stencilValue);
 void endFramebufferRender(
 	Framebuffer framebuffer);
 
 void clearFramebuffer(
 	Framebuffer framebuffer,
-	bool clearColorBuffer,
-	bool clearDepthBuffer,
-	bool clearStencilBuffer,
-	Vec4F clearColor,
-	float clearDepth,
-	uint32_t clearStencil);
+	bool clearColor,
+	bool clearDepth,
+	bool clearStencil,
+	Vec4F colorValue,
+	float depthValue,
+	uint32_t stencilValue);
 
 Pipeline createPipeline(
 	Framebuffer framebuffer,

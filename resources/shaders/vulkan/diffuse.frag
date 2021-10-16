@@ -23,16 +23,16 @@ layout(binding = 0) uniform UniformBuffer
     vec4 ambientColor;
     vec4 lightColor;
     vec4 lightDirection;
-} u;
+} ub;
 
 float getDiffuse()
 {
-    return max(dot(f_Normal, -u.lightDirection.xyz), 0.0);
+    return max(dot(f_Normal, -ub.lightDirection.xyz), 0.0);
 }
 
 void main()
 {
-    vec4 ambientColor = u.objectColor * u.ambientColor;
-    vec4 diffuseColor = u.lightColor * getDiffuse();
-    o_Color = (ambientColor + diffuseColor) * u.objectColor;
+    vec4 ambientColor = ub.objectColor * ub.ambientColor;
+    vec4 diffuseColor = ub.lightColor * getDiffuse();
+    o_Color = (ambientColor + diffuseColor) * ub.objectColor;
 }

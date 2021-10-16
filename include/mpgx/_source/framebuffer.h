@@ -805,6 +805,7 @@ inline static void destroyGlFramebuffer(
 }
 inline static void beginGlFramebufferRender(
 	GLuint framebuffer,
+	Vec2U size,
 	bool clearColor,
 	bool clearDepth,
 	bool clearStencil,
@@ -815,6 +816,11 @@ inline static void beginGlFramebufferRender(
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,
 		framebuffer);
+	glViewport(
+		0, 0,
+		(GLsizei)size.x,
+		(GLsizei)size.y);
+	glDisable(GL_SCISSOR_TEST);
 
 	GLbitfield clearMask = 0;
 
@@ -851,6 +857,7 @@ inline static void endGlFramebufferRender()
 	assertOpenGL();
 }
 inline static void clearGlFramebuffer(
+	Vec2U size,
 	bool clearColor,
 	bool clearDepth,
 	bool clearStencil,
@@ -858,6 +865,12 @@ inline static void clearGlFramebuffer(
 	float depthValue,
 	uint32_t stencilValue)
 {
+	glViewport(
+		0, 0,
+		(GLsizei)size.x,
+		(GLsizei)size.y);
+	glDisable(GL_SCISSOR_TEST);
+
 	GLbitfield clearMask = 0;
 
 	if (clearColor == true)

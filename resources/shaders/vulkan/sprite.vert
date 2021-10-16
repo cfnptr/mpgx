@@ -16,12 +16,12 @@
 
 layout(location = 0) in vec2 v_Position;
 
-layout(push_constant) uniform PushConstant
+layout(push_constant) uniform  VertexPushConstants
 {
     mat4 mvp;
-} p;
+} vpc;
 
 void main()
 {
-    gl_Position = p.mvp * vec4(v_Position, 0.0, 1.0);
+    gl_Position = vpc.mvp * vec4(v_Position, 0.0, 1.0);
 }

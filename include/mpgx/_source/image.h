@@ -142,6 +142,14 @@ inline static Image createVkImage(
 		if (isAttachment == true)
 			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
+	case D16_UNORM_S8_UINT_IMAGE_FORMAT:
+		vkFormat = VK_FORMAT_D16_UNORM_S8_UINT;
+		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+		sizeMultiplier = 3; // TODO: correct?
+
+		if (isAttachment == true)
+			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		break;
 	case D24_UNORM_S8_UINT_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;

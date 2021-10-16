@@ -3100,6 +3100,7 @@ void beginFramebufferRender(
 	{
 		beginGlFramebufferRender(
 			framebuffer->gl.handle,
+			framebuffer->gl.size,
 			clearColor,
 			clearDepth,
 			clearStencil,
@@ -3196,6 +3197,7 @@ void clearFramebuffer(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		clearGlFramebuffer(
+			framebuffer->vk.size,
 			clearColor,
 			clearDepth,
 			clearStencil,

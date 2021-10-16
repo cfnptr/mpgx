@@ -82,6 +82,9 @@ static void onWindowUpdate(void* handle)
 
 	beginFramebufferRender(
 		framebuffer,
+		true,
+		true,
+		false,
 		valVec4F(0.25f),
 		1.0f,
 		0);

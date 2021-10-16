@@ -18,6 +18,11 @@
 
 #include <string.h>
 
+typedef struct VertexPushConstants
+{
+	Mat4F mvp;
+	Mat4F normal;
+} VertexPushConstants;
 typedef struct UniformBuffer
 {
 	Vec4F objectColor;
@@ -28,16 +33,14 @@ typedef struct UniformBuffer
 typedef struct BasePipelineHandle
 {
 	Window window;
-	Mat4F mvp;
-	Mat4F normal;
-	UniformBuffer u;
+	VertexPushConstants vpc;
+	UniformBuffer ub;
 } BasePipelineHandle;
 typedef struct VkPipelineHandle
 {
 	Window window;
-	Mat4F mvp;
-	Mat4F normal;
-	UniformBuffer u;
+	VertexPushConstants vpc;
+	UniformBuffer ub;
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
@@ -49,9 +52,8 @@ typedef struct VkPipelineHandle
 typedef struct GlPipelineHandle
 {
 	Window window;
-	Mat4F mvp;
-	Mat4F normal;
-	UniformBuffer u;
+	VertexPushConstants vpc;
+	UniformBuffer ub;
 	GLint mvpLocation;
 	GLint normalLocation;
 	Buffer uniformBuffer;
@@ -89,7 +91,7 @@ static const VkPushConstantRange pushConstantRanges[1] = {
 	{
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
-		sizeof(Mat4F) * 2,
+		sizeof(VertexPushConstants),
 	},
 };
 
@@ -328,7 +330,7 @@ static void onVkHandleBind(Pipeline pipeline)
 	bool result = setVkBufferData(
 		vkWindow->allocator,
 		buffer->vk.allocation,
-		&pipelineHandle->vk.u,
+		&pipelineHandle->vk.ub,
 		sizeof(UniformBuffer),
 		0);
 
@@ -349,23 +351,14 @@ static void onVkUniformsSet(Pipeline pipeline)
 {
 	PipelineHandle* pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
-	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
-	VkPipelineLayout layout = pipeline->vk.layout;
 
 	vkCmdPushConstants(
-		commandBuffer,
-		layout,
+		vkWindow->currenCommandBuffer,
+		pipeline->vk.layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
-		sizeof(Mat4F),
-		&pipelineHandle->vk.mvp);
-	vkCmdPushConstants(
-		commandBuffer,
-		layout,
-		VK_SHADER_STAGE_VERTEX_BIT,
-		sizeof(Mat4F),
-		sizeof(Mat4F),
-		&pipelineHandle->vk.normal);
+		sizeof(VertexPushConstants),
+		&pipelineHandle->vk.vpc);
 }
 static bool onVkHandleResize(
 	Pipeline pipeline,
@@ -605,7 +598,7 @@ static void onGlHandleBind(Pipeline pipeline)
 	setGlBufferData(
 		uniformBuffer->gl.glType,
 		uniformBuffer->gl.handle,
-		&pipelineHandle->gl.u,
+		&pipelineHandle->gl.ub,
 		sizeof(UniformBuffer),
 		0);
 
@@ -623,12 +616,12 @@ static void onGlUniformsSet(Pipeline pipeline)
 		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&pipelineHandle->gl.mvp);
+		(const GLfloat*)&pipelineHandle->gl.vpc.mvp);
 	glUniformMatrix4fv(
 		pipelineHandle->gl.normalLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&pipelineHandle->gl.normal);
+		(const GLfloat*)&pipelineHandle->gl.vpc.normal);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -806,7 +799,7 @@ Pipeline createExtDiffusePipeline(
 	Vec3F lightDirection = normVec3F(
 		vec3F(1.0f, -3.0f, 6.0f));
 
-	UniformBuffer u = {
+	UniformBuffer ub = {
 		oneVec4F(),
 		valVec4F(0.5f),
 		oneVec4F(),
@@ -818,9 +811,9 @@ Pipeline createExtDiffusePipeline(
 	};
 
 	pipelineHandle->base.window = window;
-	pipelineHandle->base.mvp = identMat4F();
-	pipelineHandle->base.normal = identMat4F();
-	pipelineHandle->base.u = u;
+	pipelineHandle->base.vpc.mvp = identMat4F();
+	pipelineHandle->base.vpc.normal = identMat4F();
+	pipelineHandle->base.ub = ub;
 	return pipeline;
 }
 Pipeline createDiffusePipeline(
@@ -874,11 +867,11 @@ Mat4F getDiffusePipelineMvp(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	return pipelineHandle->base.mvp;
+	return pipelineHandle->base.vpc.mvp;
 }
 void setDiffusePipelineMvp(
 	Pipeline pipeline,
@@ -886,11 +879,11 @@ void setDiffusePipelineMvp(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	pipelineHandle->base.mvp = mvp;
+	pipelineHandle->base.vpc.mvp = mvp;
 }
 
 Mat4F getDiffusePipelineNormal(
@@ -898,11 +891,11 @@ Mat4F getDiffusePipelineNormal(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	return pipelineHandle->base.normal;
+	return pipelineHandle->base.vpc.normal;
 }
 void setDiffusePipelineNormal(
 	Pipeline pipeline,
@@ -910,11 +903,11 @@ void setDiffusePipelineNormal(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	pipelineHandle->base.normal = normal;
+	pipelineHandle->base.vpc.normal = normal;
 }
 
 Vec4F getDiffusePipelineObjectColor(
@@ -922,11 +915,11 @@ Vec4F getDiffusePipelineObjectColor(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	return pipelineHandle->base.u.objectColor;
+	return pipelineHandle->base.ub.objectColor;
 }
 void setDiffusePipelineObjectColor(
 	Pipeline pipeline,
@@ -938,11 +931,11 @@ void setDiffusePipelineObjectColor(
 		objectColor.z >= 0.0f &&
 		objectColor.w >= 0.0f);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	pipelineHandle->base.u.objectColor = objectColor;
+	pipelineHandle->base.ub.objectColor = objectColor;
 }
 
 Vec4F getDiffusePipelineAmbientColor(
@@ -950,11 +943,11 @@ Vec4F getDiffusePipelineAmbientColor(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	return pipelineHandle->base.u.ambientColor;
+	return pipelineHandle->base.ub.ambientColor;
 }
 void setDiffusePipelineAmbientColor(
 	Pipeline pipeline,
@@ -966,11 +959,11 @@ void setDiffusePipelineAmbientColor(
 		ambientColor.z >= 0.0f &&
 		ambientColor.w >= 0.0f);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	pipelineHandle->base.u.ambientColor = ambientColor;
+	pipelineHandle->base.ub.ambientColor = ambientColor;
 }
 
 Vec4F getDiffusePipelineLightColor(
@@ -978,11 +971,11 @@ Vec4F getDiffusePipelineLightColor(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	return pipelineHandle->base.u.lightColor;
+	return pipelineHandle->base.ub.lightColor;
 }
 void setDiffusePipelineLightColor(
 	Pipeline pipeline,
@@ -994,11 +987,11 @@ void setDiffusePipelineLightColor(
 		lightColor.z >= 0.0f &&
 		lightColor.w >= 0.0f);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	pipelineHandle->base.u.lightColor = lightColor;
+	pipelineHandle->base.ub.lightColor = lightColor;
 }
 
 Vec3F getDiffusePipelineLightDirection(
@@ -1006,12 +999,12 @@ Vec3F getDiffusePipelineLightDirection(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	Vec4F lightDirection =
-		pipelineHandle->base.u.lightDirection;
+		pipelineHandle->base.ub.lightDirection;
 	return vec3F(
 		lightDirection.x,
 		lightDirection.y,
@@ -1023,12 +1016,12 @@ void setDiffusePipelineLightDirection(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	lightDirection = normVec3F(lightDirection);
-	pipelineHandle->base.u.lightDirection = vec4F(
+	pipelineHandle->base.ub.lightDirection = vec4F(
 		lightDirection.x,
 		lightDirection.y,
 		lightDirection.z,

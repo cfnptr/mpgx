@@ -19,15 +19,31 @@
 
 #include <string.h>
 
+typedef struct VertexPushConstants
+{
+	Mat4F mvp;
+	Vec2F size;
+	Vec2F offset;
+} VertexPushConstants;
+typedef struct FragmentPushConstants
+{
+	Vec4F color;
+} FragmentPushConstants;
+typedef struct BasePipelineHandle
+{
+	Window window;
+	Image texture;
+	Sampler sampler;
+	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
+} BasePipelineHandle;
 typedef struct VkPipelineHandle
 {
 	Window window;
 	Image texture;
 	Sampler sampler;
-	Mat4F mvp;
-	Vec2F size;
-	Vec2F offset;
-	Vec4F color;
+	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
@@ -41,18 +57,17 @@ typedef struct GlPipelineHandle
 	Window window;
 	Image texture;
 	Sampler sampler;
-	Mat4F mvp;
-	Vec2F size;
-	Vec2F offset;
-	Vec4F color;
+	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
 	GLint mvpLocation;
-	GLint colorLocation;
 	GLint sizeLocation;
 	GLint offsetLocation;
+	GLint colorLocation;
 	GLint textureLocation;
 } GlPipelineHandle;
 typedef union PipelineHandle
 {
+	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
 } PipelineHandle;
@@ -83,12 +98,12 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 	{
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
-		sizeof(Mat4F) + sizeof(Vec2F) * 2,
+		sizeof(VertexPushConstants),
 	},
 	{
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		sizeof(Mat4F) + sizeof(Vec2F) * 2,
-		sizeof(Vec4F),
+		sizeof(VertexPushConstants),
+		sizeof(FragmentPushConstants),
 	},
 };
 
@@ -272,29 +287,15 @@ static void onVkUniformsSet(Pipeline pipeline)
 		layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
-		sizeof(Mat4F),
-		&pipelineHandle->vk.mvp);
-	vkCmdPushConstants(
-		commandBuffer,
-		layout,
-		VK_SHADER_STAGE_VERTEX_BIT,
-		sizeof(Mat4F),
-		sizeof(Vec2F),
-		&pipelineHandle->vk.size);
-	vkCmdPushConstants(
-		commandBuffer,
-		layout,
-		VK_SHADER_STAGE_VERTEX_BIT,
-		sizeof(Mat4F) + sizeof(Vec2F),
-		sizeof(Vec2F),
-		&pipelineHandle->vk.offset);
+		sizeof(VertexPushConstants),
+		&pipelineHandle->vk.vpc);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		sizeof(Mat4F) + sizeof(Vec2F) * 2,
-		sizeof(Vec4F),
-		&pipelineHandle->vk.color);
+		sizeof(VertexPushConstants),
+		sizeof(FragmentPushConstants),
+		&pipelineHandle->vk.fpc);
 }
 static void onVkHandleBind(Pipeline pipeline)
 {
@@ -540,19 +541,19 @@ static void onGlUniformsSet(Pipeline pipeline)
 		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&pipelineHandle->gl.mvp);
-	glUniform4fv(
-		pipelineHandle->gl.colorLocation,
-		1,
-		(const GLfloat*)&pipelineHandle->gl.color);
+		(const GLfloat*)&pipelineHandle->gl.vpc.mvp);
 	glUniform2fv(
 		pipelineHandle->gl.sizeLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.size);
+		(const GLfloat*)&pipelineHandle->gl.vpc.size);
 	glUniform2fv(
 		pipelineHandle->gl.offsetLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.offset);
+		(const GLfloat*)&pipelineHandle->gl.vpc.offset);
+	glUniform4fv(
+		pipelineHandle->gl.colorLocation,
+		1,
+		(const GLfloat*)&pipelineHandle->gl.fpc.color);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -611,18 +612,13 @@ inline static Pipeline createGlHandle(
 
 	GLuint glHandle = pipeline->gl.glHandle;
 
-	GLint mvpLocation, colorLocation,
-		sizeLocation, offsetLocation,
-		textureLocation;
+	GLint mvpLocation, sizeLocation, offsetLocation,
+		colorLocation, textureLocation;
 
 	bool result = getGlUniformLocation(
 		glHandle,
 		"u_MVP",
 		&mvpLocation);
-	result &= getGlUniformLocation(
-		glHandle,
-		"u_Color",
-		&colorLocation);
 	result &= getGlUniformLocation(
 		glHandle,
 		"u_Size",
@@ -631,6 +627,10 @@ inline static Pipeline createGlHandle(
 		glHandle,
 		"u_Offset",
 		&offsetLocation);
+	result &= getGlUniformLocation(
+		glHandle,
+		"u_Color",
+		&colorLocation);
 	result &= getGlUniformLocation(
 		glHandle,
 		"u_Texture",
@@ -647,9 +647,9 @@ inline static Pipeline createGlHandle(
 	assertOpenGL();
 
 	pipelineHandle->gl.mvpLocation = mvpLocation;
-	pipelineHandle->gl.colorLocation = colorLocation;
 	pipelineHandle->gl.sizeLocation = sizeLocation;
 	pipelineHandle->gl.offsetLocation = offsetLocation;
+	pipelineHandle->gl.colorLocation = colorLocation;
 	pipelineHandle->gl.textureLocation = textureLocation;
 	return pipeline;
 }
@@ -726,13 +726,13 @@ Pipeline createExtTexSprPipeline(
 		return NULL;
 	}
 
-	pipelineHandle->vk.window = window;
-	pipelineHandle->vk.texture = texture;
-	pipelineHandle->vk.sampler = sampler;
-	pipelineHandle->vk.mvp = identMat4F();
-	pipelineHandle->vk.size = oneVec2F();
-	pipelineHandle->vk.offset = zeroVec2F();
-	pipelineHandle->vk.color = oneVec4F();
+	pipelineHandle->base.window = window;
+	pipelineHandle->base.texture = texture;
+	pipelineHandle->base.sampler = sampler;
+	pipelineHandle->base.vpc.mvp = identMat4F();
+	pipelineHandle->base.vpc.size = oneVec2F();
+	pipelineHandle->base.vpc.offset = zeroVec2F();
+	pipelineHandle->base.fpc.color = oneVec4F();
 	return pipeline;
 }
 Pipeline createTexSprPipeline(
@@ -790,22 +790,22 @@ Image getTexSprPipelineTexture(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		TEX_SPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.texture;
+		pipeline->base.handle;
+	return pipelineHandle->base.texture;
 }
 Sampler getTexSprPipelineSampler(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		TEX_SPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.sampler;
+		pipeline->base.handle;
+	return pipelineHandle->base.sampler;
 }
 
 Mat4F getTexSprPipelineMvp(
@@ -813,11 +813,11 @@ Mat4F getTexSprPipelineMvp(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		TEX_SPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.mvp;
+		pipeline->base.handle;
+	return pipelineHandle->base.vpc.mvp;
 }
 void setTexSprPipelineMvp(
 	Pipeline pipeline,
@@ -825,11 +825,11 @@ void setTexSprPipelineMvp(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		TEX_SPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.mvp = mvp;
+		pipeline->base.handle;
+	pipelineHandle->base.vpc.mvp = mvp;
 }
 
 Vec2F getTexSprPipelineSize(
@@ -837,11 +837,11 @@ Vec2F getTexSprPipelineSize(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		TEX_SPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.size;
+		pipeline->base.handle;
+	return pipelineHandle->base.vpc.size;
 }
 void setTexSprPipelineSize(
 	Pipeline pipeline,
@@ -849,11 +849,11 @@ void setTexSprPipelineSize(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		TEX_SPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.size = size;
+		pipeline->base.handle;
+	pipelineHandle->base.vpc.size = size;
 }
 
 Vec2F getTexSprPipelineOffset(
@@ -861,11 +861,11 @@ Vec2F getTexSprPipelineOffset(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		TEX_SPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.offset;
+		pipeline->base.handle;
+	return pipelineHandle->base.vpc.offset;
 }
 void setTexSprPipelineOffset(
 	Pipeline pipeline,
@@ -873,11 +873,11 @@ void setTexSprPipelineOffset(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		TEX_SPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.offset = offset;
+		pipeline->base.handle;
+	pipelineHandle->base.vpc.offset = offset;
 }
 
 Vec4F getTexSprPipelineColor(
@@ -885,11 +885,11 @@ Vec4F getTexSprPipelineColor(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		TEX_SPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.color;
+		pipeline->base.handle;
+	return pipelineHandle->base.fpc.color;
 }
 void setTexSprPipelineColor(
 	Pipeline pipeline,
@@ -897,13 +897,13 @@ void setTexSprPipelineColor(
 {
 	assert(pipeline != NULL);
 	assert(color.x >= 0.0f &&
-		   color.y >= 0.0f &&
-		   color.z >= 0.0f &&
-		   color.w >= 0.0f);
+		color.y >= 0.0f &&
+		color.z >= 0.0f &&
+		color.w >= 0.0f);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		TEX_SPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.color = color;
+		pipeline->base.handle;
+	pipelineHandle->base.fpc.color = color;
 }

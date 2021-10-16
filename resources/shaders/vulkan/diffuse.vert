@@ -19,14 +19,14 @@ layout(location = 1) in vec3 v_Normal;
 
 layout(location = 0) out vec3 f_Normal;
 
-layout(push_constant) uniform PushConstant
+layout(push_constant) uniform VertexPushConstants
 {
     mat4 mvp;
     mat4 normal;
-} p;
+} vpc;
 
 void main()
 {
-    gl_Position = p.mvp * vec4(v_Position, 1.0);
-    f_Normal = normalize(mat3(p.normal) * v_Normal);
+    gl_Position = vpc.mvp * vec4(v_Position, 1.0);
+    f_Normal = normalize(mat3(vpc.normal) * v_Normal);
 }

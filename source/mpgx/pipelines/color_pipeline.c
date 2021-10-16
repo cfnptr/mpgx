@@ -17,23 +17,31 @@
 
 #include <string.h>
 
+typedef struct VertexPushConstants
+{
+	Mat4F mvp;
+} VertexPushConstants;
+typedef struct FragmentPushConstants
+{
+	Vec4F color;
+} FragmentPushConstants;
 typedef struct BasePipelineHandle
 {
 	Window window;
-	Mat4F mvp;
-	Vec4F color;
+	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
 } BasePipelineHandle;
 typedef struct VkPipelineHandle
 {
 	Window window;
-	Mat4F mvp;
-	Vec4F color;
+	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
 	Window window;
-	Mat4F mvp;
-	Vec4F color;
+	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
 	GLint mvpLocation;
 	GLint colorLocation;
 } GlPipelineHandle;
@@ -64,12 +72,12 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 	{
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
-		sizeof(Mat4F),
+		sizeof(VertexPushConstants),
 	},
 	{
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		sizeof(Mat4F),
-		sizeof(Vec4F),
+		sizeof(VertexPushConstants),
+		sizeof(FragmentPushConstants),
 	},
 };
 
@@ -90,15 +98,15 @@ static void onVkUniformsSet(Pipeline pipeline)
 		layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
-		sizeof(Mat4F),
-		&pipelineHandle->vk.mvp);
+		sizeof(VertexPushConstants),
+		&pipelineHandle->vk.vpc);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		sizeof(Mat4F),
-		sizeof(Vec4F),
-		&pipelineHandle->vk.color);
+		sizeof(VertexPushConstants),
+		sizeof(FragmentPushConstants),
+		&pipelineHandle->vk.fpc);
 }
 static bool onVkHandleResize(
 	Pipeline pipeline,
@@ -171,11 +179,11 @@ static void onGlUniformsSet(Pipeline pipeline)
 		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&pipelineHandle->gl.mvp);
+		(const GLfloat*)&pipelineHandle->gl.vpc.mvp);
 	glUniform4fv(
 		pipelineHandle->gl.colorLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.color);
+		(const GLfloat*)&pipelineHandle->gl.fpc.color);
 
 	glEnableVertexAttribArray(0);
 
@@ -317,8 +325,8 @@ Pipeline createExtColorPipeline(
 	}
 
 	pipelineHandle->base.window = window;
-	pipelineHandle->base.mvp = identMat4F();
-	pipelineHandle->base.color = oneVec4F();
+	pipelineHandle->base.vpc.mvp = identMat4F();
+	pipelineHandle->base.fpc.color = oneVec4F();
 	return pipeline;
 }
 Pipeline createColorPipeline(
@@ -372,11 +380,11 @@ Mat4F getColorPipelineMvp(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.mvp;
+		pipeline->base.handle;
+	return pipelineHandle->base.vpc.mvp;
 }
 void setColorPipelineMvp(
 	Pipeline pipeline,
@@ -384,11 +392,11 @@ void setColorPipelineMvp(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.mvp = mvp;
+		pipeline->base.handle;
+	pipelineHandle->base.vpc.mvp = mvp;
 }
 
 Vec4F getColorPipelineColor(
@@ -396,11 +404,11 @@ Vec4F getColorPipelineColor(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	return pipelineHandle->base.color;
+	return pipelineHandle->base.fpc.color;
 }
 void setColorPipelineColor(
 	Pipeline pipeline,
@@ -412,9 +420,9 @@ void setColorPipelineColor(
 		color.z >= 0.0f &&
 		color.w >= 0.0f);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	pipelineHandle->base.color = color;
+	pipelineHandle->base.fpc.color = color;
 }

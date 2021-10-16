@@ -106,14 +106,14 @@ Pipeline createTextPipeline(
 Sampler getTextPipelineSampler(
 	Pipeline pipeline);
 
-Vec4F getTextPipelineColor(
-	Pipeline pipeline);
-void setTextPipelineColor(
-	Pipeline pipeline,
-	Vec4F color);
-
 Mat4F getTextPipelineMVP(
 	Pipeline pipeline);
 void setTextPipelineMVP(
 	Pipeline pipeline,
 	Mat4F mvp);
+
+Vec4F getTextPipelineColor(
+	Pipeline pipeline);
+void setTextPipelineColor(
+	Pipeline pipeline,
+	Vec4F color);

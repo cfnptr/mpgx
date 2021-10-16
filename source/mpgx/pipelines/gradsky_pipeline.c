@@ -25,14 +25,30 @@ struct GradSkyAmbient
 	size_t count;
 };
 
+typedef struct VertexPushConstants
+{
+	Mat4F mvp;
+} VertexPushConstants;
+typedef struct FragmentPushConstants
+{
+	Vec4F sunDir;
+	Vec4F sunColor;
+} FragmentPushConstants;
+typedef struct BasePipelineHandle
+{
+	Window window;
+	Image texture;
+	Sampler sampler;
+	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
+} BasePipelineHandle;
 typedef struct VkPipelineHandle
 {
 	Window window;
 	Image texture;
 	Sampler sampler;
-	Mat4F mvp;
-	Vec4F sunDir;
-	Vec4F sunColor;
+	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
@@ -46,9 +62,8 @@ typedef struct GlPipelineHandle
 	Window window;
 	Image texture;
 	Sampler sampler;
-	Mat4F mvp;
-	Vec4F sunDir;
-	Vec4F sunColor;
+	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
 	GLint mvpLocation;
 	GLint sunDirLocation;
 	GLint sunColorLocation;
@@ -56,6 +71,7 @@ typedef struct GlPipelineHandle
 } GlPipelineHandle;
 typedef union PipelineHandle
 {
+	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
 } PipelineHandle;
@@ -182,12 +198,12 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 	{
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
-		sizeof(Mat4F),
+		sizeof(VertexPushConstants),
 	},
 	{
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		sizeof(Mat4F),
-		sizeof(Vec4F) * 2,
+		sizeof(VertexPushConstants),
+		sizeof(FragmentPushConstants),
 	},
 };
 
@@ -372,22 +388,15 @@ static void onVkUniformsSet(Pipeline pipeline)
 		layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
-		sizeof(Mat4F),
-		&pipelineHandle->vk.mvp);
+		sizeof(VertexPushConstants),
+		&pipelineHandle->vk.vpc);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		sizeof(Mat4F),
-		sizeof(Vec4F),
-		&pipelineHandle->vk.sunDir);
-	vkCmdPushConstants(
-		commandBuffer,
-		layout,
-		VK_SHADER_STAGE_FRAGMENT_BIT,
-		sizeof(Mat4F) + sizeof(Vec4F),
-		sizeof(Vec4F),
-		&pipelineHandle->vk.sunColor);
+		sizeof(VertexPushConstants),
+		sizeof(FragmentPushConstants),
+		&pipelineHandle->vk.fpc);
 }
 static void onVkHandleBind(Pipeline pipeline)
 {
@@ -635,15 +644,15 @@ static void onGlUniformsSet(Pipeline pipeline)
 		pipelineHandle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&pipelineHandle->gl.mvp);
+		(const GLfloat*)&pipelineHandle->gl.vpc.mvp);
 	glUniform4fv(
 		pipelineHandle->gl.sunDirLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.sunDir);
+		(const GLfloat*)&pipelineHandle->gl.fpc.sunDir);
 	glUniform4fv(
 		pipelineHandle->gl.sunColorLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.sunColor);
+		(const GLfloat*)&pipelineHandle->gl.fpc.sunColor);
 
 	glEnableVertexAttribArray(0);
 
@@ -803,12 +812,11 @@ Pipeline createExtGradSkyPipeline(
 		return NULL;
 	}
 
-	pipelineHandle->vk.texture = texture;
-	pipelineHandle->vk.sampler = sampler;
-	pipelineHandle->vk.mvp = identMat4F();
-	pipelineHandle->vk.mvp = identMat4F();
-	pipelineHandle->vk.sunDir = zeroVec4F();
-	pipelineHandle->vk.sunColor = oneVec4F();
+	pipelineHandle->base.texture = texture;
+	pipelineHandle->base.sampler = sampler;
+	pipelineHandle->base.vpc.mvp = identMat4F();
+	pipelineHandle->base.fpc.sunDir = zeroVec4F();
+	pipelineHandle->base.fpc.sunColor = oneVec4F();
 	return pipeline;
 }
 Pipeline createGradSkyPipeline(
@@ -866,11 +874,11 @@ Image getGradSkyPipelineTexture(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.texture;
+		pipeline->base.handle;
+	return pipelineHandle->base.texture;
 }
 Sampler getGradSkyPipelineSampler(
 	Pipeline pipeline)
@@ -880,8 +888,8 @@ Sampler getGradSkyPipelineSampler(
 		getPipelineName(pipeline),
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.sampler;
+		pipeline->base.handle;
+	return pipelineHandle->base.sampler;
 }
 
 Mat4F getGradSkyPipelineMvp(
@@ -889,11 +897,11 @@ Mat4F getGradSkyPipelineMvp(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	return pipelineHandle->vk.mvp;
+		pipeline->base.handle;
+	return pipelineHandle->base.vpc.mvp;
 }
 void setGradSkyPipelineMvp(
 	Pipeline pipeline,
@@ -901,11 +909,11 @@ void setGradSkyPipelineMvp(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		pipeline->gl.handle;
-	pipelineHandle->vk.mvp = mvp;
+		pipeline->base.handle;
+	pipelineHandle->base.vpc.mvp = mvp;
 }
 
 Vec3F getGradSkyPipelineSunDir(
@@ -913,12 +921,12 @@ Vec3F getGradSkyPipelineSunDir(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
+		pipeline->base.handle;
 	Vec4F sunDir =
-		pipelineHandle->vk.sunDir;
+		pipelineHandle->base.fpc.sunDir;
 	return vec3F(
 		sunDir.x,
 		sunDir.y,
@@ -930,11 +938,11 @@ void setGradSkyPipelineSunDir(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-	pipelineHandle->vk.sunDir = vec4F(
+		pipeline->base.handle;
+	pipelineHandle->base.fpc.sunDir = vec4F(
 		sunDir.x,
 		sunDir.y,
 		sunDir.z,
@@ -946,11 +954,11 @@ Vec4F getGradSkyPipelineSunColor(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-	return pipelineHandle->vk.sunColor;
+		pipeline->base.handle;
+	return pipelineHandle->base.fpc.sunColor;
 }
 void setGradSkyPipelineSunColor(
 	Pipeline pipeline,
@@ -958,9 +966,9 @@ void setGradSkyPipelineSunColor(
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		getPipelineName(pipeline),
+		pipeline->base.name,
 		GRAD_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
-		getPipelineHandle(pipeline);
-	pipelineHandle->vk.sunColor = sunColor;
+		pipeline->base.handle;
+	pipelineHandle->base.fpc.sunColor = sunColor;
 }

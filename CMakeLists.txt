@@ -65,6 +65,7 @@ add_library(mpgx STATIC
 	source/mpgx/pipelines/color_pipeline.c
 	source/mpgx/pipelines/diffuse_pipeline.c
 	source/mpgx/pipelines/gradsky_pipeline.c
+    source/mpgx/pipelines/simpshad_pipeline.c
 	source/mpgx/pipelines/sprite_pipeline.c
 	source/mpgx/pipelines/texcol_pipeline.c
 	source/mpgx/pipelines/texspr_pipeline.c
@@ -72,6 +73,7 @@ add_library(mpgx STATIC
 	source/mpgx/renderers/color_renderer.c
 	source/mpgx/renderers/diffuse_renderer.c
 	source/mpgx/renderers/gradsky_renderer.c
+	source/mpgx/renderers/simpshad_renderer.c
 	source/mpgx/renderers/sprite_renderer.c
 	source/mpgx/renderers/texcol_renderer.c
 	source/mpgx/renderers/texspr_renderer.c

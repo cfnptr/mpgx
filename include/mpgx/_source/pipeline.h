@@ -489,10 +489,10 @@ inline static VkPipeline createVkPipelineHandle(
 		polygonMode,
 		cullMode,
 		vkFrontFace,
-		VK_FALSE, // TODO: implement depth bias
-		0.0f,
-		0.0f,
-		0.0f,
+		state.enableDepthBias ? VK_TRUE : VK_FALSE,
+		state.depthBias.x,
+		0.0f, // TODO:
+		state.depthBias.y,
 		state.lineWidth,
 	};
 
@@ -1152,11 +1152,10 @@ inline static void bindGlPipeline(
 	Pipeline pipeline)
 {
 	Vec4I viewport = pipeline->gl.state.viewport;
-	Vec2F depthRange = pipeline->gl.state.depthRange;
-	Vec4I scissor = pipeline->gl.state.scissor;
 
 	if (viewport.z + viewport.w > 0)
 	{
+		Vec2F depthRange = pipeline->gl.state.depthRange;
 		glViewport(
 			(GLint)viewport.x,
 			(GLint)viewport.y,
@@ -1166,6 +1165,8 @@ inline static void bindGlPipeline(
 			depthRange.x,
 			depthRange.y);
 	}
+
+	Vec4I scissor = pipeline->gl.state.scissor;
 
 	if (scissor.z + scissor.w > 0)
 	{
@@ -1227,6 +1228,19 @@ inline static void bindGlPipeline(
 		glDisable(GL_DEPTH_TEST);
 	}
 
+	if (pipeline->gl.state.enableDepthBias == true)
+	{
+		Vec2F depthBias = pipeline->gl.state.depthBias;
+		glPolygonOffset(
+			depthBias.y,
+			depthBias.x);
+		glEnable(GL_POLYGON_OFFSET_FILL);
+	}
+	else
+	{
+		glDisable(GL_POLYGON_OFFSET_FILL);
+	}
+
 	if (pipeline->gl.state.enableBlend == true)
 	{
 		Vec4F blendColor =
@@ -1254,7 +1268,6 @@ inline static void bindGlPipeline(
 
 	// TODO:
 	glDisable(GL_STENCIL_TEST);
-	glPolygonOffset(0.0f, 0.0f);
 
 	glUseProgram(pipeline->gl.glHandle);
 	assertOpenGL();

@@ -15,7 +15,7 @@
 #pragma once
 #include "mpgx/window.h"
 
-#define TEX_COL_PIPELINE_NAME "TexCol"
+#define TEXCOL_PIPELINE_NAME "TexCol"
 
 Pipeline createExtTexColPipeline(
 	Framebuffer framebuffer,

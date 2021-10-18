@@ -358,13 +358,16 @@ Pipeline createSpritePipeline(
 		true,
 		true,
 		false,
+		false,
 		true,
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
 		size,
-		defaultDepthRange,
 		size,
+		defaultDepthRange,
+		defaultDepthBias,
+		defaultBlendColor,
 	};
 
 	return createExtSpritePipeline(

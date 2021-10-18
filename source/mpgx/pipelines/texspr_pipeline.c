@@ -413,7 +413,7 @@ inline static Pipeline createVkHandle(
 
 	Pipeline pipeline = createPipeline(
 		framebuffer,
-		TEX_SPR_PIPELINE_NAME,
+		TEXSPR_PIPELINE_NAME,
 		shaders,
 		shaderCount,
 		state,
@@ -596,7 +596,7 @@ inline static Pipeline createGlHandle(
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
-		TEX_SPR_PIPELINE_NAME,
+		TEXSPR_PIPELINE_NAME,
 		shaders,
 		shaderCount,
 		state,
@@ -767,13 +767,16 @@ Pipeline createTexSprPipeline(
 		true,
 		true,
 		false,
+		false,
 		true,
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
 		size,
-		defaultDepthRange,
 		size,
+		defaultDepthRange,
+		defaultDepthBias,
+		defaultBlendColor,
 	};
 
 	return createExtTexSprPipeline(
@@ -791,7 +794,7 @@ Image getTexSprPipelineTexture(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.texture;
@@ -802,7 +805,7 @@ Sampler getTexSprPipelineSampler(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.sampler;
@@ -814,7 +817,7 @@ Mat4F getTexSprPipelineMvp(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.mvp;
@@ -826,7 +829,7 @@ void setTexSprPipelineMvp(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.mvp = mvp;
@@ -838,7 +841,7 @@ Vec2F getTexSprPipelineSize(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.size;
@@ -850,7 +853,7 @@ void setTexSprPipelineSize(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.size = size;
@@ -862,7 +865,7 @@ Vec2F getTexSprPipelineOffset(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.offset;
@@ -874,7 +877,7 @@ void setTexSprPipelineOffset(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.offset = offset;
@@ -886,7 +889,7 @@ Vec4F getTexSprPipelineColor(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.fpc.color;
@@ -902,7 +905,7 @@ void setTexSprPipelineColor(
 		color.w >= 0.0f);
 	assert(strcmp(
 		pipeline->base.name,
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.fpc.color = color;

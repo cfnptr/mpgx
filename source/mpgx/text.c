@@ -2723,6 +2723,7 @@ Pipeline createTextPipeline(
 		true,
 		true,
 		false,
+		false,
 		true,
 		false,
 		false,
@@ -2730,8 +2731,10 @@ Pipeline createTextPipeline(
 		vec4I(0, 0,
 			(int32_t)framebufferSize.x,
 			(int32_t)framebufferSize.y),
-		defaultDepthRange,
 		zeroVec4I(),
+		defaultDepthRange,
+		defaultDepthBias,
+		defaultBlendColor,
 	};
 
 	return createExtTextPipeline(

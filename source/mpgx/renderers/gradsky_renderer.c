@@ -58,7 +58,7 @@ Renderer createGradSkyRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		transform,
@@ -89,7 +89,7 @@ Render createGradSkyRender(
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 
 	RenderHandle* renderHandle = malloc(
 		sizeof(RenderHandle));
@@ -122,7 +122,7 @@ Mesh getGradSkyRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	return renderHandle->mesh;
@@ -137,7 +137,7 @@ void setGradSkyRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	renderHandle->mesh = mesh;

@@ -210,7 +210,7 @@ inline static Sampler createVkSampler(
 		wrapZ,
 		mipmapLodBias,
 		VK_FALSE, // TODO
-		0.0f,
+		1.0f,
 		useCompare ? VK_TRUE : VK_FALSE,
 		compare,
 		mipmapLodRange.x,

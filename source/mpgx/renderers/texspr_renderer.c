@@ -70,7 +70,7 @@ Renderer createTexSprRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		transform,
@@ -108,7 +108,7 @@ Render createTexSprRender(
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 
 	RenderHandle* renderHandle = malloc(
 		sizeof(RenderHandle));
@@ -144,7 +144,7 @@ Vec4F getTexSprRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	return renderHandle->color;
@@ -162,7 +162,7 @@ void setTexSprRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	renderHandle->color = color;
@@ -176,7 +176,7 @@ Vec2F getTexSprRenderSize(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	return renderHandle->size;
@@ -190,7 +190,7 @@ void setTexSprRenderSize(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	renderHandle->size = size;
@@ -204,7 +204,7 @@ Vec2F getTexSprRenderOffset(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	return renderHandle->offset;
@@ -218,7 +218,7 @@ void setTexSprRenderOffset(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	renderHandle->offset = offset;
@@ -232,7 +232,7 @@ Mesh getTexSprRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	return renderHandle->mesh;
@@ -247,7 +247,7 @@ void setTexSprRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEX_SPR_PIPELINE_NAME) == 0);
+		TEXSPR_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	renderHandle->mesh = mesh;

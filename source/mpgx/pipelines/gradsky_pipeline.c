@@ -161,8 +161,6 @@ Vec4F getGradSkyAmbientColor(
 
 Sampler createGradSkySampler(Window window)
 {
-	assert(window != NULL);
-
 	return createSampler(
 		window,
 		LINEAR_IMAGE_FILTER,
@@ -515,7 +513,7 @@ inline static Pipeline createVkHandle(
 
 	Pipeline pipeline = createPipeline(
 		framebuffer,
-		GRAD_SKY_PIPELINE_NAME,
+		GRADSKY_PIPELINE_NAME,
 		shaders,
 		shaderCount,
 		state,
@@ -687,7 +685,7 @@ inline static Pipeline createGlHandle(
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
-		GRAD_SKY_PIPELINE_NAME,
+		GRADSKY_PIPELINE_NAME,
 		shaders,
 		shaderCount,
 		state,
@@ -851,13 +849,16 @@ Pipeline createGradSkyPipeline(
 		true,
 		true,
 		false,
+		false,
 		true,
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
 		size,
-		defaultDepthRange,
 		size,
+		defaultDepthRange,
+		defaultDepthBias,
+		defaultBlendColor,
 	};
 
 	return createExtGradSkyPipeline(
@@ -875,7 +876,7 @@ Image getGradSkyPipelineTexture(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.texture;
@@ -886,7 +887,7 @@ Sampler getGradSkyPipelineSampler(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		getPipelineName(pipeline),
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.sampler;
@@ -898,7 +899,7 @@ Mat4F getGradSkyPipelineMvp(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.mvp;
@@ -910,7 +911,7 @@ void setGradSkyPipelineMvp(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.mvp = mvp;
@@ -922,7 +923,7 @@ Vec3F getGradSkyPipelineSunDir(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	Vec4F sunDir =
@@ -939,7 +940,7 @@ void setGradSkyPipelineSunDir(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.fpc.sunDir = vec4F(
@@ -955,7 +956,7 @@ Vec4F getGradSkyPipelineSunColor(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.fpc.sunColor;
@@ -967,7 +968,7 @@ void setGradSkyPipelineSunColor(
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		GRAD_SKY_PIPELINE_NAME) == 0);
+		GRADSKY_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.fpc.sunColor = sunColor;

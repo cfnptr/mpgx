@@ -15,47 +15,23 @@
 #pragma once
 #include "mpgx/window.h"
 
-#define TEXSPR_PIPELINE_NAME "TexSpr"
+#define SIMPSHAD_PIPELINE_NAME "SimpShad"
 
-Pipeline createExtTexSprPipeline(
+Sampler createSimpShadSampler(Window window);
+
+Pipeline createExtSimpShadPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Image texture,
-	Sampler sampler,
 	const PipelineState* state);
-Pipeline createTexSprPipeline(
+Pipeline createSimpShadPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Image texture,
-	Sampler sampler);
+	uint32_t shadowMapLength);
 
-Image getTexSprPipelineTexture(
+Mat4F getSimpShadPipelineMvp(
 	Pipeline pipeline);
-Sampler getTexSprPipelineSampler(
-	Pipeline pipeline);
-
-Mat4F getTexSprPipelineMvp(
-	Pipeline pipeline);
-void setTexSprPipelineMvp(
+void setSimpShadPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
-
-Vec2F getTexSprPipelineSize(
-	Pipeline pipeline);
-void setTexSprPipelineSize(
-	Pipeline pipeline,
-	Vec2F size);
-
-Vec2F getTexSprPipelineOffset(
-	Pipeline pipeline);
-void setTexSprPipelineOffset(
-	Pipeline pipeline,
-	Vec2F offset);
-
-Vec4F getTexSprPipelineColor(
-	Pipeline pipeline);
-void setTexSprPipelineColor(
-	Pipeline pipeline,
-	Vec4F color);

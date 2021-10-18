@@ -27,16 +27,12 @@
 #define DEFAULT_LINE_WIDTH 1
 #define DEFAULT_MIN_DEPTH 0
 #define DEFAULT_MAX_DEPTH 1
-
-// TODO: do complete library object creation "if()" audit! (and other my libraries)
+#define DEFAULT_DEPTH_BIAS_CONSTANT 0
+#define DEFAULT_DEPTH_BIAS_SLOPE 0
+#define DEFAULT_BLEND_COLOR 0
 
 // TODO: fix a new framebuffer sRGB difference
-
-// TODO: use glPolygonOffset to improve shadow mapping
-// https://docs.microsoft.com/en-gb/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps?redirectedfrom=MSDN
-
 // TODO: add framebuffer, renderer, transformer enumerators
-
 // TODO: possibly switch to the ktx texture format
 
 static const Vec2U defaultWindowSize = {
@@ -50,6 +46,16 @@ static const Vec2F defaultMipmapLodRange = {
 static const Vec2F defaultDepthRange = {
 	DEFAULT_MIN_DEPTH,
 	DEFAULT_MAX_DEPTH,
+};
+static const Vec2F defaultDepthBias = {
+	DEFAULT_DEPTH_BIAS_CONSTANT,
+	DEFAULT_DEPTH_BIAS_SLOPE,
+};
+static const Vec4F defaultBlendColor = {
+	DEFAULT_BLEND_COLOR,
+	DEFAULT_BLEND_COLOR,
+	DEFAULT_BLEND_COLOR,
+	DEFAULT_BLEND_COLOR,
 };
 
 typedef enum KeyboardKey
@@ -380,13 +386,15 @@ typedef struct PipelineState
 	bool testDepth;
 	bool writeDepth;
 	bool clampDepth;
+	bool enableDepthBias;
 	bool enableBlend;
 	bool restartPrimitive;
 	bool discardRasterizer;
 	float lineWidth;
 	Vec4I viewport;
-	Vec2F depthRange;
 	Vec4I scissor;
+	Vec2F depthRange;
+	Vec2F depthBias;
 	Vec4F blendColor;
 } PipelineState;
 

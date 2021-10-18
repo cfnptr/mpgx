@@ -12,16 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mpgx/renderers/texcol_renderer.h"
+#include "mpgx/renderers/simpshad_renderer.h"
 
 #include <string.h>
 #include <assert.h>
 
 typedef struct RenderHandle
 {
-	Vec4F color;
-	Vec2F size;
-	Vec2F offset;
 	Mesh mesh;
 } RenderHandle;
 
@@ -40,23 +37,14 @@ static size_t onRenderHandleDraw(
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
-	setTexColPipelineMvp(
+	setSimpShadPipelineMvp(
 		pipeline,
 		mvp);
-	setTexColPipelineColor(
-		pipeline,
-		renderHandle->color);
-	setTexColPipelineSize(
-		pipeline,
-		renderHandle->size);
-	setTexColPipelineOffset(
-		pipeline,
-		renderHandle->offset);
 	return drawMesh(
 		renderHandle->mesh,
 		pipeline);
 }
-Renderer createTexColRenderer(
+Renderer createSimpShadRenderer(
 	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sorting,
@@ -70,7 +58,7 @@ Renderer createTexColRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		TEXCOL_PIPELINE_NAME) == 0);
+		SIMPSHAD_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		transform,
@@ -81,13 +69,10 @@ Renderer createTexColRenderer(
 		onRenderHandleDraw,
 		capacity);
 }
-Render createTexColRender(
+Render createSimpShadRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
-	Vec4F color,
-	Vec2F size,
-	Vec2F offset,
 	Mesh mesh)
 {
 	assert(renderer != NULL);
@@ -101,14 +86,10 @@ Render createTexColRender(
 		getPipelineFramebuffer(
 		getRendererPipeline(renderer))) ==
 		getMeshWindow(mesh));
-	assert(color.x >= 0.0f &&
-		color.y >= 0.0f &&
-		color.z >= 0.0f &&
-		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		TEXCOL_PIPELINE_NAME) == 0);
+		SIMPSHAD_PIPELINE_NAME) == 0);
 
 	RenderHandle* renderHandle = malloc(
 		sizeof(RenderHandle));
@@ -116,9 +97,6 @@ Render createTexColRender(
 	if (renderHandle == NULL)
 		return NULL;
 
-	renderHandle->color = color;
-	renderHandle->size = size;
-	renderHandle->offset = offset;
 	renderHandle->mesh = mesh;
 
 	Render render = createRender(
@@ -136,7 +114,7 @@ Render createTexColRender(
 	return render;
 }
 
-Vec4F getTexColRenderColor(
+Mesh getSimpShadRenderMesh(
 	Render render)
 {
 	assert(render != NULL);
@@ -144,100 +122,12 @@ Vec4F getTexColRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
-	RenderHandle* renderHandle =
-		getRenderHandle(render);
-	return renderHandle->color;
-}
-void setTexColRenderColor(
-	Render render,
-	Vec4F color)
-{
-	assert(render != NULL);
-	assert(color.x >= 0.0f &&
-		color.y >= 0.0f &&
-		color.z >= 0.0f &&
-		color.w >= 0.0f);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
-	RenderHandle* renderHandle =
-		getRenderHandle(render);
-	renderHandle->color = color;
-}
-
-Vec2F getTexColRenderSize(
-	Render render)
-{
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
-	RenderHandle* renderHandle =
-		getRenderHandle(render);
-	return renderHandle->size;
-}
-void setTexColRenderSize(
-	Render render,
-	Vec2F size)
-{
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
-	RenderHandle* renderHandle =
-		getRenderHandle(render);
-	renderHandle->size = size;
-}
-
-Vec2F getTexColRenderOffset(
-	Render render)
-{
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
-	RenderHandle* renderHandle =
-		getRenderHandle(render);
-	return renderHandle->offset;
-}
-void setTexColRenderOffset(
-	Render render,
-	Vec2F offset)
-{
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
-	RenderHandle* renderHandle =
-		getRenderHandle(render);
-	renderHandle->offset = offset;
-}
-
-Mesh getTexColRenderMesh(
-	Render render)
-{
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
+		SIMPSHAD_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	return renderHandle->mesh;
 }
-void setTexColRenderMesh(
+void setSimpShadRenderMesh(
 	Render render,
 	Mesh mesh)
 {
@@ -247,7 +137,7 @@ void setTexColRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
+		SIMPSHAD_PIPELINE_NAME) == 0);
 	RenderHandle* renderHandle =
 		getRenderHandle(render);
 	renderHandle->mesh = mesh;

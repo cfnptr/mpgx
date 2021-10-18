@@ -849,10 +849,13 @@ Pipeline createDiffusePipeline(
 		false,
 		false,
 		false,
+		false,
 		DEFAULT_LINE_WIDTH,
 		size,
-		defaultDepthRange,
 		size,
+		defaultDepthRange,
+		defaultDepthBias,
+		defaultBlendColor,
 	};
 
 	return createExtDiffusePipeline(

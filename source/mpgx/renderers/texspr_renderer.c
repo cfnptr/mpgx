@@ -19,7 +19,7 @@
 
 typedef struct RenderHandle
 {
-	Vec4F color;
+	LinearColor color;
 	Vec2F size;
 	Vec2F offset;
 	Mesh mesh;
@@ -85,13 +85,14 @@ Render createTexSprRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
-	Vec4F color,
+	LinearColor color,
 	Vec2F size,
 	Vec2F offset,
 	Mesh mesh)
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
+	assertLinearColor(color);
 	assert(mesh != NULL);
 
 	assert(getTransformTransformer(
@@ -101,10 +102,6 @@ Render createTexSprRender(
 		getPipelineFramebuffer(
 		getRendererPipeline(renderer))) ==
 		getMeshWindow(mesh));
-	assert(color.x >= 0.0f &&
-		color.y >= 0.0f &&
-		color.z >= 0.0f &&
-		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
@@ -136,7 +133,7 @@ Render createTexSprRender(
 	return render;
 }
 
-Vec4F getTexSprRenderColor(
+LinearColor getTexSprRenderColor(
 	Render render)
 {
 	assert(render != NULL);
@@ -151,13 +148,10 @@ Vec4F getTexSprRenderColor(
 }
 void setTexSprRenderColor(
 	Render render,
-	Vec4F color)
+	LinearColor color)
 {
 	assert(render != NULL);
-	assert(color.x >= 0.0f &&
-		color.y >= 0.0f &&
-		color.z >= 0.0f &&
-		color.w >= 0.0f);
+	assertLinearColor(color);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(

@@ -368,12 +368,12 @@ void createRenderData(
 
 	if (createPlanes == false)
 	{
-		data->leftPlane = plane3F(zeroVec3F(), 0.0f);
-		data->rightPlane = plane3F(zeroVec3F(), 0.0f);
-		data->bottomPlane = plane3F(zeroVec3F(), 0.0f);
-		data->topPlane = plane3F(zeroVec3F(), 0.0f);
-		data->backPlane = plane3F(zeroVec3F(), 0.0f);
-		data->frontPlane = plane3F(zeroVec3F(), 0.0f);
+		data->leftPlane = plane3F(zeroVec3F, 0.0f);
+		data->rightPlane = plane3F(zeroVec3F, 0.0f);
+		data->bottomPlane = plane3F(zeroVec3F, 0.0f);
+		data->topPlane = plane3F(zeroVec3F, 0.0f);
+		data->backPlane = plane3F(zeroVec3F, 0.0f);
+		data->frontPlane = plane3F(zeroVec3F, 0.0f);
 	}
 }
 RenderResult drawRenderer(

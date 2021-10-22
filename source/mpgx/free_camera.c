@@ -55,9 +55,9 @@ FreeCamera createFreeCamera(
 
 	Transform transform = createTransform(
 		transformer,
-		zeroVec3F(),
-		oneVec3F(),
-		oneQuat(),
+		zeroVec3F,
+		oneVec3F,
+		oneQuat,
 		ORBIT_ROTATION_TYPE,
 		NULL,
 		true);
@@ -73,7 +73,7 @@ FreeCamera createFreeCamera(
 
 	freeCamera->framebuffer = framebuffer;
 	freeCamera->transform = transform;
-	freeCamera->rotation = zeroVec2F();
+	freeCamera->rotation = zeroVec2F;
 	freeCamera->lastCursorPosition = lasCursorPosition;
 	freeCamera->moveSpeed = moveSpeed;
 	freeCamera->viewSpeed = viewSpeed;
@@ -261,15 +261,15 @@ void updateFreeCamera(FreeCamera freeCamera)
 		freeCamera->lastCursorPosition = cursorPosition;
 
 		Quat transformRotation = axisQuat(
-			rotation.x, leftVec3F());
+			rotation.x, leftVec3F);
 		transformRotation = dotQuat(
 			transformRotation,
-			axisQuat(rotation.y, bottomVec3F()));
+			axisQuat(rotation.y, bottomVec3F));
 		setTransformRotation(
 			transform,
 			transformRotation);
 
-		Vec3F translation = zeroVec3F();
+		Vec3F translation = zeroVec3F;
 
 		if (getWindowKeyboardKey(window, A_KEYBOARD_KEY))
 			translation.x = RIGHT_AXIS_VALUE * deltaTime * moveSpeed;
@@ -302,7 +302,7 @@ void updateFreeCamera(FreeCamera freeCamera)
 		setWindowCursorMode(
 			window,
 			DEFAULT_CURSOR_MODE);
-		freeCamera->lastCursorPosition = zeroVec2F();
+		freeCamera->lastCursorPosition = zeroVec2F;
 	}
 }
 Camera getFreeCamera(FreeCamera freeCamera)

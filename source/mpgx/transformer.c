@@ -108,7 +108,7 @@ Transform createTransform(
 	transform->scale = scale;
 	transform->rotation = rotation;
 	transform->rotationType = rotationType;
-	transform->model = identMat4F();
+	transform->model = identMat4F;
 	transform->parent = parent;
 	transform->isActive = isActive;
 
@@ -293,7 +293,7 @@ void updateTransformer(
 
 		RotationType rotationType = transform->rotationType;
 
-		Mat4F model = identMat4F();
+		Mat4F model = identMat4F;
 
 		if (rotationType == SPIN_ROTATION_TYPE)
 		{

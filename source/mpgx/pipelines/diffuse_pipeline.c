@@ -25,9 +25,9 @@ typedef struct VertexPushConstants
 } VertexPushConstants;
 typedef struct UniformBuffer
 {
-	Vec4F objectColor;
-	Vec4F ambientColor;
-	Vec4F lightColor;
+	LinearColor objectColor;
+	LinearColor ambientColor;
+	LinearColor lightColor;
 	Vec4F lightDirection;
 } UniformBuffer;
 typedef struct BasePipelineHandle
@@ -800,9 +800,9 @@ Pipeline createExtDiffusePipeline(
 		vec3F(1.0f, -3.0f, 6.0f));
 
 	UniformBuffer ub = {
-		oneVec4F(),
-		valVec4F(0.5f),
-		oneVec4F(),
+		whiteLinearColor,
+		valueLinearColor(0.5f),
+		whiteLinearColor,
 		vec4F(
 			lightDirection.x,
 			lightDirection.y,
@@ -811,8 +811,8 @@ Pipeline createExtDiffusePipeline(
 	};
 
 	pipelineHandle->base.window = window;
-	pipelineHandle->base.vpc.mvp = identMat4F();
-	pipelineHandle->base.vpc.normal = identMat4F();
+	pipelineHandle->base.vpc.mvp = identMat4F;
+	pipelineHandle->base.vpc.normal = identMat4F;
 	pipelineHandle->base.ub = ub;
 	return pipeline;
 }
@@ -913,7 +913,7 @@ void setDiffusePipelineNormal(
 	pipelineHandle->base.vpc.normal = normal;
 }
 
-Vec4F getDiffusePipelineObjectColor(
+LinearColor getDiffusePipelineObjectColor(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -926,13 +926,10 @@ Vec4F getDiffusePipelineObjectColor(
 }
 void setDiffusePipelineObjectColor(
 	Pipeline pipeline,
-	Vec4F objectColor)
+	LinearColor objectColor)
 {
 	assert(pipeline != NULL);
-	assert(objectColor.x >= 0.0f &&
-		objectColor.y >= 0.0f &&
-		objectColor.z >= 0.0f &&
-		objectColor.w >= 0.0f);
+	assertLinearColor(objectColor);
 	assert(strcmp(
 		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
@@ -941,7 +938,7 @@ void setDiffusePipelineObjectColor(
 	pipelineHandle->base.ub.objectColor = objectColor;
 }
 
-Vec4F getDiffusePipelineAmbientColor(
+LinearColor getDiffusePipelineAmbientColor(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -954,13 +951,10 @@ Vec4F getDiffusePipelineAmbientColor(
 }
 void setDiffusePipelineAmbientColor(
 	Pipeline pipeline,
-	Vec4F ambientColor)
+	LinearColor ambientColor)
 {
 	assert(pipeline != NULL);
-	assert(ambientColor.x >= 0.0f &&
-		ambientColor.y >= 0.0f &&
-		ambientColor.z >= 0.0f &&
-		ambientColor.w >= 0.0f);
+	assertLinearColor(ambientColor);
 	assert(strcmp(
 		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
@@ -969,7 +963,7 @@ void setDiffusePipelineAmbientColor(
 	pipelineHandle->base.ub.ambientColor = ambientColor;
 }
 
-Vec4F getDiffusePipelineLightColor(
+LinearColor getDiffusePipelineLightColor(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -982,13 +976,10 @@ Vec4F getDiffusePipelineLightColor(
 }
 void setDiffusePipelineLightColor(
 	Pipeline pipeline,
-	Vec4F lightColor)
+	LinearColor lightColor)
 {
 	assert(pipeline != NULL);
-	assert(lightColor.x >= 0.0f &&
-		lightColor.y >= 0.0f &&
-		lightColor.z >= 0.0f &&
-		lightColor.w >= 0.0f);
+	assertLinearColor(lightColor);
 	assert(strcmp(
 		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);

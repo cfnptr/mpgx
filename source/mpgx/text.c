@@ -68,7 +68,7 @@ typedef struct VertexPushConstants
 } VertexPushConstants;
 typedef struct FragmentPushConstants
 {
-	Vec4F color;
+	LinearColor color;
 } FragmentPushConstants;
 typedef struct BasePipelineHandle
 {
@@ -501,13 +501,13 @@ inline static bool createTextVertices(
 		uniCharCount * 16;
 	float* vertices = malloc(
 		vertexCount * sizeof(float));
-	Vec2F textSize = zeroVec2F();
+	Vec2F textSize = zeroVec2F;
 
 	if (vertices == NULL)
 		return false;
 
 	size_t vertexIndex = 0;
-	Vec2F vertexOffset = zeroVec2F();
+	Vec2F vertexOffset = zeroVec2F;
 
 	for (size_t i = 0; i < uniCharCount; i++)
 	{
@@ -916,7 +916,7 @@ Text createText(
 		text->dataSize = 1;
 		text->texture = texture;
 		text->mesh = mesh;
-		text->textSize = zeroVec2F();
+		text->textSize = zeroVec2F;
 		text->uniCharCount = 0;
 	}
 	else
@@ -1336,7 +1336,7 @@ bool getTextUnicodeCharAdvance(
 		((float)face->size->metrics.height / 64.0f) /
 		(float)fontSize;
 
-	Vec2F advance = zeroVec2F();
+	Vec2F advance = zeroVec2F;
 
 	for (size_t i = 0, j = 0; j <= index; j++)
 	{
@@ -1509,7 +1509,7 @@ bool bakeText(
 			setMeshIndexCount(
 				text->mesh,
 				0);
-			text->textSize = zeroVec2F();
+			text->textSize = zeroVec2F;
 			text->uniCharCount = 0;
 		}
 		else
@@ -1728,7 +1728,7 @@ bool bakeText(
 					text->texture,
 					pixels,
 					vec3U(pixelLength, pixelLength, 1),
-					zeroVec3U());
+					zeroVec3U);
 				free(pixels); // TODO: replace pixels with image data map
 			}
 			else
@@ -1952,7 +1952,7 @@ bool bakeText(
 			text->dataSize = 1;
 			text->texture = texture;
 			text->mesh = mesh;
-			text->textSize = zeroVec2F();
+			text->textSize = zeroVec2F;
 			text->uniCharCount = 0;
 		}
 		else
@@ -2691,8 +2691,8 @@ Pipeline createExtTextPipeline(
 	pipelineHandle->base.window = window;
 	pipelineHandle->base.texture = NULL;
 	pipelineHandle->base.sampler = sampler;
-	pipelineHandle->base.vpc.mvp = identMat4F();
-	pipelineHandle->base.fpc.color = valVec4F(1.0f);
+	pipelineHandle->base.vpc.mvp = identMat4F;
+	pipelineHandle->base.fpc.color = whiteLinearColor;
 	return pipeline;
 }
 Pipeline createTextPipeline(
@@ -2731,7 +2731,7 @@ Pipeline createTextPipeline(
 		vec4I(0, 0,
 			(int32_t)framebufferSize.x,
 			(int32_t)framebufferSize.y),
-		zeroVec4I(),
+		zeroVec4I,
 		defaultDepthRange,
 		defaultDepthBias,
 		defaultBlendColor,
@@ -2781,7 +2781,7 @@ void setTextPipelineMVP(
 	pipelineHandle->base.vpc.mvp = mvp;
 }
 
-Vec4F getTextPipelineColor(
+LinearColor getTextPipelineColor(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -2794,7 +2794,7 @@ Vec4F getTextPipelineColor(
 }
 void setTextPipelineColor(
 	Pipeline pipeline,
-	Vec4F color)
+	LinearColor color)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(

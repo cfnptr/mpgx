@@ -14,6 +14,7 @@
 
 #pragma once
 #include "mpgx/window.h"
+#include "cmmt/color.h"
 
 #define TEXCOL_PIPELINE_NAME "TexCol"
 
@@ -54,8 +55,8 @@ void setTexColPipelineOffset(
 	Pipeline pipeline,
 	Vec2F offset);
 
-Vec4F getTexColPipelineColor(
+LinearColor getTexColPipelineColor(
 	Pipeline pipeline);
 void setTexColPipelineColor(
 	Pipeline pipeline,
-	Vec4F color);
+	LinearColor color);

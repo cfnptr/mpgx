@@ -23,14 +23,14 @@ layout(std140) uniform UniformBuffer
     vec4 lightDirection;
 } ub;
 
-float getDiffuse()
+float calcDiffuse(vec3 normal, vec3 lightDirection)
 {
-    return max(dot(f_Normal, -ub.lightDirection.xyz), 0.0);
+    return max(dot(normal, -lightDirection), 0.0);
 }
-
 void main()
 {
     vec4 ambientColor = ub.objectColor * ub.ambientColor;
-    vec4 diffuseColor = ub.lightColor * getDiffuse();
+    float diffuse = calcDiffuse(f_Normal, ub.lightDirection.xyz);
+    vec4 diffuseColor = ub.lightColor * diffuse;
     o_Color = (ambientColor + diffuseColor) * ub.objectColor;
 }

@@ -27,7 +27,7 @@ typedef struct VertexPushConstants
 } VertexPushConstants;
 typedef struct FragmentPushConstants
 {
-	Vec4F color;
+	LinearColor color;
 } FragmentPushConstants;
 typedef struct BasePipelineHandle
 {
@@ -729,10 +729,10 @@ Pipeline createExtTexSprPipeline(
 	pipelineHandle->base.window = window;
 	pipelineHandle->base.texture = texture;
 	pipelineHandle->base.sampler = sampler;
-	pipelineHandle->base.vpc.mvp = identMat4F();
-	pipelineHandle->base.vpc.size = oneVec2F();
-	pipelineHandle->base.vpc.offset = zeroVec2F();
-	pipelineHandle->base.fpc.color = oneVec4F();
+	pipelineHandle->base.vpc.mvp = identMat4F;
+	pipelineHandle->base.vpc.size = oneVec2F;
+	pipelineHandle->base.vpc.offset = zeroVec2F;
+	pipelineHandle->base.fpc.color = whiteLinearColor;
 	return pipeline;
 }
 Pipeline createTexSprPipeline(
@@ -883,7 +883,7 @@ void setTexSprPipelineOffset(
 	pipelineHandle->base.vpc.offset = offset;
 }
 
-Vec4F getTexSprPipelineColor(
+LinearColor getTexSprPipelineColor(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -896,13 +896,10 @@ Vec4F getTexSprPipelineColor(
 }
 void setTexSprPipelineColor(
 	Pipeline pipeline,
-	Vec4F color)
+	LinearColor color)
 {
 	assert(pipeline != NULL);
-	assert(color.x >= 0.0f &&
-		color.y >= 0.0f &&
-		color.z >= 0.0f &&
-		color.w >= 0.0f);
+	assertLinearColor(color);
 	assert(strcmp(
 		pipeline->base.name,
 		TEXSPR_PIPELINE_NAME) == 0);

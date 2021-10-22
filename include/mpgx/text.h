@@ -14,6 +14,8 @@
 
 #pragma once
 #include "mpgx/interface.h"
+#include "cmmt/color.h"
+
 #include <stdbool.h>
 
 #define TEXT_PIPELINE_NAME "Text"
@@ -112,8 +114,8 @@ void setTextPipelineMVP(
 	Pipeline pipeline,
 	Mat4F mvp);
 
-Vec4F getTextPipelineColor(
+LinearColor getTextPipelineColor(
 	Pipeline pipeline);
 void setTextPipelineColor(
 	Pipeline pipeline,
-	Vec4F color);
+	LinearColor color);

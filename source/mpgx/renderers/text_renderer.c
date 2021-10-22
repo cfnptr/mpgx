@@ -19,7 +19,7 @@
 
 typedef struct RenderHandle
 {
-	Vec4F color;
+	LinearColor color;
 	Text text;
 } RenderHandle;
 
@@ -76,11 +76,12 @@ Render createTextRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
-	Vec4F color,
+	LinearColor color,
 	Text text)
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
+	assertLinearColor(color);
 	assert(text != NULL);
 
 	assert(getTransformTransformer(
@@ -92,10 +93,6 @@ Render createTextRender(
 		getFramebufferWindow(
 		getPipelineFramebuffer(
 		getTextPipeline(text))));
-	assert(color.x >= 0.0f &&
-		color.y >= 0.0f &&
-		color.z >= 0.0f &&
-		color.w >= 0.0f);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
@@ -125,7 +122,7 @@ Render createTextRender(
 	return render;
 }
 
-Vec4F getTextRenderColor(
+LinearColor getTextRenderColor(
 	Render render)
 {
 	assert(render != NULL);
@@ -140,13 +137,10 @@ Vec4F getTextRenderColor(
 }
 void setTextRenderColor(
 	Render render,
-	Vec4F color)
+	LinearColor color)
 {
 	assert(render != NULL);
-	assert(color.x >= 0.0f &&
-		color.y >= 0.0f &&
-		color.z >= 0.0f &&
-		color.w >= 0.0f);
+	assertLinearColor(color);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(

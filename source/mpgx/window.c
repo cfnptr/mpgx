@@ -19,6 +19,7 @@
 #include "mpgx/_source/framebuffer.h"
 
 #include "cmmt/common.h"
+#include "mpmt/thread.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
@@ -64,6 +65,7 @@ struct Window
 	Mesh* meshes;
 	size_t meshCapacity;
 	size_t meshCount;
+	double targetFPS;
 	double updateTime;
 	double deltaTime;
 	bool isRecording;
@@ -454,7 +456,7 @@ Window createWindow(
 			return NULL;
 		}
 
-		//glEnable(GL_FRAMEBUFFER_SRGB);
+		glEnable(GL_FRAMEBUFFER_SRGB);
 
 		framebuffer = createDefaultGlFramebuffer(
 			window,
@@ -646,6 +648,7 @@ Window createWindow(
 	window->meshes = meshes;
 	window->meshCapacity = meshCapacity;
 	window->meshCount = 0;
+	window->targetFPS = 60.0;
 	window->updateTime = 0.0;
 	window->deltaTime = 0.0;
 	window->isRecording = false;
@@ -933,6 +936,21 @@ bool isVkGpuIntegrated(Window window)
 #endif
 }
 
+double getWindowTargetFPS(
+	Window window)
+{
+	assert(window != NULL);
+	return window->targetFPS;
+}
+void setWindowTargetFPS(
+	Window window,
+	double fps)
+{
+	assert(window != NULL);
+	assert(fps >= 0.0);
+	window->targetFPS = fps;
+}
+
 bool getWindowKeyboardKey(
 	Window window,
 	KeyboardKey key)
@@ -1157,16 +1175,26 @@ void updateWindow(Window window)
 	OnWindowUpdate onUpdate = window->onUpdate;
 	void* updateArgument = window->updateArgument;
 
-	// TODO: add vsync off/on option
-
 	while (glfwWindowShouldClose(handle) == GLFW_FALSE)
 	{
 		glfwPollEvents();
 
-		double time = glfwGetTime();
-		window->deltaTime = time - window->updateTime;
-		window->updateTime = time;
+		double startTime = getCurrentClock();
+		window->deltaTime = startTime - window->updateTime;
+		window->updateTime = startTime;
+
 		onUpdate(updateArgument);
+
+		if (window->targetFPS > 0.0)
+		{
+			double frameTime = 1.0 / window->targetFPS;
+
+			double delayTime = frameTime -
+				(getCurrentClock() - startTime) - 0.001;
+
+			if (delayTime > 0.0)
+				sleepThread(delayTime);
+		}
 	}
 }
 

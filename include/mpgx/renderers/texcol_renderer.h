@@ -26,16 +26,16 @@ Render createTexColRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
-	Vec4F color,
+	LinearColor color,
 	Vec2F size,
 	Vec2F offset,
 	Mesh mesh);
 
-Vec4F getTexColRenderColor(
+LinearColor getTexColRenderColor(
 	Render render);
 void setTexColRenderColor(
 	Render render,
-	Vec4F color);
+	LinearColor color);
 
 Vec2F getTexColRenderSize(
 	Render render);

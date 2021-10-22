@@ -12,4 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO:
+float calcDiffuse(vec3 normal, vec3 lightDirection)
+{
+    return max(dot(normal, -lightDirection), 0.0);
+}
+
+vec3 calcViewDir(vec3 cameraPos, vec3 fargPos)
+{
+    return normalize(cameraPos - fargPos);
+}
+float calcSpecular(
+    float specular, vec3 viewDir,
+    vec3 lightDir, vec3 normal)
+{
+    if (specular == 0.0)
+        return 0.0;
+    
+    vec3 reflDir = reflect(lightDir, normal);
+    return pow(max(dot(viewDir, reflDir), 0.0), specular);
+}

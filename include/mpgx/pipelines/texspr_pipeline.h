@@ -14,6 +14,7 @@
 
 #pragma once
 #include "mpgx/window.h"
+#include "cmmt/color.h"
 
 #define TEXSPR_PIPELINE_NAME "TexSpr"
 
@@ -54,8 +55,8 @@ void setTexSprPipelineOffset(
 	Pipeline pipeline,
 	Vec2F offset);
 
-Vec4F getTexSprPipelineColor(
+LinearColor getTexSprPipelineColor(
 	Pipeline pipeline);
 void setTexSprPipelineColor(
 	Pipeline pipeline,
-	Vec4F color);
+	LinearColor color);

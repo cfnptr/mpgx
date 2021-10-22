@@ -26,14 +26,14 @@ Render createSpriteRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
-	Vec4F color,
+	LinearColor color,
 	Mesh mesh);
 
-Vec4F getSpriteRenderColor(
+LinearColor getSpriteRenderColor(
 	Render render);
 void setSpriteRenderColor(
 	Render render,
-	Vec4F color);
+	LinearColor color);
 
 Mesh getSpriteRenderMesh(
 	Render render);

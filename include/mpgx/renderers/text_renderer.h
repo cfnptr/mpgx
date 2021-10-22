@@ -26,14 +26,14 @@ Render createTextRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
-	Vec4F color,
+	LinearColor color,
 	Text text);
 
-Vec4F getTextRenderColor(
+LinearColor getTextRenderColor(
 	Render render);
 void setTextRenderColor(
 	Render render,
-	Vec4F color);
+	LinearColor color);
 
 Text getTextRenderText(
 	Render render);

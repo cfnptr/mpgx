@@ -14,6 +14,7 @@
 
 #pragma once
 #include "mpgx/window.h"
+#include "cmmt/color.h"
 
 #define SPRITE_PIPELINE_NAME "Sprite"
 
@@ -33,8 +34,8 @@ void setSpritePipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 
-Vec4F getSpritePipelineColor(
+LinearColor getSpritePipelineColor(
 	Pipeline pipeline);
 void setSpritePipelineColor(
 	Pipeline pipeline,
-	Vec4F color);
+	LinearColor color);

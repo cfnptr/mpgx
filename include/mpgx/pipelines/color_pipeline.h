@@ -14,6 +14,7 @@
 
 #pragma once
 #include "mpgx/window.h"
+#include "cmmt/color.h"
 
 #define COLOR_PIPELINE_NAME "Color"
 
@@ -33,8 +34,8 @@ void setColorPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 
-Vec4F getColorPipelineColor(
+LinearColor getColorPipelineColor(
 	Pipeline pipeline);
 void setColorPipelineColor(
 	Pipeline pipeline,
-	Vec4F color);
+	LinearColor color);

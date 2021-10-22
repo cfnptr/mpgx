@@ -14,6 +14,7 @@
 
 #pragma once
 #include "mpgx/window.h"
+#include "cmmt/color.h"
 
 #define GRADSKY_PIPELINE_NAME "GradSky"
 
@@ -22,7 +23,7 @@ typedef struct GradSkyAmbient* GradSkyAmbient;
 GradSkyAmbient createGradSkyAmbient(ImageData gradient);
 void destroyGradSkyAmbient(GradSkyAmbient gradSkyAmbient);
 
-Vec4F getGradSkyAmbientColor(
+LinearColor getGradSkyAmbientColor(
 	GradSkyAmbient gradSkyAmbient,
 	float dayTime);
 
@@ -59,8 +60,8 @@ void setGradSkyPipelineSunDir(
 	Pipeline pipeline,
 	Vec3F sunDir);
 
-Vec4F getGradSkyPipelineSunColor(
+LinearColor getGradSkyPipelineSunColor(
 	Pipeline pipeline);
 void setGradSkyPipelineSunColor(
 	Pipeline pipeline,
-	Vec4F sunColor);
+	LinearColor sunColor);

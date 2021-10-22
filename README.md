@@ -47,5 +47,6 @@ cmake --build build/
 * [freetype](https://www.freetype.org/) (FreeType License)
 * [glad](https://glad.dav1d.de/) (MIT License)
 * [glfw](https://www.glfw.org/) (Zlib License)
+* [mpmt](https://github.com/cfnptr/mpmt/) (Apache-2.0 License)
 * [stb](https://nothings.org/) (MIT License)
 * [VulkanMemoryAllocator](https://gpuopen.com/vulkan-memory-allocator/) (MIT License)

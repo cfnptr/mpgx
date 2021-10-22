@@ -23,7 +23,7 @@ typedef struct VertexPushConstants
 } VertexPushConstants;
 typedef struct FragmentPushConstants
 {
-	Vec4F color;
+	LinearColor color;
 } FragmentPushConstants;
 typedef struct BasePipelineHandle
 {
@@ -325,8 +325,8 @@ Pipeline createExtColorPipeline(
 	}
 
 	pipelineHandle->base.window = window;
-	pipelineHandle->base.vpc.mvp = identMat4F();
-	pipelineHandle->base.fpc.color = oneVec4F();
+	pipelineHandle->base.vpc.mvp = identMat4F;
+	pipelineHandle->base.fpc.color = whiteLinearColor;
 	return pipeline;
 }
 Pipeline createColorPipeline(
@@ -402,7 +402,7 @@ void setColorPipelineMvp(
 	pipelineHandle->base.vpc.mvp = mvp;
 }
 
-Vec4F getColorPipelineColor(
+LinearColor getColorPipelineColor(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -415,13 +415,10 @@ Vec4F getColorPipelineColor(
 }
 void setColorPipelineColor(
 	Pipeline pipeline,
-	Vec4F color)
+	LinearColor color)
 {
 	assert(pipeline != NULL);
-	assert(color.x >= 0.0f &&
-		color.y >= 0.0f &&
-		color.z >= 0.0f &&
-		color.w >= 0.0f);
+	assertLinearColor(color);
 	assert(strcmp(
 		pipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);

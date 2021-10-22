@@ -26,16 +26,16 @@ Render createTexSprRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
-	Vec4F color,
+	LinearColor color,
 	Vec2F size,
 	Vec2F offset,
 	Mesh mesh);
 
-Vec4F getTexSprRenderColor(
+LinearColor getTexSprRenderColor(
 	Render render);
 void setTexSprRenderColor(
 	Render render,
-	Vec4F color);
+	LinearColor color);
 
 Vec2F getTexSprRenderSize(
 	Render render);

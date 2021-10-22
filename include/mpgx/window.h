@@ -471,6 +471,12 @@ const char* getWindowGpuName(Window window);
 void* getVkWindow(Window window);
 bool isVkGpuIntegrated(Window window);
 
+double getWindowTargetFPS(
+	Window window);
+void setWindowTargetFPS(
+	Window window,
+	double fps);
+
 bool getWindowKeyboardKey(
 	Window window,
 	KeyboardKey key);

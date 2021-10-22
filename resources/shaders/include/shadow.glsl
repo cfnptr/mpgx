@@ -30,6 +30,6 @@ float calcShadow(vec3 shadowCoords, sampler2DShadow shadowMap)
         }
     }
     
-    const float SHAD_DIV = 1 / 9.0;
-    return shadow * SHAD_DIV;
+    const float multiplier = 1 / 9.0;
+    return shadow * multiplier;
 }

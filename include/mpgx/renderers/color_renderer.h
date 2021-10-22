@@ -26,14 +26,14 @@ Render createColorRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
-	Vec4F color,
+	LinearColor color,
 	Mesh mesh);
 
-Vec4F getColorRenderColor(
+LinearColor getColorRenderColor(
 	Render render);
 void setColorRenderColor(
 	Render render,
-	Vec4F color);
+	LinearColor color);
 
 Mesh getColorRenderMesh(
 	Render render);

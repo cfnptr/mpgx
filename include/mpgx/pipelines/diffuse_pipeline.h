@@ -14,6 +14,7 @@
 
 #pragma once
 #include "mpgx/window.h"
+#include "cmmt/color.h"
 
 #define DIFFUSE_PIPELINE_NAME "Diffuse"
 
@@ -39,23 +40,23 @@ void setDiffusePipelineNormal(
 	Pipeline pipeline,
 	Mat4F normal);
 
-Vec4F getDiffusePipelineObjectColor(
+LinearColor getDiffusePipelineObjectColor(
 	Pipeline pipeline);
 void setDiffusePipelineObjectColor(
 	Pipeline pipeline,
-	Vec4F objectColor);
+	LinearColor objectColor);
 
-Vec4F getDiffusePipelineAmbientColor(
+LinearColor getDiffusePipelineAmbientColor(
 	Pipeline pipeline);
 void setDiffusePipelineAmbientColor(
 	Pipeline pipeline,
-	Vec4F ambientColor);
+	LinearColor ambientColor);
 
-Vec4F getDiffusePipelineLightColor(
+LinearColor getDiffusePipelineLightColor(
 	Pipeline pipeline);
 void setDiffusePipelineLightColor(
 	Pipeline pipeline,
-	Vec4F lightColor);
+	LinearColor lightColor);
 
 Vec3F getDiffusePipelineLightDirection(
 	Pipeline pipeline);

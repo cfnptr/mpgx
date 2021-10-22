@@ -21,7 +21,7 @@
 
 struct GradSkyAmbient
 {
-	Vec4F* colors;
+	LinearColor* colors;
 	size_t count;
 };
 
@@ -32,7 +32,7 @@ typedef struct VertexPushConstants
 typedef struct FragmentPushConstants
 {
 	Vec4F sunDir;
-	Vec4F sunColor;
+	LinearColor sunColor;
 } FragmentPushConstants;
 typedef struct BasePipelineHandle
 {
@@ -84,7 +84,7 @@ GradSkyAmbient createGradSkyAmbient(
 
 	Vec2U size = getImageDataSize(gradient);
 
-	Vec4F* colors = malloc(
+	LinearColor* colors = malloc(
 		sizeof(Vec4F) * size.x);
 
 	if (colors == NULL)
@@ -94,21 +94,21 @@ GradSkyAmbient createGradSkyAmbient(
 
 	for (uint32_t x = 0; x < size.x; x++)
 	{
-		Vec4F color = zeroVec4F();
+		LinearColor color = zeroLinearColor;
 
 		for (uint32_t y = 0; y < size.y; y++)
 		{
 			size_t index = (y * size.x + x) * 4;
 			
-			Vec4F addition = vec4F(
-				(float)pixels[index] / 255.0f,
-				(float)pixels[index + 1] / 255.0f,
-				(float)pixels[index + 2] / 255.0f,
-				(float)pixels[index + 3] / 255.0f);
-			color = addVec4F(color, addition);
+			LinearColor addition = srgbToLinearColor(srgbColor(
+				pixels[index],
+				pixels[index + 1],
+				pixels[index + 2],
+				pixels[index + 3]));
+			color = addLinearColor(color, addition);
 		}
 
-		colors[x] = divValVec4F(color, (float)size.y);
+		colors[x] = divValLinearColor(color, (float)size.y);
 	}
 
 	GradSkyAmbient gradSkyAmbient = malloc(
@@ -133,7 +133,7 @@ void destroyGradSkyAmbient(
 	free(gradSkyAmbient->colors);
 	free(gradSkyAmbient);
 }
-Vec4F getGradSkyAmbientColor(
+LinearColor getGradSkyAmbientColor(
 	GradSkyAmbient gradSkyAmbient,
 	float dayTime)
 {
@@ -141,7 +141,7 @@ Vec4F getGradSkyAmbientColor(
 	assert(dayTime >= 0.0f);
 	assert(dayTime <= 1.0f);
 
-	Vec4F* colors = gradSkyAmbient->colors;
+	LinearColor* colors = gradSkyAmbient->colors;
 	size_t colorCount = gradSkyAmbient->count;
 
 	dayTime = (float)(colorCount - 1) * dayTime;
@@ -149,14 +149,14 @@ Vec4F getGradSkyAmbientColor(
 	float secondValue = dayTime - (float)((int)dayTime);
 	float firstValue = 1.0f - secondValue;
 
-	Vec4F firstColor = colors[(size_t)dayTime];
-	Vec4F secondColor = colors[(size_t)dayTime + 1];
+	LinearColor firstColor = colors[(size_t)dayTime];
+	LinearColor secondColor = colors[(size_t)dayTime + 1];
 
-	return vec4F(
-		firstColor.x * firstValue + secondColor.x * secondValue,
-		firstColor.y * firstValue + secondColor.y * secondValue,
-		firstColor.z * firstValue + secondColor.z * secondValue,
-		firstColor.w * firstValue + secondColor.w * secondValue);
+	return linearColor(
+		firstColor.r * firstValue + secondColor.r * secondValue,
+		firstColor.g * firstValue + secondColor.g * secondValue,
+		firstColor.b * firstValue + secondColor.b * secondValue,
+		firstColor.a * firstValue + secondColor.a * secondValue);
 }
 
 Sampler createGradSkySampler(Window window)
@@ -812,9 +812,9 @@ Pipeline createExtGradSkyPipeline(
 
 	pipelineHandle->base.texture = texture;
 	pipelineHandle->base.sampler = sampler;
-	pipelineHandle->base.vpc.mvp = identMat4F();
-	pipelineHandle->base.fpc.sunDir = zeroVec4F();
-	pipelineHandle->base.fpc.sunColor = oneVec4F();
+	pipelineHandle->base.vpc.mvp = identMat4F;
+	pipelineHandle->base.fpc.sunDir = zeroVec4F;
+	pipelineHandle->base.fpc.sunColor = whiteLinearColor;
 	return pipeline;
 }
 Pipeline createGradSkyPipeline(
@@ -950,7 +950,7 @@ void setGradSkyPipelineSunDir(
 		0.0f);
 }
 
-Vec4F getGradSkyPipelineSunColor(
+LinearColor getGradSkyPipelineSunColor(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -963,7 +963,7 @@ Vec4F getGradSkyPipelineSunColor(
 }
 void setGradSkyPipelineSunColor(
 	Pipeline pipeline,
-	Vec4F sunColor)
+	LinearColor sunColor)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(

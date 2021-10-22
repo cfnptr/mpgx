@@ -4,6 +4,10 @@ if (${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
 	message(FATAL_ERROR "Prevented in-tree build")
 endif ()
 
+if (TARGET mpgx)
+	return()
+endif ()
+
 option(MPGX_BUILD_EXAMPLES "Build MPGX usage examples" ON)
 option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
 
@@ -27,18 +31,23 @@ project(mpgx
 add_subdirectory(libraries/cmmt)
 add_subdirectory(libraries/glad)
 
+set(CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz ON CACHE BOOL "" FORCE)
+add_subdirectory(libraries/freetype)
+
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 add_subdirectory(libraries/glfw)
 
-add_subdirectory(libraries/freetype)
+set(MPMT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+add_subdirectory(libraries/mpmt)
 
 set(MPGX_LINK_LIBRARIES
 	cmmt
+	freetype
 	glad
 	glfw
-	freetype)
+	mpmt)
 
 if (MPGX_USE_VULKAN)
 	find_package(Vulkan)

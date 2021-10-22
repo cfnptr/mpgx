@@ -191,8 +191,8 @@ inline static Render createDiffuseRenderInstance(
 	Transform transform = createTransform(
 		transformer,
 		position,
-		oneVec3F(),
-		oneQuat(),
+		oneVec3F,
+		oneQuat,
 		SPIN_ROTATION_TYPE,
 		NULL,
 		true);
@@ -244,8 +244,8 @@ inline static Render createDiffuseRenderInstance(
 	}
 
 	Box3F bounding = posExtBox3F(
-		zeroVec3F(),
-		oneVec3F());
+		zeroVec3F,
+		oneVec3F);
 	Render render = createDiffuseRender(
 		diffuseRenderer,
 		transform,

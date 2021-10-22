@@ -293,7 +293,7 @@ Pipeline createExtSimpShadPipeline(
 	}
 
 	pipelineHandle->base.window = window;
-	pipelineHandle->base.vpc.mvp = identMat4F();
+	pipelineHandle->base.vpc.mvp = identMat4F;
 	return pipeline;
 }
 Pipeline createSimpShadPipeline(

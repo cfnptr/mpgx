@@ -80,14 +80,15 @@ static void onWindowUpdate(void* handle)
 	Framebuffer framebuffer =
 		getWindowFramebuffer(window);
 
+	FramebufferClear clearValues[2];
+	clearValues[0].color = zeroLinearColor;
+	clearValues[1].depthStencil.depth = 1.0f;
+	clearValues[1].depthStencil.stencil = 0;
+
 	beginFramebufferRender(
 		framebuffer,
-		true,
-		true,
-		false,
-		valVec4F(0.25f),
-		1.0f,
-		0);
+		clearValues,
+		2);
 	drawRenderer(
 		client->diffuseRenderer,
 		renderData);

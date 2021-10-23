@@ -110,6 +110,14 @@ inline static Image createVkImage(
 	default:
 		free(image);
 		return NULL;
+	case R8_UNORM_IMAGE_FORMAT:
+		vkFormat = VK_FORMAT_R8_UNORM;
+		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+		sizeMultiplier = 1;
+
+		if (isAttachment == true)
+			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		break;
 	case R8G8B8A8_UNORM_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -122,6 +130,14 @@ inline static Image createVkImage(
 		vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 4;
+
+		if (isAttachment == true)
+			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		break;
+	case R16G16B16A16_SFLOAT_IMAGE_FORMAT:
+		vkFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+		sizeMultiplier = 8;
 
 		if (isAttachment == true)
 			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -258,26 +274,12 @@ inline static Image createVkImage(
 			return NULL;
 		}
 
-		bool result = setVkBufferData(
+		setVkBufferData(
 			allocator,
 			stagingAllocation,
 			data[0],
 			bufferSize,
 			0);
-
-		if (result == false)
-		{
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
-			vmaDestroyImage(
-				allocator,
-				handle,
-				allocation);
-			free(image);
-			return NULL;
-		}
 
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
 			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -855,15 +857,12 @@ inline static bool setVkImageData(
 		size.x * size.y * size.z *
 		sizeMultiplier;
 
-	bool result = setVkBufferData(
+	setVkBufferData(
 		allocator,
 		stagingAllocation,
 		data,
 		dataSize,
 		0);
-
-	if (result == false)
-		return false;
 
 	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -1083,6 +1082,11 @@ inline static Image createGlImage(
 	default:
 		free(image);
 		return NULL;
+	case R8_UNORM_IMAGE_FORMAT:
+		glFormat = GL_R8;
+		dataFormat = GL_RED;
+		dataType = GL_UNSIGNED_BYTE;
+		break;
 	case R8G8B8A8_UNORM_IMAGE_FORMAT:
 		glFormat = GL_RGBA8;
 		dataFormat = GL_RGBA;
@@ -1092,6 +1096,11 @@ inline static Image createGlImage(
 		glFormat = GL_SRGB8_ALPHA8;
 		dataFormat = GL_RGBA;
 		dataType = GL_UNSIGNED_BYTE;
+		break;
+	case R16G16B16A16_SFLOAT_IMAGE_FORMAT:
+		glFormat = GL_RGBA16F;
+		dataFormat = GL_RGBA;
+		dataType = GL_FLOAT;
 		break;
 	case D16_UNORM_IMAGE_FORMAT:
 		glFormat = GL_DEPTH_COMPONENT16;

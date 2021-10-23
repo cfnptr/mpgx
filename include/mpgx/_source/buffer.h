@@ -25,6 +25,7 @@ typedef struct _BaseBuffer
 	BufferType type;
 	size_t size;
 	bool isConstant;
+	bool isMapped;
 } _BaseBuffer;
 typedef struct _VkBuffer
 {
@@ -32,7 +33,9 @@ typedef struct _VkBuffer
 	BufferType type;
 	size_t size;
 	bool isConstant;
+	bool isMapped;
 #if MPGX_SUPPORT_VULKAN
+	bool writeAccess;
 	VkBuffer handle;
 	VmaAllocation allocation;
 #endif
@@ -43,6 +46,7 @@ typedef struct _GlBuffer
 	BufferType type;
 	size_t size;
 	bool isConstant;
+	bool isMapped;
 	GLenum glType;
 	GLuint handle;
 } _GlBuffer;
@@ -54,8 +58,63 @@ union Buffer
 };
 
 #if MPGX_SUPPORT_VULKAN
-// TODO: add separated memory map functions
-inline static bool setVkBufferData(
+inline static void* mapVkBuffer(
+	VmaAllocator allocator,
+	VmaAllocation allocation,
+	bool readAccess)
+{
+	void* mappedData;
+
+	VkResult result = vmaMapMemory(
+		allocator,
+		allocation,
+		&mappedData);
+
+	if (result != VK_SUCCESS)
+		return NULL;
+
+	if (readAccess == true)
+	{
+		result = vmaInvalidateAllocation(
+			allocator,
+			allocation,
+			0,
+			VK_WHOLE_SIZE);
+
+		if (result != VK_SUCCESS)
+		{
+			vmaUnmapMemory(
+				allocator,
+				allocation);
+			return NULL;
+		}
+	}
+
+	return mappedData;
+}
+inline static void unmapVkBuffer(
+	VmaAllocator allocator,
+	VmaAllocation allocation,
+	bool writeAccess)
+{
+	if (writeAccess == true)
+	{
+		VkResult result = vmaFlushAllocation(
+			allocator,
+			allocation,
+			0,
+			VK_WHOLE_SIZE);
+
+		if (result != VK_SUCCESS)
+			abort();
+	}
+
+	vmaUnmapMemory(
+		allocator,
+		allocation);
+}
+
+inline static void setVkBufferData(
 	VmaAllocator allocator,
 	VmaAllocation allocation,
 	const void* data,
@@ -70,7 +129,7 @@ inline static bool setVkBufferData(
 		&mappedData);
 
 	if (result != VK_SUCCESS)
-		return false;
+		abort();
 
 	uint8_t* _mappedData = mappedData;
 
@@ -85,14 +144,12 @@ inline static bool setVkBufferData(
 		offset,
 		size);
 
+	if (result != VK_SUCCESS)
+		abort();
+
 	vmaUnmapMemory(
 		allocator,
 		allocation);
-
-	if (result != VK_SUCCESS)
-		return false;
-
-	return true;
 }
 inline static Buffer createVkBuffer(
 	VkDevice device,
@@ -208,26 +265,12 @@ inline static Buffer createVkBuffer(
 				return NULL;
 			}
 
-			bool result = setVkBufferData(
+			setVkBufferData(
 				allocator,
 				stagingAllocation,
 				data,
 				size,
 				0);
-
-			if (result == false)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
-				vmaDestroyBuffer(
-					allocator,
-					handle,
-					allocation);
-				free(buffer);
-				return NULL;
-			}
 
 			VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
 				VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -384,22 +427,12 @@ inline static Buffer createVkBuffer(
 		}
 		else
 		{
-			bool result = setVkBufferData(
+			setVkBufferData(
 				allocator,
 				allocation,
 				data,
 				size,
 				0);
-
-			if (result == false)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					handle,
-					allocation);
-				free(buffer);
-				return NULL;
-			}
 		}
 	}
 
@@ -407,6 +440,8 @@ inline static Buffer createVkBuffer(
 	buffer->vk.type = type;
 	buffer->vk.size = size;
 	buffer->vk.isConstant = isConstant;
+	buffer->vk.isMapped = false;
+	buffer->vk.writeAccess = false;
 	buffer->vk.handle = handle;
 	buffer->vk.allocation = allocation;
 	return buffer;
@@ -422,6 +457,44 @@ inline static void destroyVkBuffer(
 	free(buffer);
 }
 #endif
+
+inline static void* mapGlBuffer(
+	GLenum type,
+	GLuint handle,
+	size_t size,
+	bool readAccess,
+	bool writeAccess)
+{
+	glBindBuffer(
+		type,
+		handle);
+
+	GLbitfield glAccess = 0;
+
+	if (readAccess == true)
+		glAccess |= GL_MAP_READ_BIT;
+	if (writeAccess == true)
+		glAccess |= GL_MAP_WRITE_BIT;
+
+	void* mappedData = glMapBufferRange(
+		type,
+		0,
+		(GLsizeiptr)size,
+		glAccess);
+
+	assertOpenGL();
+	return mappedData;
+}
+inline static void unmapGlBuffer(
+	GLenum type,
+	GLuint handle)
+{
+	glBindBuffer(
+		type,
+		handle);
+	glUnmapBuffer(type);
+	assertOpenGL();
+}
 
 inline static void setGlBufferData(
 	GLenum type,
@@ -509,6 +582,7 @@ inline static Buffer createGlBuffer(
 	buffer->gl.type = type;
 	buffer->gl.size = size;
 	buffer->gl.isConstant = isConstant;
+	buffer->gl.isMapped = false;
 	buffer->gl.glType = glType;
 	buffer->gl.handle = handle;
 	return buffer;

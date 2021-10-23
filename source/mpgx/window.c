@@ -310,6 +310,9 @@ Window createWindow(
 		glfwWindowHint(
 			GLFW_CONTEXT_VERSION_MINOR,
 			0);
+		glfwWindowHint(
+			GLFW_SRGB_CAPABLE,
+			GLFW_TRUE);
 
 		if (useStencilBuffer == true)
 		{
@@ -430,7 +433,7 @@ Window createWindow(
 			firtBuffer.framebuffer,
 			window,
 			framebufferSize,
-			2,
+			1,
 			pipelineCapacity);
 
 		if (framebuffer == NULL)
@@ -1833,6 +1836,89 @@ bool isBufferConstant(Buffer buffer)
 	return buffer->base.isConstant;
 }
 
+void* mapBuffer(
+	Buffer buffer,
+	bool readAccess,
+	bool writeAccess)
+{
+	assert(buffer != NULL);
+	assert(buffer->base.isConstant == false);
+	assert(buffer->base.isMapped == false);
+	assert(readAccess == true || writeAccess == true);
+
+	Window window = buffer->base.window;
+	GraphicsAPI api = window->api;
+
+	void* mappedData;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		mappedData = mapVkBuffer(
+			window->vkWindow->allocator,
+			buffer->vk.allocation,
+			readAccess);
+
+		buffer->vk.writeAccess = writeAccess;
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		mappedData = mapGlBuffer(
+			buffer->gl.glType,
+			buffer->gl.handle,
+			buffer->gl.size,
+			readAccess,
+			writeAccess);
+	}
+	else
+	{
+		abort();
+	}
+
+	if (mappedData == NULL)
+		return NULL;
+
+	buffer->base.isMapped = true;
+	return mappedData;
+}
+void unmapBuffer(Buffer buffer)
+{
+	assert(buffer != NULL);
+	assert(buffer->base.isMapped == true);
+
+	Window window = buffer->base.window;
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		unmapVkBuffer(
+			window->vkWindow->allocator,
+			buffer->vk.allocation,
+			buffer->vk.writeAccess);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		unmapGlBuffer(
+			buffer->gl.glType,
+			buffer->gl.handle);
+	}
+	else
+	{
+		abort();
+	}
+
+	buffer->base.isMapped = false;
+}
+
 void setBufferData(
 	Buffer buffer,
 	const void* data,
@@ -1843,6 +1929,7 @@ void setBufferData(
 	assert(data != NULL);
 	assert(size != 0);
 	assert(buffer->base.isConstant == false);
+	assert(buffer->base.isMapped == false);
 	assert(size + offset <= buffer->base.size);
 
 	Window window = buffer->base.window;
@@ -1851,15 +1938,12 @@ void setBufferData(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		bool result = setVkBufferData(
+		setVkBufferData(
 			window->vkWindow->allocator,
 			buffer->vk.allocation,
 			data,
 			size,
 			offset);
-
-		if (result == false)
-			abort();
 #else
 		abort();
 #endif
@@ -2857,6 +2941,107 @@ inline static bool addWindowFramebuffer(
 	window->framebufferCount = count + 1;
 	return true;
 }
+Framebuffer createFramebuffer(
+	Window window,
+	Vec2U size,
+	Image* colorAttachments,
+	size_t colorAttachmentCount,
+	Image depthStencilAttachment,
+	size_t pipelineCapacity)
+{
+	assert(window != NULL);
+	assert(size.x != 0 && size.y != 0);
+	assert(pipelineCapacity != 0);
+	assert(window->isRecording == false);
+
+	assert((colorAttachments != NULL &&
+		colorAttachmentCount != 0) ||
+		(depthStencilAttachment != NULL &&
+		depthStencilAttachment->base.size.x == size.x &&
+		depthStencilAttachment->base.size.y == size.y &&
+		depthStencilAttachment->base.window == window));
+
+	GraphicsAPI api = window->api;
+	Framebuffer framebuffer;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+		VkDevice device = vkWindow->device;
+
+		VkRenderPass renderPass = createVkGeneralRenderPass(
+			device,
+			colorAttachments,
+			colorAttachmentCount,
+			depthStencilAttachment);
+
+		if (renderPass == NULL)
+			return NULL;
+
+		framebuffer = createVkFramebuffer(
+			device,
+			renderPass,
+			window,
+			size,
+			colorAttachments,
+			colorAttachmentCount,
+			depthStencilAttachment,
+			pipelineCapacity);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		framebuffer = createGlFramebuffer(
+			window,
+			size,
+			colorAttachments,
+			colorAttachmentCount,
+			depthStencilAttachment,
+			pipelineCapacity);
+	}
+	else
+	{
+		abort();
+	}
+
+	if (framebuffer == NULL)
+		return NULL;
+
+	bool result = addWindowFramebuffer(
+		window,
+		framebuffer);
+
+	if (result == false)
+	{
+		if (api == VULKAN_GRAPHICS_API)
+		{
+#if MPGX_SUPPORT_VULKAN
+			destroyVkFramebuffer(
+				window->vkWindow->device,
+				framebuffer);
+#else
+			abort();
+#endif
+		}
+		else if (api == OPENGL_GRAPHICS_API ||
+			api == OPENGL_ES_GRAPHICS_API)
+		{
+			destroyGlFramebuffer(framebuffer);
+		}
+		else
+		{
+			abort();
+		}
+
+		return NULL;
+	}
+
+	return framebuffer;
+}
 Framebuffer createShadowFramebuffer(
 	Window window,
 	Vec2U size,
@@ -2864,6 +3049,7 @@ Framebuffer createShadowFramebuffer(
 	size_t pipelineCapacity)
 {
 	assert(window != NULL);
+	assert(size.x != 0 && size.y != 0);
 	assert(depthAttachment != NULL);
 	assert(depthAttachment->base.size.x == size.x &&
 		depthAttachment->base.size.y == size.y);
@@ -2872,7 +3058,6 @@ Framebuffer createShadowFramebuffer(
 	assert(window->isRecording == false);
 
 	GraphicsAPI api = window->api;
-
 	Framebuffer framebuffer;
 
 	if (api == VULKAN_GRAPHICS_API)
@@ -2893,8 +3078,9 @@ Framebuffer createShadowFramebuffer(
 			renderPass,
 			window,
 			size,
-			&depthAttachment,
-			1,
+			NULL,
+			0,
+			depthAttachment,
 			pipelineCapacity);
 #else
 		abort();
@@ -2906,8 +3092,9 @@ Framebuffer createShadowFramebuffer(
 		framebuffer = createGlFramebuffer(
 			window,
 			size,
-			&depthAttachment,
-			1,
+			NULL,
+			0,
+			depthAttachment,
 			pipelineCapacity);
 	}
 	else
@@ -2969,11 +3156,13 @@ void destroyFramebuffer(
 
 		if (destroyAttachments == true)
 		{
-			Image* attachments = framebuffer->base.attachments;
-			size_t attachmentCount = framebuffer->base.attachmentCount;
+			Image* colorAttachments = framebuffer->base.colorAttachments;
+			size_t colorAttachmentCount = framebuffer->base.colorAttachmentCount;
 
-			for (size_t j = 0; j < attachmentCount; j++)
-				destroyImage(attachments[i]);
+			for (size_t j = 0; j < colorAttachmentCount; j++)
+				destroyImage(colorAttachments[j]);
+
+			destroyImage(framebuffer->base.depthStencilAttachment);
 		}
 
 		GraphicsAPI api = window->api;
@@ -3026,21 +3215,23 @@ Vec2U getFramebufferSize(Framebuffer framebuffer)
 	assert(framebuffer != NULL);
 	return framebuffer->base.size;
 }
-Image* getFramebufferAttachments(Framebuffer framebuffer)
+Image* getFramebufferColorAttachments(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	assert(!(framebuffer->base.isDefault == true &&
-		(framebuffer->base.window->api == OPENGL_GRAPHICS_API ||
-		framebuffer->base.window->api == OPENGL_ES_GRAPHICS_API)));
-	return framebuffer->base.attachments;
+	assert(framebuffer->base.isDefault == false);
+	return framebuffer->base.colorAttachments;
 }
-uint8_t getFramebufferAttachmentCount(Framebuffer framebuffer)
+uint8_t getFramebufferColorAttachmentCount(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
-	assert(!(framebuffer->base.isDefault == true &&
-		(framebuffer->base.window->api == OPENGL_GRAPHICS_API ||
-		framebuffer->base.window->api == OPENGL_ES_GRAPHICS_API)));
-	return framebuffer->base.attachmentCount;
+	assert(framebuffer->base.isDefault == false);
+	return framebuffer->base.colorAttachmentCount;
+}
+Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	assert(framebuffer->base.isDefault == false);
+	return framebuffer->base.depthStencilAttachment;
 }
 bool isFramebufferDefault(Framebuffer framebuffer)
 {
@@ -3071,34 +3262,44 @@ bool setFramebufferAttachments(
 	return false;
 }
 
-// TODO: add clear booleans as in clear function
-// possibly this will fix black Vulkan shadow map
-
 void beginFramebufferRender(
 	Framebuffer framebuffer,
-	bool clearColor,
-	bool clearDepth,
-	bool clearStencil,
-	Vec4F colorValue,
-	float depthValue,
-	uint32_t stencilValue)
+	const FramebufferClear* clearValues,
+	size_t clearValueCount)
 {
 	assert(framebuffer != NULL);
-	assert(
-		colorValue.x >= 0.0f &&
-		colorValue.y >= 0.0f &&
-		colorValue.z >= 0.0f &&
-		colorValue.w >= 0.0f);
-	assert(
-		colorValue.x <= 1.0f &&
-		colorValue.y <= 1.0f &&
-		colorValue.z <= 1.0f &&
-		colorValue.w <= 1.0f);
-	assert(
-		depthValue >= 0.0f &&
-		depthValue <= 1.0f);
+	assert((clearValues != NULL && clearValueCount != 0) || clearValueCount == 0);
 	assert(framebuffer->base.window->isRecording == true);
 	assert(framebuffer->base.window->renderFramebuffer == NULL);
+
+#ifndef NDEBUG
+	if (clearValueCount != 0)
+	{
+		Image depthStencilAttachment =
+			framebuffer->base.depthStencilAttachment;
+		size_t colorAttachmentCount =
+			framebuffer->base.colorAttachmentCount;
+		size_t attachmentCount = depthStencilAttachment != NULL ?
+			colorAttachmentCount + 1 : colorAttachmentCount;
+
+		if (framebuffer->base.isDefault == false)
+			assert(clearValueCount == attachmentCount);
+		else
+			assert(clearValueCount == 2);
+
+		for (size_t i = 0; i < colorAttachmentCount; i++)
+		{
+			LinearColor color = clearValues[i].color;
+			assertLinearColor(color);
+		}
+
+		if (depthStencilAttachment != NULL)
+		{
+			float depth = clearValues[colorAttachmentCount].depthStencil.depth;
+			assert(depth >= 0.0f && depth <= 1.0f);
+		}
+	}
+#endif
 
 	Window window = framebuffer->base.window;
 	GraphicsAPI api = window->api;
@@ -3113,12 +3314,8 @@ void beginFramebufferRender(
 			framebuffer->vk.renderPass,
 			framebuffer->vk.handle,
 			framebuffer->vk.size,
-			clearColor,
-			clearDepth,
-			clearStencil,
-			colorValue,
-			depthValue,
-			stencilValue);
+			clearValues,
+			clearValueCount);
 #else
 		abort();
 #endif
@@ -3126,15 +3323,17 @@ void beginFramebufferRender(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+		bool hasDepthStencilAttachment =
+			framebuffer->gl.isDefault == true ||
+			framebuffer->gl.depthStencilAttachment != NULL;
+
 		beginGlFramebufferRender(
 			framebuffer->gl.handle,
 			framebuffer->gl.size,
-			clearColor,
-			clearDepth,
-			clearStencil,
-			colorValue,
-			depthValue,
-			stencilValue);
+			framebuffer->gl.colorAttachmentCount,
+			hasDepthStencilAttachment,
+			clearValues,
+			clearValueCount);
 	}
 	else
 	{
@@ -3178,31 +3377,86 @@ void endFramebufferRender(
 
 void clearFramebuffer(
 	Framebuffer framebuffer,
-	bool clearColor,
-	bool clearDepth,
-	bool clearStencil,
-	Vec4F colorValue,
-	float depthValue,
-	uint32_t stencilValue)
+	const bool* clearAttachments,
+	const FramebufferClear* clearValues,
+	size_t clearValueCount)
 {
 	assert(framebuffer != NULL);
-	assert(
-		colorValue.x >= 0.0f &&
-		colorValue.y >= 0.0f &&
-		colorValue.z >= 0.0f &&
-		colorValue.w >= 0.0f);
-	assert(
-		colorValue.x <= 1.0f &&
-		colorValue.y <= 1.0f &&
-		colorValue.z <= 1.0f &&
-		colorValue.w <= 1.0f);
-	assert(
-		depthValue >= 0.0f &&
-		depthValue <= 1.0f);
+	assert((clearAttachments != NULL && clearValues != NULL &&
+		clearValueCount != 0) || clearValueCount == 0);
 	assert(framebuffer->base.window->isRecording == true);
 	assert(framebuffer->base.window->renderFramebuffer != NULL);
 
+#ifndef NDEBUG
+	if (clearValueCount != 0)
+	{
+		Image depthStencilAttachment =
+			framebuffer->base.depthStencilAttachment;
+		size_t colorAttachmentCount =
+			framebuffer->base.colorAttachmentCount;
+		size_t attachmentCount = depthStencilAttachment != NULL ?
+			colorAttachmentCount + 1 : colorAttachmentCount;
+
+		if (framebuffer->base.isDefault == false)
+			assert(clearValueCount == attachmentCount);
+		else
+			assert(clearValueCount == 2);
+
+		for (size_t i = 0; i < colorAttachmentCount; i++)
+		{
+			LinearColor color = clearValues[i].color;
+			assertLinearColor(color);
+		}
+
+		if (depthStencilAttachment != NULL)
+		{
+			float depth = clearValues[colorAttachmentCount].depthStencil.depth;
+			assert(depth >= 0.0f && depth <= 1.0f);
+		}
+	}
+#endif
+
 	Window window = framebuffer->base.window;
+	bool hasDepthBuffer, hasStencilBuffer;
+
+	if (framebuffer->gl.isDefault == false)
+	{
+		Image depthStencilAttachment =
+			framebuffer->gl.depthStencilAttachment;
+
+		if (depthStencilAttachment != NULL)
+		{
+			ImageFormat format = depthStencilAttachment->gl.format;
+
+			switch (format)
+			{
+			default:
+				abort();
+			case D16_UNORM_IMAGE_FORMAT:
+			case D32_SFLOAT_IMAGE_FORMAT:
+				hasDepthBuffer = true;
+				hasStencilBuffer = false;
+				break;
+			case D16_UNORM_S8_UINT_IMAGE_FORMAT:
+			case D24_UNORM_S8_UINT_IMAGE_FORMAT:
+			case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
+				hasDepthBuffer = true;
+				hasStencilBuffer = true;
+				break;
+			}
+		}
+		else
+		{
+			hasDepthBuffer = false;
+			hasStencilBuffer = false;
+		}
+	}
+	else
+	{
+		hasDepthBuffer = true;
+		hasStencilBuffer = window->useStencilBuffer;
+	}
+
 	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
@@ -3211,12 +3465,11 @@ void clearFramebuffer(
 		clearVkFramebuffer(
 			window->vkWindow->currenCommandBuffer,
 			framebuffer->vk.size,
-			clearColor,
-			clearDepth,
-			clearStencil,
-			colorValue,
-			depthValue,
-			stencilValue);
+			hasDepthBuffer,
+			hasStencilBuffer,
+			clearAttachments,
+			clearValues,
+			clearValueCount);
 #else
 		abort();
 #endif
@@ -3226,12 +3479,12 @@ void clearFramebuffer(
 	{
 		clearGlFramebuffer(
 			framebuffer->vk.size,
-			clearColor,
-			clearDepth,
-			clearStencil,
-			colorValue,
-			depthValue,
-			stencilValue);
+			framebuffer->gl.colorAttachmentCount,
+			hasDepthBuffer,
+			hasStencilBuffer,
+			clearAttachments,
+			clearValues,
+			clearValueCount);
 	}
 	else
 	{
@@ -3304,7 +3557,6 @@ Pipeline createPipeline(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		assert(createInfo == NULL);
-		assert(state->restartPrimitive == false);
 		assert(state->discardRasterizer == false);
 
 		pipeline = createGlPipeline(
@@ -3846,6 +4098,8 @@ size_t drawMesh(
 	assert(mesh != NULL);
 	assert(pipeline != NULL);
 	assert(mesh->base.window == mesh->base.window);
+	assert(mesh->base.vertexBuffer->base.isMapped == false);
+	assert(mesh->base.indexBuffer->base.isMapped == false);
 	assert(mesh->base.window->isRecording == true);
 
 	if (mesh->base.vertexBuffer == NULL ||

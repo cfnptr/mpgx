@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-out vec4 o_Color;
+layout(location = 0) out vec4 o_Color;
 uniform vec4 u_Color;
 
 void main()

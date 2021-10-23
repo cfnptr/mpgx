@@ -1266,6 +1266,11 @@ inline static void bindGlPipeline(
 		glDisable(GL_BLEND);
 	}
 
+	if (pipeline->gl.state.restartPrimitive == true)
+		glEnable(GL_PRIMITIVE_RESTART);
+	else
+		glDisable(GL_PRIMITIVE_RESTART);
+
 	// TODO:
 	glDisable(GL_STENCIL_TEST);
 

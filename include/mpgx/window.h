@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #pragma once
+#include "cmmt/color.h"
 #include "cmmt/vector.h"
 #include "cmmt/matrix.h"
 
@@ -233,14 +234,16 @@ typedef enum ImageType
 
 typedef enum ImageFormat
 {
-	R8G8B8A8_UNORM_IMAGE_FORMAT = 0,
-	R8G8B8A8_SRGB_IMAGE_FORMAT = 1,
-	D16_UNORM_IMAGE_FORMAT = 2,
-	D32_SFLOAT_IMAGE_FORMAT = 3,
-	D16_UNORM_S8_UINT_IMAGE_FORMAT = 4,
-	D24_UNORM_S8_UINT_IMAGE_FORMAT = 5,
-	D32_SFLOAT_S8_UINT_IMAGE_FORMAT = 6,
-	IMAGE_FORMAT_COUNT = 7,
+	R8_UNORM_IMAGE_FORMAT = 0,
+	R8G8B8A8_UNORM_IMAGE_FORMAT = 1,
+	R8G8B8A8_SRGB_IMAGE_FORMAT = 2,
+	R16G16B16A16_SFLOAT_IMAGE_FORMAT = 3,
+	D16_UNORM_IMAGE_FORMAT = 4,
+	D32_SFLOAT_IMAGE_FORMAT = 5,
+	D16_UNORM_S8_UINT_IMAGE_FORMAT = 6,
+	D24_UNORM_S8_UINT_IMAGE_FORMAT = 7,
+	D32_SFLOAT_S8_UINT_IMAGE_FORMAT = 8,
+	IMAGE_FORMAT_COUNT = 9,
 } ImageFormat;
 
 typedef enum ImageFilter
@@ -367,6 +370,17 @@ typedef enum DrawIndex
 	UINT32_DRAW_INDEX = 1,
 	DRAW_INDEX_COUNT = 2,
 } DrawIndex;
+
+typedef struct DepthStencilClear
+{
+	float depth;
+	uint32_t stencil;
+} DepthStencilClear;
+typedef union FramebufferClear
+{
+	LinearColor color;
+	DepthStencilClear depthStencil;
+} FramebufferClear;
 
 typedef struct PipelineState
 {
@@ -542,7 +556,12 @@ BufferType getBufferType(Buffer buffer);
 size_t getBufferSize(Buffer buffer);
 bool isBufferConstant(Buffer buffer);
 
-// TODO: set data[], also for images. (use GL: glMapBuffer)
+void* mapBuffer(
+	Buffer buffer,
+	bool readAccess,
+	bool writeAccess);
+void unmapBuffer(Buffer buffer);
+
 void setBufferData(
 	Buffer buffer,
 	const void* data,
@@ -586,6 +605,7 @@ Image createImageFromData(
 	bool isConstant);
 void destroyImage(Image image);
 
+// TODO: set data[].
 void setImageData(
 	Image image,
 	const void* data,
@@ -642,6 +662,16 @@ void destroyShader(Shader shader);
 Window getShaderWindow(Shader shader);
 ShaderType getShaderType(Shader shader);
 
+// TODO: add deferred rendering framebuffer constructor
+// utilize vulkan subpass optimization
+
+Framebuffer createFramebuffer(
+	Window window,
+	Vec2U size,
+	Image* colorAttachments,
+	size_t colorAttachmentCount,
+	Image depthStencilAttachment,
+	size_t pipelineCapacity);
 Framebuffer createShadowFramebuffer(
 	Window window,
 	Vec2U size,
@@ -653,8 +683,9 @@ void destroyFramebuffer(
 
 Window getFramebufferWindow(Framebuffer framebuffer);
 Vec2U getFramebufferSize(Framebuffer framebuffer);
-Image* getFramebufferAttachments(Framebuffer framebuffer);
-uint8_t getFramebufferAttachmentCount(Framebuffer framebuffer);
+Image* getFramebufferColorAttachments(Framebuffer framebuffer);
+uint8_t getFramebufferColorAttachmentCount(Framebuffer framebuffer);
+Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer);
 bool isFramebufferDefault(Framebuffer framebuffer);
 bool isFramebufferEmpty(Framebuffer framebuffer);
 
@@ -666,23 +697,16 @@ bool setFramebufferAttachments(
 
 void beginFramebufferRender(
 	Framebuffer framebuffer,
-	bool clearColor,
-	bool clearDepth,
-	bool clearStencil,
-	Vec4F colorValue,
-	float depthValue,
-	uint32_t stencilValue);
+	const FramebufferClear* clears,
+	size_t clearCount);
 void endFramebufferRender(
 	Framebuffer framebuffer);
 
 void clearFramebuffer(
 	Framebuffer framebuffer,
-	bool clearColor,
-	bool clearDepth,
-	bool clearStencil,
-	Vec4F colorValue,
-	float depthValue,
-	uint32_t stencilValue);
+	const bool* clearAttachments,
+	const FramebufferClear* clearValues,
+	size_t clearValueCount);
 
 Pipeline createPipeline(
 	Framebuffer framebuffer,

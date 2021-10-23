@@ -26,6 +26,6 @@ layout(binding = 0) uniform sampler2D u_Texture;
 
 void main()
 {
-    vec4 color = texture(u_Texture, f_TexCoords);
-    o_Color = color * fpc.color;
+    float color = texture(u_Texture, f_TexCoords).r;
+    o_Color = vec4(fpc.color.rgb, fpc.color.a * color);
 }

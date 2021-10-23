@@ -13,7 +13,7 @@
 // limitations under the License.
 
 in vec3 f_Normal;
-out vec4 o_Color;
+layout(location = 0) out vec4 o_Color;
 
 layout(std140) uniform UniformBuffer
 {

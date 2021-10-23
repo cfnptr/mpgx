@@ -398,7 +398,7 @@ inline static bool createTextPixels(
 
 	uint8_t* pixels = calloc(
 		pixelCount,
-		4 * sizeof(uint8_t));
+		sizeof(uint8_t));
 
 	if (pixels == NULL)
 		return false;
@@ -468,15 +468,8 @@ inline static bool createTextPixels(
 		{
 			for (size_t x = 0; x < glyphWidth; x++)
 			{
-				size_t pixelPos =
-					(y + pixelPosY) * 4 * pixelLength +
-					(x + pixelPosX) * 4;
-
-				// TODO: possibly optimize with texture packing
-				pixels[pixelPos + 0] = 255;
-				pixels[pixelPos + 1] = 255;
-				pixels[pixelPos + 2] = 255;
-				pixels[pixelPos + 3] = bitmap[y * glyphWidth + x];
+				pixels[(y + pixelPosY) * pixelLength + (x + pixelPosX)] =
+					bitmap[y * glyphWidth + x];
 			}
 		}
 	}
@@ -487,7 +480,7 @@ inline static bool createTextPixels(
 	*_pixelLength = pixelLength;
 	return true;
 }
-inline static bool createTextVertices(
+inline static bool createTextVertices( // TODO: use mapBuffer here, also detect empty glyphs and skip vertices
 	const uint32_t* uniChars,
 	size_t uniCharCount,
 	const Glyph* glyphs,
@@ -771,7 +764,7 @@ Text createText(
 		Image texture = createImage(
 			window,
 			IMAGE_2D_TYPE,
-			R8G8B8A8_UNORM_IMAGE_FORMAT,
+			R8_UNORM_IMAGE_FORMAT,
 			(const void**)&pixels,
 			vec3U(fontSize, fontSize, 1),
 			1,
@@ -992,7 +985,7 @@ Text createText(
 		Image texture = createImage(
 			window,
 			IMAGE_2D_TYPE,
-			R8G8B8A8_UNORM_IMAGE_FORMAT,
+			R8_UNORM_IMAGE_FORMAT,
 			(const void**)&pixels,
 			vec3U(pixelLength, pixelLength, 1),
 			1,
@@ -1575,7 +1568,7 @@ bool bakeText(
 				texture = createImage(
 					window,
 					IMAGE_2D_TYPE,
-					R8G8B8A8_UNORM_IMAGE_FORMAT,
+					R8_UNORM_IMAGE_FORMAT,
 					(const void**)&pixels,
 					vec3U(pixelLength, pixelLength, 1),
 					1,
@@ -1820,7 +1813,7 @@ bool bakeText(
 			Image texture = createImage(
 				window,
 				IMAGE_2D_TYPE,
-				R8G8B8A8_UNORM_IMAGE_FORMAT,
+				R8_UNORM_IMAGE_FORMAT,
 				(const void**)&pixels,
 				vec3U(text->fontSize, text->fontSize, 1),
 				1,
@@ -2024,7 +2017,7 @@ bool bakeText(
 			Image texture = createImage(
 				window,
 				IMAGE_2D_TYPE,
-				R8G8B8A8_UNORM_IMAGE_FORMAT,
+				R8_UNORM_IMAGE_FORMAT,
 				(const void**)&pixels,
 				vec3U(pixelLength, pixelLength, 1),
 				1,
@@ -2430,7 +2423,6 @@ static bool onVkHandleResize(
 		(int32_t)newSize.x,
 		(int32_t)newSize.y);
 	pipeline->vk.state.viewport = size;
-	pipeline->vk.state.scissor = size;
 
 	VkPipelineCreateInfo _createInfo = {
 		1,

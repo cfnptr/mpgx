@@ -327,16 +327,12 @@ static void onVkHandleBind(Pipeline pipeline)
 	uint32_t bufferIndex = vkWindow->bufferIndex;
 	Buffer buffer = pipelineHandle->vk.uniformBuffers[bufferIndex];
 
-	bool result = setVkBufferData(
+	setVkBufferData(
 		vkWindow->allocator,
 		buffer->vk.allocation,
 		&pipelineHandle->vk.ub,
 		sizeof(UniformBuffer),
 		0);
-
-	if (result == false)
-		abort();
-
 	vkCmdBindDescriptorSets(
 		vkWindow->currenCommandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,

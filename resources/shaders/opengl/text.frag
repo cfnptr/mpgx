@@ -13,13 +13,13 @@
 // limitations under the License.
 
 in vec2 f_TexCoords;
-out vec4 o_Color;
+layout(location = 0) out vec4 o_Color;
 
 uniform vec4 u_Color;
 uniform sampler2D u_Texture;
 
 void main()
 {
-    vec4 color = texture(u_Texture, f_TexCoords);
-    o_Color = color * u_Color;
+    float color = texture(u_Texture, f_TexCoords);
+    o_Color = vec4(u_Color.rgb, u_Color.a * color);
 }

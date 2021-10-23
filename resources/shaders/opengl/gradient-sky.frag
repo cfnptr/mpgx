@@ -15,7 +15,7 @@
 in vec3 f_FragDir;
 in float f_TexCoord;
 
-out vec4 o_Color;
+layout(location = 0) out vec4 o_Color;
 
 uniform vec4 u_SunDir;
 uniform vec4 u_SunColor;

@@ -787,10 +787,7 @@ Pipeline createExtDiffusePipeline(
 	}
 
 	if (pipeline == NULL)
-	{
-		free(pipelineHandle);
 		return NULL;
-	}
 
 	Vec3F lightDirection = normVec3F(
 		vec3F(1.0f, -3.0f, 6.0f));

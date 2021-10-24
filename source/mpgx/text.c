@@ -2675,10 +2675,7 @@ Pipeline createExtTextPipeline(
 	}
 
 	if (pipeline == NULL)
-	{
-		free(pipelineHandle);
 		return NULL;
-	}
 
 	pipelineHandle->base.window = window;
 	pipelineHandle->base.texture = NULL;

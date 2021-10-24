@@ -1239,6 +1239,7 @@ static bool onVkResize(
 			pipeline->vk.cache,
 			pipeline->vk.layout,
 			device,
+			framebuffer->vk.colorAttachmentCount,
 			framebuffer->vk.window,
 			&createInfo,
 			pipeline->vk.shaders,
@@ -3221,7 +3222,7 @@ Image* getFramebufferColorAttachments(Framebuffer framebuffer)
 	assert(framebuffer->base.isDefault == false);
 	return framebuffer->base.colorAttachments;
 }
-uint8_t getFramebufferColorAttachmentCount(Framebuffer framebuffer)
+size_t getFramebufferColorAttachmentCount(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
 	assert(framebuffer->base.isDefault == false);
@@ -3302,6 +3303,46 @@ void beginFramebufferRender(
 #endif
 
 	Window window = framebuffer->base.window;
+	bool hasDepthBuffer, hasStencilBuffer;
+
+	if (framebuffer->gl.isDefault == false)
+	{
+		Image depthStencilAttachment =
+			framebuffer->gl.depthStencilAttachment;
+
+		if (depthStencilAttachment != NULL)
+		{
+			ImageFormat format = depthStencilAttachment->gl.format;
+
+			switch (format)
+			{
+			default:
+				abort();
+			case D16_UNORM_IMAGE_FORMAT:
+			case D32_SFLOAT_IMAGE_FORMAT:
+				hasDepthBuffer = true;
+				hasStencilBuffer = false;
+				break;
+			case D16_UNORM_S8_UINT_IMAGE_FORMAT:
+			case D24_UNORM_S8_UINT_IMAGE_FORMAT:
+			case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
+				hasDepthBuffer = true;
+				hasStencilBuffer = true;
+				break;
+			}
+		}
+		else
+		{
+			hasDepthBuffer = false;
+			hasStencilBuffer = false;
+		}
+	}
+	else
+	{
+		hasDepthBuffer = true;
+		hasStencilBuffer = window->useStencilBuffer;
+	}
+
 	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
@@ -3331,7 +3372,8 @@ void beginFramebufferRender(
 			framebuffer->gl.handle,
 			framebuffer->gl.size,
 			framebuffer->gl.colorAttachmentCount,
-			hasDepthStencilAttachment,
+			hasDepthBuffer,
+			hasStencilBuffer,
 			clearValues,
 			clearValueCount);
 	}
@@ -3632,7 +3674,7 @@ void destroyPipeline(
 		if (destroyShaders == true)
 		{
 			Shader* shaders = pipeline->base.shaders;
-			uint8_t shaderCount = pipeline->base.shaderCount;
+			size_t shaderCount = pipeline->base.shaderCount;
 
 			for (uint8_t j = 0; j < shaderCount; j++)
 				destroyShader(shaders[j]);

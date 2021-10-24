@@ -804,10 +804,7 @@ Pipeline createExtGradSkyPipeline(
 	}
 
 	if (pipeline == NULL)
-	{
-		free(pipelineHandle);
 		return NULL;
-	}
 
 	pipelineHandle->base.texture = texture;
 	pipelineHandle->base.sampler = sampler;

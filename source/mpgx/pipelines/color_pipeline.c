@@ -319,10 +319,7 @@ Pipeline createExtColorPipeline(
 	}
 
 	if (pipeline == NULL)
-	{
-		free(pipelineHandle);
 		return NULL;
-	}
 
 	pipelineHandle->base.window = window;
 	pipelineHandle->base.vpc.mvp = identMat4F;

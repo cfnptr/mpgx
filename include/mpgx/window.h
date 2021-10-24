@@ -684,7 +684,7 @@ void destroyFramebuffer(
 Window getFramebufferWindow(Framebuffer framebuffer);
 Vec2U getFramebufferSize(Framebuffer framebuffer);
 Image* getFramebufferColorAttachments(Framebuffer framebuffer);
-uint8_t getFramebufferColorAttachmentCount(Framebuffer framebuffer);
+size_t getFramebufferColorAttachmentCount(Framebuffer framebuffer);
 Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer);
 bool isFramebufferDefault(Framebuffer framebuffer);
 bool isFramebufferEmpty(Framebuffer framebuffer);

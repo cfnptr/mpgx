@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #pragma once
+
 #include "mpgx/_source/graphics.h"
 #include "mpgx/_source/swapchain.h"
 
@@ -52,6 +53,15 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
 	void* userData)
 {
+#if __APPLE__
+	if (callbackData->messageIdNumber == 0x6bbb14 ||
+		callbackData->messageIdNumber == 0xf467460)
+	{
+		// TODO: fix MoltenVK Vulkan 1.2 shader error logs
+		return VK_FALSE;
+	}
+#endif
+
 	const char* severity;
 
 	if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
@@ -180,7 +190,7 @@ inline static VkInstance createVkInstance(
 	if (glfwExtensionCount == 0 ||
 		glfwExtensions == NULL)
 	{
-		free(layers);
+		free((void*)layers);
 		return NULL;
 	}
 
@@ -194,7 +204,7 @@ inline static VkInstance createVkInstance(
 	if (result != VK_SUCCESS ||
 		extensionPropertyCount == 0)
 	{
-		free(layers);
+		free((void*)layers);
 		return NULL;
 	}
 
@@ -203,7 +213,7 @@ inline static VkInstance createVkInstance(
 
 	if (extensionProperties == NULL)
 	{
-		free(layers);
+		free((void*)layers);
 		return NULL;
 	}
 
@@ -216,7 +226,7 @@ inline static VkInstance createVkInstance(
 		extensionPropertyCount == 0)
 	{
 		free(extensionProperties);
-		free(layers);
+		free((void*)layers);
 		return NULL;
 	}
 
@@ -229,7 +239,7 @@ inline static VkInstance createVkInstance(
 	if (extensions == NULL)
 	{
 		free(extensionProperties);
-		free(layers);
+		free((void*)layers);
 		return NULL;
 	}
 
@@ -355,8 +365,8 @@ inline static VkInstance createVkInstance(
 		NULL,
 		&instance);
 
-	free(extensions);
-	free(layers);
+	free((void*)extensions);
+	free((void*)layers);
 
 	if (result != VK_SUCCESS)
 		return NULL;
@@ -726,9 +736,6 @@ inline static VkDevice createVkDevice(
 	}
 
 	free(properties);
-
-	// TODO: vkGetPhysicalDeviceFeatures2()
-	// enable MacOS samplers comparison
 
 	VkDeviceCreateInfo deviceCreateInfo = {
 		VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,

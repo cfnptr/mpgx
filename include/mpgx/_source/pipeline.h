@@ -316,6 +316,7 @@ inline static VkPipeline createVkPipelineHandle(
 	VkPipelineCache cache,
 	VkPipelineLayout layout,
 	VkDevice device,
+	size_t colorAttachmentCount,
 	Window window,
 	VkPipelineCreateInfo* createInfo,
 	Shader* shaders,
@@ -551,7 +552,19 @@ inline static VkPipeline createVkPipelineHandle(
 	if (state.colorComponentWriteMask & ALPHA_COLOR_COMPONENT)
 		vkColorWriteMask |= VK_COLOR_COMPONENT_A_BIT;
 
-	VkPipelineColorBlendAttachmentState colorBlendAttachmentStateCreateInfo = {
+	// TODO: add ability to set separated pipeline color blend values
+	// possibly when OpenGL support will be removed
+
+	VkPipelineColorBlendAttachmentState* colorBlendAttachmentStates = malloc(
+		colorAttachmentCount * sizeof(VkPipelineColorBlendAttachmentState));
+
+	if (colorBlendAttachmentStates == NULL)
+	{
+		free(shaderStageCreateInfos);
+		return NULL;
+	}
+
+	VkPipelineColorBlendAttachmentState colorBlendAttachmentState = {
 		state.enableBlend ? VK_TRUE : VK_FALSE,
 		srcColorBlendFactor,
 		dstColorBlendFactor,
@@ -562,14 +575,17 @@ inline static VkPipeline createVkPipelineHandle(
 		vkColorWriteMask,
 	};
 
+	for (size_t i = 0; i < colorAttachmentCount; i++)
+		colorBlendAttachmentStates[i] = colorBlendAttachmentState;
+
 	VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 		NULL,
 		0,
 		VK_FALSE, // TODO: logic operation
 		0,
-		1,
-		&colorBlendAttachmentStateCreateInfo,
+		(uint32_t)colorAttachmentCount,
+		colorBlendAttachmentStates,
 		{
 			state.blendColor.x,
 			state.blendColor.y,
@@ -590,7 +606,7 @@ inline static VkPipeline createVkPipelineHandle(
 		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 		NULL,
 		0,
-		shaderCount,
+		(uint32_t)shaderCount,
 		shaderStageCreateInfos,
 		&vertexInputStateCreateInfo,
 		&inputAssemblyStateCreateInfo,
@@ -618,6 +634,7 @@ inline static VkPipeline createVkPipelineHandle(
 		NULL,
 		&handle);
 
+	free(colorBlendAttachmentStates);
 	free(shaderStageCreateInfos);
 
 	if (vkResult != VK_SUCCESS)
@@ -715,6 +732,7 @@ inline static Pipeline createVkPipeline(
 		cache,
 		layout,
 		device,
+		framebuffer->vk.colorAttachmentCount,
 		framebuffer->vk.window,
 		createInfo,
 		shaders,

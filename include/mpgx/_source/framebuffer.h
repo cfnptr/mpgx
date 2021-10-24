@@ -83,6 +83,8 @@ inline static VkRenderPass createVkGeneralRenderPass(
 		return NULL;
 
 	VkAttachmentReference* colorReferences;
+	VkAccessFlags accessFlags = 0;
+	VkPipelineStageFlags stageFlags = 0;
 
 	if (colorAttachmentCount != 0)
 	{
@@ -118,6 +120,9 @@ inline static VkRenderPass createVkGeneralRenderPass(
 			attachmentDescriptions[i] = attachmentDescription;
 			colorReferences[i] = attachmentReference;
 		}
+
+		accessFlags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		stageFlags |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	}
 	else
 	{
@@ -161,6 +166,7 @@ inline static VkRenderPass createVkGeneralRenderPass(
 		};
 
 		attachmentDescriptions[colorAttachmentCount] = attachmentDescription;
+		accessFlags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	}
 
 	VkAttachmentReference depthStencilAttachmentReference = {
@@ -172,7 +178,7 @@ inline static VkRenderPass createVkGeneralRenderPass(
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		0,
 		NULL,
-		colorAttachmentCount,
+		(uint32_t)colorAttachmentCount,
 		colorReferences,
 		NULL,
 		depthStencilAttachment != NULL ?
@@ -181,28 +187,25 @@ inline static VkRenderPass createVkGeneralRenderPass(
 		NULL,
 	};
 
-	// TODO: or (|) stage/access mask checking if color depth exists
-
+	// TODO: possibly incorrect values
 	VkSubpassDependency subpassDependencies[2] = {
 		{
 			VK_SUBPASS_EXTERNAL,
 			0,
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-				VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+			stageFlags | (depthStencilAttachment != NULL ?
+				VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT : 0),
 			VK_ACCESS_SHADER_READ_BIT,
-			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-				VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			accessFlags,
 			VK_DEPENDENCY_BY_REGION_BIT,
 		},
 		{
 			0,
 			VK_SUBPASS_EXTERNAL,
-			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-				VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			stageFlags | (depthStencilAttachment != NULL ?
+				VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : 0),
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-				VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			accessFlags,
 			VK_ACCESS_SHADER_READ_BIT,
 			VK_DEPENDENCY_BY_REGION_BIT,
 		},
@@ -212,7 +215,7 @@ inline static VkRenderPass createVkGeneralRenderPass(
 		VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 		NULL,
 		0,
-		attachmentCount,
+		(uint32_t)attachmentCount,
 		attachmentDescriptions,
 		1,
 		&subpassDescription,
@@ -520,7 +523,7 @@ inline static Framebuffer createVkFramebuffer(
 		NULL,
 		0,
 		renderPass,
-		attachmentCount,
+		(uint32_t)attachmentCount,
 		imageViews,
 		size.x,
 		size.y,
@@ -672,7 +675,7 @@ inline static void beginVkFramebufferRender(
 		{
 			0, 0, size.x, size.y,
 		},
-		clearValueCount,
+		(uint32_t)clearValueCount,
 		(const VkClearValue*)clearValues,
 	};
 
@@ -695,6 +698,7 @@ inline static void clearVkFramebuffer(
 	const FramebufferClear* clearValues,
 	size_t clearValueCount)
 {
+	// TODO: move allocation to framebuffer object (cache it)
 	VkClearAttachment* clearAttachments = malloc(
 		clearValueCount * sizeof(VkClearAttachment));
 
@@ -767,7 +771,7 @@ inline static void clearVkFramebuffer(
 
 	vkCmdClearAttachments(
 		commandBuffer,
-		clearAttachmentCount,
+		(uint32_t)clearAttachmentCount,
 		clearAttachments,
 		1,
 		&clearRect);
@@ -848,6 +852,19 @@ inline static Framebuffer createGlFramebuffer(
 			return NULL;
 		}
 
+		GLenum* drawBuffers = malloc(
+			sizeof(GLenum) * colorAttachmentCount);
+
+		if (drawBuffers == NULL)
+		{
+			free(colorAttachments);
+			glDeleteFramebuffers(
+				GL_ONE,
+				&handle);
+			free(framebuffer);
+			return NULL;
+		}
+
 		for (size_t i = 0; i < colorAttachmentCount; i++)
 		{
 			Image colorAttachment = _colorAttachments[i];
@@ -858,6 +875,7 @@ inline static Framebuffer createGlFramebuffer(
 			assert(colorAttachment->gl.window == window);
 
 			ImageFormat format = colorAttachment->gl.format;
+			GLenum glAttachment = GL_COLOR_ATTACHMENT0 + (GLenum)i;
 
 			switch (format)
 			{
@@ -874,7 +892,7 @@ inline static Framebuffer createGlFramebuffer(
 			case R16G16B16A16_SFLOAT_IMAGE_FORMAT:
 				glFramebufferTexture2D(
 					GL_FRAMEBUFFER,
-					GL_COLOR_ATTACHMENT0 + (GLenum)colorAttachmentCount,
+					glAttachment,
 					colorAttachment->gl.glType,
 					colorAttachment->gl.handle,
 					GL_ZERO);
@@ -882,7 +900,13 @@ inline static Framebuffer createGlFramebuffer(
 			}
 
 			colorAttachments[i] = colorAttachment;
+			drawBuffers[i] = glAttachment;
 		}
+
+		glDrawBuffers(
+			(GLsizei)colorAttachmentCount,
+			drawBuffers);
+		free(drawBuffers);
 	}
 	else
 	{
@@ -1049,7 +1073,8 @@ inline static void beginGlFramebufferRender(
 	GLuint framebuffer,
 	Vec2U size,
 	size_t colorAttachmentCount,
-	bool hasDepthStencilAttachment,
+	bool hasDepthAttachment,
+	bool hasStencilAttachment,
 	const FramebufferClear* clearValues,
 	size_t clearValueCount)
 {
@@ -1079,19 +1104,40 @@ inline static void beginGlFramebufferRender(
 			}
 		}
 
-		if (hasDepthStencilAttachment == true)
+		if (hasDepthAttachment == true || hasStencilAttachment == true)
 		{
-			glDepthMask(GL_TRUE);
-			glStencilMask(UINT32_MAX);
-
 			DepthStencilClear value =
 				clearValues[colorAttachmentCount].depthStencil;
 
-			glClearBufferfi(
-				GL_DEPTH_STENCIL,
-				0,
-				value.depth,
-				(GLint)value.stencil);
+			if (hasDepthAttachment == true && hasStencilAttachment == true)
+			{
+				glDepthMask(GL_TRUE);
+				glStencilMask(UINT32_MAX);
+
+				glClearBufferfi(
+					GL_DEPTH_STENCIL,
+					0,
+					value.depth,
+					(GLint)value.stencil);
+			}
+			else if (hasDepthAttachment == true)
+			{
+				glDepthMask(GL_TRUE);
+
+				glClearBufferfv(
+					GL_DEPTH,
+					0,
+					&value.depth);
+			}
+			else
+			{
+				glStencilMask(UINT32_MAX);
+
+				glClearBufferiv(
+					GL_STENCIL,
+					0,
+					(const GLint*)&value.stencil);
+			}
 		}
 	}
 

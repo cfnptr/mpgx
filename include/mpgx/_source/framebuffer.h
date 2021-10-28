@@ -83,8 +83,6 @@ inline static VkRenderPass createVkGeneralRenderPass(
 		return NULL;
 
 	VkAttachmentReference* colorReferences;
-	VkAccessFlags accessFlags = 0;
-	VkPipelineStageFlags stageFlags = 0;
 
 	if (colorAttachmentCount != 0)
 	{
@@ -120,9 +118,6 @@ inline static VkRenderPass createVkGeneralRenderPass(
 			attachmentDescriptions[i] = attachmentDescription;
 			colorReferences[i] = attachmentReference;
 		}
-
-		accessFlags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		stageFlags |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	}
 	else
 	{
@@ -166,7 +161,6 @@ inline static VkRenderPass createVkGeneralRenderPass(
 		};
 
 		attachmentDescriptions[colorAttachmentCount] = attachmentDescription;
-		accessFlags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	}
 
 	VkAttachmentReference depthStencilAttachmentReference = {
@@ -187,30 +181,6 @@ inline static VkRenderPass createVkGeneralRenderPass(
 		NULL,
 	};
 
-	// TODO: possibly incorrect values
-	VkSubpassDependency subpassDependencies[2] = {
-		{
-			VK_SUBPASS_EXTERNAL,
-			0,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			stageFlags | (depthStencilAttachment != NULL ?
-				VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT : 0),
-			VK_ACCESS_SHADER_READ_BIT,
-			accessFlags,
-			VK_DEPENDENCY_BY_REGION_BIT,
-		},
-		{
-			0,
-			VK_SUBPASS_EXTERNAL,
-			stageFlags | (depthStencilAttachment != NULL ?
-				VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : 0),
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			accessFlags,
-			VK_ACCESS_SHADER_READ_BIT,
-			VK_DEPENDENCY_BY_REGION_BIT,
-		},
-	};
-
 	VkRenderPassCreateInfo renderPassCreateInfo = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 		NULL,
@@ -219,8 +189,8 @@ inline static VkRenderPass createVkGeneralRenderPass(
 		attachmentDescriptions,
 		1,
 		&subpassDescription,
-		2,
-		subpassDependencies,
+		0,
+		NULL,
 	};
 
 	VkRenderPass renderPass;
@@ -360,7 +330,8 @@ inline static VkImageView createVkImageView(
 }
 inline static Framebuffer createDefaultVkFramebuffer(
 	VkRenderPass renderPass,
-	VkImageView* _imageViews,
+	VkImageView colorImageView,
+	VkImageView depthImageView,
 	VkFramebuffer handle,
 	Window window,
 	Vec2U size,
@@ -374,7 +345,7 @@ inline static Framebuffer createDefaultVkFramebuffer(
 		return NULL;
 
 	VkImageView* imageViews = malloc(
-		colorAttachmentCount * sizeof(VkImageView));
+		2 * sizeof(VkImageView));
 
 	if (imageViews == NULL)
 	{
@@ -382,8 +353,8 @@ inline static Framebuffer createDefaultVkFramebuffer(
 		return NULL;
 	}
 
-	for (size_t i = 0; i < colorAttachmentCount; i++)
-		imageViews[i] = _imageViews[i];
+	imageViews[0] = colorImageView;
+	imageViews[1] = depthImageView;
 
 	Pipeline* pipelines = malloc(
 		pipelineCapacity * sizeof(Pipeline));

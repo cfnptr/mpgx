@@ -420,17 +420,13 @@ Window createWindow(
 		}
 
 		VkSwapchain swapchain = vkWindow->swapchain;
-		VkSwapchainBuffer firtBuffer = swapchain->buffers[0];
-
-		VkImageView imageViews[2] = {
-			firtBuffer.imageView,
-			swapchain->depthImageView,
-		};
+		VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
 
 		framebuffer = createDefaultVkFramebuffer(
 			swapchain->renderPass,
-			imageViews,
-			firtBuffer.framebuffer,
+			firstBuffer.imageView,
+			swapchain->depthImageView,
+			firstBuffer.framebuffer,
 			window,
 			framebufferSize,
 			1,

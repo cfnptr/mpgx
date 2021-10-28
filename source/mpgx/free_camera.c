@@ -91,11 +91,19 @@ void destroyFreeCamera(FreeCamera freeCamera)
 	free(freeCamera);
 }
 
-Framebuffer getFreeCameraWindow(
+Framebuffer getFreeCameraFramebuffer(
 	FreeCamera freeCamera)
 {
 	assert(freeCamera != NULL);
 	return freeCamera->framebuffer;
+}
+Vec3F getFreeCameraViewDirection(
+	FreeCamera freeCamera)
+{
+	Quat rotation = getTransformRotation(
+		freeCamera->transform);
+	return normVec3F(dotVecQuat3F(
+		frontVec3F, rotation));
 }
 
 Transform getFreeCameraTransform(

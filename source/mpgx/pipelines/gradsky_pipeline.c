@@ -373,6 +373,22 @@ static void onVkHandleDestroy(void* handle)
 		NULL);
 	free(pipelineHandle);
 }
+static void onVkHandleBind(Pipeline pipeline)
+{
+	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	uint32_t bufferIndex = vkWindow->bufferIndex;
+
+	vkCmdBindDescriptorSets(
+		vkWindow->currenCommandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		pipeline->vk.layout,
+		0,
+		1,
+		&pipelineHandle->vk.descriptorSets[bufferIndex],
+		0,
+		NULL);
+}
 static void onVkUniformsSet(Pipeline pipeline)
 {
 	PipelineHandle* pipelineHandle = pipeline->vk.handle;
@@ -394,22 +410,6 @@ static void onVkUniformsSet(Pipeline pipeline)
 		sizeof(VertexPushConstants),
 		sizeof(FragmentPushConstants),
 		&pipelineHandle->vk.fpc);
-}
-static void onVkHandleBind(Pipeline pipeline)
-{
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
-	uint32_t bufferIndex = vkWindow->bufferIndex;
-
-	vkCmdBindDescriptorSets(
-		vkWindow->currenCommandBuffer,
-		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		pipeline->vk.layout,
-		0,
-		1,
-		&pipelineHandle->vk.descriptorSets[bufferIndex],
-		0,
-		NULL);
 }
 static bool onVkHandleResize(
 	Pipeline pipeline,
@@ -569,6 +569,7 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorSetLayout,
 			NULL);
+		return NULL;
 	}
 
 	VkDescriptorSet* descriptorSets = createVkDescriptorSets(

@@ -32,6 +32,8 @@ void destroyFreeCamera(FreeCamera freeCamera);
 
 Framebuffer getFreeCameraFramebuffer(
 	FreeCamera freeCamera);
+Vec3F getFreeCameraViewDirection(
+	FreeCamera freeCamera);
 
 Transform getFreeCameraTransform(
 	FreeCamera freeCamera);

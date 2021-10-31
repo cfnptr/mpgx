@@ -81,7 +81,6 @@ Render createTextRender(
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
-	assertLinearColor(color);
 	assert(text != NULL);
 
 	assert(getTransformTransformer(
@@ -140,7 +139,6 @@ void setTextRenderColor(
 	LinearColor color)
 {
 	assert(render != NULL);
-	assertLinearColor(color);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(

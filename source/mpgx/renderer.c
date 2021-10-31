@@ -176,6 +176,17 @@ void setRendererUseCulling(
 	renderer->useCulling = useCulling;
 }
 
+void enumerateRenderer(
+	Renderer renderer,
+	void(*onItem)(Render))
+{
+	assert(renderer != NULL);
+	assert(onItem != NULL);
+
+	for (size_t i = 0; i < renderer->renderCount; i++)
+		onItem(renderer->renders[i]);
+}
+
 static int ascendingRenderCompare(
 	const void* a,
 	const void* b)
@@ -386,6 +397,7 @@ RenderResult drawRenderer(
 	RenderResult result;
 	result.renderCount = 0;
 	result.indexCount = 0;
+	result.passCount = 0;
 
 	size_t renderCount = renderer->renderCount;
 

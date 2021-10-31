@@ -15,11 +15,12 @@
 in vec2 f_TexCoords;
 layout(location = 0) out vec4 o_Color;
 
-uniform vec4 u_Color;
-uniform sampler2D u_Texture;
+uniform vec4 u_Threshold;
+uniform sampler2D u_Buffer;
 
 void main()
 {
-    vec4 color = texture(u_Texture, f_TexCoords);
-    o_Color = color * u_Color;
+    vec3 color = texture(u_Buffer, f_TexCoords).rgb;
+    bool greater = any(greaterThan(color, u_Threshold.rgb));
+    o_Color = greater ? vec4(color, 0.0) : vec4(0.0);
 }

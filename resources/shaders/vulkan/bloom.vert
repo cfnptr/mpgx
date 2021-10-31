@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-in vec2 f_TexCoords;
-layout(location = 0) out vec4 o_Color;
+#version 420
 
-uniform vec4 u_Color;
-uniform sampler2D u_Texture;
+layout(location = 0) in vec2 v_Position;
+layout(location = 1) in vec2 v_TexCoords;
+
+layout(location = 0) out vec2 f_TexCoords;
 
 void main()
 {
-    vec4 color = texture(u_Texture, f_TexCoords);
-    o_Color = color * u_Color;
+    gl_Position = vec4(v_Position, 0.0, 1.0);
+    f_TexCoords = v_TexCoords;
 }

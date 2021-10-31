@@ -216,9 +216,7 @@ inline static Pipeline createGlHandle(
 
 	if (result == false)
 	{
-		destroyPipeline(
-			pipeline,
-			false);
+		destroyPipeline(pipeline, false);
 		return NULL;
 	}
 
@@ -248,20 +246,21 @@ Pipeline createExtSimpShadPipeline(
 	if (pipelineHandle == NULL)
 		return NULL;
 
+	Window window = framebuffer->base.window;
+	pipelineHandle->base.window = window;
+	pipelineHandle->base.vpc.mvp = identMat4F;
+
 	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
 
-	Window window = framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
-
-	Pipeline pipeline;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		pipeline = createVkHandle(
+		return createVkHandle(
 			framebuffer,
 			shaders,
 			2,
@@ -272,9 +271,9 @@ Pipeline createExtSimpShadPipeline(
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
+		api == OPENGL_ES_GRAPHICS_API)
 	{
-		pipeline = createGlHandle(
+		return createGlHandle(
 			framebuffer,
 			shaders,
 			2,
@@ -285,13 +284,6 @@ Pipeline createExtSimpShadPipeline(
 	{
 		abort();
 	}
-
-	if (pipeline == NULL)
-		return NULL;
-
-	pipelineHandle->base.window = window;
-	pipelineHandle->base.vpc.mvp = identMat4F;
-	return pipeline;
 }
 Pipeline createSimpShadPipeline(
 	Framebuffer framebuffer,

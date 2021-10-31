@@ -32,6 +32,10 @@ void destroyTransformer(Transformer transformer);
 
 bool isTransformerEmpty(Transformer transformer);
 
+void enumerateTransformer(
+	Transformer transformer,
+	void(*onItem)(Transform));
+
 Transform createTransform(
 	Transformer transformer,
 	Vec3F position,

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TODO: remove pow specular from shader use bloom for that
 #include "mpgx/pipelines/gradsky_pipeline.h"
 #include "mpgx/_source/pipeline.h"
 #include "mpgx/_source/sampler.h"
@@ -497,7 +498,10 @@ inline static Pipeline createVkHandle(
 		createVkDescriptorSetLayout(device);
 
 	if (descriptorSetLayout == NULL)
+	{
+		free(pipelineHandle);
 		return NULL;
+	}
 
 	VkPipelineCreateInfo createInfo = {
 		1,
@@ -510,28 +514,6 @@ inline static Pipeline createVkHandle(
 		pushConstantRanges,
 	};
 
-	Pipeline pipeline = createPipeline(
-		framebuffer,
-		GRADSKY_PIPELINE_NAME,
-		shaders,
-		shaderCount,
-		state,
-		onVkHandleDestroy,
-		onVkHandleBind,
-		onVkUniformsSet,
-		onVkHandleResize,
-		pipelineHandle,
-		&createInfo);
-
-	if (pipeline == NULL)
-	{
-		vkDestroyDescriptorSetLayout(
-			device,
-			descriptorSetLayout,
-			NULL);
-		return NULL;
-	}
-
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
 	VkDescriptorPool descriptorPool = createVkDescriptorPool(
@@ -540,13 +522,11 @@ inline static Pipeline createVkHandle(
 
 	if (descriptorPool == NULL)
 	{
-		destroyPipeline(
-			pipeline,
-			false);
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
+		free(pipelineHandle);
 		return NULL;
 	}
 
@@ -562,13 +542,11 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorPool,
 			NULL);
-		destroyPipeline(
-			pipeline,
-			false);
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
+		free(pipelineHandle);
 		return NULL;
 	}
 
@@ -590,23 +568,32 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorPool,
 			NULL);
-		destroyPipeline(
-			pipeline,
-			false);
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
+		free(pipelineHandle);
 		return NULL;
 	}
 
-	pipelineHandle->vk.window = window;
 	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
 	pipelineHandle->vk.descriptorPool = descriptorPool;
 	pipelineHandle->vk.imageView = imageView;
 	pipelineHandle->vk.descriptorSets = descriptorSets;
 	pipelineHandle->vk.bufferCount = bufferCount;
-	return pipeline;
+
+	return createPipeline(
+		framebuffer,
+		GRADSKY_PIPELINE_NAME,
+		shaders,
+		shaderCount,
+		state,
+		onVkHandleDestroy,
+		onVkHandleBind,
+		onVkUniformsSet,
+		onVkHandleResize,
+		pipelineHandle,
+		&createInfo);
 }
 #endif
 
@@ -723,9 +710,7 @@ inline static Pipeline createGlHandle(
 
 	if (result == false)
 	{
-		destroyPipeline(
-			pipeline,
-			false);
+		destroyPipeline(pipeline, false);
 		return NULL;
 	}
 
@@ -764,20 +749,25 @@ Pipeline createExtGradSkyPipeline(
 	if (pipelineHandle == NULL)
 		return NULL;
 
+	Window window = framebuffer->base.window;
+	pipelineHandle->base.window = window;
+	pipelineHandle->base.texture = texture;
+	pipelineHandle->base.sampler = sampler;
+	pipelineHandle->base.vpc.mvp = identMat4F;
+	pipelineHandle->base.fpc.sunDir = zeroVec4F;
+	pipelineHandle->base.fpc.sunColor = whiteLinearColor;
+
 	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
 
-	GraphicsAPI api = getWindowGraphicsAPI(
-		framebuffer->base.window);
-
-	Pipeline pipeline;
+	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		pipeline = createVkHandle(
+		return createVkHandle(
 			framebuffer,
 			shaders,
 			2,
@@ -792,7 +782,7 @@ Pipeline createExtGradSkyPipeline(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		pipeline = createGlHandle(
+		return createGlHandle(
 			framebuffer,
 			shaders,
 			2,
@@ -803,16 +793,6 @@ Pipeline createExtGradSkyPipeline(
 	{
 		abort();
 	}
-
-	if (pipeline == NULL)
-		return NULL;
-
-	pipelineHandle->base.texture = texture;
-	pipelineHandle->base.sampler = sampler;
-	pipelineHandle->base.vpc.mvp = identMat4F;
-	pipelineHandle->base.fpc.sunDir = zeroVec4F;
-	pipelineHandle->base.fpc.sunColor = whiteLinearColor;
-	return pipeline;
 }
 Pipeline createGradSkyPipeline(
 	Framebuffer framebuffer,

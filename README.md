@@ -4,7 +4,7 @@
 * Vulkan API and OpenGL rendering backends
 * Window creation, manipulation (using GLFW)
 * Optimized text rendering (using FreeType)
-* Color, diffuse, sprite, texture, sky shaders
+* Implemented shaders (Vulkan API, OpenGL)
 
 ## Supported operating systems
 * Ubuntu

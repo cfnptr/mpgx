@@ -32,9 +32,14 @@
 #define DEFAULT_DEPTH_BIAS_SLOPE 0
 #define DEFAULT_BLEND_COLOR 0
 
-// TODO: fix a new framebuffer sRGB difference
-// TODO: add framebuffer, renderer, transformer enumerators
+// TODO: add shader optimization:
+// calc shader hash and compare to others in debug
+// if equals show that possibly has same shader
+// https://github.com/B-Con/crypto-algorithms/blob/master/md5.c
+
 // TODO: possibly switch to the ktx texture format
+
+// TODO: check all library if (... != NULL) for UBs
 
 static const Vec2U defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
@@ -668,6 +673,7 @@ ShaderType getShaderType(Shader shader);
 Framebuffer createFramebuffer(
 	Window window,
 	Vec2U size,
+	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
@@ -675,6 +681,7 @@ Framebuffer createFramebuffer(
 Framebuffer createShadowFramebuffer(
 	Window window,
 	Vec2U size,
+	bool useBeginClear,
 	Image depthAttachment,
 	size_t pipelineCapacity);
 void destroyFramebuffer(
@@ -683,6 +690,7 @@ void destroyFramebuffer(
 
 Window getFramebufferWindow(Framebuffer framebuffer);
 Vec2U getFramebufferSize(Framebuffer framebuffer);
+bool isFramebufferUseBeginClear(Framebuffer framebuffer);
 Image* getFramebufferColorAttachments(Framebuffer framebuffer);
 size_t getFramebufferColorAttachmentCount(Framebuffer framebuffer);
 Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer);
@@ -697,8 +705,8 @@ bool setFramebufferAttachments(
 
 void beginFramebufferRender(
 	Framebuffer framebuffer,
-	const FramebufferClear* clears,
-	size_t clearCount);
+	const FramebufferClear* clearValues,
+	size_t clearValueCount);
 void endFramebufferRender(
 	Framebuffer framebuffer);
 

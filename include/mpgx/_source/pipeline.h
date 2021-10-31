@@ -19,7 +19,6 @@
 typedef struct _BasePipeline
 {
 	Framebuffer framebuffer;
-	const char* name;
 	Shader* shaders;
 	size_t shaderCount;
 	PipelineState state;
@@ -28,11 +27,13 @@ typedef struct _BasePipeline
 	OnPipelineUniformsSet onUniformsSet;
 	OnPipelineHandleResize onHandleResize;
 	void* handle;
+#ifndef NDEBUG
+	const char* name;
+#endif
 } _BasePipeline;
 typedef struct _VkPipeline
 {
 	Framebuffer framebuffer;
-	const char* name;
 	Shader* shaders;
 	size_t shaderCount;
 	PipelineState state;
@@ -41,6 +42,9 @@ typedef struct _VkPipeline
 	OnPipelineUniformsSet onUniformsSet;
 	OnPipelineHandleResize onHandleResize;
 	void* handle;
+#ifndef NDEBUG
+	const char* name;
+#endif
 #if MPGX_SUPPORT_VULKAN
 	VkPipelineCache cache;
 	VkPipelineLayout layout;
@@ -50,7 +54,6 @@ typedef struct _VkPipeline
 typedef struct _GlPipeline
 {
 	Framebuffer framebuffer;
-	const char* name;
 	Shader* shaders;
 	size_t shaderCount;
 	PipelineState state;
@@ -59,6 +62,9 @@ typedef struct _GlPipeline
 	OnPipelineUniformsSet onUniformsSet;
 	OnPipelineHandleResize onHandleResize;
 	void* handle;
+#ifndef NDEBUG
+	const char* name;
+#endif
 	GLuint glHandle;
 	GLenum drawMode;
 	GLenum polygonMode;
@@ -755,7 +761,6 @@ inline static Pipeline createVkPipeline(
 	}
 
 	pipeline->vk.framebuffer = framebuffer;
-	pipeline->vk.name = name;
 	pipeline->vk.shaders = shaders;
 	pipeline->vk.shaderCount = shaderCount;
 	pipeline->vk.state = state;
@@ -764,6 +769,9 @@ inline static Pipeline createVkPipeline(
 	pipeline->vk.onUniformsSet = onUniformsSet;
 	pipeline->vk.onHandleResize = onHandleResize;
 	pipeline->vk.handle = handle;
+#ifndef NDEBUG
+	pipeline->vk.name = name;
+#endif
 	pipeline->vk.cache = cache;
 	pipeline->vk.layout = layout;
 	pipeline->vk.vkHandle = vkHandle;
@@ -1130,7 +1138,6 @@ inline static Pipeline createGlPipeline(
 	}
 
 	pipeline->gl.framebuffer = framebuffer;
-	pipeline->gl.name = name;
 	pipeline->gl.shaders = shaders;
 	pipeline->gl.shaderCount = shaderCount;
 	pipeline->gl.state = state;
@@ -1139,6 +1146,9 @@ inline static Pipeline createGlPipeline(
 	pipeline->gl.onUniformsSet = onUniformsSet;
 	pipeline->gl.onHandleResize = onHandleResize;
 	pipeline->gl.handle = handle;
+#ifndef NDEBUG
+	pipeline->gl.name = name;
+#endif
 	pipeline->gl.glHandle = glHandle;
 	pipeline->gl.drawMode = drawMode;
 	pipeline->gl.polygonMode = polygonMode;

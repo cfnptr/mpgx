@@ -467,7 +467,10 @@ inline static Pipeline createVkHandle(
 		createVkDescriptorSetLayout(device);
 
 	if (descriptorSetLayout == NULL)
+	{
+		free(pipelineHandle);
 		return NULL;
+	}
 
 	VkPipelineCreateInfo createInfo = {
 		1,
@@ -480,28 +483,6 @@ inline static Pipeline createVkHandle(
 		pushConstantRanges,
 	};
 
-	Pipeline pipeline = createPipeline(
-		framebuffer,
-		DIFFUSE_PIPELINE_NAME,
-		shaders,
-		shaderCount,
-		state,
-		onVkHandleDestroy,
-		onVkHandleBind,
-		onVkUniformsSet,
-		onVkHandleResize,
-		pipelineHandle,
-		&createInfo);
-
-	if (pipeline == NULL)
-	{
-		vkDestroyDescriptorSetLayout(
-			device,
-			descriptorSetLayout,
-			NULL);
-		return NULL;
-	}
-
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
 	VkDescriptorPool descriptorPool = createVkDescriptorPool(
@@ -510,13 +491,11 @@ inline static Pipeline createVkHandle(
 
 	if (descriptorPool == NULL)
 	{
-		destroyPipeline(
-			pipeline,
-			false);
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
+		free(pipelineHandle);
 		return NULL;
 	}
 
@@ -534,13 +513,11 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorPool,
 			NULL);
-		destroyPipeline(
-			pipeline,
-			false);
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
+		free(pipelineHandle);
 		return NULL;
 	}
 
@@ -561,13 +538,11 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorPool,
 			NULL);
-		destroyPipeline(
-			pipeline,
-			false);
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
+		free(pipelineHandle);
 		return NULL;
 	}
 
@@ -576,7 +551,19 @@ inline static Pipeline createVkHandle(
 	pipelineHandle->vk.uniformBuffers = uniformBuffers;
 	pipelineHandle->vk.descriptorSets = descriptorSets;
 	pipelineHandle->vk.bufferCount = bufferCount;
-	return pipeline;
+
+	return createPipeline(
+		framebuffer,
+		DIFFUSE_PIPELINE_NAME,
+		shaders,
+		shaderCount,
+		state,
+		onVkHandleDestroy,
+		onVkHandleBind,
+		onVkUniformsSet,
+		onVkHandleResize,
+		pipelineHandle,
+		&createInfo);
 }
 #endif
 
@@ -658,6 +645,21 @@ inline static Pipeline createGlHandle(
 	const PipelineState* state,
 	PipelineHandle* pipelineHandle)
 {
+	Buffer uniformBuffer = createGlBuffer(
+		framebuffer->gl.window,
+		UNIFORM_BUFFER_TYPE,
+		NULL,
+		sizeof(UniformBuffer),
+		false);
+
+	if (uniformBuffer == NULL)
+	{
+		free(pipelineHandle);
+		return NULL;
+	}
+
+	pipelineHandle->gl.uniformBuffer = uniformBuffer;
+
 	Pipeline pipeline = createPipeline(
 		framebuffer,
 		DIFFUSE_PIPELINE_NAME,
@@ -694,9 +696,7 @@ inline static Pipeline createGlHandle(
 
 	if (result == false)
 	{
-		destroyPipeline(
-			pipeline,
-			false);
+		destroyPipeline(pipeline, false);
 		return NULL;
 	}
 
@@ -707,24 +707,8 @@ inline static Pipeline createGlHandle(
 
 	assertOpenGL();
 
-	Buffer uniformBuffer = createGlBuffer(
-		framebuffer->gl.window,
-		UNIFORM_BUFFER_TYPE,
-		NULL,
-		sizeof(UniformBuffer),
-		false);
-
-	if (uniformBuffer == NULL)
-	{
-		destroyPipeline(
-			pipeline,
-			false);
-		return NULL;
-	}
-
 	pipelineHandle->gl.mvpLocation = mvpLocation;
 	pipelineHandle->gl.normalLocation = normalLocation;
-	pipelineHandle->gl.uniformBuffer = uniformBuffer;
 	return pipeline;
 }
 
@@ -748,47 +732,6 @@ Pipeline createExtDiffusePipeline(
 	if (pipelineHandle == NULL)
 		return NULL;
 
-	Shader shaders[2] = {
-		vertexShader,
-		fragmentShader,
-	};
-
-	Window window = framebuffer->base.window;
-	GraphicsAPI api = getWindowGraphicsAPI(window);
-
-	Pipeline pipeline;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		pipeline = createVkHandle(
-			framebuffer,
-			shaders,
-			2,
-			state,
-			pipelineHandle);
-#else
-		abort();
-#endif
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		pipeline = createGlHandle(
-			framebuffer,
-			shaders,
-			2,
-			state,
-			pipelineHandle);
-	}
-	else
-	{
-		abort();
-	}
-
-	if (pipeline == NULL)
-		return NULL;
-
 	Vec3F lightDirection = normVec3F(
 		vec3F(1.0f, -3.0f, 6.0f));
 
@@ -803,11 +746,46 @@ Pipeline createExtDiffusePipeline(
 			0.0f),
 	};
 
+	Window window = framebuffer->base.window;
 	pipelineHandle->base.window = window;
 	pipelineHandle->base.vpc.mvp = identMat4F;
 	pipelineHandle->base.vpc.normal = identMat4F;
 	pipelineHandle->base.ub = ub;
-	return pipeline;
+
+	Shader shaders[2] = {
+		vertexShader,
+		fragmentShader,
+	};
+
+	GraphicsAPI api = getWindowGraphicsAPI(window);
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		return createVkHandle(
+			framebuffer,
+			shaders,
+			2,
+			state,
+			pipelineHandle);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return createGlHandle(
+			framebuffer,
+			shaders,
+			2,
+			state,
+			pipelineHandle);
+	}
+	else
+	{
+		abort();
+	}
 }
 Pipeline createDiffusePipeline(
 	Framebuffer framebuffer,
@@ -922,7 +900,6 @@ void setDiffusePipelineObjectColor(
 	LinearColor objectColor)
 {
 	assert(pipeline != NULL);
-	assertLinearColor(objectColor);
 	assert(strcmp(
 		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
@@ -947,7 +924,6 @@ void setDiffusePipelineAmbientColor(
 	LinearColor ambientColor)
 {
 	assert(pipeline != NULL);
-	assertLinearColor(ambientColor);
 	assert(strcmp(
 		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
@@ -972,7 +948,6 @@ void setDiffusePipelineLightColor(
 	LinearColor lightColor)
 {
 	assert(pipeline != NULL);
-	assertLinearColor(lightColor);
 	assert(strcmp(
 		pipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);

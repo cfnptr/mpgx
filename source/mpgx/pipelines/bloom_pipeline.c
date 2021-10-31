@@ -12,41 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mpgx/pipelines/texspr_pipeline.h"
+#include "mpgx/pipelines/bloom_pipeline.h"
 #include "mpgx/_source/pipeline.h"
 #include "mpgx/_source/sampler.h"
 
 #include <string.h>
 
-typedef struct VertexPushConstants
-{
-	Mat4F mvp;
-	Vec2F size;
-	Vec2F offset;
-} VertexPushConstants;
 typedef struct FragmentPushConstants
 {
-	LinearColor color;
+	LinearColor threshold;
 } FragmentPushConstants;
 typedef struct BasePipelineHandle
 {
 	Window window;
-	Image texture;
+	Image buffer;
 	Sampler sampler;
-	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
 } BasePipelineHandle;
 typedef struct VkPipelineHandle
 {
 	Window window;
-	Image texture;
+	Image buffer;
 	Sampler sampler;
-	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
-	VkImageView imageView;
+	VkImageView bufferImageView;
 	VkDescriptorSet* descriptorSets;
 	uint32_t bufferCount;
 #endif
@@ -54,15 +46,11 @@ typedef struct VkPipelineHandle
 typedef struct GlPipelineHandle
 {
 	Window window;
-	Image texture;
+	Image buffer;
 	Sampler sampler;
-	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
-	GLint mvpLocation;
-	GLint sizeLocation;
-	GLint offsetLocation;
-	GLint colorLocation;
-	GLint textureLocation;
+	GLint thresholdLocation;
+	GLint bufferLocation;
 } GlPipelineHandle;
 typedef union PipelineHandle
 {
@@ -93,15 +81,10 @@ static const VkVertexInputAttributeDescription vertexInputAttributeDescriptions[
 		sizeof(Vec2F),
 	},
 };
-static const VkPushConstantRange pushConstantRanges[2] = {
-	{
-		VK_SHADER_STAGE_VERTEX_BIT,
-		0,
-		sizeof(VertexPushConstants),
-	},
+static const VkPushConstantRange pushConstantRanges[1] = {
 	{
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		sizeof(VertexPushConstants),
+		0,
 		sizeof(FragmentPushConstants),
 	},
 };
@@ -176,8 +159,8 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 	VkDescriptorSetLayout descriptorSetLayout,
 	VkDescriptorPool descriptorPool,
 	uint32_t bufferCount,
-	VkSampler sampler,
-	VkImageView imageView)
+	VkImageView bufferImageView,
+	VkSampler sampler)
 {
 	VkDescriptorSetLayout* descriptorSetLayouts = malloc(
 		bufferCount * sizeof(VkDescriptorSetLayout));
@@ -220,13 +203,14 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 
 	for (uint32_t i = 0; i < bufferCount; i++)
 	{
-		VkDescriptorImageInfo descriptorImageInfos[1] = {
+		VkDescriptorImageInfo bufferDescriptorImageInfos[1] = {
 			{
 				sampler,
-				imageView,
+				bufferImageView,
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			},
 		};
+
 		VkWriteDescriptorSet writeDescriptorSets[1] = {
 			{
 				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -236,7 +220,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 				0,
 				1,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				descriptorImageInfos,
+				bufferDescriptorImageInfos,
 				NULL,
 				NULL,
 			},
@@ -262,7 +246,7 @@ static void onVkHandleDestroy(void* handle)
 	free(pipelineHandle->vk.descriptorSets);
 	vkDestroyImageView(
 		device,
-		pipelineHandle->vk.imageView,
+		pipelineHandle->vk.bufferImageView,
 		NULL);
 	vkDestroyDescriptorPool(
 		device,
@@ -294,21 +278,12 @@ static void onVkUniformsSet(Pipeline pipeline)
 {
 	PipelineHandle* pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
-	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
-	VkPipelineLayout layout = pipeline->vk.layout;
 
 	vkCmdPushConstants(
-		commandBuffer,
-		layout,
-		VK_SHADER_STAGE_VERTEX_BIT,
-		0,
-		sizeof(VertexPushConstants),
-		&pipelineHandle->vk.vpc);
-	vkCmdPushConstants(
-		commandBuffer,
-		layout,
+		vkWindow->currenCommandBuffer,
+		pipeline->vk.layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		sizeof(VertexPushConstants),
+		0,
 		sizeof(FragmentPushConstants),
 		&pipelineHandle->vk.fpc);
 }
@@ -337,8 +312,8 @@ static bool onVkHandleResize(
 			pipelineHandle->vk.descriptorSetLayout,
 			descriptorPool,
 			bufferCount,
-			pipelineHandle->vk.sampler->vk.handle,
-			pipelineHandle->vk.imageView);
+			pipelineHandle->vk.bufferImageView,
+			pipelineHandle->vk.sampler->vk.handle);
 
 		if (descriptorSets == NULL)
 		{
@@ -374,7 +349,7 @@ static bool onVkHandleResize(
 		vertexInputAttributeDescriptions,
 		1,
 		&pipelineHandle->vk.descriptorSetLayout,
-		2,
+		1,
 		pushConstantRanges,
 	};
 
@@ -385,8 +360,8 @@ inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
+	Image buffer,
 	VkSampler sampler,
-	Image image,
 	const PipelineState* state,
 	PipelineHandle* pipelineHandle)
 {
@@ -409,7 +384,7 @@ inline static Pipeline createVkHandle(
 		vertexInputAttributeDescriptions,
 		1,
 		&descriptorSetLayout,
-		2,
+		1,
 		pushConstantRanges,
 	};
 
@@ -429,13 +404,13 @@ inline static Pipeline createVkHandle(
 		return NULL;
 	}
 
-	VkImageView imageView = createVkImageView(
+	VkImageView bufferImageView = createVkImageView(
 		device,
-		image->vk.handle,
-		image->vk.vkFormat,
-		image->vk.vkAspect);
+		buffer->vk.handle,
+		buffer->vk.vkFormat,
+		buffer->vk.vkAspect);
 
-	if (imageView == NULL)
+	if (bufferImageView == NULL)
 	{
 		vkDestroyDescriptorPool(
 			device,
@@ -454,14 +429,14 @@ inline static Pipeline createVkHandle(
 		descriptorSetLayout,
 		descriptorPool,
 		bufferCount,
-		sampler,
-		imageView);
+		bufferImageView,
+		sampler);
 
 	if (descriptorSets == NULL)
 	{
 		vkDestroyImageView(
 			device,
-			imageView,
+			bufferImageView,
 			NULL);
 		vkDestroyDescriptorPool(
 			device,
@@ -477,13 +452,13 @@ inline static Pipeline createVkHandle(
 
 	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
 	pipelineHandle->vk.descriptorPool = descriptorPool;
-	pipelineHandle->vk.imageView = imageView;
+	pipelineHandle->vk.bufferImageView = bufferImageView;
 	pipelineHandle->vk.descriptorSets = descriptorSets;
 	pipelineHandle->vk.bufferCount = bufferCount;
 
 	return createPipeline(
 		framebuffer,
-		TEXSPR_PIPELINE_NAME,
+		BLOOM_PIPELINE_NAME,
 		shaders,
 		shaderCount,
 		state,
@@ -506,14 +481,14 @@ static void onGlHandleBind(Pipeline pipeline)
 	PipelineHandle* pipelineHandle = pipeline->gl.handle;
 
 	glUniform1i(
-		pipelineHandle->gl.textureLocation,
+		pipelineHandle->gl.bufferLocation,
 		0);
 
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
-		pipelineHandle->gl.texture->gl.handle);
+		pipelineHandle->gl.buffer->gl.handle);
 	glBindSampler(
 		0,
 		pipelineHandle->gl.sampler->gl.handle);
@@ -524,23 +499,10 @@ static void onGlUniformsSet(Pipeline pipeline)
 {
 	PipelineHandle* pipelineHandle = pipeline->gl.handle;
 
-	glUniformMatrix4fv(
-		pipelineHandle->gl.mvpLocation,
-		1,
-		GL_FALSE,
-		(const GLfloat*)&pipelineHandle->gl.vpc.mvp);
-	glUniform2fv(
-		pipelineHandle->gl.sizeLocation,
-		1,
-		(const GLfloat*)&pipelineHandle->gl.vpc.size);
-	glUniform2fv(
-		pipelineHandle->gl.offsetLocation,
-		1,
-		(const GLfloat*)&pipelineHandle->gl.vpc.offset);
 	glUniform4fv(
-		pipelineHandle->gl.colorLocation,
+		pipelineHandle->gl.thresholdLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.fpc.color);
+		(const GLfloat*)&pipelineHandle->gl.fpc.threshold);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -583,12 +545,12 @@ inline static Pipeline createGlHandle(
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
-		TEXSPR_PIPELINE_NAME,
+		BLOOM_PIPELINE_NAME,
 		shaders,
 		shaderCount,
 		state,
 		onGlHandleDestroy,
-		onGlHandleBind,
+		NULL,
 		onGlUniformsSet,
 		onGlHandleResize,
 		pipelineHandle,
@@ -599,29 +561,17 @@ inline static Pipeline createGlHandle(
 
 	GLuint glHandle = pipeline->gl.glHandle;
 
-	GLint mvpLocation, sizeLocation, offsetLocation,
-		colorLocation, textureLocation;
+	GLint thresholdLocation,
+		bufferLocation;
 
 	bool result = getGlUniformLocation(
 		glHandle,
-		"u_MVP",
-		&mvpLocation);
+		"u_Threshold",
+		&thresholdLocation);
 	result &= getGlUniformLocation(
 		glHandle,
-		"u_Size",
-		&sizeLocation);
-	result &= getGlUniformLocation(
-		glHandle,
-		"u_Offset",
-		&offsetLocation);
-	result &= getGlUniformLocation(
-		glHandle,
-		"u_Color",
-		&colorLocation);
-	result &= getGlUniformLocation(
-		glHandle,
-		"u_Texture",
-		&textureLocation);
+		"u_Buffer",
+		&bufferLocation);
 
 	if (result == false)
 	{
@@ -631,32 +581,29 @@ inline static Pipeline createGlHandle(
 
 	assertOpenGL();
 
-	pipelineHandle->gl.mvpLocation = mvpLocation;
-	pipelineHandle->gl.sizeLocation = sizeLocation;
-	pipelineHandle->gl.offsetLocation = offsetLocation;
-	pipelineHandle->gl.colorLocation = colorLocation;
-	pipelineHandle->gl.textureLocation = textureLocation;
+	pipelineHandle->gl.thresholdLocation = thresholdLocation;
+	pipelineHandle->gl.bufferLocation = bufferLocation;
 	return pipeline;
 }
 
-Pipeline createExtTexSprPipeline(
+Pipeline createExtBloomPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Image texture,
+	Image buffer,
 	Sampler sampler,
 	const PipelineState* state)
 {
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
-	assert(texture != NULL);
+	assert(buffer != NULL);
 	assert(sampler != NULL);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
 	assert(fragmentShader->base.window == framebuffer->base.window);
-	assert(texture->base.window == framebuffer->base.window);
+	assert(buffer->base.window == framebuffer->base.window);
 	assert(sampler->base.window == framebuffer->base.window);
 
 	PipelineHandle* pipelineHandle = malloc(
@@ -667,12 +614,9 @@ Pipeline createExtTexSprPipeline(
 
 	Window window = framebuffer->base.window;
 	pipelineHandle->base.window = window;
-	pipelineHandle->base.texture = texture;
+	pipelineHandle->base.buffer = buffer;
 	pipelineHandle->base.sampler = sampler;
-	pipelineHandle->base.vpc.mvp = identMat4F;
-	pipelineHandle->base.vpc.size = oneVec2F;
-	pipelineHandle->base.vpc.offset = zeroVec2F;
-	pipelineHandle->base.fpc.color = whiteLinearColor;
+	pipelineHandle->base.fpc.threshold = valueLinearColor(0.5);
 
 	Shader shaders[2] = {
 		vertexShader,
@@ -688,8 +632,8 @@ Pipeline createExtTexSprPipeline(
 			framebuffer,
 			shaders,
 			2,
+			buffer,
 			sampler->vk.handle,
-			texture,
 			state,
 			pipelineHandle);
 #else
@@ -711,11 +655,11 @@ Pipeline createExtTexSprPipeline(
 		abort();
 	}
 }
-Pipeline createTexSprPipeline(
+Pipeline createBloomPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Image texture,
+	Image buffer,
 	Sampler sampler)
 {
 	assert(framebuffer != NULL);
@@ -732,19 +676,19 @@ Pipeline createTexSprPipeline(
 		BACK_CULL_MODE,
 		LESS_COMPARE_OPERATOR,
 		ALL_COLOR_COMPONENT,
-		SRC_ALPHA_BLEND_FACTOR,
-		ONE_MINUS_SRC_ALPHA_BLEND_FACTOR,
-		ONE_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
 		ZERO_BLEND_FACTOR,
 		ADD_BLEND_OPERATOR,
 		ADD_BLEND_OPERATOR,
-		true,
-		true,
-		true,
-		true,
 		false,
 		false,
-		true,
+		false,
+		false,
+		false,
+		false,
+		false,
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
@@ -755,130 +699,58 @@ Pipeline createTexSprPipeline(
 		defaultBlendColor,
 	};
 
-	return createExtTexSprPipeline(
+	return createExtBloomPipeline(
 		framebuffer,
 		vertexShader,
 		fragmentShader,
-		texture,
+		buffer,
 		sampler,
 		&state);
 }
 
-Image getTexSprPipelineTexture(
+Image getBloomPipelineBuffer(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		BLOOM_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	return pipelineHandle->base.texture;
+	return pipelineHandle->base.buffer;
 }
-Sampler getTexSprPipelineSampler(
+Sampler getBloomPipelineSampler(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		BLOOM_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.sampler;
 }
 
-Mat4F getTexSprPipelineMvp(
+LinearColor getBloomPipelineThreshold(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		BLOOM_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	return pipelineHandle->base.vpc.mvp;
+	return pipelineHandle->base.fpc.threshold;
 }
-void setTexSprPipelineMvp(
+void setBloomPipelineThreshold(
 	Pipeline pipeline,
-	Mat4F mvp)
+	LinearColor threshold)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		BLOOM_PIPELINE_NAME) == 0);
 	PipelineHandle* pipelineHandle =
 		pipeline->base.handle;
-	pipelineHandle->base.vpc.mvp = mvp;
-}
-
-Vec2F getTexSprPipelineSize(
-	Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.vpc.size;
-}
-void setTexSprPipelineSize(
-	Pipeline pipeline,
-	Vec2F size)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		pipeline->base.handle;
-	pipelineHandle->base.vpc.size = size;
-}
-
-Vec2F getTexSprPipelineOffset(
-	Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.vpc.offset;
-}
-void setTexSprPipelineOffset(
-	Pipeline pipeline,
-	Vec2F offset)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		pipeline->base.handle;
-	pipelineHandle->base.vpc.offset = offset;
-}
-
-LinearColor getTexSprPipelineColor(
-	Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.fpc.color;
-}
-void setTexSprPipelineColor(
-	Pipeline pipeline,
-	LinearColor color)
-{
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
-		pipeline->base.handle;
-	pipelineHandle->base.fpc.color = color;
+	pipelineHandle->base.fpc.threshold = threshold;
 }

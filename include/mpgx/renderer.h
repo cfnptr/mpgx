@@ -44,6 +44,7 @@ typedef struct RenderResult
 {
 	size_t renderCount;
 	size_t indexCount;
+	size_t passCount;
 } RenderResult;
 
 typedef void(*OnRenderHandleDestroy)(
@@ -81,6 +82,10 @@ bool getRendererUseCulling(
 void setRendererUseCulling(
 	Renderer renderer,
 	bool useCulling);
+
+void enumerateRenderer(
+	Renderer renderer,
+	void(*onItem)(Render));
 
 void createRenderData(
 	Window window,

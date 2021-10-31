@@ -71,8 +71,10 @@ configure_file(
 	mpgx/defines.h)
 
 add_library(mpgx STATIC
+	source/mpgx/pipelines/bloom_pipeline.c
 	source/mpgx/pipelines/color_pipeline.c
 	source/mpgx/pipelines/diffuse_pipeline.c
+	source/mpgx/pipelines/gaussblur_pipeline.c
 	source/mpgx/pipelines/gradsky_pipeline.c
     source/mpgx/pipelines/simpshad_pipeline.c
 	source/mpgx/pipelines/sprite_pipeline.c

@@ -397,7 +397,10 @@ inline static Pipeline createVkHandle(
 		createVkDescriptorSetLayout(device);
 
 	if (descriptorSetLayout == NULL)
+	{
+		free(pipelineHandle);
 		return NULL;
+	}
 
 	VkPipelineCreateInfo createInfo = {
 		1,
@@ -410,28 +413,6 @@ inline static Pipeline createVkHandle(
 		pushConstantRanges,
 	};
 
-	Pipeline pipeline = createPipeline(
-		framebuffer,
-		TEXCOL_PIPELINE_NAME,
-		shaders,
-		shaderCount,
-		state,
-		onVkHandleDestroy,
-		onVkHandleBind,
-		onVkUniformsSet,
-		onVkHandleResize,
-		pipelineHandle,
-		&createInfo);
-
-	if (pipeline == NULL)
-	{
-		vkDestroyDescriptorSetLayout(
-			device,
-			descriptorSetLayout,
-			NULL);
-		return NULL;
-	}
-
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
 	VkDescriptorPool descriptorPool = createVkDescriptorPool(
@@ -440,13 +421,11 @@ inline static Pipeline createVkHandle(
 
 	if (descriptorPool == NULL)
 	{
-		destroyPipeline(
-			pipeline,
-			false);
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
+		free(pipelineHandle);
 		return NULL;
 	}
 
@@ -462,13 +441,11 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorPool,
 			NULL);
-		destroyPipeline(
-			pipeline,
-			false);
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
+		free(pipelineHandle);
 		return NULL;
 	}
 
@@ -490,13 +467,11 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorPool,
 			NULL);
-		destroyPipeline(
-			pipeline,
-			false);
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
+		free(pipelineHandle);
 		return NULL;
 	}
 
@@ -505,7 +480,19 @@ inline static Pipeline createVkHandle(
 	pipelineHandle->vk.imageView = imageView;
 	pipelineHandle->vk.descriptorSets = descriptorSets;
 	pipelineHandle->vk.bufferCount = bufferCount;
-	return pipeline;
+
+	return createPipeline(
+		framebuffer,
+		TEXCOL_PIPELINE_NAME,
+		shaders,
+		shaderCount,
+		state,
+		onVkHandleDestroy,
+		onVkHandleBind,
+		onVkUniformsSet,
+		onVkHandleResize,
+		pipelineHandle,
+		&createInfo);
 }
 #endif
 
@@ -638,9 +625,7 @@ inline static Pipeline createGlHandle(
 
 	if (result == false)
 	{
-		destroyPipeline(
-			pipeline,
-			false);
+		destroyPipeline(pipeline, false);
 		return NULL;
 	}
 
@@ -680,20 +665,26 @@ Pipeline createExtTexColPipeline(
 	if (pipelineHandle == NULL)
 		return NULL;
 
+	Window window = framebuffer->base.window;
+	pipelineHandle->base.window = window;
+	pipelineHandle->base.texture = texture;
+	pipelineHandle->base.sampler = sampler;
+	pipelineHandle->base.vpc.mvp = identMat4F;
+	pipelineHandle->base.vpc.size = oneVec2F;
+	pipelineHandle->base.vpc.offset = zeroVec2F;
+	pipelineHandle->base.fpc.color = whiteLinearColor;
+
 	Shader shaders[2] = {
 		vertexShader,
 		fragmentShader,
 	};
 
-	Window window = framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
-
-	Pipeline pipeline;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		pipeline = createVkHandle(
+		return createVkHandle(
 			framebuffer,
 			shaders,
 			2,
@@ -708,7 +699,7 @@ Pipeline createExtTexColPipeline(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		pipeline = createGlHandle(
+		return createGlHandle(
 			framebuffer,
 			shaders,
 			2,
@@ -718,19 +709,7 @@ Pipeline createExtTexColPipeline(
 	else
 	{
 		abort();
-	}
-
-	if (pipeline == NULL)
-		return NULL;
-
-	pipelineHandle->base.window = window;
-	pipelineHandle->base.texture = texture;
-	pipelineHandle->base.sampler = sampler;
-	pipelineHandle->base.vpc.mvp = identMat4F;
-	pipelineHandle->base.vpc.size = oneVec2F;
-	pipelineHandle->base.vpc.offset = zeroVec2F;
-	pipelineHandle->base.fpc.color = whiteLinearColor;
-	return pipeline;
+	};
 }
 Pipeline createTexColPipeline(
 	Framebuffer framebuffer,
@@ -896,7 +875,6 @@ void setTexColPipelineColor(
 	LinearColor color)
 {
 	assert(pipeline != NULL);
-	assertLinearColor(color);
 	assert(strcmp(
 		pipeline->base.name,
 		TEXCOL_PIPELINE_NAME) == 0);

@@ -14,12 +14,12 @@
 
 #version 410
 
+layout(location = 0) out vec4 o_Color;
+
 layout(push_constant) uniform FragmentPushConstants
 {
     layout(offset = 64) vec4 color;
 } fpc;
-
-layout(location = 0) out vec4 o_Color;
 
 void main()
 {

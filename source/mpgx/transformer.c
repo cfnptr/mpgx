@@ -81,6 +81,17 @@ bool isTransformerEmpty(Transformer transformer)
 	return transformer->transformCount == 0;
 }
 
+void enumerateTransformer(
+	Transformer transformer,
+	void(*onItem)(Transform))
+{
+	assert(transformer != NULL);
+	assert(onItem != NULL);
+
+	for (size_t i = 0; i < transformer->transformCount; i++)
+		onItem(transformer->transforms[i]);
+}
+
 Transform createTransform(
 	Transformer transformer,
 	Vec3F position,

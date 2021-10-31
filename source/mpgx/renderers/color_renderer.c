@@ -82,7 +82,6 @@ Render createColorRender(
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
-	assertLinearColor(color);
 	assert(mesh != NULL);
 
 	assert(getTransformTransformer(
@@ -139,7 +138,6 @@ void setColorRenderColor(
 	LinearColor color)
 {
 	assert(render != NULL);
-	assertLinearColor(color);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(

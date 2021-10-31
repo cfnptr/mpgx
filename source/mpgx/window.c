@@ -32,6 +32,8 @@
 // TODO: possibly create Vulkan window staging buffer
 // recreate if staging more data, and stage/destroy on frame render end.
 
+// TODO: add VMA defragmentation
+
 struct ImageData
 {
 	uint8_t* pixels;
@@ -2941,6 +2943,7 @@ inline static bool addWindowFramebuffer(
 Framebuffer createFramebuffer(
 	Window window,
 	Vec2U size,
+	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
@@ -2969,6 +2972,7 @@ Framebuffer createFramebuffer(
 
 		VkRenderPass renderPass = createVkGeneralRenderPass(
 			device,
+			useBeginClear,
 			colorAttachments,
 			colorAttachmentCount,
 			depthStencilAttachment);
@@ -2981,6 +2985,7 @@ Framebuffer createFramebuffer(
 			renderPass,
 			window,
 			size,
+			useBeginClear,
 			colorAttachments,
 			colorAttachmentCount,
 			depthStencilAttachment,
@@ -2995,6 +3000,7 @@ Framebuffer createFramebuffer(
 		framebuffer = createGlFramebuffer(
 			window,
 			size,
+			useBeginClear,
 			colorAttachments,
 			colorAttachmentCount,
 			depthStencilAttachment,
@@ -3042,6 +3048,7 @@ Framebuffer createFramebuffer(
 Framebuffer createShadowFramebuffer(
 	Window window,
 	Vec2U size,
+	bool useClear,
 	Image depthAttachment,
 	size_t pipelineCapacity)
 {
@@ -3075,6 +3082,7 @@ Framebuffer createShadowFramebuffer(
 			renderPass,
 			window,
 			size,
+			useClear,
 			NULL,
 			0,
 			depthAttachment,
@@ -3089,6 +3097,7 @@ Framebuffer createShadowFramebuffer(
 		framebuffer = createGlFramebuffer(
 			window,
 			size,
+			useClear,
 			NULL,
 			0,
 			depthAttachment,
@@ -3212,6 +3221,11 @@ Vec2U getFramebufferSize(Framebuffer framebuffer)
 	assert(framebuffer != NULL);
 	return framebuffer->base.size;
 }
+bool isFramebufferUseBeginClear(Framebuffer framebuffer)
+{
+	assert(framebuffer != NULL);
+	return framebuffer->base.useBeginClear;
+}
 Image* getFramebufferColorAttachments(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
@@ -3256,7 +3270,7 @@ bool setFramebufferAttachments(
 	assert(framebuffer->base.window->isRecording == false);
 
 	// TODO:
-	return false;
+	abort();
 }
 
 void beginFramebufferRender(
@@ -3265,7 +3279,10 @@ void beginFramebufferRender(
 	size_t clearValueCount)
 {
 	assert(framebuffer != NULL);
-	assert((clearValues != NULL && clearValueCount != 0) || clearValueCount == 0);
+	assert((clearValues != NULL && clearValueCount != 0 &&
+		framebuffer->base.useBeginClear == true) ||
+		(clearValues == NULL && clearValueCount == 0 &&
+		framebuffer->base.useBeginClear == false));
 	assert(framebuffer->base.window->isRecording == true);
 	assert(framebuffer->base.window->renderFramebuffer == NULL);
 
@@ -3283,12 +3300,6 @@ void beginFramebufferRender(
 			assert(clearValueCount == attachmentCount);
 		else
 			assert(clearValueCount == 2);
-
-		for (size_t i = 0; i < colorAttachmentCount; i++)
-		{
-			LinearColor color = clearValues[i].color;
-			assertLinearColor(color);
-		}
 
 		if (depthStencilAttachment != NULL)
 		{
@@ -3420,8 +3431,9 @@ void clearFramebuffer(
 	size_t clearValueCount)
 {
 	assert(framebuffer != NULL);
-	assert((clearAttachments != NULL && clearValues != NULL &&
-		clearValueCount != 0) || clearValueCount == 0);
+	assert(clearAttachments != NULL);
+	assert(clearValues != NULL);
+	assert(clearValueCount != 0);
 	assert(framebuffer->base.window->isRecording == true);
 	assert(framebuffer->base.window->renderFramebuffer != NULL);
 
@@ -3439,12 +3451,6 @@ void clearFramebuffer(
 			assert(clearValueCount == attachmentCount);
 		else
 			assert(clearValueCount == 2);
-
-		for (size_t i = 0; i < colorAttachmentCount; i++)
-		{
-			LinearColor color = clearValues[i].color;
-			assertLinearColor(color);
-		}
 
 		if (depthStencilAttachment != NULL)
 		{
@@ -3548,6 +3554,7 @@ Pipeline createPipeline(
 	assert(shaders != NULL);
 	assert(shaderCount != 0);
 	assert(state != NULL);
+	assert(onHandleDestroy != NULL);
 	assert(state->drawMode < DRAW_MODE_COUNT);
 	assert(state->polygonMode < POLYGON_MODE_COUNT);
 	assert(state->cullMode < CULL_MODE_COUNT);
@@ -3615,7 +3622,10 @@ Pipeline createPipeline(
 	}
 
 	if (pipeline == NULL)
+	{
+		onHandleDestroy(handle);
 		return NULL;
+	}
 
 	size_t count = framebuffer->base.pipelineCount;
 
@@ -3661,18 +3671,15 @@ void destroyPipeline(
 		if (pipeline != pipelines[i])
 			continue;
 
-		if (pipeline->base.onHandleDestroy != NULL)
-		{
-			pipeline->base.onHandleDestroy(
-				pipeline->base.handle);
-		}
+		pipeline->base.onHandleDestroy(
+			pipeline->base.handle);
 
 		if (destroyShaders == true)
 		{
 			Shader* shaders = pipeline->base.shaders;
 			size_t shaderCount = pipeline->base.shaderCount;
 
-			for (uint8_t j = 0; j < shaderCount; j++)
+			for (size_t j = 0; j < shaderCount; j++)
 				destroyShader(shaders[j]);
 		}
 
@@ -3724,7 +3731,11 @@ Framebuffer getPipelineFramebuffer(Pipeline pipeline)
 const char* getPipelineName(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
+#ifndef NDEBUG
 	return pipeline->base.name;
+#else
+	abort();
+#endif
 }
 Shader* getPipelineShaders(Pipeline pipeline)
 {

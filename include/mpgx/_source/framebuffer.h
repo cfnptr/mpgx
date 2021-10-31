@@ -21,6 +21,7 @@ typedef struct _BaseFramebuffer
 {
 	Window window;
 	Vec2U size;
+	bool useBeginClear;
 	Image* colorAttachments;
 	size_t colorAttachmentCount;
 	Image depthStencilAttachment;
@@ -33,6 +34,7 @@ typedef struct _VkFramebuffer
 {
 	Window window;
 	Vec2U size;
+	bool useBeginClear;
 	Image* colorAttachments;
 	size_t colorAttachmentCount;
 	Image depthStencilAttachment;
@@ -50,6 +52,7 @@ typedef struct _GlFramebuffer
 {
 	Window window;
 	Vec2U size;
+	bool useBeginClear;
 	Image* colorAttachments;
 	size_t colorAttachmentCount;
 	Image depthStencilAttachment;
@@ -69,6 +72,7 @@ union Framebuffer
 #if MPGX_SUPPORT_VULKAN
 inline static VkRenderPass createVkGeneralRenderPass(
 	VkDevice device,
+	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment)
@@ -103,7 +107,9 @@ inline static VkRenderPass createVkGeneralRenderPass(
 				0,
 				colorAttachment->vk.vkFormat,
 				VK_SAMPLE_COUNT_1_BIT,
-				VK_ATTACHMENT_LOAD_OP_CLEAR,
+				useBeginClear == true ?
+					VK_ATTACHMENT_LOAD_OP_CLEAR :
+					VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 				VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 				VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -143,7 +149,9 @@ inline static VkRenderPass createVkGeneralRenderPass(
 		case D16_UNORM_S8_UINT_IMAGE_FORMAT:
 		case D24_UNORM_S8_UINT_IMAGE_FORMAT:
 		case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
-			stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			stencilLoadOp = useBeginClear == true ?
+				VK_ATTACHMENT_LOAD_OP_CLEAR :
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 			break;
 		}
@@ -152,7 +160,9 @@ inline static VkRenderPass createVkGeneralRenderPass(
 			0,
 			depthStencilAttachment->vk.vkFormat,
 			VK_SAMPLE_COUNT_1_BIT,
-			VK_ATTACHMENT_LOAD_OP_CLEAR,
+			useBeginClear == true ?
+				VK_ATTACHMENT_LOAD_OP_CLEAR :
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			VK_ATTACHMENT_STORE_OP_STORE,
 			stencilLoadOp,
 			stencilStoreOp,
@@ -368,6 +378,7 @@ inline static Framebuffer createDefaultVkFramebuffer(
 
 	framebuffer->vk.window = window;
 	framebuffer->vk.size = size;
+	framebuffer->vk.useBeginClear = true;
 	framebuffer->vk.colorAttachments = NULL;
 	framebuffer->vk.colorAttachmentCount = colorAttachmentCount;
 	framebuffer->vk.depthStencilAttachment = NULL;
@@ -385,6 +396,7 @@ inline static Framebuffer createVkFramebuffer(
 	VkRenderPass renderPass,
 	Window window,
 	Vec2U size,
+	bool useBeginClear,
 	Image* _colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
@@ -551,6 +563,7 @@ inline static Framebuffer createVkFramebuffer(
 
 	framebuffer->vk.window = window;
 	framebuffer->vk.size = size;
+	framebuffer->vk.useBeginClear = useBeginClear;
 	framebuffer->vk.colorAttachments = colorAttachments;
 	framebuffer->vk.colorAttachmentCount = colorAttachmentCount;
 	framebuffer->vk.depthStencilAttachment = depthStencilAttachment;
@@ -580,9 +593,7 @@ inline static void destroyVkFramebuffer(
 
 		OnPipelineHandleDestroy onDestroy =
 			getPipelineOnHandleDestroy(pipeline);
-
-		if (onDestroy != NULL)
-			onDestroy(getPipelineHandle(pipeline));
+		onDestroy(getPipelineHandle(pipeline));
 
 		destroyVkPipeline(device, pipeline);
 	}
@@ -785,6 +796,7 @@ inline static Framebuffer createDefaultGlFramebuffer(
 inline static Framebuffer createGlFramebuffer(
 	Window window,
 	Vec2U size,
+	bool useBeginClear,
 	Image* _colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
@@ -992,6 +1004,7 @@ inline static Framebuffer createGlFramebuffer(
 
 	framebuffer->gl.window = window;
 	framebuffer->gl.size = size;
+	framebuffer->gl.useBeginClear = useBeginClear;
 	framebuffer->gl.colorAttachments = colorAttachments;
 	framebuffer->gl.colorAttachmentCount = colorAttachmentCount;
 	framebuffer->gl.depthStencilAttachment = depthStencilAttachment;
@@ -1017,9 +1030,7 @@ inline static void destroyGlFramebuffer(
 
 		OnPipelineHandleDestroy onDestroy =
 			getPipelineOnHandleDestroy(pipeline);
-
-		if (onDestroy != NULL)
-			onDestroy(getPipelineHandle(pipeline));
+		onDestroy(getPipelineHandle(pipeline));
 
 		destroyGlPipeline(pipeline);
 	}

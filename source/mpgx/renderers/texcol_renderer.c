@@ -92,7 +92,6 @@ Render createTexColRender(
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
-	assertLinearColor(color);
 	assert(mesh != NULL);
 
 	assert(getTransformTransformer(
@@ -151,7 +150,6 @@ void setTexColRenderColor(
 	LinearColor color)
 {
 	assert(render != NULL);
-	assertLinearColor(color);
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(

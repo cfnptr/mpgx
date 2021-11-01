@@ -232,6 +232,9 @@ inline static Image createVkImage(
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 
+	if (isAttachment == true)
+		allocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+
 	VkImage handle;
 	VmaAllocation allocation;
 

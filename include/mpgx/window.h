@@ -726,10 +726,10 @@ Pipeline createPipeline(
 	Shader* shaders,
 	size_t shaderCount,
 	const PipelineState* state,
-	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
 	OnPipelineHandleResize onHandleResize,
+	OnPipelineHandleDestroy onHandleDestroy,
 	void* handle,
 	void* createInfo);
 void destroyPipeline(
@@ -741,9 +741,10 @@ const char* getPipelineName(Pipeline pipeline);
 Shader* getPipelineShaders(Pipeline pipeline);
 size_t getPipelineShaderCount(Pipeline pipeline);
 const PipelineState* getPipelineState(Pipeline pipeline);
-OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline);
 OnPipelineHandleBind getPipelineOnHandleBind(Pipeline pipeline);
 OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline);
+OnPipelineHandleResize getPipelineOnHandleResize(Pipeline pipeline);
+OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline);
 void* getPipelineHandle(Pipeline pipeline);
 
 void bindPipeline(Pipeline pipeline);

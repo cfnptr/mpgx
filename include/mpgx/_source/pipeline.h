@@ -22,10 +22,10 @@ typedef struct _BasePipeline
 	Shader* shaders;
 	size_t shaderCount;
 	PipelineState state;
-	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
 	OnPipelineHandleResize onHandleResize;
+	OnPipelineHandleDestroy onHandleDestroy;
 	void* handle;
 #ifndef NDEBUG
 	const char* name;
@@ -37,10 +37,10 @@ typedef struct _VkPipeline
 	Shader* shaders;
 	size_t shaderCount;
 	PipelineState state;
-	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
 	OnPipelineHandleResize onHandleResize;
+	OnPipelineHandleDestroy onHandleDestroy;
 	void* handle;
 #ifndef NDEBUG
 	const char* name;
@@ -57,10 +57,10 @@ typedef struct _GlPipeline
 	Shader* shaders;
 	size_t shaderCount;
 	PipelineState state;
-	OnPipelineHandleDestroy onHandleDestroy;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
 	OnPipelineHandleResize onHandleResize;
+	OnPipelineHandleDestroy onHandleDestroy;
 	void* handle;
 #ifndef NDEBUG
 	const char* name;
@@ -86,18 +86,6 @@ union Pipeline
 };
 
 #if MPGX_SUPPORT_VULKAN
-typedef struct VkPipelineCreateInfo
-{
-	uint32_t vertexBindingDescriptionCount;
-	const VkVertexInputBindingDescription* vertexBindingDescriptions;
-	uint32_t vertexAttributeDescriptionCount;
-	const VkVertexInputAttributeDescription* vertexAttributeDescriptions;
-	uint32_t setLayoutCount;
-	const VkDescriptorSetLayout* setLayouts;
-	uint32_t pushConstantRangeCount;
-	const VkPushConstantRange* pushConstantRanges;
-} VkPipelineCreateInfo;
-
 inline static bool getVkShaderType(
 	ShaderType shaderType,
 	VkShaderStageFlagBits* vkShaderType)
@@ -318,16 +306,16 @@ inline static bool getVkBlendOperator(
 }
 
 inline static VkPipeline createVkPipelineHandle(
+	VkDevice device,
 	VkRenderPass renderPass,
 	VkPipelineCache cache,
 	VkPipelineLayout layout,
-	VkDevice device,
-	size_t colorAttachmentCount,
 	Window window,
-	VkPipelineCreateInfo* createInfo,
 	Shader* shaders,
 	size_t shaderCount,
-	PipelineState state)
+	PipelineState state,
+	size_t colorAttachmentCount,
+	VkPipelineCreateInfo* createInfo)
 {
 	VkPipelineShaderStageCreateInfo* shaderStageCreateInfos =
 		malloc(shaderCount * sizeof(VkPipelineShaderStageCreateInfo));
@@ -648,6 +636,36 @@ inline static VkPipeline createVkPipelineHandle(
 
 	return handle;
 }
+inline static bool recreateVkPipelineHandle(
+	VkDevice device,
+	VkRenderPass renderPass,
+	Pipeline pipeline,
+	size_t colorAttachmentCount,
+	VkPipelineCreateInfo* createInfo)
+{
+	VkPipeline handle = createVkPipelineHandle(
+		device,
+		renderPass,
+		pipeline->vk.cache,
+		pipeline->vk.layout,
+		pipeline->vk.framebuffer->vk.window,
+		pipeline->vk.shaders,
+		pipeline->vk.shaderCount,
+		pipeline->vk.state,
+		colorAttachmentCount,
+		createInfo);
+
+	if (handle == NULL)
+		return false;
+
+	vkDestroyPipeline(
+		device,
+		pipeline->vk.vkHandle,
+		NULL);
+
+	pipeline->vk.vkHandle = handle;
+	return true;
+}
 
 inline static Pipeline createVkPipeline(
 	VkDevice device,
@@ -657,10 +675,10 @@ inline static Pipeline createVkPipeline(
 	Shader* _shaders,
 	size_t shaderCount,
 	PipelineState state,
-	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
 	OnPipelineHandleResize onHandleResize,
+	OnPipelineHandleDestroy onHandleDestroy,
 	void* handle)
 {
 	Pipeline pipeline = malloc(
@@ -734,16 +752,16 @@ inline static Pipeline createVkPipeline(
 	}
 
 	VkPipeline vkHandle = createVkPipelineHandle(
+		device,
 		framebuffer->vk.renderPass,
 		cache,
 		layout,
-		device,
-		framebuffer->vk.colorAttachmentCount,
 		framebuffer->vk.window,
-		createInfo,
 		shaders,
 		shaderCount,
-		state);
+		state,
+		framebuffer->vk.colorAttachmentCount,
+		createInfo);
 
 	if (vkHandle == NULL)
 	{
@@ -764,10 +782,11 @@ inline static Pipeline createVkPipeline(
 	pipeline->vk.shaders = shaders;
 	pipeline->vk.shaderCount = shaderCount;
 	pipeline->vk.state = state;
-	pipeline->vk.onHandleDestroy = onHandleDestroy;
+
 	pipeline->vk.onHandleBind = onHandleBind;
 	pipeline->vk.onUniformsSet = onUniformsSet;
 	pipeline->vk.onHandleResize = onHandleResize;
+	pipeline->vk.onHandleDestroy = onHandleDestroy;
 	pipeline->vk.handle = handle;
 #ifndef NDEBUG
 	pipeline->vk.name = name;
@@ -976,10 +995,10 @@ inline static Pipeline createGlPipeline(
 	Shader* _shaders,
 	size_t shaderCount,
 	PipelineState state,
-	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
 	OnPipelineHandleResize onHandleResize,
+	OnPipelineHandleDestroy onHandleDestroy,
 	void* handle)
 {
 	Pipeline pipeline = malloc(
@@ -997,8 +1016,7 @@ inline static Pipeline createGlPipeline(
 		return NULL;
 	}
 
-	GLenum
-		drawMode, polygonMode,
+	GLenum drawMode, polygonMode,
 		cullMode, depthCompareOperator,
 		srcColorBlendFactor, dstColorBlendFactor,
 		srcAlphaBlendFactor, dstAlphaBlendFactor,
@@ -1141,10 +1159,10 @@ inline static Pipeline createGlPipeline(
 	pipeline->gl.shaders = shaders;
 	pipeline->gl.shaderCount = shaderCount;
 	pipeline->gl.state = state;
-	pipeline->gl.onHandleDestroy = onHandleDestroy;
 	pipeline->gl.onHandleBind = onHandleBind;
 	pipeline->gl.onUniformsSet = onUniformsSet;
 	pipeline->gl.onHandleResize = onHandleResize;
+	pipeline->gl.onHandleDestroy = onHandleDestroy;
 	pipeline->gl.handle = handle;
 #ifndef NDEBUG
 	pipeline->gl.name = name;

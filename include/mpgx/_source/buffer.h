@@ -216,10 +216,8 @@ inline static Buffer createVkBuffer(
 
 	if (isConstant == true && isGpuIntegrated == false)
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-	else if (isGpuIntegrated == false)
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 	else
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
 	VkBuffer handle;
 	VmaAllocation allocation;

@@ -236,23 +236,6 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 	return descriptorSets;
 }
 
-static void onVkHandleDestroy(void* handle)
-{
-	PipelineHandle* pipelineHandle = handle;
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
-	VkDevice device = vkWindow->device;
-
-	free(pipelineHandle->vk.descriptorSets);
-	vkDestroyDescriptorPool(
-		device,
-		pipelineHandle->vk.descriptorPool,
-		NULL);
-	vkDestroyDescriptorSetLayout(
-		device,
-		pipelineHandle->vk.descriptorSetLayout,
-		NULL);
-	free(pipelineHandle);
-}
 static void onVkHandleBind(Pipeline pipeline)
 {
 	PipelineHandle* pipelineHandle = pipeline->vk.handle;
@@ -351,6 +334,23 @@ static bool onVkHandleResize(
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
 	return true;
 }
+static void onVkHandleDestroy(void* handle)
+{
+	PipelineHandle* pipelineHandle = handle;
+	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	VkDevice device = vkWindow->device;
+
+	free(pipelineHandle->vk.descriptorSets);
+	vkDestroyDescriptorPool(
+		device,
+		pipelineHandle->vk.descriptorPool,
+		NULL);
+	vkDestroyDescriptorSetLayout(
+		device,
+		pipelineHandle->vk.descriptorSetLayout,
+		NULL);
+	free(pipelineHandle);
+}
 inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
@@ -433,20 +433,15 @@ inline static Pipeline createVkHandle(
 		shaders,
 		shaderCount,
 		state,
-		onVkHandleDestroy,
 		onVkHandleBind,
 		onVkUniformsSet,
 		onVkHandleResize,
+		onVkHandleDestroy,
 		pipelineHandle,
 		&createInfo);
 }
 #endif
 
-static void onGlHandleDestroy(void* handle)
-{
-	PipelineHandle* pipelineHandle = handle;
-	free(pipelineHandle);
-}
 static void onGlHandleBind(Pipeline pipeline)
 {
 	PipelineHandle* pipelineHandle = pipeline->gl.handle;
@@ -507,6 +502,11 @@ static bool onGlHandleResize(
 	pipeline->gl.state.scissor = size;
 	return true;
 }
+static void onGlHandleDestroy(void* handle)
+{
+	PipelineHandle* pipelineHandle = handle;
+	free(pipelineHandle);
+}
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
@@ -520,10 +520,10 @@ inline static Pipeline createGlHandle(
 		shaders,
 		shaderCount,
 		state,
-		onGlHandleDestroy,
 		NULL,
 		onGlUniformsSet,
 		onGlHandleResize,
+		onGlHandleDestroy,
 		pipelineHandle,
 		NULL);
 

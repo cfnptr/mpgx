@@ -32,7 +32,7 @@ struct VkSwapchain
 	VmaAllocation depthAllocation;
 	VkImageView depthImageView;
 	VkRenderPass renderPass;
-	VkSwapchainBuffer*  buffers;
+	VkSwapchainBuffer* buffers;
 	uint32_t bufferCount;
 };
 
@@ -409,8 +409,9 @@ inline static bool createVkDepthImage(
 		0,
 		sizeof(VmaAllocationCreateInfo));
 
-	// TODO: possibly optimize with fully dedicated memory block
-	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
+	allocationCreateInfo.flags =
+		VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT |
+		VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 
@@ -1215,7 +1216,10 @@ inline static bool resizeVkSwapchain(
 	bool useStencilBuffer,
 	Vec2U framebufferSize)
 {
-	vkDeviceWaitIdle(device);
+	VkResult vkResult = vkDeviceWaitIdle(device);
+
+	if (vkResult != VK_SUCCESS)
+		return false;
 
 	VkSurfaceFormatKHR surfaceFormat;
 
@@ -1265,8 +1269,6 @@ inline static bool resizeVkSwapchain(
 	if (result == false)
 		return false;
 
-	VkSwapchainKHR oldHandle = swapchain->handle;
-
 	VkSwapchainKHR handle = createVkSwapchainHandle(
 		surface,
 		device,
@@ -1276,16 +1278,10 @@ inline static bool resizeVkSwapchain(
 		surfaceTransform,
 		compositeAlpha,
 		presentMode,
-		oldHandle);
+		swapchain->handle);
 
 	if (handle == NULL)
 		return false;
-
-	vkDestroySwapchainKHR(
-		device,
-		oldHandle,
-		NULL);
-	swapchain->handle = handle;
 
 	VkFormat depthFormat;
 
@@ -1295,7 +1291,13 @@ inline static bool resizeVkSwapchain(
 		&depthFormat);
 
 	if (result == false)
+	{
+		vkDestroySwapchainKHR(
+			device,
+			handle,
+			NULL);
 		return false;
+	}
 
 	VkImage depthImage;
 	VmaAllocation depthAllocation;
@@ -1308,7 +1310,13 @@ inline static bool resizeVkSwapchain(
 		&depthAllocation);
 
 	if (result == false)
+	{
+		vkDestroySwapchainKHR(
+			device,
+			handle,
+			NULL);
 		return false;
+	}
 
 	VkImageView depthImageView = createVkDepthImageView(
 		device,
@@ -1321,6 +1329,10 @@ inline static bool resizeVkSwapchain(
 			allocator,
 			depthImage,
 			depthAllocation);
+		vkDestroySwapchainKHR(
+			device,
+			handle,
+			NULL);
 		return false;
 	}
 
@@ -1339,6 +1351,10 @@ inline static bool resizeVkSwapchain(
 			allocator,
 			depthImage,
 			depthAllocation);
+		vkDestroySwapchainKHR(
+			device,
+			handle,
+			NULL);
 		return false;
 	}
 
@@ -1373,6 +1389,10 @@ inline static bool resizeVkSwapchain(
 			allocator,
 			depthImage,
 			depthAllocation);
+		vkDestroySwapchainKHR(
+			device,
+			handle,
+			NULL);
 		return false;
 	}
 
@@ -1394,8 +1414,14 @@ inline static bool resizeVkSwapchain(
 		allocator,
 		swapchain->depthImage,
 		swapchain->depthAllocation);
+	vkDestroySwapchainKHR(
+		device,
+		swapchain->handle,
+		NULL);
 
+	swapchain->handle = handle;
 	swapchain->depthImage = depthImage;
+	swapchain->depthAllocation = depthAllocation;
 	swapchain->depthImageView = depthImageView;
 	swapchain->renderPass = renderPass;
 	swapchain->buffers = buffers;

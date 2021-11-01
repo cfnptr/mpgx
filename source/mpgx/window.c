@@ -426,7 +426,6 @@ Window createWindow(
 			firstBuffer.framebuffer,
 			window,
 			framebufferSize,
-			1,
 			pipelineCapacity);
 
 		if (framebuffer == NULL)
@@ -1203,7 +1202,6 @@ static bool onVkResize(
 {
 	VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
 	framebuffer->vk.size = newSize;
-	framebuffer->vk.colorAttachmentCount = swapchain->bufferCount;
 	framebuffer->vk.renderPass = swapchain->renderPass;
 	framebuffer->vk.handle = firstBuffer.framebuffer;
 
@@ -1215,38 +1213,19 @@ static bool onVkResize(
 		Pipeline pipeline = pipelines[i];
 		VkPipelineCreateInfo createInfo;
 
-		if (pipeline->vk.onHandleResize != NULL)
-		{
-			bool result = pipeline->vk.onHandleResize(
-				pipeline,
-				newSize,
-				&createInfo);
-
-			if (result == false)
-				return false;
-		}
-
-		VkPipeline vkHandle = createVkPipelineHandle(
+		bool result = pipeline->vk.onHandleResize(
+			pipeline,
+			newSize,
+			&createInfo);
+		result &= recreateVkPipelineHandle(
+			device,
 			framebuffer->vk.renderPass,
-			pipeline->vk.cache,
-			pipeline->vk.layout,
-			device,
+			pipeline,
 			framebuffer->vk.colorAttachmentCount,
-			framebuffer->vk.window,
-			&createInfo,
-			pipeline->vk.shaders,
-			pipeline->vk.shaderCount,
-			pipeline->vk.state);
+			&createInfo);
 
-		if (vkHandle == NULL)
+		if (result == false)
 			return false;
-
-		vkDestroyPipeline(
-			device,
-			pipeline->vk.vkHandle,
-			NULL);
-
-		pipeline->vk.vkHandle = vkHandle;
 	}
 
 	return true;
@@ -1443,13 +1422,10 @@ bool beginWindowRecord(Window window)
 			{
 				Pipeline pipeline = pipelines[i];
 
-				if (pipeline->gl.onHandleResize != NULL)
-				{
-					pipeline->gl.onHandleResize(
-						pipeline,
-						newSize,
-						NULL);
-				}
+				pipeline->gl.onHandleResize(
+					pipeline,
+					newSize,
+					NULL);
 			}
 		}
 	}
@@ -3288,28 +3264,95 @@ bool setFramebufferAttachments(
 	Image depthStencilAttachment)
 {
 	assert(framebuffer != NULL);
-	assert(size.x == 0 && size.y != 0);
+	assert(size.x != 0 && size.y != 0);
 	assert(framebuffer->base.isDefault == false);
 	assert(framebuffer->base.window->isRecording == false);
 
 #ifndef NDEBUG
-	if (framebuffer->base.colorAttachmentCount != 0)
+	bool hasSomeAttachments = false;
+
+	if (colorAttachmentCount != 0)
 	{
 		assert(colorAttachments != NULL);
-		assert(colorAttachmentCount ==
-			framebuffer->base.colorAttachmentCount);
+		hasSomeAttachments = true;
 	}
-	if (framebuffer->base.depthStencilAttachment != NULL)
+	if (depthStencilAttachment != NULL)
 	{
-		assert(depthStencilAttachment != NULL);
 		assert(depthStencilAttachment->base.size.x == size.x &&
-			depthStencilAttachment->base.size.y == size.y);
+			   depthStencilAttachment->base.size.y == size.y);
 		assert(depthStencilAttachment->base.window ==
 			framebuffer->base.window);
+		hasSomeAttachments = true;
 	}
+
+	assert(hasSomeAttachments == true);
 #endif
 
-	abort();
+	Window window = framebuffer->base.window;
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+
+		VkResult vkResult = vkQueueWaitIdle(
+			vkWindow->graphicsQueue);
+
+		if (vkResult != VK_SUCCESS)
+			return false;
+
+		VkDevice device = vkWindow->device;
+
+		VkRenderPass renderPass = createVkGeneralRenderPass(
+			device,
+			useBeginClear,
+			colorAttachments,
+			colorAttachmentCount,
+			depthStencilAttachment);
+
+		if (renderPass == NULL)
+			return false;
+
+		bool result = setVkFramebufferAttachments(
+			vkWindow->device,
+			renderPass,
+			framebuffer,
+			size,
+			useBeginClear,
+			colorAttachments,
+			colorAttachmentCount,
+			depthStencilAttachment);
+
+		if (result == false)
+		{
+			vkDestroyRenderPass(
+				device,
+				renderPass,
+				NULL);
+			return false;
+		}
+
+		return true;
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return setGlFramebufferAttachments(
+			framebuffer,
+			size,
+			useBeginClear,
+			colorAttachments,
+			colorAttachmentCount,
+			depthStencilAttachment);
+	}
+	else
+	{
+		abort();
+	}
 }
 
 void beginFramebufferRender(
@@ -3581,10 +3624,10 @@ Pipeline createPipeline(
 	Shader* shaders,
 	size_t shaderCount,
 	const PipelineState* state,
-	OnPipelineHandleDestroy onHandleDestroy,
 	OnPipelineHandleBind onHandleBind,
 	OnPipelineUniformsSet onUniformsSet,
 	OnPipelineHandleResize onHandleResize,
+	OnPipelineHandleDestroy onHandleDestroy,
 	void* handle,
 	void* createInfo)
 {
@@ -3593,6 +3636,7 @@ Pipeline createPipeline(
 	assert(shaders != NULL);
 	assert(shaderCount != 0);
 	assert(state != NULL);
+	assert(onHandleResize != NULL);
 	assert(onHandleDestroy != NULL);
 	assert(state->drawMode < DRAW_MODE_COUNT);
 	assert(state->polygonMode < POLYGON_MODE_COUNT);
@@ -3628,10 +3672,10 @@ Pipeline createPipeline(
 			shaders,
 			shaderCount,
 			*state,
-			onHandleDestroy,
 			onHandleBind,
 			onUniformsSet,
 			onHandleResize,
+			onHandleDestroy,
 			handle);
 #else
 		abort();
@@ -3649,10 +3693,10 @@ Pipeline createPipeline(
 			shaders,
 			shaderCount,
 			*state,
-			onHandleDestroy,
 			onHandleBind,
 			onUniformsSet,
 			onHandleResize,
+			onHandleDestroy,
 			handle);
 	}
 	else
@@ -3791,11 +3835,6 @@ const PipelineState* getPipelineState(Pipeline pipeline)
 	assert(pipeline != NULL);
 	return &pipeline->base.state;
 }
-OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline)
-{
-	assert(pipeline != NULL);
-	return pipeline->base.onHandleDestroy;
-}
 OnPipelineHandleBind getPipelineOnHandleBind(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
@@ -3805,6 +3844,16 @@ OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->base.onUniformsSet;
+}
+OnPipelineHandleResize getPipelineOnHandleResize(Pipeline pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->base.onHandleResize;
+}
+OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline)
+{
+	assert(pipeline != NULL);
+	return pipeline->base.onHandleDestroy;
 }
 void* getPipelineHandle(Pipeline pipeline)
 {

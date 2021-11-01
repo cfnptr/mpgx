@@ -16,9 +16,6 @@
 #include "mpgx/_source/opengl.h"
 #include <string.h>
 
-// TODO: possibly add buffer map/unmap functions
-// https://github.com/InjectorGames/InjectorEngine/blob/master/Source/Graphics/Vulkan/VkGpuBuffer.cpp
-
 typedef struct _BaseBuffer
 {
 	Window window;
@@ -156,6 +153,10 @@ inline static Buffer createVkBuffer(
 	VmaAllocator allocator,
 	VkQueue transferQueue,
 	VkCommandPool transferCommandPool,
+	VkBuffer* _stagingBuffer,
+	VmaAllocation* _stagingAllocation,
+	size_t* _stagingSize,
+	VkFence stagingFence,
 	VkBufferUsageFlags _vkUsage,
 	Window window,
 	BufferType type,
@@ -241,33 +242,45 @@ inline static Buffer createVkBuffer(
 	{
 		if (isConstant == true && isGpuIntegrated == false)
 		{
-			bufferCreateInfo.usage = vkUsage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+			bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-			VkBuffer stagingBuffer;
-			VmaAllocation stagingAllocation;
-
-			vkResult = vmaCreateBuffer(
-				allocator,
-				&bufferCreateInfo,
-				&allocationCreateInfo,
-				&stagingBuffer,
-				&stagingAllocation,
-				NULL);
-
-			if (vkResult != VK_SUCCESS)
+			if (size > *_stagingSize)
 			{
+				VkBuffer stagingBuffer;
+				VmaAllocation stagingAllocation;
+
+				vkResult = vmaCreateBuffer(
+					allocator,
+					&bufferCreateInfo,
+					&allocationCreateInfo,
+					&stagingBuffer,
+					&stagingAllocation,
+					NULL);
+
+				if (vkResult != VK_SUCCESS)
+				{
+					vmaDestroyBuffer(
+						allocator,
+						handle,
+						allocation);
+					free(buffer);
+					return NULL;
+				}
+
 				vmaDestroyBuffer(
 					allocator,
-					handle,
-					allocation);
-				free(buffer);
-				return NULL;
+					*_stagingBuffer,
+					*_stagingAllocation);
+
+				*_stagingBuffer = stagingBuffer;
+				*_stagingAllocation = stagingAllocation;
+				*_stagingSize = size;
 			}
 
 			setVkBufferData(
 				allocator,
-				stagingAllocation,
+				*_stagingAllocation,
 				data,
 				size,
 				0);
@@ -289,10 +302,6 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
@@ -321,10 +330,6 @@ inline static Buffer createVkBuffer(
 					&commandBuffer);
 				vmaDestroyBuffer(
 					allocator,
-					stagingBuffer,
-					stagingAllocation);
-				vmaDestroyBuffer(
-					allocator,
 					handle,
 					allocation);
 				free(buffer);
@@ -339,7 +344,7 @@ inline static Buffer createVkBuffer(
 
 			vkCmdCopyBuffer(
 				commandBuffer,
-				stagingBuffer,
+				*_stagingBuffer,
 				handle,
 				1,
 				&bufferCopy);
@@ -355,14 +360,30 @@ inline static Buffer createVkBuffer(
 					&commandBuffer);
 				vmaDestroyBuffer(
 					allocator,
-					stagingBuffer,
-					stagingAllocation);
+					handle,
+					allocation);
+				free(buffer);
+				return NULL;
+			}
+
+			vkResult = vkResetFences(
+				device,
+				1,
+				&stagingFence);
+
+			if (vkResult != VK_SUCCESS)
+			{
+				vkFreeCommandBuffers(
+					device,
+					transferCommandPool,
+					1,
+					&commandBuffer);
 				vmaDestroyBuffer(
 					allocator,
 					handle,
 					allocation);
 				free(buffer);
-				return NULL;
+				return false;
 			}
 
 			VkSubmitInfo submitInfo = {
@@ -381,7 +402,7 @@ inline static Buffer createVkBuffer(
 				transferQueue,
 				1,
 				&submitInfo,
-				NULL);
+				stagingFence);
 
 			if (vkResult != VK_SUCCESS)
 			{
@@ -392,23 +413,19 @@ inline static Buffer createVkBuffer(
 					&commandBuffer);
 				vmaDestroyBuffer(
 					allocator,
-					stagingBuffer,
-					stagingAllocation);
-				vmaDestroyBuffer(
-					allocator,
 					handle,
 					allocation);
 				free(buffer);
 				return NULL;
 			}
 
-			// TODO: wait for fence instead of queue
-			vkResult = vkQueueWaitIdle(transferQueue);
+			vkResult = vkWaitForFences(
+				device,
+				1,
+				&stagingFence,
+				VK_TRUE,
+				UINT64_MAX);
 
-			vmaDestroyBuffer(
-				allocator,
-				stagingBuffer,
-				stagingAllocation);
 			vkFreeCommandBuffers(
 				device,
 				transferCommandPool,

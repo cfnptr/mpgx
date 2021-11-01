@@ -12,29 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-in vec3 f_FragDir;
-in float f_TexCoord;
-
+in vec2 f_TexCoords;
 layout(location = 0) out vec4 o_Color;
 
-uniform vec4 u_SunDir;
-uniform vec4 u_SunColor;
-uniform sampler2D u_Texture;
+uniform int u_Radius;
+uniform sampler2D u_Buffer;
 
-vec4 calcSkyColor(sampler2D skyTexture, float sunHeight, float texCoord)
+vec3 calcBlurColor(sampler2D buffer, vec2 texCoords, int radius)
 {
-    vec2 texCoords = vec2(max(sunHeight, 0.0), texCoord);
-    return texture(skyTexture, texCoords);
-}
-float calcSunLight(vec3 fragDir, vec3 sunDir)
-{
-    float light = dot(normalize(fragDir), sunDir);
-    return max((light - 0.999) * 1000.0, 0.0);
+    vec2 texelSize = 1.0 / textureSize(buffer, 0);
+    vec3 result = vec3(0.0);
+    
+    for (int i = -radius; i <= radius; i++)
+    {
+        vec2 coords = vec2(0.0, texelSize.y * i);
+        result += texture(buffer, texCoords + coords).rgb;
+    }
+    
+    return result / (radius + radius + 1);
 }
 void main()
 {
-    vec4 skyColor = calcSkyColor(u_Texture, u_SunDir.y, f_TexCoord);
-    float sunLight = calcSunLight(f_FragDir, u_SunDir.xyz);
-    o_Color = (u_SunColor * sunLight) + skyColor;
-    gl_FragDepth = 0.9999999;
+    vec3 blurColor = calcBlurColor(
+        u_Buffer, f_TexCoords, u_Radius);
+    o_Color = vec4(blurColor, 1.0);
 }

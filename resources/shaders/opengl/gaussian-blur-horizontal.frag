@@ -46,7 +46,7 @@ vec3 calcBlurColor(sampler2D buffer, vec2 texCoords, int radius, int offset)
     vec2 texelSize = 1.0 / textureSize(buffer, 0);
     vec3 result = texture(buffer, texCoords).rgb * c_Weights[offset];
     
-    for(int i = 1; i <= radius; i++)
+    for (int i = 1; i <= radius; i++)
     {
         vec2 coords = vec2(texelSize.x * i, 0.0);
         float weight = c_Weights[offset + i];

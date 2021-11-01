@@ -22,5 +22,5 @@ void main()
 {
     vec3 color = texture(u_Buffer, f_TexCoords).rgb;
     bool greater = any(greaterThan(color, u_Threshold.rgb));
-    o_Color = greater ? vec4(color, 0.0) : vec4(0.0);
+    o_Color = greater ? vec4(color - u_Threshold.rgb, 0.0) : vec4(0.0);
 }

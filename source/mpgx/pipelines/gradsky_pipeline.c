@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: remove pow specular from shader use bloom for that
 #include "mpgx/pipelines/gradsky_pipeline.h"
 #include "mpgx/_source/pipeline.h"
 #include "mpgx/_source/sampler.h"
@@ -52,7 +51,6 @@ typedef struct VkPipelineHandle
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
-	VkImageView imageView;
 	VkDescriptorSet* descriptorSets;
 	uint32_t bufferCount;
 #endif
@@ -360,10 +358,6 @@ static void onVkHandleDestroy(void* handle)
 	VkDevice device = vkWindow->device;
 
 	free(pipelineHandle->vk.descriptorSets);
-	vkDestroyImageView(
-		device,
-		pipelineHandle->vk.imageView,
-		NULL);
 	vkDestroyDescriptorPool(
 		device,
 		pipelineHandle->vk.descriptorPool,
@@ -438,7 +432,7 @@ static bool onVkHandleResize(
 			descriptorPool,
 			bufferCount,
 			pipelineHandle->vk.sampler->vk.handle,
-			pipelineHandle->vk.imageView);
+			pipelineHandle->vk.texture->vk.imageView);
 
 		if (descriptorSets == NULL)
 		{
@@ -486,7 +480,7 @@ inline static Pipeline createVkHandle(
 	Shader* shaders,
 	uint8_t shaderCount,
 	VkSampler sampler,
-	Image image,
+	VkImageView imageView,
 	const PipelineState* state,
 	PipelineHandle* pipelineHandle)
 {
@@ -530,26 +524,6 @@ inline static Pipeline createVkHandle(
 		return NULL;
 	}
 
-	VkImageView imageView = createVkImageView(
-		device,
-		image->vk.handle,
-		image->vk.vkFormat,
-		image->vk.vkAspect);
-
-	if (imageView == NULL)
-	{
-		vkDestroyDescriptorPool(
-			device,
-			descriptorPool,
-			NULL);
-		vkDestroyDescriptorSetLayout(
-			device,
-			descriptorSetLayout,
-			NULL);
-		free(pipelineHandle);
-		return NULL;
-	}
-
 	VkDescriptorSet* descriptorSets = createVkDescriptorSets(
 		device,
 		descriptorSetLayout,
@@ -560,10 +534,6 @@ inline static Pipeline createVkHandle(
 
 	if (descriptorSets == NULL)
 	{
-		vkDestroyImageView(
-			device,
-			imageView,
-			NULL);
 		vkDestroyDescriptorPool(
 			device,
 			descriptorPool,
@@ -578,7 +548,6 @@ inline static Pipeline createVkHandle(
 
 	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
 	pipelineHandle->vk.descriptorPool = descriptorPool;
-	pipelineHandle->vk.imageView = imageView;
 	pipelineHandle->vk.descriptorSets = descriptorSets;
 	pipelineHandle->vk.bufferCount = bufferCount;
 
@@ -772,7 +741,7 @@ Pipeline createExtGradSkyPipeline(
 			shaders,
 			2,
 			sampler->vk.handle,
-			texture,
+			texture->vk.imageView,
 			state,
 			pipelineHandle);
 #else

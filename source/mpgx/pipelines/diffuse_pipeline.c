@@ -14,7 +14,6 @@
 
 #include "mpgx/pipelines/diffuse_pipeline.h"
 #include "mpgx/_source/pipeline.h"
-#include "mpgx/_source/buffer.h"
 
 #include <string.h>
 
@@ -163,24 +162,15 @@ inline static VkDescriptorPool createVkDescriptorPool(
 	return descriptorPool;
 }
 inline static void destroyVkUniformBuffers(
-	VmaAllocator allocator,
 	uint32_t bufferCount,
 	Buffer* uniformBuffers)
 {
 	for (uint32_t i = 0; i < bufferCount; i++)
-	{
-		destroyVkBuffer(
-			allocator,
-			uniformBuffers[i]);
-	}
+		destroyBuffer(uniformBuffers[i]);
 
 	free(uniformBuffers);
 }
 inline static Buffer* createVkUniformBuffers(
-	VkDevice device,
-	VmaAllocator allocator,
-	VkQueue transferQueue,
-	VkCommandPool transferCommandPool,
 	Window window,
 	uint32_t bufferCount)
 {
@@ -192,12 +182,7 @@ inline static Buffer* createVkUniformBuffers(
 
 	for (uint32_t i = 0; i < bufferCount; i++)
 	{
-		Buffer buffer = createVkBuffer(
-			device,
-			allocator,
-			transferQueue,
-			transferCommandPool,
-			0,
+		Buffer buffer = createBuffer(
 			window,
 			UNIFORM_BUFFER_TYPE,
 			NULL,
@@ -206,10 +191,7 @@ inline static Buffer* createVkUniformBuffers(
 
 		if (buffer == NULL)
 		{
-			destroyVkUniformBuffers(
-				allocator,
-				i,
-				buffers);
+			destroyVkUniformBuffers(i, buffers);
 			return NULL;
 		}
 
@@ -307,7 +289,6 @@ static void onVkHandleDestroy(void* handle)
 
 	free(pipelineHandle->vk.descriptorSets);
 	destroyVkUniformBuffers(
-		vkWindow->allocator,
 		pipelineHandle->vk.bufferCount,
 		pipelineHandle->vk.uniformBuffers);
 	vkDestroyDescriptorPool(
@@ -369,7 +350,6 @@ static bool onVkHandleResize(
 	if (bufferCount != pipelineHandle->vk.bufferCount)
 	{
 		VkDevice device = vkWindow->device;
-		VmaAllocator allocator = vkWindow->allocator;
 
 		VkDescriptorPool descriptorPool = createVkDescriptorPool(
 			device,
@@ -379,10 +359,6 @@ static bool onVkHandleResize(
 			return false;
 
 		Buffer* uniformBuffers = createVkUniformBuffers(
-			device,
-			allocator,
-			vkWindow->graphicsQueue,
-			vkWindow->transferCommandPool,
 			window,
 			bufferCount);
 
@@ -405,7 +381,6 @@ static bool onVkHandleResize(
 		if (descriptorSets == NULL)
 		{
 			destroyVkUniformBuffers(
-				allocator,
 				bufferCount,
 				uniformBuffers);
 			vkDestroyDescriptorPool(
@@ -418,7 +393,6 @@ static bool onVkHandleResize(
 		free(pipelineHandle->vk.descriptorSets);
 
 		destroyVkUniformBuffers(
-			allocator,
 			pipelineHandle->vk.bufferCount,
 			pipelineHandle->vk.uniformBuffers);
 		vkDestroyDescriptorPool(
@@ -500,10 +474,6 @@ inline static Pipeline createVkHandle(
 	}
 
 	Buffer* uniformBuffers = createVkUniformBuffers(
-		device,
-		vkWindow->allocator,
-		vkWindow->graphicsQueue,
-		vkWindow->transferCommandPool,
 		window,
 		bufferCount);
 
@@ -531,7 +501,6 @@ inline static Pipeline createVkHandle(
 	if (descriptorSets == NULL)
 	{
 		destroyVkUniformBuffers(
-			vkWindow->allocator,
 			bufferCount,
 			uniformBuffers);
 		vkDestroyDescriptorPool(
@@ -570,7 +539,7 @@ inline static Pipeline createVkHandle(
 static void onGlHandleDestroy(void* handle)
 {
 	PipelineHandle* pipelineHandle = handle;
-	destroyGlBuffer(pipelineHandle->gl.uniformBuffer);
+	destroyBuffer(pipelineHandle->gl.uniformBuffer);
 	free(pipelineHandle);
 }
 static void onGlHandleBind(Pipeline pipeline)
@@ -645,7 +614,7 @@ inline static Pipeline createGlHandle(
 	const PipelineState* state,
 	PipelineHandle* pipelineHandle)
 {
-	Buffer uniformBuffer = createGlBuffer(
+	Buffer uniformBuffer = createBuffer(
 		framebuffer->gl.window,
 		UNIFORM_BUFFER_TYPE,
 		NULL,

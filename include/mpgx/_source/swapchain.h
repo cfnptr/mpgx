@@ -1217,31 +1217,6 @@ inline static bool resizeVkSwapchain(
 {
 	vkDeviceWaitIdle(device);
 
-	destroyVkSwapchainBuffers(
-		device,
-		graphicsCommandPool,
-		presentCommandPool,
-		swapchain->buffers,
-		swapchain->bufferCount);
-	vkDestroyRenderPass(
-		device,
-		swapchain->renderPass,
-		NULL);
-	vkDestroyImageView(
-		device,
-		swapchain->depthImageView,
-		NULL);
-	vmaDestroyImage(
-		allocator,
-		swapchain->depthImage,
-		swapchain->depthAllocation);
-
-	swapchain->bufferCount = 0;
-	swapchain->buffers = NULL;
-	swapchain->renderPass = NULL;
-	swapchain->depthImageView = NULL;
-	swapchain->depthImage = NULL;
-
 	VkSurfaceFormatKHR surfaceFormat;
 
 	bool result = getBestVkSurfaceFormat(
@@ -1400,6 +1375,25 @@ inline static bool resizeVkSwapchain(
 			depthAllocation);
 		return false;
 	}
+
+	destroyVkSwapchainBuffers(
+		device,
+		graphicsCommandPool,
+		presentCommandPool,
+		swapchain->buffers,
+		swapchain->bufferCount);
+	vkDestroyRenderPass(
+		device,
+		swapchain->renderPass,
+		NULL);
+	vkDestroyImageView(
+		device,
+		swapchain->depthImageView,
+		NULL);
+	vmaDestroyImage(
+		allocator,
+		swapchain->depthImage,
+		swapchain->depthAllocation);
 
 	swapchain->depthImage = depthImage;
 	swapchain->depthImageView = depthImageView;

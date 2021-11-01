@@ -43,6 +43,10 @@ struct VkWindow
 	uint32_t frameIndex;
 	uint32_t bufferIndex;
 	VkCommandBuffer currenCommandBuffer;
+	VkBuffer stagingBuffer;
+	VmaAllocation stagingAllocation;
+	size_t stagingSize;
+	VkFence stagingFence;
 };
 
 typedef struct VkWindow* VkWindow;
@@ -1148,6 +1152,61 @@ inline static VkWindow createVkWindow(
 		return NULL;
 	}
 
+	VkFenceCreateInfo fenceCreateInfo = {
+		VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+		NULL,
+		0,
+	};
+
+	VkFence stagingFence = createVkFence(
+		device,
+		0);
+
+	if (stagingFence == NULL)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		vkDestroyCommandPool(
+			device,
+			transferCommandPool,
+			NULL);
+
+		if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
+		{
+			vkDestroyCommandPool(
+				device,
+				graphicsCommandPool,
+				NULL);
+		}
+		else
+		{
+			vkDestroyCommandPool(
+				device,
+				graphicsCommandPool,
+				NULL);
+			vkDestroyCommandPool(
+				device,
+				presentCommandPool,
+				NULL);
+		}
+
+		vmaDestroyAllocator(
+			allocator);
+		vkDestroyDevice(
+			device,
+			NULL);
+		vkDestroySurfaceKHR(
+			instance,
+			surface,
+			NULL);
+		free(vkWindow);
+		return NULL;
+	}
+
 	vkWindow->surface = surface;
 	vkWindow->physicalDevice = physicalDevice;
 	vkWindow->isGpuIntegrated = isGpuIntegrated;
@@ -1164,6 +1223,10 @@ inline static VkWindow createVkWindow(
 	vkWindow->frameIndex = 0;
 	vkWindow->bufferIndex = 0;
 	vkWindow->currenCommandBuffer = NULL;
+	vkWindow->stagingBuffer = NULL;
+	vkWindow->stagingAllocation = NULL;
+	vkWindow->stagingSize = 0;
+	vkWindow->stagingFence = stagingFence;
 
 	VkFence* fences = vkWindow->fences;
 
@@ -1206,6 +1269,10 @@ inline static VkWindow createVkWindow(
 				imageOwnershipSemaphores[i],
 				NULL);
 
+			vkDestroyFence(
+				device,
+				stagingFence,
+				NULL);
 			destroyVkSwapchain(
 				device,
 				allocator,
@@ -1254,34 +1321,48 @@ inline static VkWindow createVkWindow(
 }
 inline static void destroyVkWindow(
 	VkInstance instance,
-	VkWindow window)
+	VkWindow vkWindow)
 {
-	if (window == NULL)
+	if (vkWindow == NULL)
 		return;
 
-	VkDevice device = window->device;
-	VmaAllocator allocator = window->allocator;
+	VkDevice device = vkWindow->device;
+
+	vkDestroyFence(
+		device,
+		vkWindow->stagingFence,
+		NULL);
+
+	VmaAllocator allocator = vkWindow->allocator;
+
+	if (vkWindow->stagingBuffer != NULL)
+	{
+		vmaDestroyBuffer(
+			allocator,
+			vkWindow->stagingBuffer,
+			vkWindow->stagingAllocation);
+	}
 
 	VkCommandPool graphicsCommandPool =
-		window->graphicsCommandPool;
+		vkWindow->graphicsCommandPool;
 	VkCommandPool presentCommandPool =
-		window->presentCommandPool;
+		vkWindow->presentCommandPool;
 
 	destroyVkSwapchain(
 		device,
 		allocator,
 		graphicsCommandPool,
 		presentCommandPool,
-		window->swapchain);
+		vkWindow->swapchain);
 
-	VkFence* fences = window->fences;
+	VkFence* fences = vkWindow->fences;
 
 	VkSemaphore* imageAcquiredSemaphores =
-		window->imageAcquiredSemaphores;
+		vkWindow->imageAcquiredSemaphores;
 	VkSemaphore* drawCompleteSemaphores =
-		window->drawCompleteSemaphores;
+		vkWindow->drawCompleteSemaphores;
 	VkSemaphore* imageOwnershipSemaphores =
-		window->imageOwnershipSemaphores;
+		vkWindow->imageOwnershipSemaphores;
 
 	for (uint8_t i = 0; i < VK_FRAME_LAG; i++)
 	{
@@ -1315,11 +1396,11 @@ inline static void destroyVkWindow(
 
 	vkDestroyCommandPool(
 		device,
-		window->transferCommandPool,
+		vkWindow->transferCommandPool,
 		NULL);
 
-	if (window->graphicsQueueFamilyIndex ==
-		window->presentQueueFamilyIndex)
+	if (vkWindow->graphicsQueueFamilyIndex ==
+		vkWindow->presentQueueFamilyIndex)
 	{
 		vkDestroyCommandPool(
 			device,
@@ -1345,10 +1426,10 @@ inline static void destroyVkWindow(
 		NULL);
 	vkDestroySurfaceKHR(
 		instance,
-		window->surface,
+		vkWindow->surface,
 		NULL);
 
-	free(window);
+	free(vkWindow);
 }
 
 static VkPhysicalDeviceProperties properties;

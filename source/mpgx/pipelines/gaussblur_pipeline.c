@@ -39,7 +39,6 @@ typedef struct VkPipelineHandle
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
-	VkImageView bufferImageView;
 	VkDescriptorSet* descriptorSets;
 	uint32_t bufferCount;
 #endif
@@ -246,10 +245,6 @@ static void onVkHandleDestroy(void* handle)
 	VkDevice device = vkWindow->device;
 
 	free(pipelineHandle->vk.descriptorSets);
-	vkDestroyImageView(
-		device,
-		pipelineHandle->vk.bufferImageView,
-		NULL);
 	vkDestroyDescriptorPool(
 		device,
 		pipelineHandle->vk.descriptorPool,
@@ -314,7 +309,7 @@ static bool onVkHandleResize(
 			pipelineHandle->vk.descriptorSetLayout,
 			descriptorPool,
 			bufferCount,
-			pipelineHandle->vk.bufferImageView,
+			pipelineHandle->vk.buffer->vk.imageView,
 			pipelineHandle->vk.sampler->vk.handle);
 
 		if (descriptorSets == NULL)
@@ -362,7 +357,7 @@ inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
-	Image buffer,
+	VkImageView imageView,
 	VkSampler sampler,
 	const PipelineState* state,
 	PipelineHandle* pipelineHandle)
@@ -406,40 +401,16 @@ inline static Pipeline createVkHandle(
 		return NULL;
 	}
 
-	VkImageView bufferImageView = createVkImageView(
-		device,
-		buffer->vk.handle,
-		buffer->vk.vkFormat,
-		buffer->vk.vkAspect);
-
-	if (bufferImageView == NULL)
-	{
-		vkDestroyDescriptorPool(
-			device,
-			descriptorPool,
-			NULL);
-		vkDestroyDescriptorSetLayout(
-			device,
-			descriptorSetLayout,
-			NULL);
-		free(pipelineHandle);
-		return NULL;
-	}
-
 	VkDescriptorSet* descriptorSets = createVkDescriptorSets(
 		device,
 		descriptorSetLayout,
 		descriptorPool,
 		bufferCount,
-		bufferImageView,
+		imageView,
 		sampler);
 
 	if (descriptorSets == NULL)
 	{
-		vkDestroyImageView(
-			device,
-			bufferImageView,
-			NULL);
 		vkDestroyDescriptorPool(
 			device,
 			descriptorPool,
@@ -454,7 +425,6 @@ inline static Pipeline createVkHandle(
 
 	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
 	pipelineHandle->vk.descriptorPool = descriptorPool;
-	pipelineHandle->vk.bufferImageView = bufferImageView;
 	pipelineHandle->vk.descriptorSets = descriptorSets;
 	pipelineHandle->vk.bufferCount = bufferCount;
 
@@ -653,7 +623,7 @@ Pipeline createExtGaussBlurPipeline(
 			framebuffer,
 			shaders,
 			2,
-			buffer,
+			buffer->vk.imageView,
 			sampler->vk.handle,
 			state,
 			pipelineHandle);

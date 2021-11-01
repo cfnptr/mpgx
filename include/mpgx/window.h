@@ -37,6 +37,8 @@
 // if equals show that possibly has same shader
 // https://github.com/B-Con/crypto-algorithms/blob/master/md5.c
 
+// TODO: add box blur pipeline
+
 // TODO: possibly switch to the ktx texture format
 
 // TODO: check all library if (... != NULL) for UBs
@@ -700,8 +702,10 @@ bool isFramebufferEmpty(Framebuffer framebuffer);
 bool setFramebufferAttachments(
 	Framebuffer framebuffer,
 	Vec2U size,
-	Image* attachments,
-	size_t attachmentCount);
+	bool useBeginClear,
+	Image* colorAttachments,
+	size_t colorAttachmentCount,
+	Image depthStencilAttachment);
 
 void beginFramebufferRender(
 	Framebuffer framebuffer,

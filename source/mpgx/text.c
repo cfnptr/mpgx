@@ -48,7 +48,6 @@ struct Text
 	Vec2F textSize;
 	size_t uniCharCount;
 #if MPGX_SUPPORT_VULKAN
-	VkImageView imageView;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSet* descriptorSets;
 #endif
@@ -832,22 +831,6 @@ Text createText(
 		{
 			VkWindow vkWindow = getVkWindow(window);
 			VkDevice device = vkWindow->device;
-
-			VkImageView imageView = createVkImageView(
-				device,
-				texture->vk.handle,
-				texture->vk.vkFormat,
-				texture->vk.vkAspect);
-
-			if (imageView == NULL)
-			{
-				destroyMesh(mesh, true);
-				destroyImage(texture);
-				free(data);
-				free(text);
-				return NULL;
-			}
-
 			PipelineHandle* pipelineHandle = pipeline->vk.handle;
 			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
 
@@ -857,10 +840,6 @@ Text createText(
 
 			if (descriptorPool == NULL)
 			{
-				vkDestroyImageView(
-					device,
-					imageView,
-					NULL);
 				destroyMesh(mesh, true);
 				destroyImage(texture);
 				free(data);
@@ -874,17 +853,13 @@ Text createText(
 				descriptorPool,
 				bufferCount,
 				pipelineHandle->vk.sampler->vk.handle,
-				imageView);
+				texture->vk.imageView);
 
 			if (descriptorSets == NULL)
 			{
 				vkDestroyDescriptorPool(
 					device,
 					descriptorPool,
-					NULL);
-				vkDestroyImageView(
-					device,
-					imageView,
 					NULL);
 				destroyMesh(mesh, true);
 				destroyImage(texture);
@@ -893,13 +868,11 @@ Text createText(
 				return NULL;
 			}
 
-			text->imageView = imageView;
 			text->descriptorPool = descriptorPool;
 			text->descriptorSets = descriptorSets;
 		}
 		else
 		{
-			text->imageView = NULL;
 			text->descriptorPool = NULL;
 			text->descriptorSets = NULL;
 		}
@@ -1104,21 +1077,6 @@ Text createText(
 			VkWindow vkWindow = getVkWindow(window);
 			VkDevice device = vkWindow->device;
 
-			VkImageView imageView = createVkImageView(
-				device,
-				texture->vk.handle,
-				texture->vk.vkFormat,
-				texture->vk.vkAspect);
-
-			if (imageView == NULL)
-			{
-				destroyMesh(mesh, true);
-				destroyImage(texture);
-				free(data);
-				free(text);
-				return NULL;
-			}
-
 			PipelineHandle* pipelineHandle = pipeline->vk.handle;
 			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
 
@@ -1128,10 +1086,6 @@ Text createText(
 
 			if (descriptorPool == NULL)
 			{
-				vkDestroyImageView(
-					device,
-					imageView,
-					NULL);
 				destroyMesh(mesh, true);
 				destroyImage(texture);
 				free(data);
@@ -1145,17 +1099,13 @@ Text createText(
 				descriptorPool,
 				bufferCount,
 				pipelineHandle->vk.sampler->vk.handle,
-				imageView);
+				texture->vk.imageView);
 
 			if (descriptorSets == NULL)
 			{
 				vkDestroyDescriptorPool(
 					device,
 					descriptorPool,
-					NULL);
-				vkDestroyImageView(
-					device,
-					imageView,
 					NULL);
 				destroyMesh(mesh, true);
 				destroyImage(texture);
@@ -1164,13 +1114,11 @@ Text createText(
 				return NULL;
 			}
 
-			text->imageView = imageView;
 			text->descriptorPool = descriptorPool;
 			text->descriptorSets = descriptorSets;
 		}
 		else
 		{
-			text->imageView = NULL;
 			text->descriptorPool = NULL;
 			text->descriptorSets = NULL;
 		}
@@ -1214,13 +1162,10 @@ void destroyText(Text text)
 			abort();
 
 		free(text->descriptorSets);
+
 		vkDestroyDescriptorPool(
 			device,
 			text->descriptorPool,
-			NULL);
-		vkDestroyImageView(
-			device,
-			text->imageView,
 			NULL);
 	}
 #endif
@@ -1559,7 +1504,6 @@ bool bakeText(
 			Image texture;
 
 #if MPGX_SUPPORT_VULKAN
-			VkImageView imageView;
 			VkDescriptorSet* descriptorSets;
 #endif
 
@@ -1592,34 +1536,16 @@ bool bakeText(
 					VkDevice device = vkWindow->device;
 					PipelineHandle* pipelineHandle = pipeline->vk.handle;
 
-					imageView = createVkImageView(
-						device,
-						texture->vk.handle,
-						texture->vk.vkFormat,
-						texture->vk.vkAspect);
-
-					if (imageView == NULL)
-					{
-						destroyImage(texture);
-						free(glyphs);
-						free(uniChars);
-						return false;
-					}
-
 					descriptorSets = createVkDescriptorSets(
 						device,
 						pipelineHandle->vk.descriptorSetLayout,
 						text->descriptorPool,
 						pipelineHandle->vk.bufferCount,
 						pipelineHandle->vk.sampler->vk.handle,
-						imageView);
+						texture->vk.imageView);
 
 					if (descriptorSets == NULL)
 					{
-						vkDestroyImageView(
-							device,
-							imageView,
-							NULL);
 						destroyImage(texture);
 						free(glyphs);
 						free(uniChars);
@@ -1740,12 +1666,6 @@ bool bakeText(
 						text->descriptorSets);
 					free(text->descriptorSets);
 
-					vkDestroyImageView(
-						device,
-						text->imageView,
-						NULL);
-
-					text->imageView = imageView;
 					text->descriptorSets = descriptorSets;
 				}
 #endif
@@ -1877,22 +1797,6 @@ bool bakeText(
 			{
 				VkWindow vkWindow = getVkWindow(window);
 				VkDevice device = vkWindow->device;
-
-				VkImageView imageView = createVkImageView(
-					device,
-					texture->vk.handle,
-					texture->vk.vkFormat,
-					texture->vk.vkAspect);
-
-				if (imageView == NULL)
-				{
-					destroyMesh(mesh, true);
-					destroyImage(texture);
-					free(data);
-					free(text);
-					return false;
-				}
-
 				PipelineHandle* pipelineHandle = pipeline->vk.handle;
 				uint8_t bufferCount = pipelineHandle->vk.bufferCount;
 				VkDescriptorPool descriptorPool = text->descriptorPool;
@@ -1903,14 +1807,10 @@ bool bakeText(
 					descriptorPool,
 					bufferCount,
 					pipelineHandle->vk.sampler->vk.handle,
-					imageView);
+					texture->vk.imageView);
 
 				if (descriptorSets == NULL)
 				{
-					vkDestroyImageView(
-						device,
-						imageView,
-						NULL);
 					destroyMesh(mesh, true);
 					destroyImage(texture);
 					free(data);
@@ -1925,12 +1825,6 @@ bool bakeText(
 					text->descriptorSets);
 				free(text->descriptorSets);
 
-				vkDestroyImageView(
-					device,
-					text->imageView,
-					NULL);
-
-				text->imageView = imageView;
 				text->descriptorSets = descriptorSets;
 			}
 #endif
@@ -2129,22 +2023,6 @@ bool bakeText(
 			{
 				VkWindow vkWindow = getVkWindow(window);
 				VkDevice device = vkWindow->device;
-
-				VkImageView imageView = createVkImageView(
-					device,
-					texture->vk.handle,
-					texture->vk.vkFormat,
-					texture->vk.vkAspect);
-
-				if (imageView == NULL)
-				{
-					destroyMesh(mesh, true);
-					destroyImage(texture);
-					free(data);
-					free(text);
-					return false;
-				}
-
 				PipelineHandle* pipelineHandle = pipeline->vk.handle;
 				uint8_t bufferCount = pipelineHandle->vk.bufferCount;
 				VkDescriptorPool descriptorPool = text->descriptorPool;
@@ -2155,14 +2033,10 @@ bool bakeText(
 					descriptorPool,
 					bufferCount,
 					pipelineHandle->vk.sampler->vk.handle,
-					imageView);
+					texture->vk.imageView);
 
 				if (descriptorSets == NULL)
 				{
-					vkDestroyImageView(
-						device,
-						imageView,
-						NULL);
 					destroyMesh(mesh, true);
 					destroyImage(texture);
 					free(data);
@@ -2177,12 +2051,6 @@ bool bakeText(
 					text->descriptorSets);
 				free(text->descriptorSets);
 
-				vkDestroyImageView(
-					device,
-					text->imageView,
-					NULL);
-
-				text->imageView = imageView;
 				text->descriptorPool = descriptorPool;
 				text->descriptorSets = descriptorSets;
 			}

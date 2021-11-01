@@ -12,21 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#version 420
+layout(location = 0) in vec2 v_Position;
+layout(location = 1) in vec2 v_TexCoords;
 
-layout(location = 0) in vec2 f_TexCoords;
-layout(location = 0) out vec4 o_Color;
-
-layout(push_constant) uniform FragmentPushConstants
-{
-    vec4 threshold;
-} fpc;
-
-layout(binding = 0) uniform sampler2D u_Buffer;
+out vec2 f_TexCoords;
 
 void main()
 {
-    vec3 color = texture(u_Buffer, f_TexCoords).rgb;
-    bool greater = any(greaterThan(color, fpc.threshold.rgb));
-    o_Color = greater ? vec4(color - fpc.threshold.rgb, 0.0) : vec4(0.0);
+    gl_Position = vec4(v_Position, 0.0, 1.0);
+    f_TexCoords = v_TexCoords;
 }

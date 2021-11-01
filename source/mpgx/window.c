@@ -29,9 +29,6 @@
 
 #include <stdio.h>
 
-// TODO: possibly create Vulkan window staging buffer
-// recreate if staging more data, and stage/destroy on frame render end.
-
 // TODO: add VMA defragmentation
 
 struct ImageData
@@ -426,8 +423,6 @@ Window createWindow(
 
 		framebuffer = createDefaultVkFramebuffer(
 			swapchain->renderPass,
-			firstBuffer.imageView,
-			swapchain->depthImageView,
 			firstBuffer.framebuffer,
 			window,
 			framebufferSize,
@@ -1208,9 +1203,8 @@ static bool onVkResize(
 {
 	VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
 	framebuffer->vk.size = newSize;
+	framebuffer->vk.colorAttachmentCount = swapchain->bufferCount;
 	framebuffer->vk.renderPass = swapchain->renderPass;
-	framebuffer->vk.imageViews[0] = firstBuffer.imageView;
-	framebuffer->vk.imageViews[1] = swapchain->depthImageView;
 	framebuffer->vk.handle = firstBuffer.framebuffer;
 
 	Pipeline* pipelines = framebuffer->vk.pipelines;
@@ -1233,7 +1227,7 @@ static bool onVkResize(
 		}
 
 		VkPipeline vkHandle = createVkPipelineHandle(
-			swapchain->renderPass,
+			framebuffer->vk.renderPass,
 			pipeline->vk.cache,
 			pipeline->vk.layout,
 			device,
@@ -1283,6 +1277,19 @@ bool beginWindowRecord(Window window)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
+		VmaAllocator allocator = vkWindow->allocator;
+
+		if (vkWindow->stagingBuffer != NULL)
+		{
+			vmaDestroyBuffer(
+				vkWindow->allocator,
+				vkWindow->stagingBuffer,
+				vkWindow->stagingAllocation);
+			vkWindow->stagingBuffer = NULL;
+			vkWindow->stagingAllocation = NULL;
+			vkWindow->stagingSize = 0;
+		}
+
 		VkSwapchain swapchain = vkWindow->swapchain;
 		VkDevice device = vkWindow->device;
 
@@ -1294,7 +1301,7 @@ bool beginWindowRecord(Window window)
 				vkWindow->graphicsQueueFamilyIndex,
 				vkWindow->presentQueueFamilyIndex,
 				device,
-				vkWindow->allocator,
+				allocator,
 				vkWindow->graphicsCommandPool,
 				vkWindow->presentCommandPool,
 				swapchain,
@@ -1364,7 +1371,7 @@ bool beginWindowRecord(Window window)
 					vkWindow->graphicsQueueFamilyIndex,
 					vkWindow->presentQueueFamilyIndex,
 					device,
-					vkWindow->allocator,
+					allocator,
 					vkWindow->graphicsCommandPool,
 					vkWindow->presentCommandPool,
 					swapchain,
@@ -1394,16 +1401,13 @@ bool beginWindowRecord(Window window)
 		} while (vkResult != VK_SUCCESS);
 
 		vmaSetCurrentFrameIndex(
-			vkWindow->allocator,
+			allocator,
 			bufferIndex);
 
 		VkSwapchainBuffer buffer = swapchain->buffers[bufferIndex];
-		framebuffer->vk.renderPass = swapchain->renderPass;
-		framebuffer->vk.imageViews[0] = buffer.imageView;
-		framebuffer->vk.imageViews[1] = swapchain->depthImageView;
-		framebuffer->vk.handle = buffer.framebuffer;
-
 		VkCommandBuffer graphicsCommandBuffer = buffer.graphicsCommandBuffer;
+		framebuffer->vk.renderPass = swapchain->renderPass;
+		framebuffer->vk.handle = buffer.framebuffer;
 
 		VkCommandBufferBeginInfo commandBufferBeginInfo = {
 			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -1687,6 +1691,10 @@ Buffer createBuffer(
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
 			vkWindow->transferCommandPool,
+			&vkWindow->stagingBuffer,
+			&vkWindow->stagingAllocation,
+			&vkWindow->stagingSize,
+			vkWindow->stagingFence,
 			0,
 			window,
 			type,
@@ -1781,8 +1789,8 @@ void destroyBuffer(Buffer buffer)
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
 
-			VkResult result = vkDeviceWaitIdle(
-				vkWindow->device);
+			VkResult result = vkQueueWaitIdle(
+				vkWindow->graphicsQueue);
 
 			if (result != VK_SUCCESS)
 				abort();
@@ -2109,6 +2117,10 @@ Image createImage(
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
 			vkWindow->transferCommandPool,
+			&vkWindow->stagingBuffer,
+			&vkWindow->stagingAllocation,
+			&vkWindow->stagingSize,
+			vkWindow->stagingFence,
 			window,
 			type,
 			format,
@@ -2305,8 +2317,8 @@ void destroyImage(Image image)
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
 
-			VkResult result = vkDeviceWaitIdle(
-				vkWindow->device);
+			VkResult result = vkQueueWaitIdle(
+				vkWindow->graphicsQueue);
 
 			if (result != VK_SUCCESS)
 				abort();
@@ -2367,7 +2379,7 @@ void setImageData(
 			vkWindow->allocator,
 			image->vk.stagingBuffer,
 			image->vk.stagingAllocation,
-			image->vk.stagingFence,
+			vkWindow->stagingFence,
 			vkWindow->device,
 			vkWindow->graphicsQueue,
 			vkWindow->transferCommandPool,
@@ -2571,8 +2583,8 @@ void destroySampler(Sampler sampler)
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
 
-			VkResult result = vkDeviceWaitIdle(
-				vkWindow->device);
+			VkResult result = vkQueueWaitIdle(
+				vkWindow->graphicsQueue);
 
 			if (result != VK_SUCCESS)
 				abort();
@@ -2954,12 +2966,24 @@ Framebuffer createFramebuffer(
 	assert(pipelineCapacity != 0);
 	assert(window->isRecording == false);
 
-	assert((colorAttachments != NULL &&
-		colorAttachmentCount != 0) ||
-		(depthStencilAttachment != NULL &&
-		depthStencilAttachment->base.size.x == size.x &&
-		depthStencilAttachment->base.size.y == size.y &&
-		depthStencilAttachment->base.window == window));
+#ifndef NDEBUG
+	bool hasSomeAttachments = false;
+
+	if (colorAttachmentCount != 0)
+	{
+		assert(colorAttachments != NULL);
+		hasSomeAttachments = true;
+	}
+	if (depthStencilAttachment != NULL)
+	{
+		assert(depthStencilAttachment->base.size.x == size.x &&
+			depthStencilAttachment->base.size.y == size.y);
+		assert(depthStencilAttachment->base.window == window);
+		hasSomeAttachments = true;
+	}
+
+	assert(hasSomeAttachments == true);
+#endif
 
 	GraphicsAPI api = window->api;
 	Framebuffer framebuffer;
@@ -3178,8 +3202,8 @@ void destroyFramebuffer(
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
 
-			VkResult result = vkDeviceWaitIdle(
-				vkWindow->device);
+			VkResult result = vkQueueWaitIdle(
+				vkWindow->graphicsQueue);
 
 			if (result != VK_SUCCESS)
 				abort();
@@ -3258,18 +3282,33 @@ bool isFramebufferEmpty(Framebuffer framebuffer)
 bool setFramebufferAttachments(
 	Framebuffer framebuffer,
 	Vec2U size,
-	Image* attachments,
-	size_t attachmentCount)
+	bool useBeginClear,
+	Image* colorAttachments,
+	size_t colorAttachmentCount,
+	Image depthStencilAttachment)
 {
 	assert(framebuffer != NULL);
-	assert(attachments != NULL);
-	assert(attachmentCount != 0);
-	assert(!(framebuffer->base.isDefault == true &&
-		(framebuffer->base.window->api == OPENGL_GRAPHICS_API ||
-		framebuffer->base.window->api == OPENGL_ES_GRAPHICS_API)));
+	assert(size.x == 0 && size.y != 0);
+	assert(framebuffer->base.isDefault == false);
 	assert(framebuffer->base.window->isRecording == false);
 
-	// TODO:
+#ifndef NDEBUG
+	if (framebuffer->base.colorAttachmentCount != 0)
+	{
+		assert(colorAttachments != NULL);
+		assert(colorAttachmentCount ==
+			framebuffer->base.colorAttachmentCount);
+	}
+	if (framebuffer->base.depthStencilAttachment != NULL)
+	{
+		assert(depthStencilAttachment != NULL);
+		assert(depthStencilAttachment->base.size.x == size.x &&
+			depthStencilAttachment->base.size.y == size.y);
+		assert(depthStencilAttachment->base.window ==
+			framebuffer->base.window);
+	}
+#endif
+
 	abort();
 }
 
@@ -3690,8 +3729,8 @@ void destroyPipeline(
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
 
-			VkResult result = vkDeviceWaitIdle(
-				vkWindow->device);
+			VkResult result = vkQueueWaitIdle(
+				vkWindow->graphicsQueue);
 
 			if (result != VK_SUCCESS)
 				abort();

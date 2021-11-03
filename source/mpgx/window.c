@@ -2702,6 +2702,37 @@ Shader createShader(
 
 	size_t count = window->shaderCount;
 
+#ifndef NDEBUG
+	MD5_CTX md5Context;
+	md5_init(&md5Context);
+
+	md5_update(
+		&md5Context,
+		code,
+		size);
+
+	uint8_t* hash = shader->base.hash;
+	md5_final(&md5Context, hash);
+
+	Shader* windowShaders = window->shaders;
+
+	for (size_t i = 0; i < count; i++)
+	{
+		Shader otherShader = windowShaders[i];
+
+		int result = memcmp(
+			hash,
+			otherShader->base.hash,
+			MD5_BLOCK_SIZE);
+
+		if (result == 0)
+		{
+			printf("Shader %p have same code with %p.\n",
+				shader, otherShader);
+		}
+	}
+#endif
+
 	if (count == window->shaderCapacity)
 	{
 		size_t capacity = window->shaderCapacity * 2;

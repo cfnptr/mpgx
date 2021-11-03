@@ -19,6 +19,9 @@
 #include "mpgx/_source/vulkan.h"
 #endif
 
+#include "mpgx/md5.h"
+#include <string.h>
+
 #define OPENGL_SHADER_HEADER \
 	"#version 330 core\n"
 #define OPENGL_ES_SHADER_HEADER \
@@ -26,17 +29,21 @@
 	"precision highp float;\n"  \
 	"precision highp int;\n"
 
-#include <string.h>
-
 typedef struct _BaseShader
 {
 	Window window;
 	ShaderType type;
+#ifndef NDEBUG
+	uint8_t hash[MD5_BLOCK_SIZE];
+#endif
 } _BaseShader;
 typedef struct _VkShader
 {
 	Window window;
 	ShaderType type;
+#ifndef NDEBUG
+	uint8_t hash[MD5_BLOCK_SIZE];
+#endif
 #if MPGX_SUPPORT_VULKAN
 	VkShaderModule handle;
 #endif
@@ -45,6 +52,9 @@ typedef struct _GlShader
 {
 	Window window;
 	ShaderType type;
+#ifndef NDEBUG
+	uint8_t hash[MD5_BLOCK_SIZE];
+#endif
 	GLuint handle;
 } _GlShader;
 union Shader

@@ -92,6 +92,7 @@ add_library(mpgx STATIC
 
 	source/mpgx/free_camera.c
 	source/mpgx/interface.c
+	source/mpgx/md5.c
 	source/mpgx/renderer.c
 	source/mpgx/text.c
 	source/mpgx/transformer.c

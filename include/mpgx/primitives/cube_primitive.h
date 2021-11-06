@@ -15,7 +15,7 @@
 #pragma once
 #include <stdint.h>
 
-static const float cubeVert[] = {
+static const float cubeTriVert[] = {
 	-1.0f, -1.0f, 1.0f,
 	-1.0f, 1.0f, 1.0f,
 	-1.0f, 1.0f, -1.0f,
@@ -41,7 +41,17 @@ static const float cubeVert[] = {
 	-1.0f, 1.0f, 1.0f,
 	-1.0f, -1.0f, 1.0f,
 };
-static const float cubeVertNorm[] = {
+static const float cubeLineVert[] = {
+	-1.0f, -1.0f, 1.0f,
+	-1.0f, 1.0f, 1.0f,
+	-1.0f, 1.0f, -1.0f,
+	-1.0f, -1.0f, -1.0f,
+	1.0f, -1.0f, -1.0f,
+	1.0f, 1.0f, -1.0f,
+	1.0f, 1.0f, 1.0f,
+	1.0f, -1.0f, 1.0f,
+};
+static const float cubeTriVertNorm[] = {
 	-1.0f, -1.0f, 1.0f, -1.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f,
@@ -67,7 +77,7 @@ static const float cubeVertNorm[] = {
 	-1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
 	-1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
 };
-static const float cubeVertTex[] = {
+static const float cubeTriVertTex[] = {
 	-1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
 	-1.0f, 1.0f, -1.0f, 1.0f, 1.0f,
@@ -93,7 +103,7 @@ static const float cubeVertTex[] = {
 	-1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 	-1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
 };
-static const float cubeVertNormTex[] = {
+static const float cubeTriVertNormTex[] = {
 	-1.0f, -1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
 	-1.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
@@ -119,11 +129,17 @@ static const float cubeVertNormTex[] = {
 	-1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
 	-1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
 };
-static const uint16_t cubeInd[] = {
+static const uint16_t cubeTriInd[] = {
 	0, 1, 2, 0, 2, 3,
 	4, 5, 6, 4, 6, 7,
 	8, 9, 10, 8, 10, 11,
 	12, 13, 14, 12, 14, 15,
 	16, 17, 18, 16, 18, 19,
 	20, 21, 22, 20, 22, 23,
+};
+static const uint16_t cubeLineInd[] = {
+	0, 1, 1, 2, 2, 3, 3, 0,
+	4, 5, 5, 6, 6, 7, 7, 4,
+	3, 4, 7, 0,
+ 	1, 6, 5, 2,
 };

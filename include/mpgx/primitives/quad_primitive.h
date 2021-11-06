@@ -51,6 +51,9 @@ static const float quadVertNormTex3D[] = {
 	1.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
 	1.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
 };
-static const uint16_t quadInd[] = {
+static const uint16_t quadTriInd[] = {
 	0, 1, 2, 0, 2, 3,
+};
+static const uint16_t quadLineInd[] = {
+	0, 1, 1, 2, 2, 3, 3, 0,
 };

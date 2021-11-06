@@ -447,6 +447,7 @@ bool isGraphicsInitialized();
 
 void* getFtLibrary();
 
+// TODO: add useDepthBuffer option
 Window createWindow(
 	GraphicsAPI api,
 	bool useStencilBuffer,

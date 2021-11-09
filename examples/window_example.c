@@ -204,8 +204,8 @@ inline static Render createDiffuseRenderInstance(
 	Buffer vertexBuffer = createBuffer(
 		window,
 		VERTEX_BUFFER_TYPE,
-		cubeVertNorm,
-		sizeof(cubeVertNorm),
+		cubeTriVertNorm,
+		sizeof(cubeTriVertNorm),
 		true);
 
 	if (vertexBuffer == NULL)
@@ -217,8 +217,8 @@ inline static Render createDiffuseRenderInstance(
 	Buffer indexBuffer = createBuffer(
 		window,
 		INDEX_BUFFER_TYPE,
-		cubeInd,
-		sizeof(cubeInd),
+		cubeTriInd,
+		sizeof(cubeTriInd),
 		true);
 
 	if (indexBuffer == NULL)
@@ -231,7 +231,7 @@ inline static Render createDiffuseRenderInstance(
 	Mesh mesh = createMesh(
 		window,
 		UINT16_DRAW_INDEX,
-		sizeof(cubeInd) / sizeof(uint16_t),
+		sizeof(cubeTriInd) / sizeof(uint16_t),
 		0,
 		vertexBuffer,
 		indexBuffer);

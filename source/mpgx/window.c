@@ -2797,7 +2797,7 @@ Shader createShaderFromFile(
 
 	if (seekResult != 0)
 	{
-		fclose(file);
+		closeFile(file);
 		return NULL;
 	}
 
@@ -2810,7 +2810,7 @@ Shader createShaderFromFile(
 
 	if (seekResult != 0)
 	{
-		fclose(file);
+		closeFile(file);
 		return NULL;
 	}
 
@@ -2825,7 +2825,7 @@ Shader createShaderFromFile(
 
 		if (code == NULL)
 		{
-			fclose(file);
+			closeFile(file);
 			return NULL;
 		}
 
@@ -2842,7 +2842,7 @@ Shader createShaderFromFile(
 
 		if (code == NULL)
 		{
-			fclose(file);
+			closeFile(file);
 			return NULL;
 		}
 
@@ -2858,7 +2858,7 @@ Shader createShaderFromFile(
 		abort();
 	}
 
-	fclose(file);
+	closeFile(file);
 
 	if (readSize != fileSize)
 	{

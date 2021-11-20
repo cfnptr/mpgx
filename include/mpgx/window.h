@@ -437,6 +437,18 @@ typedef void(*OnPipelineUniformsSet)(Pipeline pipeline);
 typedef bool(*OnPipelineHandleResize)(
 	Pipeline pipeline, Vec2U newSize, void* createInfo);
 
+inline static const char* graphicsApiToString(GraphicsAPI api)
+{
+	if (api == VULKAN_GRAPHICS_API)
+		return "Vulkan";
+	else if (api == OPENGL_GRAPHICS_API)
+		return "OpenGL";
+	else if (api == OPENGL_ES_GRAPHICS_API)
+		return "OpenGLES";
+	else
+		return "Unknown";
+}
+
 bool initializeGraphics(
 	const char* appName,
 	uint8_t appVersionMajor,

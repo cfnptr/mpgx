@@ -23,13 +23,14 @@ if (MPGX_USE_VULKAN)
 endif ()
 
 project(mpgx 
-	VERSION 0.1.0
+	VERSION 1.0.0
 	DESCRIPTION "Multi-platform graphics library"
 	HOMEPAGE_URL "https://github.com/cfnptr/mpgx"
 	LANGUAGES ${MPGX_LANGUAGES})
 
 add_subdirectory(libraries/cmmt)
 add_subdirectory(libraries/glad)
+add_subdirectory(libraries/mpio)
 
 set(CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz ON CACHE BOOL "" FORCE)
 add_subdirectory(libraries/freetype)
@@ -47,6 +48,7 @@ set(MPGX_LINK_LIBRARIES
 	freetype
 	glad
 	glfw
+	mpio
 	mpmt)
 
 if (MPGX_USE_VULKAN)

@@ -345,8 +345,7 @@ inline static Framebuffer createDefaultVkFramebuffer(
 	VkRenderPass renderPass,
 	VkFramebuffer handle,
 	Window window,
-	Vec2U size,
-	size_t pipelineCapacity)
+	Vec2U size)
 {
 	Framebuffer framebuffer = malloc(
 		sizeof(union Framebuffer));
@@ -355,7 +354,7 @@ inline static Framebuffer createDefaultVkFramebuffer(
 		return NULL;
 
 	Pipeline* pipelines = malloc(
-		pipelineCapacity * sizeof(Pipeline));
+		4 * sizeof(Pipeline));
 
 	if (pipelines == NULL)
 	{
@@ -371,7 +370,7 @@ inline static Framebuffer createDefaultVkFramebuffer(
 	framebuffer->vk.depthStencilAttachment = NULL;
 	framebuffer->vk.isDefault = true;
 	framebuffer->vk.pipelines = pipelines;
-	framebuffer->vk.pipelineCapacity = pipelineCapacity;
+	framebuffer->vk.pipelineCapacity = 4;
 	framebuffer->vk.pipelineCount = 0;
 	framebuffer->vk.renderPass = renderPass;
 	framebuffer->vk.handle = handle;
@@ -787,8 +786,7 @@ inline static void clearVkFramebuffer(
 
 inline static Framebuffer createDefaultGlFramebuffer(
 	Window window,
-	Vec2U size,
-	size_t pipelineCapacity)
+	Vec2U size)
 {
 	Framebuffer framebuffer = malloc(
 		sizeof(union Framebuffer));
@@ -797,7 +795,7 @@ inline static Framebuffer createDefaultGlFramebuffer(
 		return NULL;
 
 	Pipeline* pipelines = malloc(
-		sizeof(Pipeline) * pipelineCapacity);
+		4 * sizeof(Pipeline));
 
 	if (pipelines == NULL)
 	{
@@ -812,7 +810,7 @@ inline static Framebuffer createDefaultGlFramebuffer(
 	framebuffer->gl.depthStencilAttachment = NULL;
 	framebuffer->gl.isDefault = true;
 	framebuffer->gl.pipelines = pipelines;
-	framebuffer->gl.pipelineCapacity = pipelineCapacity;
+	framebuffer->gl.pipelineCapacity = 4;
 	framebuffer->gl.pipelineCount = 0;
 	framebuffer->gl.handle = GL_ZERO;
 	return framebuffer;

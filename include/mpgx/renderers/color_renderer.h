@@ -17,7 +17,6 @@
 #include "mpgx/pipelines/color_pipeline.h"
 
 Renderer createColorRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,

@@ -17,7 +17,6 @@
 #include "mpgx/pipelines/texspr_pipeline.h"
 
 Renderer createTexSprRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sortingType,
 	bool useCulling,

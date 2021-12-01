@@ -67,12 +67,14 @@ typedef struct GlPipelineHandle
 	GLint sunColorLocation;
 	GLint textureLocation;
 } GlPipelineHandle;
-typedef union PipelineHandle
+union PipelineHandle
 {
 	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
-} PipelineHandle;
+};
+
+typedef union PipelineHandle* PipelineHandle;
 
 GradSkyAmbient createGradSkyAmbient(
 	ImageData gradient)
@@ -353,7 +355,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 
 static void onVkHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	uint32_t bufferIndex = vkWindow->bufferIndex;
 
@@ -369,7 +371,7 @@ static void onVkHandleBind(Pipeline pipeline)
 }
 static void onVkUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 	VkPipelineLayout layout = pipeline->vk.layout;
@@ -394,7 +396,7 @@ static bool onVkHandleResize(
 	Vec2U newSize,
 	void* createInfo)
 {
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
@@ -460,7 +462,7 @@ static bool onVkHandleResize(
 }
 static void onVkHandleDestroy(void* handle)
 {
-	PipelineHandle* pipelineHandle = handle;
+	PipelineHandle pipelineHandle = handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkDevice device = vkWindow->device;
 
@@ -482,7 +484,7 @@ inline static Pipeline createVkHandle(
 	VkSampler sampler,
 	VkImageView imageView,
 	const PipelineState* state,
-	PipelineHandle* pipelineHandle)
+	PipelineHandle pipelineHandle)
 {
 	Window window = framebuffer->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
@@ -568,7 +570,7 @@ inline static Pipeline createVkHandle(
 
 static void onGlHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->gl.handle;
+	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
 	glUniform1i(
 		pipelineHandle->gl.textureLocation,
@@ -587,7 +589,7 @@ static void onGlHandleBind(Pipeline pipeline)
 }
 static void onGlUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->gl.handle;
+	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
 		pipelineHandle->gl.mvpLocation,
@@ -629,15 +631,14 @@ static bool onGlHandleResize(
 }
 static void onGlHandleDestroy(void* handle)
 {
-	PipelineHandle* pipelineHandle = handle;
-	free(pipelineHandle);
+	free((PipelineHandle)handle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* pipelineHandle)
+	PipelineHandle pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
@@ -712,8 +713,8 @@ Pipeline createExtGradSkyPipeline(
 	assert(texture->base.window == framebuffer->base.window);
 	assert(sampler->base.window == framebuffer->base.window);
 
-	PipelineHandle* pipelineHandle = malloc(
-		sizeof(PipelineHandle));
+	PipelineHandle pipelineHandle = malloc(
+		sizeof(union PipelineHandle));
 
 	if (pipelineHandle == NULL)
 		return NULL;
@@ -823,7 +824,7 @@ Image getGradSkyPipelineTexture(
 	assert(strcmp(
 		pipeline->base.name,
 		GRADSKY_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.texture;
 }
@@ -834,7 +835,7 @@ Sampler getGradSkyPipelineSampler(
 	assert(strcmp(
 		getPipelineName(pipeline),
 		GRADSKY_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.sampler;
 }
@@ -846,7 +847,7 @@ Mat4F getGradSkyPipelineMvp(
 	assert(strcmp(
 		pipeline->base.name,
 		GRADSKY_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.mvp;
 }
@@ -858,7 +859,7 @@ void setGradSkyPipelineMvp(
 	assert(strcmp(
 		pipeline->base.name,
 		GRADSKY_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.mvp = mvp;
 }
@@ -870,7 +871,7 @@ Vec3F getGradSkyPipelineSunDir(
 	assert(strcmp(
 		pipeline->base.name,
 		GRADSKY_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	Vec4F sunDir =
 		pipelineHandle->base.fpc.sunDir;
@@ -887,7 +888,7 @@ void setGradSkyPipelineSunDir(
 	assert(strcmp(
 		pipeline->base.name,
 		GRADSKY_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.fpc.sunDir = vec4F(
 		sunDir.x,
@@ -903,7 +904,7 @@ LinearColor getGradSkyPipelineSunColor(
 	assert(strcmp(
 		pipeline->base.name,
 		GRADSKY_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.fpc.sunColor;
 }
@@ -915,7 +916,7 @@ void setGradSkyPipelineSunColor(
 	assert(strcmp(
 		pipeline->base.name,
 		GRADSKY_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.fpc.sunColor = sunColor;
 }

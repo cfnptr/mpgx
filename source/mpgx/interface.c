@@ -21,13 +21,16 @@ struct InterfaceElement
 {
 	Interface interface;
 	Transform transform;
-	InterfaceAnchor anchor;
+	AlignmentType alignment;
 	Vec3F position;
 	Box2F bounds;
+	bool isEnabled;
 	OnInterfaceElementDestroy onDestroy;
 	OnInterfaceElementEvent onEnter;
 	OnInterfaceElementEvent onExit;
 	OnInterfaceElementEvent onStay;
+	OnInterfaceElementEvent onEnable;
+	OnInterfaceElementEvent onDisable;
 	void* handle;
 };
 struct Interface
@@ -83,9 +86,7 @@ void destroyInterface(Interface interface)
 	{
 		InterfaceElement element = elements[i];
 
-		if (element->onDestroy != NULL)
-			element->onDestroy(element->handle);
-
+		element->onDestroy(element->handle);
 		free(element);
 	}
 
@@ -127,8 +128,8 @@ Camera createInterfaceCamera(
 	float scale = interface->scale;
 
 	Vec2F halfSize = vec2F(
-		((float)windowSize.x / scale) / 2.0f,
-		((float)windowSize.y / scale) / 2.0f);
+		((float)windowSize.x / scale) * 0.5f,
+		((float)windowSize.y / scale) * 0.5f);
 
 	return orthoCamera(
 		-halfSize.x,
@@ -153,8 +154,8 @@ void preUpdateInterface(Interface interface)
 	float scale = interface->scale;
 
 	Vec2F halfSize = vec2F(
-		((float)windowSize.x / scale) / 2.0f,
-		((float)windowSize.y / scale) / 2.0f);
+		((float)windowSize.x / scale) * 0.5f,
+		((float)windowSize.y / scale) * 0.5f);
 
 	for (size_t i = 0; i < elementCount; i++)
 	{
@@ -173,57 +174,58 @@ void preUpdateInterface(Interface interface)
 			parent = getTransformParent(parent);
 		}
 
+		AlignmentType alignment = element->alignment;
 		Vec3F position = element->position;
 
-		switch (element->anchor)
+		switch (alignment)
 		{
 		default:
 			abort();
-		case CENTER_INTERFACE_ANCHOR:
+		case CENTER_ALIGNMENT_TYPE:
 			break;
-		case LEFT_INTERFACE_ANCHOR:
+		case LEFT_ALIGNMENT_TYPE:
 			position = vec3F(
 				position.x - halfSize.x,
 				position.y,
 				position.z);
 			break;
-		case RIGHT_INTERFACE_ANCHOR:
+		case RIGHT_ALIGNMENT_TYPE:
 			position = vec3F(
 				position.x + halfSize.x,
 				position.y,
 				position.z);
 			break;
-		case BOTTOM_INTERFACE_ANCHOR:
+		case BOTTOM_ALIGNMENT_TYPE:
 			position = vec3F(
 				position.x,
 				position.y - halfSize.y,
 				position.z);
 			break;
-		case TOP_INTERFACE_ANCHOR:
+		case TOP_ALIGNMENT_TYPE:
 			position = vec3F(
 				position.x,
 				position.y + halfSize.y,
 				position.z);
 			break;
-		case LEFT_BOTTOM_INTERFACE_ANCHOR:
+		case LEFT_BOTTOM_ALIGNMENT_TYPE:
 			position = vec3F(
 				position.x - halfSize.x,
 				position.y - halfSize.y,
 				position.z);
 			break;
-		case LEFT_TOP_INTERFACE_ANCHOR:
+		case LEFT_TOP_ALIGNMENT_TYPE:
 			position = vec3F(
 				position.x - halfSize.x,
 				position.y + halfSize.y,
 				position.z);
 			break;
-		case RIGHT_BOTTOM_INTERFACE_ANCHOR:
+		case RIGHT_BOTTOM_ALIGNMENT_TYPE:
 			position = vec3F(
 				position.x + halfSize.x,
 				position.y - halfSize.y,
 				position.z);
 			break;
-		case RIGHT_TOP_INTERFACE_ANCHOR:
+		case RIGHT_TOP_ALIGNMENT_TYPE:
 			position = vec3F(
 				position.x + halfSize.x,
 				position.y + halfSize.y,
@@ -274,8 +276,11 @@ void updateInterface(Interface interface)
 		InterfaceElement element = elements[i];
 		Transform transform = element->transform;
 
-		if (isTransformActive(transform) == false)
+		if (element->isEnabled == false ||
+			isTransformActive(transform) == false)
+		{
 			continue;
+		}
 
 		Transform parent = getTransformParent(transform);
 
@@ -365,19 +370,25 @@ void updateInterface(Interface interface)
 
 InterfaceElement createInterfaceElement(
 	Interface interface,
-	InterfaceAnchor anchor,
+	Transform transform,
+	AlignmentType alignment,
 	Vec3F position,
 	Box2F bounds,
-	Transform transform,
+	bool isEnabled,
 	OnInterfaceElementDestroy onDestroy,
 	OnInterfaceElementEvent onEnter,
 	OnInterfaceElementEvent onExit,
 	OnInterfaceElementEvent onStay,
+	OnInterfaceElementEvent onEnable,
+	OnInterfaceElementEvent onDisable,
 	void* handle)
 {
 	assert(interface != NULL);
-	assert(anchor < INTERFACE_ANCHOR_COUNT);
 	assert(transform != NULL);
+	assert(alignment >= CENTER_ALIGNMENT_TYPE);
+	assert(alignment < ALIGNMENT_TYPE_COUNT);
+	assert(onDestroy != NULL);
+	assert(handle != NULL);
 
 	InterfaceElement element = malloc(
 		sizeof(struct InterfaceElement));
@@ -387,13 +398,16 @@ InterfaceElement createInterfaceElement(
 
 	element->interface = interface;
 	element->transform = transform;
-	element->anchor = anchor;
+	element->alignment = alignment;
 	element->position = position;
 	element->bounds = bounds;
+	element->isEnabled = isEnabled;
 	element->onDestroy = onDestroy;
 	element->onEnter = onEnter;
 	element->onExit = onExit;
 	element->onStay = onStay;
+	element->onEnable = onEnable;
+	element->onDisable = onDisable;
 	element->handle = handle;
 
 	size_t count = interface->elementCount;
@@ -421,7 +435,8 @@ InterfaceElement createInterfaceElement(
 	return element;
 }
 void destroyInterfaceElement(
-	InterfaceElement element)
+	InterfaceElement element,
+	bool _destroyTransform)
 {
 	if (element == NULL)
 		return;
@@ -438,8 +453,10 @@ void destroyInterfaceElement(
 		for (size_t j = i + 1; j < elementCount; j++)
 			elements[j - 1] = elements[j];
 
-		if (element->onDestroy != NULL)
-			element->onDestroy(element->handle);
+		element->onDestroy(element->handle);
+
+		if (_destroyTransform == true)
+			destroyTransform(element->transform);
 
 		free(element);
 		interface->elementCount--;
@@ -485,6 +502,18 @@ OnInterfaceElementEvent getInterfaceElementOnStay(
 	assert(element != NULL);
 	return element->onStay;
 }
+OnInterfaceElementEvent getInterfaceElementOnEnable(
+	InterfaceElement element)
+{
+	assert(element != NULL);
+	return element->onEnable;
+}
+OnInterfaceElementEvent getInterfaceElementOnDisable(
+	InterfaceElement element)
+{
+	assert(element != NULL);
+	return element->onDisable;
+}
 void* getInterfaceElementHandle(
 	InterfaceElement element)
 {
@@ -492,18 +521,20 @@ void* getInterfaceElementHandle(
 	return element->handle;
 }
 
-InterfaceAnchor getInterfaceElementAnchor(
+AlignmentType getInterfaceElementAnchor(
 	InterfaceElement element)
 {
 	assert(element != NULL);
-	return element->anchor;
+	return element->alignment;
 }
 void setInterfaceElementAnchor(
 	InterfaceElement element,
-	InterfaceAnchor anchor)
+	AlignmentType alignment)
 {
 	assert(element != NULL);
-	element->anchor = anchor;
+	assert(alignment >= CENTER_ALIGNMENT_TYPE);
+	assert(alignment < ALIGNMENT_TYPE_COUNT);
+	element->alignment = alignment;
 }
 
 Vec3F getInterfaceElementPosition(
@@ -532,4 +563,30 @@ void setInterfaceElementBounds(
 {
 	assert(element != NULL);
 	element->bounds = bounds;
+}
+
+bool isInterfaceElementEnabled(
+	InterfaceElement element)
+{
+	assert(element != NULL);
+	return element->isEnabled;
+}
+void setInterfaceElementEnabled(
+	InterfaceElement element,
+	bool isEnabled)
+{
+	assert(element != NULL);
+
+	if (isEnabled == true)
+	{
+		if (element->onEnable != NULL)
+			element->onEnable(element);
+	}
+	else
+	{
+		if (element->onDisable != NULL)
+			element->onDisable(element);
+	}
+
+	element->isEnabled = isEnabled;
 }

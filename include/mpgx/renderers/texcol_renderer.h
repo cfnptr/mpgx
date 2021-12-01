@@ -17,7 +17,6 @@
 #include "mpgx/pipelines/texcol_pipeline.h"
 
 Renderer createTexColRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sortingType,
 	bool useCulling,

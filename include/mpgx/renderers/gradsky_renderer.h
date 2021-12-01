@@ -17,7 +17,6 @@
 #include "mpgx/pipelines/gradsky_pipeline.h"
 
 Renderer createGradSkyRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,

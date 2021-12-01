@@ -13,26 +13,11 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/window.h"
+#include "mpgx/text.h"
 #include "mpgx/transformer.h"
 
-#include "cmmt/vector.h"
 #include "cmmt/camera.h"
 #include "cmmt/bounding.h"
-
-typedef enum InterfaceAnchor
-{
-	CENTER_INTERFACE_ANCHOR = 0,
-	LEFT_INTERFACE_ANCHOR = 1,
-	RIGHT_INTERFACE_ANCHOR = 2,
-	BOTTOM_INTERFACE_ANCHOR = 3,
-	TOP_INTERFACE_ANCHOR = 4,
-	LEFT_BOTTOM_INTERFACE_ANCHOR = 5,
-	LEFT_TOP_INTERFACE_ANCHOR = 6,
-	RIGHT_BOTTOM_INTERFACE_ANCHOR = 7,
-	RIGHT_TOP_INTERFACE_ANCHOR = 8,
-	INTERFACE_ANCHOR_COUNT = 9,
-} InterfaceAnchor;
 
 typedef struct Interface* Interface;
 typedef struct InterfaceElement* InterfaceElement;
@@ -65,16 +50,21 @@ void updateInterface(Interface interface);
 
 InterfaceElement createInterfaceElement(
 	Interface interface,
-	InterfaceAnchor anchor,
+	Transform transform,
+	AlignmentType alignment,
 	Vec3F position,
 	Box2F bounds,
-	Transform transform,
+	bool isEnabled,
 	OnInterfaceElementDestroy onDestroy,
 	OnInterfaceElementEvent onEnter,
 	OnInterfaceElementEvent onExit,
 	OnInterfaceElementEvent onStay,
+	OnInterfaceElementEvent onEnable,
+	OnInterfaceElementEvent onDisable,
 	void* handle);
-void destroyInterfaceElement(InterfaceElement element);
+void destroyInterfaceElement(
+	InterfaceElement element,
+	bool destroyTransform);
 
 Interface getInterfaceElementInterface(
 	InterfaceElement element);
@@ -88,14 +78,18 @@ OnInterfaceElementEvent getInterfaceElementOnExit(
 	InterfaceElement element);
 OnInterfaceElementEvent getInterfaceElementOnStay(
 	InterfaceElement element);
+OnInterfaceElementEvent getInterfaceElementOnEnable(
+	InterfaceElement element);
+OnInterfaceElementEvent getInterfaceElementOnDisable(
+	InterfaceElement element);
 void* getInterfaceElementHandle(
 	InterfaceElement element);
 
-InterfaceAnchor getInterfaceElementAnchor(
+AlignmentType getInterfaceElementAlignment(
 	InterfaceElement element);
-void setInterfaceElementAnchor(
+void setInterfaceElementAlignment(
 	InterfaceElement element,
-	InterfaceAnchor anchor);
+	AlignmentType alignment);
 
 Vec3F getInterfaceElementPosition(
 	InterfaceElement element);
@@ -108,3 +102,9 @@ Box2F getInterfaceElementBounds(
 void setInterfaceElementBounds(
 	InterfaceElement element,
 	Box2F bounds);
+
+bool isInterfaceElementEnabled(
+	InterfaceElement element);
+void setInterfaceElementEnabled(
+	InterfaceElement element,
+	bool isEnabled);

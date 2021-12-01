@@ -13,30 +13,28 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/interface.h"
+#include "mpgx/window.h"
 #include "cmmt/color.h"
 
 #include <stdbool.h>
-
 #define TEXT_PIPELINE_NAME "Text"
 
 typedef struct Font* Font;
 typedef struct Text* Text;
 
-// TODO: add tab symbol handling
-
-// TODO: add monochrome text support
-// FT_LOAD_MONOCHROME
-
-// TODO: add text coloring
-// Pass color data to the vertex buffer
-
-// TODO: add text fallback fonts
-
-// TODO: add text mode ->
-// generate texture once on init from string
-// and use for rendering
-// struct TextImage
+typedef enum AlignmentType
+{
+	CENTER_ALIGNMENT_TYPE = 0,
+	LEFT_ALIGNMENT_TYPE = 1,
+	RIGHT_ALIGNMENT_TYPE = 2,
+	BOTTOM_ALIGNMENT_TYPE = 3,
+	TOP_ALIGNMENT_TYPE = 4,
+	LEFT_BOTTOM_ALIGNMENT_TYPE = 5,
+	LEFT_TOP_ALIGNMENT_TYPE = 6,
+	RIGHT_BOTTOM_ALIGNMENT_TYPE = 7,
+	RIGHT_TOP_ALIGNMENT_TYPE = 8,
+	ALIGNMENT_TYPE_COUNT = 9,
+} AlignmentType;
 
 Font createFont(
 	const void* data,
@@ -49,6 +47,7 @@ Text createText(
 	Pipeline pipeline,
 	Font font,
 	uint32_t fontSize,
+	AlignmentType alignment,
 	const char* data,
 	bool isConstant);
 void destroyText(Text text);
@@ -58,11 +57,9 @@ bool isTextConstant(Text text);
 Vec2F getTextSize(Text text);
 size_t getTextIndexCount(Text text);
 
-Vec2F getTextOffset(
-	Text text,
-	InterfaceAnchor anchor);
-size_t getTextUnicodeCharCount(
-	Text text);
+Vec2F getTextOffset(Text text);
+size_t getTextUnicodeCharCount(Text text);
+
 bool getTextUnicodeCharAdvance(
 	Text text,
 	size_t index,
@@ -79,6 +76,12 @@ uint32_t getTextFontSize(
 void setTextFontSize(
 	Text text,
 	uint32_t fontSize);
+
+uint32_t getTextAlignment(
+	Text text);
+void setTextAlignment(
+	Text text,
+	AlignmentType alignment);
 
 const char* getTextData(
 	Text text);
@@ -119,3 +122,16 @@ LinearColor getTextPipelineColor(
 void setTextPipelineColor(
 	Pipeline pipeline,
 	LinearColor color);
+
+// TODO: add monochrome text support
+// FT_LOAD_MONOCHROME
+
+// TODO: add text coloring
+// Pass color data to the vertex buffer
+
+// TODO: add text fallback fonts
+
+// TODO: add text mode ->
+// generate texture once on init from string
+// and use for rendering
+// struct TextImage

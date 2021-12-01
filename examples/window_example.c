@@ -97,9 +97,7 @@ static void onWindowUpdate(void* handle)
 	endWindowRecord(window);
 }
 
-inline static Renderer createDiffuseRendererInstance(
-	Window window,
-	Transform cameraTransform)
+inline static Renderer createDiffuseRendererInstance(Window window)
 {
 	const char* vertexShaderPath;
 	const char* fragmentShaderPath;
@@ -154,7 +152,6 @@ inline static Renderer createDiffuseRendererInstance(
 	}
 
 	Renderer renderer = createDiffuseRenderer(
-		cameraTransform,
 		pipeline,
 		ASCENDING_RENDER_SORTING,
 		true,
@@ -283,22 +280,18 @@ inline static Client* createClient()
 	if (client == NULL)
 		return NULL;
 
-	Window window = createAnyWindow(
+	Window window;
+
+	MpgxResult mpgxResult = createAnyWindow(
 		false,
 		defaultWindowSize,
 		APPLICATION_NAME,
 		onWindowUpdate,
 		client,
 		false,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1);
+		&window);
 
-	if (window == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		free(client);
 		return NULL;
@@ -330,11 +323,7 @@ inline static Client* createClient()
 		return NULL;
 	}
 
-	Transform cameraTransform = getFreeCameraTransform(freeCamera);
-
-	Renderer diffuseRenderer = createDiffuseRendererInstance(
-		window,
-		cameraTransform);
+	Renderer diffuseRenderer = createDiffuseRendererInstance(window);
 
 	if (diffuseRenderer == NULL)
 	{

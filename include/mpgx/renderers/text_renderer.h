@@ -17,7 +17,6 @@
 #include "mpgx/text.h"
 
 Renderer createTextRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,

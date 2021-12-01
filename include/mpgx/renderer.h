@@ -31,6 +31,7 @@ typedef enum RenderSorting
 
 typedef struct RenderData
 {
+	Mat4F view;
 	Mat4F proj;
 	Mat4F viewProj;
 	Plane3F leftPlane;
@@ -56,7 +57,6 @@ typedef size_t(*OnRenderHandleDraw)(
 	const Mat4F* viewProj);
 
 Renderer createRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,
@@ -66,7 +66,6 @@ Renderer createRenderer(
 void destroyRenderer(Renderer renderer);
 
 bool isRendererEmpty(Renderer renderer);
-Transform getRendererTransform(Renderer renderer);
 Pipeline getRendererPipeline(Renderer renderer);
 OnRenderHandleDestroy getRendererOnHandleDestroy(Renderer renderer);
 OnRenderHandleDraw getRendererOnHandleDraw(Renderer renderer);

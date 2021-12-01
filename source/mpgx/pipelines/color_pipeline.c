@@ -45,12 +45,14 @@ typedef struct GlPipelineHandle
 	GLint mvpLocation;
 	GLint colorLocation;
 } GlPipelineHandle;
-typedef union PipelineHandle
+union PipelineHandle
 {
 	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
-} PipelineHandle;
+};
+
+typedef union PipelineHandle* PipelineHandle;
 
 #if MPGX_SUPPORT_VULKAN
 static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
@@ -83,7 +85,7 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 
 static void onVkUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 	VkPipelineLayout layout = pipeline->vk.layout;
@@ -130,15 +132,14 @@ static bool onVkHandleResize(
 }
 static void onVkHandleDestroy(void* handle)
 {
-	PipelineHandle* pipelineHandle = handle;
-	free(pipelineHandle);
+	free((PipelineHandle)handle);
 }
 inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* pipelineHandle)
+	PipelineHandle pipelineHandle)
 {
 	VkPipelineCreateInfo createInfo = {
 		1,
@@ -168,7 +169,7 @@ inline static Pipeline createVkHandle(
 
 static void onGlUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->gl.handle;
+	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
 		pipelineHandle->gl.mvpLocation,
@@ -206,15 +207,14 @@ static bool onGlHandleResize(
 }
 static void onGlHandleDestroy(void* handle)
 {
-	PipelineHandle* pipelineHandle = handle;
-	free(pipelineHandle);
+	free((PipelineHandle)handle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* pipelineHandle)
+	PipelineHandle pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
@@ -272,8 +272,8 @@ Pipeline createExtColorPipeline(
 	assert(vertexShader->base.window == framebuffer->base.window);
 	assert(fragmentShader->base.window == framebuffer->base.window);
 
-	PipelineHandle* pipelineHandle = malloc(
-		sizeof(PipelineHandle));
+	PipelineHandle pipelineHandle = malloc(
+		sizeof(union PipelineHandle));
 
 	if (pipelineHandle == NULL)
 		return NULL;
@@ -374,7 +374,7 @@ Mat4F getColorPipelineMvp(
 	assert(strcmp(
 		pipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.mvp;
 }
@@ -386,7 +386,7 @@ void setColorPipelineMvp(
 	assert(strcmp(
 		pipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.mvp = mvp;
 }
@@ -398,7 +398,7 @@ LinearColor getColorPipelineColor(
 	assert(strcmp(
 		pipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.fpc.color;
 }
@@ -410,7 +410,7 @@ void setColorPipelineColor(
 	assert(strcmp(
 		pipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.fpc.color = color;
 }

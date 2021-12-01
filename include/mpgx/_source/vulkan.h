@@ -59,7 +59,10 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 {
 #if __APPLE__
 	if (callbackData->messageIdNumber == 0x6bbb14 ||
-		callbackData->messageIdNumber == 0xf467460)
+		callbackData->messageIdNumber == 0xf467460 ||
+		strcmp(callbackData->pMessage, "Unrecognized "
+		"CreateInstance->pCreateInfo->pApplicationInfo->apiVersion "
+		"number (0x00402000). Assuming MoltenVK 1.1 version.") == 0)
 	{
 		// TODO: fix MoltenVK Vulkan 1.2 shader error logs
 		return VK_FALSE;
@@ -873,7 +876,6 @@ inline static VkSemaphore createVkSemaphore(VkDevice device)
 }
 
 inline static VkWindow createVkWindow(
-	Window window,
 	VkInstance instance,
 	GLFWwindow* handle,
 	bool useStencilBuffer,
@@ -1151,12 +1153,6 @@ inline static VkWindow createVkWindow(
 		free(vkWindow);
 		return NULL;
 	}
-
-	VkFenceCreateInfo fenceCreateInfo = {
-		VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-		NULL,
-		0,
-	};
 
 	VkFence stagingFence = createVkFence(
 		device,

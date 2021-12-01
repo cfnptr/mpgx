@@ -32,7 +32,6 @@ typedef struct RenderElement
 } RenderElement;
 struct Renderer
 {
-	Transform transform;
 	Pipeline pipeline;
 	RenderSorting sorting;
 	bool useCulling;
@@ -45,7 +44,6 @@ struct Renderer
 };
 
 Renderer createRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,
@@ -53,8 +51,8 @@ Renderer createRenderer(
 	OnRenderHandleDraw onHandleDraw,
 	size_t capacity)
 {
-	assert(transform != NULL);
 	assert(pipeline != NULL);
+	assert(sorting >= ASCENDING_RENDER_SORTING);
 	assert(sorting < RENDER_SORTING_COUNT);
 	assert(onHandleDestroy != NULL);
 	assert(onHandleDraw != NULL);
@@ -85,7 +83,6 @@ Renderer createRenderer(
 		return NULL;
 	}
 
-	renderer->transform = transform;
 	renderer->pipeline = pipeline;
 	renderer->sorting = sorting;
 	renderer->useCulling = useCulling;
@@ -126,11 +123,6 @@ bool isRendererEmpty(Renderer renderer)
 	assert(renderer != NULL);
 	return renderer->renderCount == 0;
 }
-Transform getRendererTransform(Renderer renderer)
-{
-	assert(renderer != NULL);
-	return renderer->transform;
-}
 Pipeline getRendererPipeline(Renderer renderer)
 {
 	assert(renderer != NULL);
@@ -158,6 +150,7 @@ void setRendererSorting(
 	RenderSorting sorting)
 {
 	assert(renderer != NULL);
+	assert(sorting >= ASCENDING_RENDER_SORTING);
 	assert(sorting < RENDER_SORTING_COUNT);
 	renderer->sorting = sorting;
 }
@@ -263,8 +256,7 @@ void createRenderData(
 				camera.persp.nearClipPlane,
 				camera.persp.farClipPlane);
 			viewProj = dotMat4F(
-				proj,
-				view);
+				proj, view);
 
 			if (createPlanes == true)
 			{
@@ -288,8 +280,7 @@ void createRenderData(
 				camera.persp.nearClipPlane,
 				camera.persp.farClipPlane);
 			viewProj = dotMat4F(
-				proj,
-				view);
+				proj, view);
 
 			if (createPlanes == true)
 			{
@@ -321,8 +312,7 @@ void createRenderData(
 				camera.ortho.nearClipPlane,
 				camera.ortho.farClipPlane);
 			viewProj = dotMat4F(
-				proj,
-				view);
+				proj, view);
 
 			if (createPlanes == true)
 			{
@@ -348,8 +338,7 @@ void createRenderData(
 				camera.ortho.nearClipPlane,
 				camera.ortho.farClipPlane);
 			viewProj = dotMat4F(
-				proj,
-				view);
+				proj, view);
 
 			if (createPlanes == true)
 			{
@@ -374,6 +363,7 @@ void createRenderData(
 		abort();
 	}
 
+	data->view = view;
 	data->proj = proj;
 	data->viewProj = viewProj;
 
@@ -387,6 +377,7 @@ void createRenderData(
 		data->frontPlane = plane3F(zeroVec3F, 0.0f);
 	}
 }
+
 RenderResult drawRenderer(
 	Renderer renderer,
 	const RenderData* data)
@@ -409,7 +400,7 @@ RenderResult drawRenderer(
 	bool useCulling = renderer->useCulling;
 
 	Vec3F rendererPosition = negVec3F(
-		getTransformPosition(renderer->transform));
+		getTranslationMat4F(data->view));
 
 	Plane3F leftPlane = data->leftPlane;
 	Plane3F rightPlane = data->rightPlane;
@@ -549,9 +540,7 @@ Render createRender(
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
-
-	assert(getTransformTransformer(transform) ==
-		getTransformTransformer(renderer->transform));
+	assert(handle != NULL);
 
 	Render render = malloc(
 		sizeof(struct Render));

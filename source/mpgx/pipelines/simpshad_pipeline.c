@@ -37,12 +37,14 @@ typedef struct GlPipelineHandle
 	VertexPushConstants vpc;
 	GLint mvpLocation;
 } GlPipelineHandle;
-typedef union PipelineHandle
+union PipelineHandle
 {
 	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
-} PipelineHandle;
+};
+
+typedef union PipelineHandle* PipelineHandle;
 
 Sampler createSimpShadSampler(Window window)
 {
@@ -87,7 +89,7 @@ static const VkPushConstantRange pushConstantRanges[1] = {
 
 static void onVkUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 
 	vkCmdPushConstants(
@@ -119,15 +121,14 @@ static bool onVkHandleResize(
 }
 static void onVkHandleDestroy(void* handle)
 {
-	PipelineHandle* pipelineHandle = handle;
-	free(pipelineHandle);
+	free((PipelineHandle)handle);
 }
 inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* pipelineHandle)
+	PipelineHandle pipelineHandle)
 {
 	VkPipelineCreateInfo createInfo = {
 		1,
@@ -157,7 +158,7 @@ inline static Pipeline createVkHandle(
 
 static void onGlUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->gl.handle;
+	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
 		pipelineHandle->gl.mvpLocation,
@@ -186,15 +187,14 @@ static bool onGlHandleResize(
 }
 static void onGlHandleDestroy(void* handle)
 {
-	PipelineHandle* pipelineHandle = handle;
-	free(pipelineHandle);
+	free((PipelineHandle)handle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* pipelineHandle)
+	PipelineHandle pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
@@ -247,8 +247,8 @@ Pipeline createExtSimpShadPipeline(
 	assert(vertexShader->base.window == framebuffer->base.window);
 	assert(fragmentShader->base.window == framebuffer->base.window);
 
-	PipelineHandle* pipelineHandle = malloc(
-		sizeof(PipelineHandle));
+	PipelineHandle pipelineHandle = malloc(
+		sizeof(union PipelineHandle));
 
 	if (pipelineHandle == NULL)
 		return NULL;
@@ -350,7 +350,7 @@ Mat4F getSimpShadPipelineMvp(
 	assert(strcmp(
 		pipeline->base.name,
 		SIMPSHAD_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.mvp;
 }
@@ -362,7 +362,7 @@ void setSimpShadPipelineMvp(
 	assert(strcmp(
 		pipeline->base.name,
 		SIMPSHAD_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.mvp = mvp;
 }

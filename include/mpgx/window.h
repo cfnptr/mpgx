@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #pragma once
+#include "mpgx/defines.h"
+
 #include "cmmt/color.h"
 #include "cmmt/vector.h"
 #include "cmmt/matrix.h"
@@ -32,16 +34,7 @@
 #define DEFAULT_DEPTH_BIAS_SLOPE 0
 #define DEFAULT_BLEND_COLOR 0
 
-// TODO: add shader optimization:
-// calc shader hash and compare to others in debug
-// if equals show that possibly has same shader
-// https://github.com/B-Con/crypto-algorithms/blob/master/md5.c
-
-// TODO: add box blur pipeline
-
 // TODO: possibly switch to the ktx texture format
-
-// TODO: check all library if (... != NULL) for UBs
 
 static const Vec2U defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
@@ -214,14 +207,6 @@ typedef enum CursorMode
 	HIDDEN_CURSOR_MODE = 0x00034002,
 	LOCKED_CURSOR_MODE = 0x00034003,
 } CursorMode;
-
-typedef enum GraphicsAPI
-{
-	VULKAN_GRAPHICS_API = 0,
-	OPENGL_GRAPHICS_API = 1,
-	OPENGL_ES_GRAPHICS_API = 2,
-	GRAPHICS_API_COUNT = 3,
-} GraphicsAPI;
 
 typedef enum BufferType
 {
@@ -437,19 +422,9 @@ typedef void(*OnPipelineUniformsSet)(Pipeline pipeline);
 typedef bool(*OnPipelineHandleResize)(
 	Pipeline pipeline, Vec2U newSize, void* createInfo);
 
-inline static const char* graphicsApiToString(GraphicsAPI api)
-{
-	if (api == VULKAN_GRAPHICS_API)
-		return "Vulkan";
-	else if (api == OPENGL_GRAPHICS_API)
-		return "OpenGL";
-	else if (api == OPENGL_ES_GRAPHICS_API)
-		return "OpenGLES";
-	else
-		return "Unknown";
-}
+// TODO: add more MPGX results
 
-bool initializeGraphics(
+MpgxResult initializeGraphics(
 	const char* appName,
 	uint8_t appVersionMajor,
 	uint8_t appVersionMinor,
@@ -460,7 +435,7 @@ bool isGraphicsInitialized();
 void* getFtLibrary();
 
 // TODO: add useDepthBuffer option
-Window createWindow(
+MpgxResult createWindow(
 	GraphicsAPI api,
 	bool useStencilBuffer,
 	Vec2U size,
@@ -468,27 +443,15 @@ Window createWindow(
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
 	bool isVisible,
-	size_t bufferCapacity,
-	size_t imageCapacity,
-	size_t samplerCapacity,
-	size_t shaderCapacity,
-	size_t framebufferCapacity,
-	size_t pipelineCapacity,
-	size_t meshCapacity);
-Window createAnyWindow(
+	Window* window);
+MpgxResult createAnyWindow(
 	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
 	bool isVisible,
-	size_t bufferCapacity,
-	size_t imageCapacity,
-	size_t samplerCapacity,
-	size_t shaderCapacity,
-	size_t framebufferCapacity,
-	size_t pipelineCapacity,
-	size_t meshCapacity);
+	Window* window);
 void destroyWindow(Window window);
 
 bool isWindowEmpty(Window window);

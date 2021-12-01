@@ -17,7 +17,6 @@
 #include "mpgx/pipelines/diffuse_pipeline.h"
 
 Renderer createDiffuseRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,

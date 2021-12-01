@@ -102,10 +102,10 @@ Transform createTransform(
 	bool isActive)
 {
 	assert(transformer != NULL);
+	assert(rotationType >= NO_ROTATION_TYPE);
 	assert(rotationType < ROTATION_TYPE_COUNT);
 
-	assert((parent == NULL) ||
-		(parent != NULL &&
+	assert((parent == NULL) || (parent != NULL &&
 		transformer == parent->transformer));
 
 	Transform transform = malloc(
@@ -232,6 +232,7 @@ void setTransformRotationType(
 	RotationType rotationType)
 {
 	assert(transform != NULL);
+	assert(rotationType >= NO_ROTATION_TYPE);
 	assert(rotationType < ROTATION_TYPE_COUNT);
 	transform->rotationType = rotationType;
 }

@@ -40,6 +40,7 @@ struct Text
 	Font font;
 	Pipeline pipeline;
 	uint32_t fontSize;
+	AlignmentType alignment;
 	char* data;
 	size_t dataSize;
 	bool isConstant;
@@ -55,6 +56,7 @@ struct Text
 
 typedef struct Glyph
 {
+	bool isVisible;
 	uint32_t uniChar;
 	Vec4F position;
 	Vec4F texCoords;
@@ -100,12 +102,14 @@ typedef struct GlPipelineHandle
 	GLint colorLocation;
 	GLint textureLocation;
 } GlPipelineHandle;
-typedef union PipelineHandle
+union PipelineHandle
 {
 	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
-} PipelineHandle;
+};
+
+typedef union PipelineHandle* PipelineHandle;
 
 Font createFont(
 	const void* _data,
@@ -131,8 +135,7 @@ Font createFont(
 		_data,
 		size);
 
-	FT_Library ftLibrary =
-		(FT_Library)getFtLibrary();
+	FT_Library ftLibrary = getFtLibrary();
 
 	FT_Face face;
 
@@ -352,6 +355,8 @@ inline static bool createTextGlyphs(
 
 		if (uniChar == '\n')
 			continue;
+		else if (uniChar == '\t')
+			uniChar = ' ';
 
 		Glyph searchGlyph;
 		searchGlyph.uniChar = uniChar;
@@ -386,7 +391,6 @@ inline static bool createTextPixels(
 	Glyph* glyphs,
 	size_t glyphCount,
 	uint32_t textPixelLength,
-	float* _newLineAdvance,
 	uint8_t** _pixels,
 	size_t* _pixelCount,
 	uint32_t* _pixelLength)
@@ -402,21 +406,6 @@ inline static bool createTextPixels(
 	if (pixels == NULL)
 		return false;
 
-	FT_Error result = FT_Set_Pixel_Sizes(
-		face,
-		0,
-		(FT_UInt)fontSize);
-
-	if (result != 0)
-	{
-		free(pixels);
-		return false;
-	}
-
-	float newLineAdvance =
-		((float)face->size->metrics.height / 64.0f) /
-		(float)fontSize;
-
 	if (textPixelLength < pixelLength)
 		textPixelLength = pixelLength;
 
@@ -428,7 +417,7 @@ inline static bool createTextPixels(
 		FT_UInt charIndex = FT_Get_Char_Index(
 			face,
 			glyph.uniChar);
-		result = FT_Load_Glyph(
+		FT_Error result = FT_Load_Glyph(
 			face,
 			charIndex,
 			FT_LOAD_RENDER);
@@ -442,55 +431,64 @@ inline static bool createTextPixels(
 		FT_GlyphSlot glyphSlot = face->glyph;
 		uint8_t* bitmap = glyphSlot->bitmap.buffer;
 
-		size_t pixelPosY = (i / glyphLength);
-		size_t pixelPosX = (i - pixelPosY * glyphLength);
+		uint32_t pixelPosY = (uint32_t)(i / glyphLength);
+		uint32_t pixelPosX = (uint32_t)(i - pixelPosY * glyphLength);
 
 		pixelPosX *= fontSize;
 		pixelPosY *= fontSize;
 
-		size_t glyphWidth = glyphSlot->bitmap.width;
-		size_t glyphHeight = glyphSlot->bitmap.rows;
+		uint32_t glyphWidth = glyphSlot->bitmap.width;
+		uint32_t glyphHeight = glyphSlot->bitmap.rows;
 
-		glyph.position.x = (float)glyphSlot->bitmap_left / (float)fontSize;
-		glyph.position.y = ((float)glyphSlot->bitmap_top - (float)glyphHeight) / (float)fontSize;
-		glyph.position.z = glyph.position.x + (float)glyphWidth / (float)fontSize;
-		glyph.position.w = glyph.position.y + (float)glyphHeight /(float)fontSize;
-		glyph.texCoords.x = (float)pixelPosX / (float)textPixelLength;
-		glyph.texCoords.y = (float)pixelPosY / (float)textPixelLength;
-		glyph.texCoords.z = glyph.texCoords.x + (float)glyphWidth / (float)textPixelLength;
-		glyph.texCoords.w = glyph.texCoords.y + (float)glyphHeight / (float)textPixelLength;
-		glyph.advance = ((float)glyphSlot->advance.x / 64.0f) / (float)fontSize;
-
-		glyphs[i] = glyph;
-
-		for (size_t y = 0; y < glyphHeight; y++)
+		if (glyphWidth * glyphHeight == 0)
 		{
-			for (size_t x = 0; x < glyphWidth; x++)
+			glyph.isVisible = false;
+			glyph.position = zeroVec4F;
+			glyph.texCoords = zeroVec4F;
+		}
+		else
+		{
+			glyph.isVisible = true;
+			glyph.position.x = (float)glyphSlot->bitmap_left / (float)fontSize;
+			glyph.position.y = ((float)glyphSlot->bitmap_top - (float)glyphHeight) / (float)fontSize;
+			glyph.position.z = glyph.position.x + (float)glyphWidth / (float)fontSize;
+			glyph.position.w = glyph.position.y + (float)glyphHeight /(float)fontSize;
+			glyph.texCoords.x = (float)pixelPosX / (float)textPixelLength;
+			glyph.texCoords.y = (float)pixelPosY / (float)textPixelLength;
+			glyph.texCoords.z = glyph.texCoords.x + (float)glyphWidth / (float)textPixelLength;
+			glyph.texCoords.w = glyph.texCoords.y + (float)glyphHeight / (float)textPixelLength;
+
+			for (size_t y = 0; y < glyphHeight; y++)
 			{
-				pixels[(y + pixelPosY) * pixelLength + (x + pixelPosX)] =
-					bitmap[y * glyphWidth + x];
+				for (size_t x = 0; x < glyphWidth; x++)
+				{
+					pixels[(y + pixelPosY) * pixelLength + (x + pixelPosX)] =
+						bitmap[y * glyphWidth + x];
+				}
 			}
 		}
+
+		glyph.advance = ((float)glyphSlot->advance.x / 64.0f) / (float)fontSize;
+		glyphs[i] = glyph;
 	}
 
-	*_newLineAdvance = newLineAdvance;
 	*_pixels = pixels;
 	*_pixelCount = pixelCount;
 	*_pixelLength = pixelLength;
 	return true;
 }
-inline static bool createTextVertices( // TODO: use mapBuffer here, also detect empty glyphs and skip vertices
+inline static bool createTextVertices( // TODO: use mapBuffer here
 	const uint32_t* uniChars,
 	size_t uniCharCount,
 	const Glyph* glyphs,
 	size_t glyphCount,
 	float newLineAdvance,
+	AlignmentType alignment,
 	float** _vertices,
 	size_t* _vertexCount,
 	Vec2F* _textSize)
 {
-	size_t vertexCount =
-		uniCharCount * 16;
+	size_t vertexCount = uniCharCount * 16;
 	float* vertices = malloc(
 		vertexCount * sizeof(float));
 	Vec2F textSize = zeroVec2F;
@@ -499,7 +497,9 @@ inline static bool createTextVertices( // TODO: use mapBuffer here, also detect 
 		return false;
 
 	size_t vertexIndex = 0;
-	Vec2F vertexOffset = zeroVec2F;
+
+	Vec2F vertexOffset = vec2F(
+		0.0f, -newLineAdvance * 0.5f);
 
 	for (size_t i = 0; i < uniCharCount; i++)
 	{
@@ -512,6 +512,27 @@ inline static bool createTextVertices( // TODO: use mapBuffer here, also detect 
 
 			vertexOffset.y -= newLineAdvance;
 			vertexOffset.x = 0.0f;
+			continue;
+		}
+		else if (uniChar == '\t')
+		{
+			Glyph searchGlyph;
+			searchGlyph.uniChar = ' ';
+
+			Glyph* glyph = bsearch(
+				&searchGlyph,
+				glyphs,
+				glyphCount,
+				sizeof(Glyph),
+				compareGlyph);
+
+			if (glyph == NULL)
+			{
+				free(vertices);
+				return false;
+			}
+
+			vertexOffset.x += glyph->advance * 4;
 			continue;
 		}
 
@@ -531,31 +552,35 @@ inline static bool createTextVertices( // TODO: use mapBuffer here, also detect 
 			return false;
 		}
 
-		Vec4F position = vec4F(
-			vertexOffset.x + glyph->position.x,
-			vertexOffset.y + glyph->position.y,
-			vertexOffset.x + glyph->position.z,
-			vertexOffset.y + glyph->position.w);
-		Vec4F texCoords = glyph->texCoords;
+		if (glyph->isVisible == true)
+		{
+			Vec4F position = vec4F(
+				vertexOffset.x + glyph->position.x,
+				vertexOffset.y + glyph->position.y,
+				vertexOffset.x + glyph->position.z,
+				vertexOffset.y + glyph->position.w);
+			Vec4F texCoords = glyph->texCoords;
 
-		vertices[vertexIndex + 0] = position.x;
-		vertices[vertexIndex + 1] = position.y;
-		vertices[vertexIndex + 2] = texCoords.x;
-		vertices[vertexIndex + 3] = texCoords.w;
-		vertices[vertexIndex + 4] = position.x;
-		vertices[vertexIndex + 5] = position.w;
-		vertices[vertexIndex + 6] = texCoords.x;
-		vertices[vertexIndex + 7] = texCoords.y;
-		vertices[vertexIndex + 8] = position.z;
-		vertices[vertexIndex + 9] = position.w;
-		vertices[vertexIndex + 10] = texCoords.z;
-		vertices[vertexIndex + 11] = texCoords.y;
-		vertices[vertexIndex + 12] = position.z;
-		vertices[vertexIndex + 13] = position.y;
-		vertices[vertexIndex + 14] = texCoords.z;
-		vertices[vertexIndex + 15] = texCoords.w;
+			vertices[vertexIndex + 0] = position.x;
+			vertices[vertexIndex + 1] = position.y;
+			vertices[vertexIndex + 2] = texCoords.x;
+			vertices[vertexIndex + 3] = texCoords.w;
+			vertices[vertexIndex + 4] = position.x;
+			vertices[vertexIndex + 5] = position.w;
+			vertices[vertexIndex + 6] = texCoords.x;
+			vertices[vertexIndex + 7] = texCoords.y;
+			vertices[vertexIndex + 8] = position.z;
+			vertices[vertexIndex + 9] = position.w;
+			vertices[vertexIndex + 10] = texCoords.z;
+			vertices[vertexIndex + 11] = texCoords.y;
+			vertices[vertexIndex + 12] = position.z;
+			vertices[vertexIndex + 13] = position.y;
+			vertices[vertexIndex + 14] = texCoords.z;
+			vertices[vertexIndex + 15] = texCoords.w;
 
-		vertexIndex += 16;
+			vertexIndex += 16;
+		}
+
 		vertexOffset.x += glyph->advance;
 	}
 
@@ -563,6 +588,124 @@ inline static bool createTextVertices( // TODO: use mapBuffer here, also detect 
 		textSize.x = vertexOffset.x;
 
 	textSize.y = -vertexOffset.y;
+
+	// TODO: make also alignment inside text lines
+
+	switch (alignment)
+	{
+	default:
+		abort();
+	case CENTER_ALIGNMENT_TYPE:
+		vertexOffset.x = textSize.x * -0.5f;
+		vertexOffset.y = textSize.y * 0.5f;
+
+		for (size_t i = 0; i < vertexCount; i += 16)
+		{
+			vertices[i + 0] += vertexOffset.x;
+			vertices[i + 1] += vertexOffset.y;
+			vertices[i + 4] += vertexOffset.x;
+			vertices[i + 5] += vertexOffset.y;
+			vertices[i + 8] += vertexOffset.x;
+			vertices[i + 9] += vertexOffset.y;
+			vertices[i + 12] += vertexOffset.x;
+			vertices[i + 13] += vertexOffset.y;
+		}
+		break;
+	case LEFT_ALIGNMENT_TYPE:
+		vertexOffset.y = textSize.y * 0.5f;
+
+		for (size_t i = 0; i < vertexCount; i += 16)
+		{
+			vertices[i + 1] -= vertexOffset.y;
+			vertices[i + 5] -= vertexOffset.y;
+			vertices[i + 9] -= vertexOffset.y;
+			vertices[i + 13] -= vertexOffset.y;
+		}
+		break;
+	case RIGHT_ALIGNMENT_TYPE:
+		vertexOffset.x = -textSize.x;
+		vertexOffset.y = textSize.y * 0.5f;
+
+		for (size_t i = 0; i < vertexCount; i += 16)
+		{
+			vertices[i + 0] += vertexOffset.x;
+			vertices[i + 1] += vertexOffset.y;
+			vertices[i + 4] += vertexOffset.x;
+			vertices[i + 5] += vertexOffset.y;
+			vertices[i + 8] += vertexOffset.x;
+			vertices[i + 9] += vertexOffset.y;
+			vertices[i + 12] += vertexOffset.x;
+			vertices[i + 13] += vertexOffset.y;
+		}
+		break;
+	case BOTTOM_ALIGNMENT_TYPE:
+		vertexOffset.x = textSize.x * -0.5f;
+		vertexOffset.y = textSize.y;
+
+		for (size_t i = 0; i < vertexCount; i += 16)
+		{
+			vertices[i + 0] += vertexOffset.x;
+			vertices[i + 1] += vertexOffset.y;
+			vertices[i + 4] += vertexOffset.x;
+			vertices[i + 5] += vertexOffset.y;
+			vertices[i + 8] += vertexOffset.x;
+			vertices[i + 9] += vertexOffset.y;
+			vertices[i + 12] += vertexOffset.x;
+			vertices[i + 13] += vertexOffset.y;
+		}
+		break;
+	case TOP_ALIGNMENT_TYPE:
+		vertexOffset.x = textSize.x * -0.5f;
+
+		for (size_t i = 0; i < vertexCount; i += 16)
+		{
+			vertices[i + 0] += vertexOffset.x;
+			vertices[i + 4] += vertexOffset.x;
+			vertices[i + 8] += vertexOffset.x;
+			vertices[i + 12] += vertexOffset.x;
+		}
+		break;
+	case LEFT_BOTTOM_ALIGNMENT_TYPE:
+		vertexOffset.y = textSize.y;
+
+		for (size_t i = 0; i < vertexCount; i += 16)
+		{
+			vertices[i + 1] += vertexOffset.y;
+			vertices[i + 5] += vertexOffset.y;
+			vertices[i + 9] += vertexOffset.y;
+			vertices[i + 13] += vertexOffset.y;
+		}
+		break;
+	case LEFT_TOP_ALIGNMENT_TYPE:
+		break;
+	case RIGHT_BOTTOM_ALIGNMENT_TYPE:
+		vertexOffset.x = -textSize.x;
+		vertexOffset.y = textSize.y;
+
+		for (size_t i = 0; i < vertexCount; i += 16)
+		{
+			vertices[i + 0] += vertexOffset.x;
+			vertices[i + 1] += vertexOffset.y;
+			vertices[i + 4] += vertexOffset.x;
+			vertices[i + 5] += vertexOffset.y;
+			vertices[i + 8] += vertexOffset.x;
+			vertices[i + 9] += vertexOffset.y;
+			vertices[i + 12] += vertexOffset.x;
+			vertices[i + 13] += vertexOffset.y;
+		}
+		break;
+	case RIGHT_TOP_ALIGNMENT_TYPE:
+		vertexOffset.x = -textSize.x;
+
+		for (size_t i = 0; i < vertexCount; i += 16)
+		{
+			vertices[i + 0] += vertexOffset.x;
+			vertices[i + 4] += vertexOffset.x;
+			vertices[i + 8] += vertexOffset.x;
+			vertices[i + 12] += vertexOffset.x;
+		}
+		break;
+	}
 
 	*_vertices = vertices;
 	*_vertexCount = vertexCount;
@@ -574,8 +717,8 @@ inline static bool createTextIndices(
 	uint32_t** _indices,
 	size_t* _indexCount)
 {
-	size_t indexCount =
-		uniCharCount * 6;
+	size_t indexCount = uniCharCount * 6;
+
 	uint32_t* indices = malloc(
 		indexCount * sizeof(uint32_t));
 
@@ -717,19 +860,23 @@ Text createText(
 	Pipeline pipeline,
 	Font font,
 	uint32_t fontSize,
+	AlignmentType alignment,
 	const char* _data,
 	bool isConstant)
 {
 	assert(pipeline != NULL);
 	assert(font != NULL);
-	assert(fontSize > 0);
+	assert(fontSize != 0);
+	assert(alignment >= CENTER_ALIGNMENT_TYPE);
+	assert(alignment < ALIGNMENT_TYPE_COUNT);
 	assert(_data != NULL);
 
 	assert(strcmp(
 		pipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 
-	Text text = malloc(sizeof(struct Text));
+	Text text = malloc(
+		sizeof(struct Text));
 
 	if (text == NULL)
 		return NULL;
@@ -831,7 +978,7 @@ Text createText(
 		{
 			VkWindow vkWindow = getVkWindow(window);
 			VkDevice device = vkWindow->device;
-			PipelineHandle* pipelineHandle = pipeline->vk.handle;
+			PipelineHandle pipelineHandle = pipeline->vk.handle;
 			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
 
 			VkDescriptorPool descriptorPool = createVkDescriptorPool(
@@ -930,18 +1077,34 @@ Text createText(
 			_data,
 			dataSize * sizeof(char));
 
-		float newLineAdvance;
+		FT_Face face = font->face;
+
+		FT_Error ftResult = FT_Set_Pixel_Sizes(
+			face,
+			0,
+			(FT_UInt)fontSize);
+
+		if (ftResult != 0)
+		{
+			free(glyphs);
+			free(uniChars);
+			return false;
+		}
+
+		float newLineAdvance =
+			((float)face->size->metrics.height / 64.0f) /
+			(float)fontSize;
+
 		uint8_t* pixels;
 		size_t pixelCount;
 		uint32_t pixelLength;
 
 		result = createTextPixels(
-			font->face,
+			face,
 			fontSize,
 			glyphs,
 			glyphCount,
 			0,
-			&newLineAdvance,
 			&pixels,
 			&pixelCount,
 			&pixelLength);
@@ -986,6 +1149,7 @@ Text createText(
 			glyphs,
 			glyphCount,
 			newLineAdvance,
+			alignment,
 			&vertices,
 			&vertexCount,
 			&textSize);
@@ -1077,7 +1241,7 @@ Text createText(
 			VkWindow vkWindow = getVkWindow(window);
 			VkDevice device = vkWindow->device;
 
-			PipelineHandle* pipelineHandle = pipeline->vk.handle;
+			PipelineHandle pipelineHandle = pipeline->vk.handle;
 			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
 
 			VkDescriptorPool descriptorPool = createVkDescriptorPool(
@@ -1135,6 +1299,7 @@ Text createText(
 	text->font = font;
 	text->pipeline = pipeline;
 	text->fontSize = fontSize;
+	text->alignment = alignment;
 	text->isConstant = isConstant;
 	return text;
 }
@@ -1200,52 +1365,50 @@ size_t getTextIndexCount(Text text)
 	return getMeshIndexCount(text->mesh);
 }
 
-Vec2F getTextOffset(
-	Text text,
-	InterfaceAnchor anchor)
+Vec2F getTextOffset(Text text)
 {
 	assert(text != NULL);
-	assert(anchor < INTERFACE_ANCHOR_COUNT);
 
+	AlignmentType alignment = text->alignment;
 	Vec2F offset = text->textSize;
 
-	switch (anchor)
+	switch (alignment)
 	{
 	default:
 		abort();
-	case CENTER_INTERFACE_ANCHOR:
+	case CENTER_ALIGNMENT_TYPE:
 		return vec2F(
-			-offset.x / 2.0f,
-			offset.y / 2.0f);
-	case LEFT_INTERFACE_ANCHOR:
+			-offset.x * 0.5f,
+			offset.y * 0.5f);
+	case LEFT_ALIGNMENT_TYPE:
 		return vec2F(
 			0.0f,
-			offset.y / 2.0f);
-	case RIGHT_INTERFACE_ANCHOR:
+			offset.y * 0.5f);
+	case RIGHT_ALIGNMENT_TYPE:
 		return vec2F(
 			-offset.x,
-			offset.y / 2.0f);
-	case BOTTOM_INTERFACE_ANCHOR:
+			offset.y * 0.5f);
+	case BOTTOM_ALIGNMENT_TYPE:
 		return vec2F(
-			-offset.x / 2.0f,
+			-offset.x * 0.5f,
 			0.0f);
-	case TOP_INTERFACE_ANCHOR:
+	case TOP_ALIGNMENT_TYPE:
 		return vec2F(
-			-offset.x / 2.0f,
+			-offset.x * 0.5f,
 			offset.y);
-	case LEFT_BOTTOM_INTERFACE_ANCHOR:
+	case LEFT_BOTTOM_ALIGNMENT_TYPE:
 		return vec2F(
 			0.0f,
 			0.0f);
-	case LEFT_TOP_INTERFACE_ANCHOR:
+	case LEFT_TOP_ALIGNMENT_TYPE:
 		return vec2F(
 			0.0f,
 			offset.y);
-	case RIGHT_BOTTOM_INTERFACE_ANCHOR:
+	case RIGHT_BOTTOM_ALIGNMENT_TYPE:
 		return vec2F(
 			-offset.x,
 			0.0f);
-	case RIGHT_TOP_INTERFACE_ANCHOR:
+	case RIGHT_TOP_ALIGNMENT_TYPE:
 		return vec2F(
 			-offset.x,
 			offset.y);
@@ -1377,6 +1540,23 @@ void setTextFontSize(
 	text->fontSize = fontSize;
 }
 
+uint32_t getTextAlignment(
+	Text text)
+{
+	assert(text != NULL);
+	return text->fontSize;
+}
+void setTextAlignment(
+	Text text,
+	AlignmentType alignment)
+{
+	assert(text != NULL);
+	assert(text->isConstant == false);
+	assert(alignment >= CENTER_ALIGNMENT_TYPE);
+	assert(alignment < ALIGNMENT_TYPE_COUNT);
+	text->alignment = alignment;
+}
+
 const char* getTextData(
 	Text text)
 {
@@ -1475,21 +1655,38 @@ bool bakeText(
 				return false;
 			}
 
+			FT_Face face = text->font->face;
+			uint32_t fontSize = text->fontSize;
+
+			FT_Error ftResult = FT_Set_Pixel_Sizes(
+				face,
+				0,
+				(FT_UInt)fontSize);
+
+			if (ftResult != 0)
+			{
+				free(glyphs);
+				free(uniChars);
+				return false;
+			}
+
+			float newLineAdvance =
+				((float)face->size->metrics.height / 64.0f) /
+				(float)fontSize;
+
 			uint32_t textPixelLength =
 				getImageSize(text->texture).x;
 
-			float newLineAdvance;
 			uint8_t* pixels;
 			size_t pixelCount;
 			uint32_t pixelLength;
 
 			result = createTextPixels(
-				text->font->face,
-				text->fontSize,
+				face,
+				fontSize,
 				glyphs,
 				glyphCount,
 				textPixelLength,
-				&newLineAdvance,
 				&pixels,
 				&pixelCount,
 				&pixelLength);
@@ -1534,7 +1731,7 @@ bool bakeText(
 				{
 					VkWindow vkWindow = getVkWindow(window);
 					VkDevice device = vkWindow->device;
-					PipelineHandle* pipelineHandle = pipeline->vk.handle;
+					PipelineHandle pipelineHandle = pipeline->vk.handle;
 
 					descriptorSets = createVkDescriptorSets(
 						device,
@@ -1569,6 +1766,7 @@ bool bakeText(
 				glyphs,
 				glyphCount,
 				newLineAdvance,
+				text->alignment,
 				&vertices,
 				&vertexCount,
 				&textSize);
@@ -1657,7 +1855,7 @@ bool bakeText(
 				{
 					VkWindow vkWindow = getVkWindow(window);
 					VkDevice device = vkWindow->device;
-					PipelineHandle* pipelineHandle = pipeline->vk.handle;
+					PipelineHandle pipelineHandle = pipeline->vk.handle;
 
 					vkFreeDescriptorSets(
 						device,
@@ -1797,7 +1995,7 @@ bool bakeText(
 			{
 				VkWindow vkWindow = getVkWindow(window);
 				VkDevice device = vkWindow->device;
-				PipelineHandle* pipelineHandle = pipeline->vk.handle;
+				PipelineHandle pipelineHandle = pipeline->vk.handle;
 				uint8_t bufferCount = pipelineHandle->vk.bufferCount;
 				VkDescriptorPool descriptorPool = text->descriptorPool;
 
@@ -1884,18 +2082,36 @@ bool bakeText(
 				_data,
 				dataSize * sizeof(char));
 
-			float newLineAdvance;
+			FT_Face face = text->font->face;
+			uint32_t fontSize = text->fontSize;
+
+			FT_Error ftResult = FT_Set_Pixel_Sizes(
+				face,
+				0,
+				(FT_UInt)fontSize);
+
+			if (ftResult != 0)
+			{
+				free(data);
+				free(glyphs);
+				free(uniChars);
+				return false;
+			}
+
+			float newLineAdvance =
+				((float)face->size->metrics.height / 64.0f) /
+				(float)fontSize;
+
 			uint8_t* pixels;
 			size_t pixelCount;
 			uint32_t pixelLength;
 
 			result = createTextPixels(
-				text->font->face,
-				text->fontSize,
+				face,
+				fontSize,
 				glyphs,
 				glyphCount,
 				0,
-				&newLineAdvance,
 				&pixels,
 				&pixelCount,
 				&pixelLength);
@@ -1938,6 +2154,7 @@ bool bakeText(
 				glyphs,
 				glyphCount,
 				newLineAdvance,
+				text->alignment,
 				&vertices,
 				&vertexCount,
 				&textSize);
@@ -2023,7 +2240,7 @@ bool bakeText(
 			{
 				VkWindow vkWindow = getVkWindow(window);
 				VkDevice device = vkWindow->device;
-				PipelineHandle* pipelineHandle = pipeline->vk.handle;
+				PipelineHandle pipelineHandle = pipeline->vk.handle;
 				uint8_t bufferCount = pipelineHandle->vk.bufferCount;
 				VkDescriptorPool descriptorPool = text->descriptorPool;
 
@@ -2078,7 +2295,7 @@ size_t drawText(Text text)
 	assert(text != NULL);
 
 	Pipeline pipeline = text->pipeline;
-	PipelineHandle* textPipeline = pipeline->gl.handle;
+	PipelineHandle textPipeline = pipeline->gl.handle;
 	textPipeline->base.texture = text->texture;
 
 #if MPGX_SUPPORT_VULKAN
@@ -2209,7 +2426,7 @@ inline static VkDescriptorSetLayout createVkDescriptorSetLayout(
 
 static void onVkUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 	VkPipelineLayout layout = pipeline->vk.layout;
@@ -2234,7 +2451,7 @@ static bool onVkHandleResize(
 	Vec2U newSize,
 	void* createInfo)
 {
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	Window window = pipelineHandle->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	VkSwapchain swapchain = vkWindow->swapchain;
@@ -2296,7 +2513,7 @@ static bool onVkHandleResize(
 }
 static void onVkHandleDestroy(void* handle)
 {
-	PipelineHandle* pipelineHandle = handle;
+	PipelineHandle pipelineHandle = handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkDevice device = vkWindow->device;
 
@@ -2311,7 +2528,7 @@ inline static Pipeline createVkHandle(
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* pipelineHandle)
+	PipelineHandle pipelineHandle)
 {
 	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
@@ -2356,7 +2573,7 @@ inline static Pipeline createVkHandle(
 
 static void onGlUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->gl.handle;
+	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
 	glUniformMatrix4fv(
 		pipelineHandle->gl.mvpLocation,
@@ -2414,15 +2631,14 @@ static bool onGlHandleResize(
 }
 static void onGlHandleDestroy(void* handle)
 {
-	PipelineHandle* pipelineHandle = handle;
-	free(pipelineHandle);
+	free((PipelineHandle)handle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* pipelineHandle)
+	PipelineHandle pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
@@ -2489,8 +2705,8 @@ Pipeline createExtTextPipeline(
 	assert(fragmentShader->base.window == framebuffer->base.window);
 	assert(sampler->base.window == framebuffer->base.window);
 
-	PipelineHandle* pipelineHandle = malloc(
-		sizeof(PipelineHandle));
+	PipelineHandle pipelineHandle = malloc(
+		sizeof(union PipelineHandle));
 
 	if (pipelineHandle == NULL)
 		return NULL;
@@ -2594,7 +2810,7 @@ Sampler getTextPipelineSampler(
 	assert(strcmp(
 		pipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.sampler;
 }
@@ -2606,7 +2822,7 @@ Mat4F getTextPipelineMVP(
 	assert(strcmp(
 		pipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.mvp;
 }
@@ -2618,7 +2834,7 @@ void setTextPipelineMVP(
 	assert(strcmp(
 		pipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.mvp = mvp;
 }
@@ -2630,7 +2846,7 @@ LinearColor getTextPipelineColor(
 	assert(strcmp(
 		pipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.fpc.color;
 }
@@ -2642,7 +2858,7 @@ void setTextPipelineColor(
 	assert(strcmp(
 		pipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.fpc.color = color;
 }

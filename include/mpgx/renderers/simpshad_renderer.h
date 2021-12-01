@@ -17,7 +17,6 @@
 #include "mpgx/pipelines/simpshad_pipeline.h"
 
 Renderer createSimpShadRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,

@@ -51,12 +51,14 @@ typedef struct GlPipelineHandle
 	GLint thresholdLocation;
 	GLint bufferLocation;
 } GlPipelineHandle;
-typedef union PipelineHandle
+union PipelineHandle
 {
 	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
-} PipelineHandle;
+};
+
+typedef union PipelineHandle* PipelineHandle;
 
 #if MPGX_SUPPORT_VULKAN
 static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
@@ -238,7 +240,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 
 static void onVkHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	uint32_t bufferIndex = vkWindow->bufferIndex;
 
@@ -254,7 +256,7 @@ static void onVkHandleBind(Pipeline pipeline)
 }
 static void onVkUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 
 	vkCmdPushConstants(
@@ -270,7 +272,7 @@ static bool onVkHandleResize(
 	Vec2U newSize,
 	void* createInfo)
 {
-	PipelineHandle* pipelineHandle = pipeline->vk.handle;
+	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
@@ -336,7 +338,7 @@ static bool onVkHandleResize(
 }
 static void onVkHandleDestroy(void* handle)
 {
-	PipelineHandle* pipelineHandle = handle;
+	PipelineHandle pipelineHandle = handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkDevice device = vkWindow->device;
 
@@ -358,7 +360,7 @@ inline static Pipeline createVkHandle(
 	VkImageView imageView,
 	VkSampler sampler,
 	const PipelineState* state,
-	PipelineHandle* pipelineHandle)
+	PipelineHandle pipelineHandle)
 {
 	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
@@ -444,7 +446,7 @@ inline static Pipeline createVkHandle(
 
 static void onGlHandleBind(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->gl.handle;
+	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
 	glUniform1i(
 		pipelineHandle->gl.bufferLocation,
@@ -463,7 +465,7 @@ static void onGlHandleBind(Pipeline pipeline)
 }
 static void onGlUniformsSet(Pipeline pipeline)
 {
-	PipelineHandle* pipelineHandle = pipeline->gl.handle;
+	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
 	glUniform4fv(
 		pipelineHandle->gl.thresholdLocation,
@@ -504,15 +506,14 @@ static bool onGlHandleResize(
 }
 static void onGlHandleDestroy(void* handle)
 {
-	PipelineHandle* pipelineHandle = handle;
-	free(pipelineHandle);
+	free((PipelineHandle)handle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
 	Shader* shaders,
 	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle* pipelineHandle)
+	PipelineHandle pipelineHandle)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
@@ -577,8 +578,8 @@ Pipeline createExtBloomPipeline(
 	assert(buffer->base.window == framebuffer->base.window);
 	assert(sampler->base.window == framebuffer->base.window);
 
-	PipelineHandle* pipelineHandle = malloc(
-		sizeof(PipelineHandle));
+	PipelineHandle pipelineHandle = malloc(
+		sizeof(union PipelineHandle));
 
 	if (pipelineHandle == NULL)
 		return NULL;
@@ -686,7 +687,7 @@ Image getBloomPipelineBuffer(
 	assert(strcmp(
 		pipeline->base.name,
 		BLOOM_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.buffer;
 }
@@ -697,7 +698,7 @@ Sampler getBloomPipelineSampler(
 	assert(strcmp(
 		pipeline->base.name,
 		BLOOM_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.sampler;
 }
@@ -709,7 +710,7 @@ LinearColor getBloomPipelineThreshold(
 	assert(strcmp(
 		pipeline->base.name,
 		BLOOM_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.fpc.threshold;
 }
@@ -721,7 +722,7 @@ void setBloomPipelineThreshold(
 	assert(strcmp(
 		pipeline->base.name,
 		BLOOM_PIPELINE_NAME) == 0);
-	PipelineHandle* pipelineHandle =
+	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.fpc.threshold = threshold;
 }

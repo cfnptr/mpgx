@@ -17,7 +17,6 @@
 #include "mpgx/pipelines/sprite_pipeline.h"
 
 Renderer createSpriteRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,

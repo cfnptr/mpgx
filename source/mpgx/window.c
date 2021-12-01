@@ -87,7 +87,7 @@ static void glfwErrorCallback(
 	int error,
 	const char* description)
 {
-	fprintf(stderr,
+	fprintf(stdout,
 		"GLFW ERROR: %d, %s\n",
 		error,
 		description);
@@ -99,7 +99,7 @@ inline static void terminateFreeTypeLibrary(
 	if (FT_Done_FreeType(freeTypeLibrary) != 0)
 		abort();
 }
-bool initializeGraphics(
+MpgxResult initializeGraphics(
 	const char* appName,
 	uint8_t appVersionMajor,
 	uint8_t appVersionMinor,
@@ -109,17 +109,20 @@ bool initializeGraphics(
 	assert(graphicsInitialized == false);
 
 	if(glfwInit() == GLFW_FALSE)
-		return false;
+		return FAILED_TO_INIT_GLFW_MPGX_RESULT;
 
 	glfwSetErrorCallback(glfwErrorCallback);
 
 	if (FT_Init_FreeType(&ftLibrary) != 0)
 	{
 		glfwTerminate();
-		return false;
+		return FAILED_TO_INIT_FREETYPE_MPGX_RESULT;
 	}
 
 #if MPGX_SUPPORT_VULKAN
+	if (glfwVulkanSupported() == GLFW_FALSE)
+		return FAILED_TO_INIT_VULKAN_MPGX_RESULT;
+
 	const char* preferredLayers[1] = {
 		"VK_LAYER_KHRONOS_validation",
 	};
@@ -148,7 +151,7 @@ bool initializeGraphics(
 	{
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
-		return false;
+		return FAILED_TO_INIT_VULKAN_MPGX_RESULT;
 	}
 
 #ifndef NDEBUG
@@ -162,7 +165,7 @@ bool initializeGraphics(
 			NULL);
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
-		return false;
+		return FAILED_TO_INIT_VULKAN_MPGX_RESULT;
 	}
 #endif
 
@@ -203,7 +206,7 @@ void* getFtLibrary()
 	return ftLibrary;
 }
 
-Window createWindow(
+MpgxResult createWindow(
 	GraphicsAPI api,
 	bool useStencilBuffer,
 	Vec2U size,
@@ -211,26 +214,14 @@ Window createWindow(
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
 	bool isVisible,
-	size_t bufferCapacity,
-	size_t imageCapacity,
-	size_t samplerCapacity,
-	size_t shaderCapacity,
-	size_t framebufferCapacity,
-	size_t pipelineCapacity,
-	size_t meshCapacity)
+	Window* _window)
 {
 	assert(api < GRAPHICS_API_COUNT);
 	assert(size.x != 0);
 	assert(size.y != 0);
 	assert(title != NULL);
 	assert(onUpdate != NULL);
-	assert(bufferCapacity != 0);
-	assert(imageCapacity != 0);
-	assert(samplerCapacity != 0);
-	assert(shaderCapacity != 0);
-	assert(framebufferCapacity != 0);
-	assert(pipelineCapacity != 0);
-	assert(meshCapacity != 0);
+	assert(_window != NULL);
 	assert(graphicsInitialized == true);
 
 	glfwDefaultWindowHints();
@@ -238,14 +229,11 @@ Window createWindow(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		if (glfwVulkanSupported() == GLFW_FALSE)
-			return NULL;
-
 		glfwWindowHint(
 			GLFW_CLIENT_API,
 			GLFW_NO_API);
 #else
-		return NULL;
+		return NO_VULKAN_SUPPORT_MPGX_RESULT;
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API)
@@ -355,7 +343,7 @@ Window createWindow(
 		sizeof(struct Window));
 
 	if (window == NULL)
-		return NULL;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 
 	GLFWwindow* handle = glfwCreateWindow(
 		(int)size.x,
@@ -367,7 +355,7 @@ Window createWindow(
 	if (handle == NULL)
 	{
 		free(window);
-		return NULL;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
 	glfwSetWindowSizeLimits(
@@ -405,7 +393,6 @@ Window createWindow(
 	{
 #if MPGX_SUPPORT_VULKAN
 		vkWindow = createVkWindow(
-			window,
 			vkInstance,
 			handle,
 			useStencilBuffer,
@@ -415,7 +402,7 @@ Window createWindow(
 		{
 			glfwDestroyWindow(handle);
 			free(window);
-			return NULL;
+			return FAILED_TO_ALLOCATE_MPGX_RESULT;
 		}
 
 		VkSwapchain swapchain = vkWindow->swapchain;
@@ -425,15 +412,14 @@ Window createWindow(
 			swapchain->renderPass,
 			firstBuffer.framebuffer,
 			window,
-			framebufferSize,
-			pipelineCapacity);
+			framebufferSize);
 
 		if (framebuffer == NULL)
 		{
 			destroyVkWindow(vkInstance, vkWindow);
 			glfwDestroyWindow(handle);
 			free(window);
-			return NULL;
+			return FAILED_TO_ALLOCATE_MPGX_RESULT;
 		}
 #else
 		abort();
@@ -448,26 +434,25 @@ Window createWindow(
 		{
 			glfwDestroyWindow(handle);
 			free(window);
-			return NULL;
+			return FAILED_TO_INIT_OPENGL_MPGX_RESULT;
 		}
 
 		glEnable(GL_FRAMEBUFFER_SRGB);
 
 		framebuffer = createDefaultGlFramebuffer(
 			window,
-			framebufferSize,
-			pipelineCapacity);
+			framebufferSize);
 
 		if (framebuffer == NULL)
 		{
 			glfwDestroyWindow(handle);
 			free(window);
-			return NULL;
+			return FAILED_TO_ALLOCATE_MPGX_RESULT;
 		}
 	}
 
 	Buffer* buffers = malloc(
-		sizeof(Buffer) * bufferCapacity);
+		4 * sizeof(Buffer));
 
 	if (buffers == NULL)
 	{
@@ -485,11 +470,11 @@ Window createWindow(
 
 		glfwDestroyWindow(handle);
 		free(window);
-		return NULL;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
 	Image* images = malloc(
-		sizeof(Image) * imageCapacity);
+		4 * sizeof(Image));
 
 	if (images == NULL)
 	{
@@ -509,11 +494,11 @@ Window createWindow(
 
 		glfwDestroyWindow(handle);
 		free(window);
-		return NULL;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
 	Sampler* samplers = malloc(
-		sizeof(Sampler) * samplerCapacity);
+		4 * sizeof(Sampler));
 
 	if (samplers == NULL)
 	{
@@ -534,11 +519,11 @@ Window createWindow(
 
 		glfwDestroyWindow(handle);
 		free(window);
-		return NULL;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
 	Shader* shaders = malloc(
-		sizeof(Shader) * shaderCapacity);
+		4 * sizeof(Shader));
 
 	if (shaders == NULL)
 	{
@@ -560,11 +545,11 @@ Window createWindow(
 
 		glfwDestroyWindow(handle);
 		free(window);
-		return NULL;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
 	Framebuffer* framebuffers = malloc(
-		sizeof(Framebuffer) * framebufferCapacity);
+		4 * sizeof(Framebuffer));
 
 	if (framebuffers == NULL)
 	{
@@ -587,11 +572,11 @@ Window createWindow(
 
 		glfwDestroyWindow(handle);
 		free(window);
-		return NULL;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
 	Mesh* meshes = malloc(
-		sizeof(Mesh) * meshCapacity);
+		4 * sizeof(Mesh));
 
 	if (meshes == NULL)
 	{
@@ -616,7 +601,7 @@ Window createWindow(
 
 		glfwDestroyWindow(handle);
 		free(window);
-		return NULL;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
 	window->api = api;
@@ -626,22 +611,22 @@ Window createWindow(
 	window->handle = handle;
 	window->framebuffer = framebuffer;
 	window->buffers = buffers;
-	window->bufferCapacity = bufferCapacity;
+	window->bufferCapacity = 4;
 	window->bufferCount = 0;
 	window->images = images;
-	window->imageCapacity = imageCapacity;
+	window->imageCapacity = 4;
 	window->imageCount = 0;
 	window->samplers = samplers;
-	window->samplerCapacity = samplerCapacity;
+	window->samplerCapacity = 4;
 	window->samplerCount = 0;
 	window->shaders = shaders;
-	window->shaderCapacity = shaderCapacity;
+	window->shaderCapacity = 4;
 	window->shaderCount = 0;
 	window->framebuffers = framebuffers;
-	window->framebufferCapacity = framebufferCapacity;
+	window->framebufferCapacity = 4;
 	window->framebufferCount = 0;
 	window->meshes = meshes;
-	window->meshCapacity = meshCapacity;
+	window->meshCapacity = 4;
 	window->meshCount = 0;
 	window->targetFPS = 60.0;
 	window->updateTime = 0.0;
@@ -653,24 +638,19 @@ Window createWindow(
 #endif
 
 	currentWindow = window;
-	return window;
+	*_window = window;
+	return SUCCESS_MPGX_RESULT;
 }
-Window createAnyWindow(
+MpgxResult createAnyWindow(
 	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate updateFunction,
 	void* updateArgument,
 	bool visible,
-	size_t bufferCapacity,
-	size_t imageCapacity,
-	size_t samplerCapacity,
-	size_t shaderCapacity,
-	size_t framebufferCapacity,
-	size_t pipelineCapacity,
-	size_t meshCapacity)
+	Window* window)
 {
-	Window window = createWindow(
+	MpgxResult mpgxResult = createWindow(
 		VULKAN_GRAPHICS_API,
 		useStencilBuffer,
 		size,
@@ -678,18 +658,12 @@ Window createAnyWindow(
 		updateFunction,
 		updateArgument,
 		visible,
-		bufferCapacity,
-		imageCapacity,
-		samplerCapacity,
-		shaderCapacity,
-		framebufferCapacity,
-		pipelineCapacity,
-		meshCapacity);
+		window);
 
-	if (window != NULL)
-		return window;
+	if (mpgxResult == SUCCESS_MPGX_RESULT)
+		return SUCCESS_MPGX_RESULT;
 
-	window = createWindow(
+	mpgxResult = createWindow(
 		OPENGL_GRAPHICS_API,
 		useStencilBuffer,
 		size,
@@ -697,18 +671,12 @@ Window createAnyWindow(
 		updateFunction,
 		updateArgument,
 		visible,
-		bufferCapacity,
-		imageCapacity,
-		samplerCapacity,
-		shaderCapacity,
-		framebufferCapacity,
-		pipelineCapacity,
-		meshCapacity);
+		window);
 
-	if (window != NULL)
-		return window;
+	if (mpgxResult == SUCCESS_MPGX_RESULT)
+		return SUCCESS_MPGX_RESULT;
 
-	window = createWindow(
+	return createWindow(
 		OPENGL_ES_GRAPHICS_API,
 		useStencilBuffer,
 		size,
@@ -716,15 +684,7 @@ Window createAnyWindow(
 		updateFunction,
 		updateArgument,
 		visible,
-		bufferCapacity,
-		imageCapacity,
-		samplerCapacity,
-		shaderCapacity,
-		framebufferCapacity,
-		pipelineCapacity,
-		meshCapacity);
-
-	return window;
+		window);
 }
 void destroyWindow(Window window)
 {
@@ -775,7 +735,6 @@ void destroyWindow(Window window)
 		destroyVkFramebuffer(
 			device,
 			window->framebuffer);
-
 		destroyVkWindow(
 			vkInstance,
 			vkWindow);
@@ -3669,6 +3628,7 @@ Pipeline createPipeline(
 	assert(state != NULL);
 	assert(onHandleResize != NULL);
 	assert(onHandleDestroy != NULL);
+	assert(handle != NULL);
 	assert(state->drawMode < DRAW_MODE_COUNT);
 	assert(state->polygonMode < POLYGON_MODE_COUNT);
 	assert(state->cullMode < CULL_MODE_COUNT);

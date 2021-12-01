@@ -17,14 +17,16 @@
 #include <string.h>
 #include <assert.h>
 
-typedef struct RenderHandle
+struct RenderHandle
 {
 	Mesh mesh;
-} RenderHandle;
+};
+
+typedef struct RenderHandle* RenderHandle;
 
 static void onRenderHandleDestroy(void* handle)
 {
-	free((RenderHandle*)handle);
+	free((RenderHandle)handle);
 }
 static size_t onRenderHandleDraw(
 	Render render,
@@ -32,7 +34,7 @@ static size_t onRenderHandleDraw(
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	RenderHandle* renderHandle =
+	RenderHandle renderHandle =
 		getRenderHandle(render);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
@@ -45,13 +47,11 @@ static size_t onRenderHandleDraw(
 		pipeline);
 }
 Renderer createSimpShadRenderer(
-	Transform transform,
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,
 	size_t capacity)
 {
-	assert(transform != NULL);
 	assert(pipeline != NULL);
 	assert(sorting < RENDER_SORTING_COUNT);
 	assert(capacity != 0);
@@ -61,7 +61,6 @@ Renderer createSimpShadRenderer(
 		SIMPSHAD_PIPELINE_NAME) == 0);
 
 	return createRenderer(
-		transform,
 		pipeline,
 		sorting,
 		useCulling,
@@ -79,9 +78,6 @@ Render createSimpShadRender(
 	assert(transform != NULL);
 	assert(mesh != NULL);
 
-	assert(getTransformTransformer(
-		getRendererTransform(renderer)) ==
-		getTransformTransformer(transform));
 	assert(getFramebufferWindow(
 		getPipelineFramebuffer(
 		getRendererPipeline(renderer))) ==
@@ -91,8 +87,8 @@ Render createSimpShadRender(
 		getRendererPipeline(renderer)),
 		SIMPSHAD_PIPELINE_NAME) == 0);
 
-	RenderHandle* renderHandle = malloc(
-		sizeof(RenderHandle));
+	RenderHandle renderHandle = malloc(
+		sizeof(struct RenderHandle));
 
 	if (renderHandle == NULL)
 		return NULL;
@@ -123,7 +119,7 @@ Mesh getSimpShadRenderMesh(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		SIMPSHAD_PIPELINE_NAME) == 0);
-	RenderHandle* renderHandle =
+	RenderHandle renderHandle =
 		getRenderHandle(render);
 	return renderHandle->mesh;
 }
@@ -138,7 +134,7 @@ void setSimpShadRenderMesh(
 		getRendererPipeline(
 		getRenderRenderer(render))),
 		SIMPSHAD_PIPELINE_NAME) == 0);
-	RenderHandle* renderHandle =
+	RenderHandle renderHandle =
 		getRenderHandle(render);
 	renderHandle->mesh = mesh;
 }

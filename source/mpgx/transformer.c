@@ -65,20 +65,10 @@ void destroyTransformer(Transformer transformer)
 	if (transformer == NULL)
 		return;
 
-	size_t transformCount = transformer->transformCount;
-	Transform* transforms = transformer->transforms;
+	assert(transformer->transformCount == 0);
 
-	for (size_t i = 0; i < transformCount; i++)
-		free(transforms[i]);
-
-	free(transforms);
+	free(transformer->transforms);
 	free(transformer);
-}
-
-bool isTransformerEmpty(Transformer transformer)
-{
-	assert(transformer != NULL);
-	return transformer->transformCount == 0;
 }
 
 void enumerateTransformer(

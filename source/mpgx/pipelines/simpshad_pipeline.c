@@ -301,9 +301,9 @@ Pipeline createSimpShadPipeline(
 	assert(framebuffer != NULL);
 	assert(shadowMapLength != 0);
 
-	Vec4I size = vec4I(0, 0,
-		(int32_t)shadowMapLength,
-		(int32_t)shadowMapLength);
+	Vec4U size = vec4U(0, 0,
+		shadowMapLength,
+		shadowMapLength);
 	Vec2F depthBias = vec2F(
 		1.1f,4.0f);
 

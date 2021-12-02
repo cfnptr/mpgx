@@ -26,7 +26,8 @@ Render createTextRender(
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
-	Text text);
+	Text text,
+	Vec4U scissor);
 
 LinearColor getTextRenderColor(
 	Render render);

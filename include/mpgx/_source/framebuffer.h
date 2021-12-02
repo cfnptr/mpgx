@@ -354,7 +354,7 @@ inline static Framebuffer createDefaultVkFramebuffer(
 		return NULL;
 
 	Pipeline* pipelines = malloc(
-		4 * sizeof(Pipeline));
+		MPGX_DEFAULT_CAPACITY * sizeof(Pipeline));
 
 	if (pipelines == NULL)
 	{
@@ -370,7 +370,7 @@ inline static Framebuffer createDefaultVkFramebuffer(
 	framebuffer->vk.depthStencilAttachment = NULL;
 	framebuffer->vk.isDefault = true;
 	framebuffer->vk.pipelines = pipelines;
-	framebuffer->vk.pipelineCapacity = 4;
+	framebuffer->vk.pipelineCapacity = MPGX_DEFAULT_CAPACITY;
 	framebuffer->vk.pipelineCount = 0;
 	framebuffer->vk.renderPass = renderPass;
 	framebuffer->vk.handle = handle;
@@ -497,22 +497,6 @@ inline static void destroyVkFramebuffer(
 	VkDevice device,
 	Framebuffer framebuffer)
 {
-	size_t pipelineCount = framebuffer->vk.pipelineCount;
-	Pipeline* pipelines = framebuffer->vk.pipelines;
-
-	for (size_t i = 0; i < pipelineCount; i++)
-	{
-		Pipeline pipeline = pipelines[i];
-
-		OnPipelineHandleDestroy onDestroy =
-			getPipelineOnHandleDestroy(pipeline);
-		onDestroy(getPipelineHandle(pipeline));
-
-		destroyVkPipeline(device, pipeline);
-	}
-
-	free(pipelines);
-
 	if (framebuffer->vk.isDefault == false)
 	{
 		vkDestroyFramebuffer(
@@ -526,6 +510,9 @@ inline static void destroyVkFramebuffer(
 		free(framebuffer->vk.colorAttachments);
 	}
 
+	assert(framebuffer->vk.pipelineCount == 0);
+
+	free(framebuffer->vk.pipelines);
 	free(framebuffer);
 }
 
@@ -795,7 +782,7 @@ inline static Framebuffer createDefaultGlFramebuffer(
 		return NULL;
 
 	Pipeline* pipelines = malloc(
-		4 * sizeof(Pipeline));
+		MPGX_DEFAULT_CAPACITY * sizeof(Pipeline));
 
 	if (pipelines == NULL)
 	{
@@ -810,7 +797,7 @@ inline static Framebuffer createDefaultGlFramebuffer(
 	framebuffer->gl.depthStencilAttachment = NULL;
 	framebuffer->gl.isDefault = true;
 	framebuffer->gl.pipelines = pipelines;
-	framebuffer->gl.pipelineCapacity = 4;
+	framebuffer->gl.pipelineCapacity = MPGX_DEFAULT_CAPACITY;
 	framebuffer->gl.pipelineCount = 0;
 	framebuffer->gl.handle = GL_ZERO;
 	return framebuffer;
@@ -1044,22 +1031,6 @@ inline static void destroyGlPipeline(Pipeline pipeline);
 inline static void destroyGlFramebuffer(
 	Framebuffer framebuffer)
 {
-	size_t pipelineCount = framebuffer->gl.pipelineCount;
-	Pipeline* pipelines = framebuffer->gl.pipelines;
-
-	for (size_t i = 0; i < pipelineCount; i++)
-	{
-		Pipeline pipeline = pipelines[i];
-
-		OnPipelineHandleDestroy onDestroy =
-			getPipelineOnHandleDestroy(pipeline);
-		onDestroy(getPipelineHandle(pipeline));
-
-		destroyGlPipeline(pipeline);
-	}
-
-	free(pipelines);
-
 	if (framebuffer->gl.isDefault == false)
 	{
 		free(framebuffer->gl.colorAttachments);
@@ -1072,6 +1043,9 @@ inline static void destroyGlFramebuffer(
 		assertOpenGL();
 	}
 
+	assert(framebuffer->gl.pipelineCount == 0);
+
+	free(framebuffer->gl.pipelines);
 	free(framebuffer);
 }
 

@@ -21,6 +21,7 @@
 #define MPGX_VERSION_PATCH @mpgx_VERSION_PATCH@
 
 #define MPGX_SUPPORT_VULKAN @MPGX_SUPPORT_VULKAN@
+#define MPGX_DEFAULT_CAPACITY 4
 
 typedef enum MpgxResult
 {

@@ -427,8 +427,7 @@ inline static VkPipeline createVkPipelineHandle(
 	VkDynamicState dynamicStates[2];
 	uint32_t dynamicStateCount = 0;
 
-	bool dynamicViewport =
-		state.viewport.z +
+	bool dynamicViewport = state.viewport.z +
 		state.viewport.w == 0;
 
 	if (dynamicViewport == true)
@@ -437,8 +436,7 @@ inline static VkPipeline createVkPipelineHandle(
 			VK_DYNAMIC_STATE_VIEWPORT;
 	}
 
-	bool dynamicScissor =
-		state.scissor.z +
+	bool dynamicScissor = state.scissor.z +
 		state.scissor.w == 0;
 
 	if (dynamicScissor == true)
@@ -446,6 +444,9 @@ inline static VkPipeline createVkPipelineHandle(
 		dynamicStates[dynamicStateCount++] =
 			VK_DYNAMIC_STATE_SCISSOR;
 	}
+
+	// TODO: fix different Vulkan viewport/scissor
+	// coordinate system from OpenGL
 
 	VkViewport viewport = {
 		(float)state.viewport.x,
@@ -456,14 +457,10 @@ inline static VkPipeline createVkPipelineHandle(
 		state.depthRange.y,
 	};
 	VkRect2D scissor = {
-		{
-			(int32_t)state.scissor.x,
-			(int32_t)state.scissor.y,
-		},
-		{
-			(uint32_t)state.scissor.z,
-			(uint32_t)state.scissor.w,
-		},
+		(int32_t)state.scissor.x,
+		(int32_t)state.scissor.y,
+		(uint32_t)state.scissor.z,
+		(uint32_t)state.scissor.w,
 	};
 	VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
@@ -1197,7 +1194,7 @@ inline static void destroyGlPipeline(
 inline static void bindGlPipeline(
 	Pipeline pipeline)
 {
-	Vec4I viewport = pipeline->gl.state.viewport;
+	Vec4U viewport = pipeline->gl.state.viewport;
 
 	if (viewport.z + viewport.w > 0)
 	{
@@ -1212,7 +1209,7 @@ inline static void bindGlPipeline(
 			depthRange.y);
 	}
 
-	Vec4I scissor = pipeline->gl.state.scissor;
+	Vec4U scissor = pipeline->gl.state.scissor;
 
 	if (scissor.z + scissor.w > 0)
 	{

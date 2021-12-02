@@ -65,7 +65,6 @@ Renderer createRenderer(
 	size_t capacity);
 void destroyRenderer(Renderer renderer);
 
-bool isRendererEmpty(Renderer renderer);
 Pipeline getRendererPipeline(Renderer renderer);
 OnRenderHandleDestroy getRendererOnHandleDestroy(Renderer renderer);
 OnRenderHandleDraw getRendererOnHandleDraw(Renderer renderer);

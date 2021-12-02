@@ -611,22 +611,22 @@ MpgxResult createWindow(
 	window->handle = handle;
 	window->framebuffer = framebuffer;
 	window->buffers = buffers;
-	window->bufferCapacity = 4;
+	window->bufferCapacity = MPGX_DEFAULT_CAPACITY;
 	window->bufferCount = 0;
 	window->images = images;
-	window->imageCapacity = 4;
+	window->imageCapacity = MPGX_DEFAULT_CAPACITY;
 	window->imageCount = 0;
 	window->samplers = samplers;
-	window->samplerCapacity = 4;
+	window->samplerCapacity = MPGX_DEFAULT_CAPACITY;
 	window->samplerCount = 0;
 	window->shaders = shaders;
-	window->shaderCapacity = 4;
+	window->shaderCapacity = MPGX_DEFAULT_CAPACITY;
 	window->shaderCount = 0;
 	window->framebuffers = framebuffers;
-	window->framebufferCapacity = 4;
+	window->framebufferCapacity = MPGX_DEFAULT_CAPACITY;
 	window->framebufferCount = 0;
 	window->meshes = meshes;
-	window->meshCapacity = 4;
+	window->meshCapacity = MPGX_DEFAULT_CAPACITY;
 	window->meshCount = 0;
 	window->targetFPS = 60.0;
 	window->updateTime = 0.0;
@@ -691,100 +691,23 @@ void destroyWindow(Window window)
 	if (window == NULL)
         return;
 
-	Mesh* meshes = window->meshes;
-	size_t meshCount = window->meshCount;
-	Shader* shaders = window->shaders;
-	size_t shaderCount = window->shaderCount;
-	Framebuffer* framebuffers = window->framebuffers;
-	size_t framebufferCount = window->framebufferCount;
-	Sampler* samplers = window->samplers;
-	size_t samplerCount = window->samplerCount;
-	Image* images = window->images;
-	size_t imageCount = window->imageCount;
-	Buffer* buffers = window->buffers;
-	size_t bufferCount = window->bufferCount;
+	assert(window->bufferCount == 0);
+	assert(window->imageCount == 0);
+	assert(window->samplerCount == 0);
+	assert(window->framebufferCount == 0);
+	assert(window->shaderCount == 0);
+	assert(window->meshCount == 0);
 
-	GraphicsAPI api = window->api;
-
-    if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		VkWindow vkWindow = window->vkWindow;
-		VkDevice device = vkWindow->device;
-		VmaAllocator allocator = vkWindow->allocator;
-
-		VkResult result = vkDeviceWaitIdle(
-			vkWindow->device);
-
-		if (result != VK_SUCCESS)
-			abort();
-
-		for (size_t i = 0; i < meshCount; i++)
-			destroyVkMesh(meshes[i]);
-		for (size_t i = 0; i < shaderCount; i++)
-			destroyVkShader(device, shaders[i]);
-		for (size_t i = 0; i < framebufferCount; i++)
-			destroyVkFramebuffer(device, framebuffers[i]);
-		for (size_t i = 0; i < samplerCount; i++)
-			destroyVkSampler(device, samplers[i]);
-		for (size_t i = 0; i < imageCount; i++)
-			destroyVkImage(device, allocator, images[i]);
-		for (size_t i = 0; i < bufferCount; i++)
-			destroyVkBuffer(allocator, buffers[i]);
-
-		destroyVkFramebuffer(
-			device,
-			window->framebuffer);
-		destroyVkWindow(
-			vkInstance,
-			vkWindow);
-#endif
-	}
-    else if (api == OPENGL_GRAPHICS_API ||
-    	api == OPENGL_ES_GRAPHICS_API)
-	{
-		for (size_t i = 0; i < meshCount; i++)
-			destroyGlMesh(meshes[i]);
-		for (size_t i = 0; i < shaderCount; i++)
-			destroyGlShader(shaders[i]);
-		for (size_t i = 0; i < framebufferCount; i++)
-			destroyGlFramebuffer(framebuffers[i]);
-		for (size_t i = 0; i < samplerCount; i++)
-			destroyGlSampler(samplers[i]);
-		for (size_t i = 0; i < imageCount; i++)
-			destroyGlImage(images[i]);
-		for (size_t i = 0; i < bufferCount; i++)
-			destroyGlBuffer(buffers[i]);
-
-		destroyGlFramebuffer(window->framebuffer);
-	}
-    else
-	{
-    	abort();
-	}
-
-	free(buffers);
-	free(meshes);
-	free(images);
-	free(framebuffers);
-	free(shaders);
-
+	free(window->buffers);
+	free(window->images);
+	free(window->samplers);
+	free(window->framebuffers);
+	free(window->shaders);
+	free(window->meshes);
 	glfwDestroyWindow(window->handle);
 	free(window);
 }
 
-bool isWindowEmpty(Window window)
-{
-	assert(window != NULL);
-
-	return
-		window->bufferCount == 0 &&
-		window->imageCount == 0 &&
-		window->samplerCount == 0 &&
-		window->shaderCount == 0 &&
-		window->framebufferCount == 0 &&
-		window->meshCount == 0;
-}
 GraphicsAPI getWindowGraphicsAPI(Window window)
 {
 	assert(window != NULL);
@@ -3238,11 +3161,6 @@ bool isFramebufferDefault(Framebuffer framebuffer)
 {
 	assert(framebuffer != NULL);
 	return framebuffer->base.isDefault;
-}
-bool isFramebufferEmpty(Framebuffer framebuffer)
-{
-	assert(framebuffer != NULL);
-	return framebuffer->base.pipelineCount == 0;
 }
 
 bool setFramebufferAttachments(

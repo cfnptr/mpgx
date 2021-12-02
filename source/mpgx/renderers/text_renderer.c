@@ -21,6 +21,7 @@ struct RenderHandle
 {
 	LinearColor color;
 	Text text;
+	Vec4U scissor;
 };
 
 typedef struct RenderHandle* RenderHandle;
@@ -47,7 +48,8 @@ static size_t onRenderHandleDraw(
 		pipeline,
 		renderHandle->color);
 	return drawText(
-		renderHandle->text);
+		renderHandle->text,
+		renderHandle->scissor);
 }
 Renderer createTextRenderer(
 	Pipeline pipeline,
@@ -76,7 +78,8 @@ Render createTextRender(
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
-	Text text)
+	Text text,
+	Vec4U scissor)
 {
 	assert(renderer != NULL);
 	assert(transform != NULL);
@@ -101,6 +104,7 @@ Render createTextRender(
 
 	renderHandle->color = color;
 	renderHandle->text = text;
+	renderHandle->scissor = scissor;
 
 	Render render = createRender(
 		renderer,

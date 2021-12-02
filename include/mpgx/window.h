@@ -397,8 +397,8 @@ typedef struct PipelineState
 	bool restartPrimitive;
 	bool discardRasterizer;
 	float lineWidth;
-	Vec4I viewport;
-	Vec4I scissor;
+	Vec4U viewport;
+	Vec4U scissor;
 	Vec2F depthRange;
 	Vec2F depthBias;
 	Vec4F blendColor;
@@ -454,7 +454,6 @@ MpgxResult createAnyWindow(
 	Window* window);
 void destroyWindow(Window window);
 
-bool isWindowEmpty(Window window);
 GraphicsAPI getWindowGraphicsAPI(Window window);
 bool isWindowUseStencilBuffer(Window window);
 OnWindowUpdate getWindowOnUpdate(Window window);
@@ -673,7 +672,6 @@ Image* getFramebufferColorAttachments(Framebuffer framebuffer);
 size_t getFramebufferColorAttachmentCount(Framebuffer framebuffer);
 Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer);
 bool isFramebufferDefault(Framebuffer framebuffer);
-bool isFramebufferEmpty(Framebuffer framebuffer);
 
 bool setFramebufferAttachments(
 	Framebuffer framebuffer,

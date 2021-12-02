@@ -77,7 +77,7 @@ void setTextFontSize(
 	Text text,
 	uint32_t fontSize);
 
-uint32_t getTextAlignment(
+AlignmentType getTextAlignment(
 	Text text);
 void setTextAlignment(
 	Text text,
@@ -92,7 +92,9 @@ bool setTextData(
 bool bakeText(
 	Text text,
 	bool reuse);
-size_t drawText(Text text);
+size_t drawText(
+	Text text,
+	Vec4U scissor);
 
 Sampler createTextSampler(Window window);
 
@@ -101,15 +103,17 @@ Pipeline createExtTextPipeline(
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler,
-	const PipelineState* state);
+	const PipelineState* state,
+	size_t textCapacity);
 Pipeline createTextPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Sampler sampler);
+	Sampler sampler,
+	size_t textCapacity,
+	bool useScissor);
 
-Sampler getTextPipelineSampler(
-	Pipeline pipeline);
+Sampler getTextPipelineSampler(Pipeline pipeline);
 
 Mat4F getTextPipelineMVP(
 	Pipeline pipeline);

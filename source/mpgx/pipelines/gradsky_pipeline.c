@@ -440,11 +440,18 @@ static bool onVkHandleResize(
 		pipelineHandle->vk.bufferCount = bufferCount;
 	}
 
-	Vec4I size = vec4I(0, 0,
-		(int32_t)newSize.x,
-		(int32_t)newSize.y);
-	pipeline->vk.state.viewport = size;
-	pipeline->vk.state.scissor = size;
+	Vec4U size = vec4U(0, 0,
+		newSize.x, newSize.y);
+
+	bool dynamic = pipeline->vk.state.viewport.z +
+		pipeline->vk.state.viewport.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.viewport = size;
+
+	dynamic = pipeline->vk.state.scissor.z +
+		pipeline->vk.state.scissor.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.scissor = size;
 
 	VkPipelineCreateInfo _createInfo = {
 		1,
@@ -622,11 +629,18 @@ static bool onGlHandleResize(
 	Vec2U newSize,
 	void* createInfo)
 {
-	Vec4I size = vec4I(0, 0,
-		(int32_t)newSize.x,
-		(int32_t)newSize.y);
-	pipeline->gl.state.viewport = size;
-	pipeline->gl.state.scissor = size;
+	Vec4U size = vec4U(0, 0,
+		newSize.x, newSize.y);
+
+	bool dynamic = pipeline->vk.state.viewport.z +
+		pipeline->vk.state.viewport.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.viewport = size;
+
+	dynamic = pipeline->vk.state.scissor.z +
+		pipeline->vk.state.scissor.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.scissor = size;
 	return true;
 }
 static void onGlHandleDestroy(void* handle)
@@ -775,9 +789,9 @@ Pipeline createGradSkyPipeline(
 
 	Vec2U framebufferSize =
 		framebuffer->base.size;
-	Vec4I size = vec4I(0, 0,
-		(int32_t)framebufferSize.x,
-		(int32_t)framebufferSize.y);
+	Vec4U size = vec4U(0, 0,
+		framebufferSize.x,
+		framebufferSize.y);
 
 	PipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,

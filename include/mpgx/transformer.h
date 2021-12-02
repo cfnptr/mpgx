@@ -30,8 +30,6 @@ typedef enum RotationType
 Transformer createTransformer(size_t capacity);
 void destroyTransformer(Transformer transformer);
 
-bool isTransformerEmpty(Transformer transformer);
-
 void enumerateTransformer(
 	Transformer transformer,
 	void(*onItem)(Transform));

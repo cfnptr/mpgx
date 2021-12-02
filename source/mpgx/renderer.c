@@ -99,30 +99,13 @@ void destroyRenderer(Renderer renderer)
 	if (renderer == NULL)
 		return;
 
+	assert(renderer->renderCount == 0);
+
 	free(renderer->renderElements);
-
-	Render* renders = renderer->renders;
-	size_t renderCount = renderer->renderCount;
-
-	OnRenderHandleDestroy onHandleDestroy =
-		renderer->onHandleDestroy;
-
-	for (size_t i = 0; i < renderCount; i++)
-	{
-		Render render = renders[i];
-		onHandleDestroy(render->handle);
-		free(render);
-	}
-
-	free(renders);
+	free(renderer->renders);
 	free(renderer);
 }
 
-bool isRendererEmpty(Renderer renderer)
-{
-	assert(renderer != NULL);
-	return renderer->renderCount == 0;
-}
 Pipeline getRendererPipeline(Renderer renderer)
 {
 	assert(renderer != NULL);

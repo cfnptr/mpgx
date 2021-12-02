@@ -78,6 +78,9 @@ typedef struct BasePipelineHandle
 	Sampler sampler;
 	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
+	Text* texts;
+	size_t textCapacity;
+	size_t textCount;
 } BasePipelineHandle;
 typedef struct VkPipelineHandle
 {
@@ -86,6 +89,9 @@ typedef struct VkPipelineHandle
 	Sampler sampler;
 	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
+	Text* texts;
+	size_t textCapacity;
+	size_t textCount;
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorSetLayout descriptorSetLayout;
 	uint32_t bufferCount;
@@ -98,6 +104,9 @@ typedef struct GlPipelineHandle
 	Sampler sampler;
 	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
+	Text* texts;
+	size_t textCapacity;
+	size_t textCount;
 	GLint mvpLocation;
 	GLint colorLocation;
 	GLint textureLocation;
@@ -1301,6 +1310,46 @@ Text createText(
 	text->fontSize = fontSize;
 	text->alignment = alignment;
 	text->isConstant = isConstant;
+
+	PipelineHandle pipelineHandle = pipeline->base.handle;
+	size_t count = pipelineHandle->base.textCount;
+
+	if (count == pipelineHandle->base.textCapacity)
+	{
+		size_t capacity = pipelineHandle->base.textCapacity * 2;
+
+		Text* texts = realloc(
+			pipelineHandle->base.texts,
+			capacity * sizeof(Text));
+
+		if (texts == NULL)
+		{
+#if MPGX_SUPPORT_VULKAN
+			if (api == VULKAN_GRAPHICS_API)
+			{
+				free(text->descriptorSets);
+
+				VkWindow vkWindow = getVkWindow(window);
+
+				vkDestroyDescriptorPool(
+					vkWindow->device,
+					text->descriptorPool,
+					NULL);
+			}
+#endif
+			destroyMesh(text->mesh, true);
+			destroyImage(text->texture);
+			free(text->data);
+			free(text);
+			return NULL;
+		}
+
+		pipelineHandle->base.texts = texts;
+		pipelineHandle->base.textCapacity = capacity;
+	}
+
+	pipelineHandle->base.texts[count] = text;
+	pipelineHandle->base.textCount = count + 1;
 	return text;
 }
 void destroyText(Text text)
@@ -1308,40 +1357,55 @@ void destroyText(Text text)
 	if (text == NULL)
 		return;
 
-#if MPGX_SUPPORT_VULKAN
-	Pipeline pipeline = text->pipeline;
+	PipelineHandle pipelineHandle = text->pipeline->base.handle;
+	Text* texts = pipelineHandle->base.texts;
+	size_t textCount = pipelineHandle->base.textCount;
 
-	GraphicsAPI api = getWindowGraphicsAPI(
-		pipeline->base.framebuffer->base.window);
-
-	if (api == VULKAN_GRAPHICS_API)
+	for (size_t i = 0; i < textCount; i++)
 	{
-		VkWindow vkWindow = getVkWindow(
-			pipeline->vk.framebuffer->vk.window);
-		VkDevice device = vkWindow->device;
+		if (texts[i] != text)
+			continue;
 
-		VkResult vkResult = vkQueueWaitIdle(
-			vkWindow->graphicsQueue);
+		for (size_t j = i + 1; j < textCount; j++)
+			texts[j - 1] = texts[j];
 
-		if (vkResult != VK_SUCCESS)
-			abort();
+#if MPGX_SUPPORT_VULKAN
+		Pipeline pipeline = text->pipeline;
 
-		free(text->descriptorSets);
+		GraphicsAPI api = getWindowGraphicsAPI(
+			pipeline->base.framebuffer->base.window);
 
-		vkDestroyDescriptorPool(
-			device,
-			text->descriptorPool,
-			NULL);
-	}
+		if (api == VULKAN_GRAPHICS_API)
+		{
+			VkWindow vkWindow = getVkWindow(
+				pipeline->vk.framebuffer->vk.window);
+			VkDevice device = vkWindow->device;
+
+			VkResult vkResult = vkQueueWaitIdle(
+				vkWindow->graphicsQueue);
+
+			if (vkResult != VK_SUCCESS)
+				abort();
+
+			free(text->descriptorSets);
+
+			vkDestroyDescriptorPool(
+				device,
+				text->descriptorPool,
+				NULL);
+		}
 #endif
+		destroyMesh(text->mesh, true);
+		destroyImage(text->texture);
 
-	destroyMesh(
-		text->mesh,
-		true);
-	destroyImage(text->texture);
+		free(text->data);
+		free(text);
 
-	free(text->data);
-	free(text);
+		pipelineHandle->base.textCount--;
+		return;
+	}
+
+	abort();
 }
 
 Pipeline getTextPipeline(Text text)
@@ -1540,11 +1604,11 @@ void setTextFontSize(
 	text->fontSize = fontSize;
 }
 
-uint32_t getTextAlignment(
+AlignmentType getTextAlignment(
 	Text text)
 {
 	assert(text != NULL);
-	return text->fontSize;
+	return text->alignment;
 }
 void setTextAlignment(
 	Text text,
@@ -2290,7 +2354,9 @@ bool bakeText(
 
 	return true;
 }
-size_t drawText(Text text)
+size_t drawText(
+	Text text,
+	Vec4U scissor)
 {
 	assert(text != NULL);
 
@@ -2298,25 +2364,31 @@ size_t drawText(Text text)
 	PipelineHandle textPipeline = pipeline->gl.handle;
 	textPipeline->base.texture = text->texture;
 
-#if MPGX_SUPPORT_VULKAN
+	bool dynamicScissor = scissor.z + scissor.w != 0;
+
 	Window window = pipeline->base.framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = getVkWindow(window);
 		VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 
-		// TODO: get scissors from bounding box
-		VkRect2D scissor = {
-			{ 0, 0 },
-			{ 10000, 10000 },
-		};
-		vkCmdSetScissor(
-			commandBuffer,
-			0,
-			1,
-			&scissor);
+		if (dynamicScissor == true)
+		{
+			VkRect2D vkScissor = {
+				(int32_t)scissor.x,
+				(int32_t)scissor.y,
+				scissor.z,
+				scissor.w,
+			};
+			vkCmdSetScissor(
+				commandBuffer,
+				0,
+				1,
+				&vkScissor);
+		}
 
 		vkCmdBindDescriptorSets(
 			commandBuffer,
@@ -2327,9 +2399,26 @@ size_t drawText(Text text)
 			&text->descriptorSets[vkWindow->bufferIndex],
 			0,
 			NULL);
-
-	}
+#else
+		abort();
 #endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		if (dynamicScissor == true)
+		{
+			glScissor(
+				(GLint)scissor.x,
+				(GLint)scissor.y,
+				(GLsizei)scissor.z,
+				(GLsizei)scissor.w);
+		}
+	}
+	else
+	{
+		abort();
+	}
 
 	return drawMesh(
 		text->mesh,
@@ -2454,48 +2543,69 @@ static bool onVkHandleResize(
 	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	Window window = pipelineHandle->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
-	VkSwapchain swapchain = vkWindow->swapchain;
-	uint32_t bufferCount = swapchain->bufferCount;
+	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
-	// TODO: resize each text
-	/*if (bufferCount != handle->vk.bufferCount)
+	if (bufferCount != pipelineHandle->vk.bufferCount)
 	{
+		Text* texts = pipelineHandle->vk.texts;
+		size_t textCount = pipelineHandle->vk.textCount;
 		VkDevice device = vkWindow->device;
 
-		free(handle->vk.descriptorSets);
+		for (size_t i = 0; i < textCount; i++)
+		{
+			Text text = texts[i];
 
-		vkDestroyDescriptorPool(
-			device,
-			handle->vk.descriptorPool,
-			NULL);
+			VkDescriptorPool descriptorPool = createVkDescriptorPool(
+				device,
+				bufferCount);
 
-		VkDescriptorPool descriptorPool = createVkDescriptorPool(
-			device,
-			bufferCount);
+			if (descriptorPool == NULL)
+				return false;
 
-		if (descriptorPool == NULL)
-			abort();
+			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+				device,
+				pipelineHandle->vk.descriptorSetLayout,
+				descriptorPool,
+				bufferCount,
+				pipelineHandle->vk.sampler->vk.handle,
+				text->texture->vk.imageView);
 
-		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
-			device,
-			handle->vk.descriptorSetLayout,
-			descriptorPool,
-			bufferCount,
-			handle->vk.sampler->vk.handle,
-			handle->vk.imageView);
+			if (descriptorSets == NULL)
+			{
+				vkDestroyDescriptorPool(
+					device,
+					descriptorPool,
+					NULL);
+				return false;
+			}
 
-		if (descriptorSets == NULL)
-			abort();
+			free(text->descriptorSets);
 
-		handle->vk.descriptorPool = descriptorPool;
-		handle->vk.descriptorSets = descriptorSets;
-		handle->vk.bufferCount = bufferCount;
-	}*/
+			vkDestroyDescriptorPool(
+				device,
+				text->descriptorPool,
+				NULL);
 
-	Vec4I size = vec4I(0, 0,
-		(int32_t)newSize.x,
-		(int32_t)newSize.y);
-	pipeline->vk.state.viewport = size;
+			text->descriptorPool = descriptorPool;
+			text->descriptorSets = descriptorSets;
+
+		}
+
+		pipelineHandle->vk.bufferCount = bufferCount;
+	}
+
+	Vec4U size = vec4U(0, 0,
+		newSize.x, newSize.y);
+
+	bool dynamic = pipeline->vk.state.viewport.z +
+		pipeline->vk.state.viewport.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.viewport = size;
+
+	dynamic = pipeline->vk.state.scissor.z +
+		pipeline->vk.state.scissor.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.scissor = size;
 
 	VkPipelineCreateInfo _createInfo = {
 		1,
@@ -2521,6 +2631,10 @@ static void onVkHandleDestroy(void* handle)
 		device,
 		pipelineHandle->vk.descriptorSetLayout,
 		NULL);
+
+	assert(pipelineHandle->vk.textCount == 0);
+
+	free(pipelineHandle->vk.texts);
 	free(pipelineHandle);
 }
 inline static Pipeline createVkHandle(
@@ -2623,15 +2737,28 @@ static bool onGlHandleResize(
 	Vec2U newSize,
 	void* createInfo)
 {
-	pipeline->vk.state.viewport = vec4I(
-		0, 0,
-		(int32_t)newSize.x,
-		(int32_t)newSize.y);
+	Vec4U size = vec4U(0, 0,
+		newSize.x, newSize.y);
+
+	bool dynamic = pipeline->vk.state.viewport.z +
+		pipeline->vk.state.viewport.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.viewport = size;
+
+	dynamic = pipeline->vk.state.scissor.z +
+		pipeline->vk.state.scissor.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.scissor = size;
 	return true;
 }
 static void onGlHandleDestroy(void* handle)
 {
-	free((PipelineHandle)handle);
+	PipelineHandle pipelineHandle = handle;
+
+	assert(pipelineHandle->gl.textCount == 0);
+
+	free(pipelineHandle->gl.texts);
+	free(pipelineHandle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
@@ -2693,12 +2820,14 @@ Pipeline createExtTextPipeline(
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler,
-	const PipelineState* state)
+	const PipelineState* state,
+	size_t textCapacity)
 {
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
 	assert(sampler != NULL);
+	assert(textCapacity != 0);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -2711,12 +2840,24 @@ Pipeline createExtTextPipeline(
 	if (pipelineHandle == NULL)
 		return NULL;
 
+	Text* texts = malloc(
+		textCapacity * sizeof(Text));
+
+	if (texts == NULL)
+	{
+		free(pipelineHandle);
+		return NULL;
+	}
+
 	Window window = framebuffer->vk.window;
 	pipelineHandle->base.window = window;
 	pipelineHandle->base.texture = NULL;
 	pipelineHandle->base.sampler = sampler;
 	pipelineHandle->base.vpc.mvp = identMat4F;
 	pipelineHandle->base.fpc.color = whiteLinearColor;
+	pipelineHandle->base.texts = texts;
+	pipelineHandle->base.textCapacity = textCapacity;
+	pipelineHandle->base.textCount = 0;
 
 	Shader shaders[2] = {
 		vertexShader,
@@ -2757,12 +2898,17 @@ Pipeline createTextPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Sampler sampler)
+	Sampler sampler,
+	size_t textCapacity,
+	bool useScissor)
 {
 	assert(framebuffer != NULL);
 
 	Vec2U framebufferSize =
 		framebuffer->base.size;
+	Vec4U size = vec4U(0, 0,
+		framebufferSize.x,
+		framebufferSize.y);
 
 	PipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
@@ -2786,10 +2932,8 @@ Pipeline createTextPipeline(
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
-		vec4I(0, 0,
-			(int32_t)framebufferSize.x,
-			(int32_t)framebufferSize.y),
-		zeroVec4I,
+		size,
+		useScissor ? zeroVec4U : size,
 		defaultDepthRange,
 		defaultDepthBias,
 		defaultBlendColor,
@@ -2800,11 +2944,11 @@ Pipeline createTextPipeline(
 		vertexShader,
 		fragmentShader,
 		sampler,
-		&state);
+		&state,
+		textCapacity);
 }
 
-Sampler getTextPipelineSampler(
-	Pipeline pipeline)
+Sampler getTextPipelineSampler(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(

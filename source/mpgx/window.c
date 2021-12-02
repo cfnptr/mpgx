@@ -698,6 +698,39 @@ void destroyWindow(Window window)
 	assert(window->shaderCount == 0);
 	assert(window->meshCount == 0);
 
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+		VkDevice device = vkWindow->device;
+		VmaAllocator allocator = vkWindow->allocator;
+
+		VkResult result = vkDeviceWaitIdle(
+			vkWindow->device);
+
+		if (result != VK_SUCCESS)
+			abort();
+
+		destroyVkFramebuffer(
+			device,
+			window->framebuffer);
+		destroyVkWindow(
+			vkInstance,
+			vkWindow);
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		destroyGlFramebuffer(window->framebuffer);
+	}
+	else
+	{
+		abort();
+	}
+
 	free(window->buffers);
 	free(window->images);
 	free(window->samplers);

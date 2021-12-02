@@ -155,7 +155,7 @@ inline static Renderer createDiffuseRendererInstance(Window window)
 		pipeline,
 		ASCENDING_RENDER_SORTING,
 		true,
-		1);
+		MPGX_DEFAULT_CAPACITY);
 
 	if (renderer == NULL)
 	{
@@ -297,7 +297,8 @@ inline static Client* createClient()
 		return NULL;
 	}
 
-	Transformer transformer = createTransformer(1);
+	Transformer transformer = createTransformer(
+		MPGX_DEFAULT_CAPACITY);
 
 	if (transformer == NULL)
 	{
@@ -369,18 +370,10 @@ inline static void destroyClient(Client* client)
 		return;
 
 	destroyDiffuseRenderInstance(client->diffuseRender);
-
-	assert(isRendererEmpty(client->diffuseRenderer));
 	destroyDiffuseRendererInstance(client->diffuseRenderer);
-
 	destroyFreeCamera(client->freeCamera);
-
-	assert(isTransformerEmpty(client->transformer));
 	destroyTransformer(client->transformer);
-
-	assert(isWindowEmpty(client->window) == true);
 	destroyWindow(client->window);
-
 	free(client);
 }
 

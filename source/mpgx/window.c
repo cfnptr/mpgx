@@ -45,6 +45,15 @@ struct Window
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
+	CursorType cursorType;
+	GLFWcursor* ibeamCursor;
+	GLFWcursor* crosshairCursor;
+	GLFWcursor* handCursor;
+	GLFWcursor* hresizeCursor;
+	GLFWcursor* vresizeCursor;
+	uint32_t* inputBuffer;
+	size_t inputCapacity;
+	size_t inputLength;
 	Framebuffer framebuffer;
 	Buffer* buffers;
 	size_t bufferCapacity;
@@ -206,6 +215,32 @@ void* getFtLibrary()
 	return ftLibrary;
 }
 
+static void onWindowChar(
+	GLFWwindow* _window,
+	unsigned int codepoint)
+{
+	Window window = glfwGetWindowUserPointer(_window);
+
+	size_t length = window->inputLength;
+
+	if (length == window->inputCapacity)
+	{
+		size_t capacity = window->inputCapacity * 2;
+
+		uint32_t* inputBuffer = realloc(
+			window->inputBuffer,
+			capacity * sizeof(uint32_t));
+
+		if (inputBuffer == NULL)
+			abort();
+
+		window->inputBuffer = inputBuffer;
+		window->inputCapacity = capacity;
+	}
+
+	window->inputBuffer[length] = codepoint;
+	window->inputLength = length + 1;
+}
 MpgxResult createWindow(
 	GraphicsAPI api,
 	bool useStencilBuffer,
@@ -373,6 +408,87 @@ MpgxResult createWindow(
 			GLFW_TRUE);
 	}
 
+	glfwSetWindowUserPointer(
+		handle,
+		window);
+	glfwSetCharCallback(
+		handle,
+		onWindowChar);
+
+	GLFWcursor* ibeamCursor = glfwCreateStandardCursor(
+		GLFW_IBEAM_CURSOR);
+
+	if (ibeamCursor == NULL)
+	{
+		glfwDestroyWindow(handle);
+		free(window);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	GLFWcursor* crosshairCursor = glfwCreateStandardCursor(
+		GLFW_CROSSHAIR_CURSOR);
+
+	if (crosshairCursor == NULL)
+	{
+		glfwDestroyCursor(ibeamCursor);
+		glfwDestroyWindow(handle);
+		free(window);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	GLFWcursor* handCursor = glfwCreateStandardCursor(
+		GLFW_HAND_CURSOR);
+
+	if (handCursor == NULL)
+	{
+		glfwDestroyCursor(crosshairCursor);
+		glfwDestroyCursor(ibeamCursor);
+		glfwDestroyWindow(handle);
+		free(window);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	GLFWcursor* hresizeCursor = glfwCreateStandardCursor(
+		GLFW_HRESIZE_CURSOR);
+
+	if (hresizeCursor == NULL)
+	{
+		glfwDestroyCursor(handCursor);
+		glfwDestroyCursor(crosshairCursor);
+		glfwDestroyCursor(ibeamCursor);
+		glfwDestroyWindow(handle);
+		free(window);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	GLFWcursor* vresizeCursor = glfwCreateStandardCursor(
+		GLFW_VRESIZE_CURSOR);
+
+	if (vresizeCursor == NULL)
+	{
+		glfwDestroyCursor(hresizeCursor);
+		glfwDestroyCursor(handCursor);
+		glfwDestroyCursor(crosshairCursor);
+		glfwDestroyCursor(ibeamCursor);
+		glfwDestroyWindow(handle);
+		free(window);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	uint32_t* inputBuffer = malloc(
+		MPGX_DEFAULT_CAPACITY * sizeof(uint32_t));
+
+	if (inputBuffer == NULL)
+	{
+		glfwDestroyCursor(hresizeCursor);
+		glfwDestroyCursor(handCursor);
+		glfwDestroyCursor(crosshairCursor);
+		glfwDestroyCursor(ibeamCursor);
+		glfwDestroyWindow(handle);
+		free(window);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
 #if MPGX_SUPPORT_VULKAN
 	VkWindow vkWindow = NULL;
 #endif
@@ -400,6 +516,12 @@ MpgxResult createWindow(
 
 		if (vkWindow == NULL)
 		{
+			free(inputBuffer);
+			glfwDestroyCursor(vresizeCursor);
+			glfwDestroyCursor(hresizeCursor);
+			glfwDestroyCursor(handCursor);
+			glfwDestroyCursor(crosshairCursor);
+			glfwDestroyCursor(ibeamCursor);
 			glfwDestroyWindow(handle);
 			free(window);
 			return FAILED_TO_ALLOCATE_MPGX_RESULT;
@@ -417,6 +539,12 @@ MpgxResult createWindow(
 		if (framebuffer == NULL)
 		{
 			destroyVkWindow(vkInstance, vkWindow);
+			free(inputBuffer);
+			glfwDestroyCursor(vresizeCursor);
+			glfwDestroyCursor(hresizeCursor);
+			glfwDestroyCursor(handCursor);
+			glfwDestroyCursor(crosshairCursor);
+			glfwDestroyCursor(ibeamCursor);
 			glfwDestroyWindow(handle);
 			free(window);
 			return FAILED_TO_ALLOCATE_MPGX_RESULT;
@@ -432,6 +560,12 @@ MpgxResult createWindow(
 
 		if (gladLoadGL() == 0)
 		{
+			free(inputBuffer);
+			glfwDestroyCursor(vresizeCursor);
+			glfwDestroyCursor(hresizeCursor);
+			glfwDestroyCursor(handCursor);
+			glfwDestroyCursor(crosshairCursor);
+			glfwDestroyCursor(ibeamCursor);
 			glfwDestroyWindow(handle);
 			free(window);
 			return FAILED_TO_INIT_OPENGL_MPGX_RESULT;
@@ -445,6 +579,12 @@ MpgxResult createWindow(
 
 		if (framebuffer == NULL)
 		{
+			free(inputBuffer);
+			glfwDestroyCursor(vresizeCursor);
+			glfwDestroyCursor(hresizeCursor);
+			glfwDestroyCursor(handCursor);
+			glfwDestroyCursor(crosshairCursor);
+			glfwDestroyCursor(ibeamCursor);
 			glfwDestroyWindow(handle);
 			free(window);
 			return FAILED_TO_ALLOCATE_MPGX_RESULT;
@@ -468,6 +608,12 @@ MpgxResult createWindow(
 			destroyGlFramebuffer(framebuffer);
 		}
 
+		free(inputBuffer);
+		glfwDestroyCursor(vresizeCursor);
+		glfwDestroyCursor(hresizeCursor);
+		glfwDestroyCursor(handCursor);
+		glfwDestroyCursor(crosshairCursor);
+		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
 		free(window);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
@@ -492,6 +638,12 @@ MpgxResult createWindow(
 			destroyGlFramebuffer(framebuffer);
 		}
 
+		free(inputBuffer);
+		glfwDestroyCursor(vresizeCursor);
+		glfwDestroyCursor(hresizeCursor);
+		glfwDestroyCursor(handCursor);
+		glfwDestroyCursor(crosshairCursor);
+		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
 		free(window);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
@@ -517,6 +669,12 @@ MpgxResult createWindow(
 			destroyGlFramebuffer(framebuffer);
 		}
 
+		free(inputBuffer);
+		glfwDestroyCursor(vresizeCursor);
+		glfwDestroyCursor(hresizeCursor);
+		glfwDestroyCursor(handCursor);
+		glfwDestroyCursor(crosshairCursor);
+		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
 		free(window);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
@@ -543,6 +701,12 @@ MpgxResult createWindow(
 			destroyGlFramebuffer(framebuffer);
 		}
 
+		free(inputBuffer);
+		glfwDestroyCursor(vresizeCursor);
+		glfwDestroyCursor(hresizeCursor);
+		glfwDestroyCursor(handCursor);
+		glfwDestroyCursor(crosshairCursor);
+		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
 		free(window);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
@@ -570,6 +734,12 @@ MpgxResult createWindow(
 			destroyGlFramebuffer(framebuffer);
 		}
 
+		free(inputBuffer);
+		glfwDestroyCursor(vresizeCursor);
+		glfwDestroyCursor(hresizeCursor);
+		glfwDestroyCursor(handCursor);
+		glfwDestroyCursor(crosshairCursor);
+		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
 		free(window);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
@@ -599,6 +769,12 @@ MpgxResult createWindow(
 			destroyGlFramebuffer(framebuffer);
 		}
 
+		free(inputBuffer);
+		glfwDestroyCursor(vresizeCursor);
+		glfwDestroyCursor(hresizeCursor);
+		glfwDestroyCursor(handCursor);
+		glfwDestroyCursor(crosshairCursor);
+		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
 		free(window);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
@@ -609,6 +785,15 @@ MpgxResult createWindow(
 	window->onUpdate = onUpdate;
 	window->updateArgument = updateArgument;
 	window->handle = handle;
+	window->cursorType = DEFAULT_CURSOR_TYPE;
+	window->ibeamCursor = ibeamCursor;
+	window->crosshairCursor = crosshairCursor;
+	window->handCursor = handCursor;
+	window->hresizeCursor = hresizeCursor;
+	window->vresizeCursor = vresizeCursor;
+	window->inputBuffer = inputBuffer;
+	window->inputCapacity = MPGX_DEFAULT_CAPACITY;
+	window->inputLength = 0;
 	window->framebuffer = framebuffer;
 	window->buffers = buffers;
 	window->bufferCapacity = MPGX_DEFAULT_CAPACITY;
@@ -737,6 +922,12 @@ void destroyWindow(Window window)
 	free(window->framebuffers);
 	free(window->shaders);
 	free(window->meshes);
+	free(window->inputBuffer);
+	glfwDestroyCursor(window->vresizeCursor);
+	glfwDestroyCursor(window->hresizeCursor);
+	glfwDestroyCursor(window->handCursor);
+	glfwDestroyCursor(window->crosshairCursor);
+	glfwDestroyCursor(window->ibeamCursor);
 	glfwDestroyWindow(window->handle);
 	free(window);
 }
@@ -761,6 +952,16 @@ void* getWindowUpdateArgument(Window window)
 	assert(window != NULL);
 	return window->updateArgument;
 }
+const uint32_t* getWindowInputBuffer(Window window)
+{
+	assert(window != NULL);
+	return window->inputBuffer;
+}
+size_t getWindowInputLength(Window window)
+{
+	assert(window != NULL);
+	return window->inputLength;
+}
 double getWindowUpdateTime(Window window)
 {
 	assert(window != NULL);
@@ -783,11 +984,6 @@ Vec2F getWindowContentScale(Window window)
 		&scale.y);
 
 	return scale;
-}
-const char* getWindowClipboard(Window window)
-{
-	assert(window != NULL);
-	return glfwGetClipboardString(window->handle);
 }
 
 inline static const char* getGlWindowGpuName()
@@ -880,6 +1076,24 @@ bool getWindowMouseButton(
 	return glfwGetMouseButton(
 		window->handle,
 		button) == GLFW_PRESS;
+}
+
+const char* getWindowClipboard(
+	Window window)
+{
+	assert(window != NULL);
+	return glfwGetClipboardString(window->handle);
+}
+void setWindowClipboard(
+	Window window,
+	const char* clipboard)
+{
+	assert(window != NULL);
+	assert(clipboard != NULL);
+
+	glfwSetClipboardString(
+		window->handle,
+		clipboard);
 }
 
 Vec2U getWindowSize(
@@ -979,6 +1193,57 @@ void setWindowCursorMode(
 		window->handle,
 		GLFW_CURSOR,
 		cursorMode);
+}
+
+CursorType getWindowCursorType(
+	Window window)
+{
+	assert(window != NULL);
+	return window->cursorType;
+}
+void setWindowCursorType(
+	Window window,
+	CursorType cursorType)
+{
+	assert(window != NULL);
+	assert(cursorType >= DEFAULT_CURSOR_TYPE);
+	assert(cursorType < CURSOR_TYPE_COUNT);
+
+	switch (cursorType)
+	{
+	default:
+		abort();
+	case DEFAULT_CURSOR_TYPE:
+		glfwSetCursor(
+			window->handle,
+			NULL);
+		break;
+	case IBEAM_CURSOR_TYPE:
+		glfwSetCursor(
+			window->handle,
+			window->ibeamCursor);
+		break;
+	case CROSSHAIR_CURSOR_TYPE:
+		glfwSetCursor(
+			window->handle,
+			window->crosshairCursor);
+		break;
+	case HAND_CURSOR_TYPE:
+		glfwSetCursor(
+			window->handle,
+			window->handCursor);
+		break;
+	case HRESIZE_CURSOR_TYPE:
+		glfwSetCursor(
+			window->handle,
+			window->hresizeCursor);
+		break;
+	case VRESIZE_CURSOR_TYPE:
+		glfwSetCursor(
+			window->handle,
+			window->vresizeCursor);
+		break;
+	}
 }
 
 bool isWindowFocused(Window window)
@@ -1087,6 +1352,7 @@ void updateWindow(Window window)
 
 	while (glfwWindowShouldClose(handle) == GLFW_FALSE)
 	{
+		window->inputLength = 0;
 		glfwPollEvents();
 
 		double startTime = getCurrentClock();

@@ -26,12 +26,9 @@ struct InterfaceElement
 	Box2F bounds;
 	bool isEnabled;
 	OnInterfaceElementDestroy onDestroy;
-	OnInterfaceElementEvent onEnter;
-	OnInterfaceElementEvent onExit;
-	OnInterfaceElementEvent onStay;
-	OnInterfaceElementEvent onEnable;
-	OnInterfaceElementEvent onDisable;
+	InterfaceElementEvents events;
 	void* handle;
+	bool isPressed;
 };
 struct Interface
 {
@@ -268,6 +265,9 @@ void updateInterface(Interface interface)
 		(cursor.x / interfaceScale) - halfSize.x,
 		(size.y - (cursor.y / interfaceScale)) - halfSize.y);
 
+	bool isLeftButtonPressed = getWindowMouseButton(
+		window, LEFT_MOUSE_BUTTON);
+
 	InterfaceElement newElement = NULL;
 	float elementDistance = INFINITY;
 
@@ -291,9 +291,12 @@ void updateInterface(Interface interface)
 			parent = getTransformParent(parent);
 		}
 
-		Mat4F model = getTransformModel(transform);
-		Vec3F position = getTranslationMat4F(model);
-		Vec3F scale = getScaleMat4F(model);
+		if (element->events.onUpdate != NULL)
+			element->events.onUpdate(element);
+
+		Vec3F position = getTranslationMat4F(
+			getTransformModel(transform));
+		Vec3F scale = getTransformScale(transform);
 
 		Box2F bounds = element->bounds;
 
@@ -340,8 +343,8 @@ void updateInterface(Interface interface)
 	{
 		if (newElement != NULL)
 		{
-			if (newElement->onEnter != NULL)
-				newElement->onEnter(newElement);
+			if (newElement->events.onEnter != NULL)
+				newElement->events.onEnter(newElement);
 			interface->lastElement = newElement;
 		}
 	}
@@ -349,21 +352,48 @@ void updateInterface(Interface interface)
 	{
 		if (lastElement != newElement)
 		{
-			if (lastElement->onExit != NULL)
-				lastElement->onExit(lastElement);
+			if (lastElement->events.onExit != NULL)
+				lastElement->events.onExit(lastElement);
 
 			if (newElement != NULL &&
-				newElement->onEnter != NULL)
+				newElement->events.onEnter != NULL)
 			{
-				newElement->onEnter(newElement);
+				newElement->events.onEnter(newElement);
 			}
 
+			lastElement->isPressed = false;
 			interface->lastElement = newElement;
 		}
 		else
 		{
-			if (lastElement->onStay != NULL)
-				lastElement->onStay(lastElement);
+			if (isLeftButtonPressed == true)
+			{
+				if (lastElement->isPressed == false)
+				{
+					if (lastElement->events.onPress != NULL)
+						lastElement->events.onPress(lastElement);
+					lastElement->isPressed = true;
+				}
+				else
+				{
+					if (lastElement->events.onStay != NULL)
+						lastElement->events.onStay(lastElement);
+				}
+			}
+			else
+			{
+				if (lastElement->isPressed == true)
+				{
+					if (lastElement->events.onRelease != NULL)
+						lastElement->events.onRelease(lastElement);
+					lastElement->isPressed = false;
+				}
+				else
+				{
+					if (lastElement->events.onStay != NULL)
+						lastElement->events.onStay(lastElement);
+				}
+			}
 		}
 	}
 }
@@ -376,11 +406,7 @@ InterfaceElement createInterfaceElement(
 	Box2F bounds,
 	bool isEnabled,
 	OnInterfaceElementDestroy onDestroy,
-	OnInterfaceElementEvent onEnter,
-	OnInterfaceElementEvent onExit,
-	OnInterfaceElementEvent onStay,
-	OnInterfaceElementEvent onEnable,
-	OnInterfaceElementEvent onDisable,
+	const InterfaceElementEvents* events,
 	void* handle)
 {
 	assert(interface != NULL);
@@ -388,6 +414,7 @@ InterfaceElement createInterfaceElement(
 	assert(alignment >= CENTER_ALIGNMENT_TYPE);
 	assert(alignment < ALIGNMENT_TYPE_COUNT);
 	assert(onDestroy != NULL);
+	assert(events != NULL);
 	assert(handle != NULL);
 
 	InterfaceElement element = malloc(
@@ -403,12 +430,9 @@ InterfaceElement createInterfaceElement(
 	element->bounds = bounds;
 	element->isEnabled = isEnabled;
 	element->onDestroy = onDestroy;
-	element->onEnter = onEnter;
-	element->onExit = onExit;
-	element->onStay = onStay;
-	element->onEnable = onEnable;
-	element->onDisable = onDisable;
+	element->events = *events;
 	element->handle = handle;
+	element->isPressed = false;
 
 	size_t count = interface->elementCount;
 
@@ -484,35 +508,11 @@ OnInterfaceElementDestroy getInterfaceElementOnDestroy(
 	assert(element != NULL);
 	return element->onDestroy;
 }
-OnInterfaceElementEvent getInterfaceElementOnEnter(
+const InterfaceElementEvents* getInterfaceElementEvents(
 	InterfaceElement element)
 {
 	assert(element != NULL);
-	return element->onEnter;
-}
-OnInterfaceElementEvent getInterfaceElementOnExit(
-	InterfaceElement element)
-{
-	assert(element != NULL);
-	return element->onExit;
-}
-OnInterfaceElementEvent getInterfaceElementOnStay(
-	InterfaceElement element)
-{
-	assert(element != NULL);
-	return element->onStay;
-}
-OnInterfaceElementEvent getInterfaceElementOnEnable(
-	InterfaceElement element)
-{
-	assert(element != NULL);
-	return element->onEnable;
-}
-OnInterfaceElementEvent getInterfaceElementOnDisable(
-	InterfaceElement element)
-{
-	assert(element != NULL);
-	return element->onDisable;
+	return &element->events;
 }
 void* getInterfaceElementHandle(
 	InterfaceElement element)
@@ -579,14 +579,20 @@ void setInterfaceElementEnabled(
 
 	if (isEnabled == true)
 	{
-		if (element->onEnable != NULL)
-			element->onEnable(element);
+		if (element->isEnabled == false)
+		{
+			if (element->events.onEnable != NULL)
+				element->events.onEnable(element);
+			element->isEnabled = true;
+		}
 	}
 	else
 	{
-		if (element->onDisable != NULL)
-			element->onDisable(element);
+		if (element->isEnabled == true)
+		{
+			if (element->events.onDisable != NULL)
+				element->events.onDisable(element);
+			element->isEnabled = false;
+		}
 	}
-
-	element->isEnabled = isEnabled;
 }

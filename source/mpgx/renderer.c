@@ -416,7 +416,7 @@ RenderResult drawRenderer(
 
 		if (useCulling == true)
 		{
-			Vec3F renderScale = getScaleMat4F(model);
+			Vec3F renderScale = getTransformScale(transform);
 			Box3F renderBounding = getRenderBounding(render);
 
 			renderBounding.minimum = mulVec3F(

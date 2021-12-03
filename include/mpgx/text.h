@@ -43,27 +43,34 @@ Font createFontFromFile(
 	const void* filePath);
 void destroyFont(Font font);
 
-Text createText(
+Text createText32(
+	Pipeline pipeline,
+	Font font,
+	uint32_t fontSize,
+	AlignmentType alignment,
+	const uint32_t* data,
+	size_t dataLength,
+	bool isConstant);
+Text createText8(
 	Pipeline pipeline,
 	Font font,
 	uint32_t fontSize,
 	AlignmentType alignment,
 	const char* data,
+	size_t dataLength,
 	bool isConstant);
 void destroyText(Text text);
 
 Pipeline getTextPipeline(Text text);
 bool isTextConstant(Text text);
+
 Vec2F getTextSize(Text text);
-size_t getTextIndexCount(Text text);
-
 Vec2F getTextOffset(Text text);
-size_t getTextUnicodeCharCount(Text text);
 
-bool getTextUnicodeCharAdvance(
+bool getTextCaretAdvance(
 	Text text,
-	size_t index,
-	Vec2F* advance);
+	Vec2F* advance,
+	size_t* index);
 
 Font getTextFont(
 	Text text);
@@ -83,18 +90,28 @@ void setTextAlignment(
 	Text text,
 	AlignmentType alignment);
 
-const char* getTextData(
-	Text text);
-bool setTextData(
+size_t getTextDataLength(Text text);
+const uint32_t* getTextData(Text text);
+
+bool setTextData32(
 	Text text,
-	const char* data);
+	const uint32_t* data,
+	size_t dataLength,
+	bool reuseBuffers);
+bool setTextData8(
+	Text text,
+	const char* data,
+	size_t dataLength,
+	bool reuseBuffers);
 
 bool bakeText(
 	Text text,
-	bool reuse);
+	bool reuseBuffers);
 size_t drawText(
 	Text text,
 	Vec4U scissor);
+
+float getTextPlatformScale(Pipeline pipeline);
 
 Sampler createTextSampler(Window window);
 

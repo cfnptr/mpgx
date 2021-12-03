@@ -284,77 +284,44 @@ void updateTransformer(
 		if (transform->isActive == false)
 			continue;
 
+		Vec3F position = transform->position;
+		Quat rotation = transform->rotation;
 		Transform parent = transform->parent;
 
 		while (parent != NULL)
 		{
 			if (parent->isActive == false)
 				goto CONTINUE_1;
+
+			rotation = normQuat(dotQuat(
+				rotation, parent->rotation));
+			position = addVec3F(parent->position,
+				dotQuatVec3F(rotation, position));
 			parent = parent->parent;
 		}
 
 		RotationType rotationType = transform->rotationType;
 
-		Mat4F model = identMat4F;
+		Mat4F model;
 
 		if (rotationType == SPIN_ROTATION_TYPE)
 		{
-			model = translateMat4F(
-				model,
-				transform->position);
-			model = dotMat4F(
-				model,
-				getQuatMatF4(normQuat(transform->rotation)));
+			model = dotMat4F(translateMat4F(identMat4F, position),
+				getQuatMatF4(normQuat(rotation)));
 		}
 		else if (rotationType == ORBIT_ROTATION_TYPE)
 		{
-			model = dotMat4F(
-				model,
-				getQuatMatF4(normQuat(transform->rotation)));
-			model = translateMat4F(
-				model,
-				transform->position);
+			model = translateMat4F(dotMat4F(identMat4F,getQuatMatF4(
+				normQuat(rotation))),position);
 		}
 		else
 		{
-			model = translateMat4F(
-				model,
-				transform->position);
+			model = translateMat4F(identMat4F,position);
 		}
 
-		model = scaleMat4F(
-			model,
-			transform->scale);
-		transform->model = model;
+		transform->model = scaleMat4F(model, transform->scale);
 
 	CONTINUE_1:
-		continue;
-	}
-
-	for (size_t i = 0; i < transformCount; i++)
-	{
-		Transform transform = transforms[i];
-
-		if (transform->isActive == false)
-			continue;
-
-		Transform parent = transform->parent;
-		Mat4F model = transform->model;
-
-		while (parent != NULL)
-		{
-			if (parent->isActive == false)
-				goto CONTINUE_2;
-
-			model = dotMat4F(
-				parent->model,
-				model);
-			parent = parent->parent;
-		}
-
-		transform->model = model;
-
-	CONTINUE_2:
 		continue;
 	}
 }

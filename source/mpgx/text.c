@@ -41,13 +41,13 @@ struct Text
 	Pipeline pipeline;
 	uint32_t fontSize;
 	AlignmentType alignment;
-	char* data;
-	size_t dataSize;
 	bool isConstant;
+	uint32_t* data;
+	size_t dataCapacity;
+	size_t dataLength;
 	Image texture;
 	Mesh mesh;
 	Vec2F textSize;
-	size_t uniCharCount;
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSet* descriptorSets;
@@ -253,9 +253,10 @@ static int compareGlyph(
 
 	abort();
 }
-inline static size_t getTextUniCharCount(
+inline static bool getTextUniCharCount(
 	const char* data,
-	size_t dataLength)
+	size_t dataLength,
+	size_t* _uniCharCount)
 {
 	size_t uniCharCount = 0;
 
@@ -285,13 +286,14 @@ inline static size_t getTextUniCharCount(
 		}
 		else
 		{
-			return 0;
+			return false;
 		}
 
 		uniCharCount++;
 	}
 
-	return uniCharCount;
+	*_uniCharCount = uniCharCount;
+	return true;
 }
 inline static uint32_t* createTextUniChars(
 	const char* data,
@@ -486,7 +488,7 @@ inline static bool createTextPixels(
 	*_pixelLength = pixelLength;
 	return true;
 }
-inline static bool createTextVertices( // TODO: use mapBuffer here
+inline static bool createTextVertices(
 	const uint32_t* uniChars,
 	size_t uniCharCount,
 	const Glyph* glyphs,
@@ -497,6 +499,7 @@ inline static bool createTextVertices( // TODO: use mapBuffer here
 	size_t* _vertexCount,
 	Vec2F* _textSize)
 {
+	// TODO: use mapBuffer here
 	size_t vertexCount = uniCharCount * 16;
 	float* vertices = malloc(
 		vertexCount * sizeof(float));
@@ -625,10 +628,10 @@ inline static bool createTextVertices( // TODO: use mapBuffer here
 
 		for (size_t i = 0; i < vertexCount; i += 16)
 		{
-			vertices[i + 1] -= vertexOffset.y;
-			vertices[i + 5] -= vertexOffset.y;
-			vertices[i + 9] -= vertexOffset.y;
-			vertices[i + 13] -= vertexOffset.y;
+			vertices[i + 1] += vertexOffset.y;
+			vertices[i + 5] += vertexOffset.y;
+			vertices[i + 9] += vertexOffset.y;
+			vertices[i + 13] += vertexOffset.y;
 		}
 		break;
 	case RIGHT_ALIGNMENT_TYPE:
@@ -865,12 +868,13 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 }
 #endif
 
-Text createText(
+Text createText32(
 	Pipeline pipeline,
 	Font font,
 	uint32_t fontSize,
 	AlignmentType alignment,
-	const char* _data,
+	const uint32_t* _data,
+	size_t dataLength,
 	bool isConstant)
 {
 	assert(pipeline != NULL);
@@ -879,6 +883,7 @@ Text createText(
 	assert(alignment >= CENTER_ALIGNMENT_TYPE);
 	assert(alignment < ALIGNMENT_TYPE_COUNT);
 	assert(_data != NULL);
+	assert(dataLength != 0);
 
 	assert(strcmp(
 		pipeline->base.name,
@@ -890,426 +895,257 @@ Text createText(
 	if (text == NULL)
 		return NULL;
 
-	size_t dataLength = strlen(_data);
-
-	size_t uniCharCount = getTextUniCharCount(
-		_data,
-		dataLength);
-
 	Window window = pipeline->base.framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
-	if (uniCharCount == 0)
+	Glyph* glyphs;
+	size_t glyphCount;
+
+	bool result = createTextGlyphs(
+		_data,
+		dataLength,
+		&glyphs,
+		&glyphCount);
+
+	if (result == false)
 	{
-		size_t dataSize = 1;
+		free(text);
+		return NULL;
+	}
 
-		char* data = malloc(
-			dataSize * sizeof(char));
+	uint32_t* data = malloc(
+		dataLength * sizeof(uint32_t));
 
-		if (data == NULL)
-		{
-			free(text);
-			return NULL;
-		}
+	if (data == NULL)
+	{
+		free(glyphs);
+		free(text);
+		return NULL;
+	}
 
-		data[0] = '\0';
+	memcpy(
+		data,
+		_data,
+		dataLength * sizeof(uint32_t));
 
-		void* pixels = NULL;
+	FT_Face face = font->face;
 
-		Image texture = createImage(
-			window,
-			IMAGE_2D_TYPE,
-			R8_UNORM_IMAGE_FORMAT,
-			(const void**)&pixels,
-			vec3U(fontSize, fontSize, 1),
-			1,
-			isConstant,
-			false);
+	FT_Error ftResult = FT_Set_Pixel_Sizes(
+		face,
+		0,
+		(FT_UInt)fontSize);
 
-		if (texture == NULL)
-		{
-			free(data);
-			free(text);
-			return NULL;
-		}
+	if (ftResult != 0)
+	{
+		free(glyphs);
+		return false;
+	}
 
-		Buffer vertexBuffer = createBuffer(
-			window,
-			VERTEX_BUFFER_TYPE,
-			NULL,
-			16,
-			isConstant);
+	float newLineAdvance =
+		((float)face->size->metrics.height / 64.0f) /
+		(float)fontSize;
 
-		if (vertexBuffer == NULL)
-		{
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
+	uint8_t* pixels;
+	size_t pixelCount;
+	uint32_t pixelLength;
 
-		Buffer indexBuffer = createBuffer(
-			window,
-			INDEX_BUFFER_TYPE,
-			NULL,
-			6,
-			isConstant);
+	result = createTextPixels(
+		face,
+		fontSize,
+		glyphs,
+		glyphCount,
+		0,
+		&pixels,
+		&pixelCount,
+		&pixelLength);
 
-		if (indexBuffer == NULL)
-		{
-			destroyBuffer(vertexBuffer);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
+	if (result == false)
+	{
+		free(data);
+		free(glyphs);
+		free(text);
+		return NULL;
+	}
 
-		Mesh mesh = createMesh(
-			window,
-			UINT32_DRAW_INDEX,
-			0,
-			0,
-			vertexBuffer,
-			indexBuffer);
+	Image texture = createImage(
+		window,
+		IMAGE_2D_TYPE,
+		R8_UNORM_IMAGE_FORMAT,
+		(const void**)&pixels,
+		vec3U(pixelLength, pixelLength, 1),
+		1,
+		isConstant,
+		false);
 
-		if (mesh == NULL)
-		{
-			destroyBuffer(indexBuffer);
-			destroyBuffer(vertexBuffer);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
+	free(pixels);
+
+	if (texture == NULL)
+	{
+		free(data);
+		free(glyphs);
+		free(text);
+		return NULL;
+	}
+
+	float* vertices;
+	size_t vertexCount;
+	Vec2F textSize;
+
+	result = createTextVertices(
+		data,
+		dataLength,
+		glyphs,
+		glyphCount,
+		newLineAdvance,
+		alignment,
+		&vertices,
+		&vertexCount,
+		&textSize);
+
+	free(glyphs);
+
+	if (result == false)
+	{
+		destroyImage(texture);
+		free(data);
+		free(text);
+		return NULL;
+	}
+
+	Buffer vertexBuffer = createBuffer(
+		window,
+		VERTEX_BUFFER_TYPE,
+		vertices,
+		vertexCount * sizeof(float),
+		isConstant);
+
+	free(vertices);
+
+	if (vertexBuffer == NULL)
+	{
+		destroyImage(texture);
+		free(data);
+		free(text);
+		return NULL;
+	}
+
+	uint32_t* indices;
+	size_t indexCount;
+
+	result = createTextIndices(
+		dataLength,
+		&indices,
+		&indexCount);
+
+	if (result == false)
+	{
+		destroyBuffer(vertexBuffer);
+		destroyImage(texture);
+		free(data);
+		free(text);
+		return NULL;
+	}
+
+	Buffer indexBuffer = createBuffer(
+		window,
+		INDEX_BUFFER_TYPE,
+		indices,
+		indexCount * sizeof(uint32_t),
+		isConstant);
+
+	free(indices);
+
+	if (indexBuffer == NULL)
+	{
+		destroyBuffer(vertexBuffer);
+		destroyImage(texture);
+		free(data);
+		free(text);
+		return NULL;
+	}
+
+	Mesh mesh = createMesh(
+		window,
+		UINT32_DRAW_INDEX,
+		indexCount,
+		0,
+		vertexBuffer,
+		indexBuffer);
+
+	if (mesh == NULL)
+	{
+		destroyBuffer(indexBuffer);
+		destroyBuffer(vertexBuffer);
+		destroyImage(texture);
+		free(data);
+		free(text);
+		return NULL;
+	}
 
 #if MPGX_SUPPORT_VULKAN
-		if (api == VULKAN_GRAPHICS_API)
+	if (api == VULKAN_GRAPHICS_API)
+	{
+		VkWindow vkWindow = getVkWindow(window);
+		VkDevice device = vkWindow->device;
+
+		PipelineHandle pipelineHandle = pipeline->vk.handle;
+		uint8_t bufferCount = pipelineHandle->vk.bufferCount;
+
+		VkDescriptorPool descriptorPool = createVkDescriptorPool(
+			device,
+			bufferCount);
+
+		if (descriptorPool == NULL)
 		{
-			VkWindow vkWindow = getVkWindow(window);
-			VkDevice device = vkWindow->device;
-			PipelineHandle pipelineHandle = pipeline->vk.handle;
-			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
+			destroyMesh(mesh, true);
+			destroyImage(texture);
+			free(data);
+			free(text);
+			return NULL;
+		}
 
-			VkDescriptorPool descriptorPool = createVkDescriptorPool(
+		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+			device,
+			pipelineHandle->vk.descriptorSetLayout,
+			descriptorPool,
+			bufferCount,
+			pipelineHandle->vk.sampler->vk.handle,
+			texture->vk.imageView);
+
+		if (descriptorSets == NULL)
+		{
+			vkDestroyDescriptorPool(
 				device,
-				bufferCount);
-
-			if (descriptorPool == NULL)
-			{
-				destroyMesh(mesh, true);
-				destroyImage(texture);
-				free(data);
-				free(text);
-				return NULL;
-			}
-
-			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
-				device,
-				pipelineHandle->vk.descriptorSetLayout,
 				descriptorPool,
-				bufferCount,
-				pipelineHandle->vk.sampler->vk.handle,
-				texture->vk.imageView);
-
-			if (descriptorSets == NULL)
-			{
-				vkDestroyDescriptorPool(
-					device,
-					descriptorPool,
-					NULL);
-				destroyMesh(mesh, true);
-				destroyImage(texture);
-				free(data);
-				free(text);
-				return NULL;
-			}
-
-			text->descriptorPool = descriptorPool;
-			text->descriptorSets = descriptorSets;
+				NULL);
+			destroyMesh(mesh, true);
+			destroyImage(texture);
+			free(data);
+			free(text);
+			return NULL;
 		}
-		else
-		{
-			text->descriptorPool = NULL;
-			text->descriptorSets = NULL;
-		}
-#endif
 
-		text->data = data;
-		text->dataSize = 1;
-		text->texture = texture;
-		text->mesh = mesh;
-		text->textSize = zeroVec2F;
-		text->uniCharCount = 0;
+		text->descriptorPool = descriptorPool;
+		text->descriptorSets = descriptorSets;
 	}
 	else
 	{
-		uint32_t* uniChars = createTextUniChars(
-			_data,
-			dataLength,
-			uniCharCount);
-
-		if (uniChars == NULL)
-		{
-			free(text);
-			return NULL;
-		}
-
-		Glyph* glyphs;
-		size_t glyphCount;
-
-		bool result = createTextGlyphs(
-			uniChars,
-			uniCharCount,
-			&glyphs,
-			&glyphCount);
-
-		if (result == false)
-		{
-			free(uniChars);
-			free(text);
-			return NULL;
-		}
-
-		size_t dataSize = dataLength + 1;
-		char* data = malloc(dataSize * sizeof(char));
-
-		if (data == NULL)
-		{
-			free(glyphs);
-			free(uniChars);
-			free(text);
-			return NULL;
-		}
-
-		memcpy(
-			data,
-			_data,
-			dataSize * sizeof(char));
-
-		FT_Face face = font->face;
-
-		FT_Error ftResult = FT_Set_Pixel_Sizes(
-			face,
-			0,
-			(FT_UInt)fontSize);
-
-		if (ftResult != 0)
-		{
-			free(glyphs);
-			free(uniChars);
-			return false;
-		}
-
-		float newLineAdvance =
-			((float)face->size->metrics.height / 64.0f) /
-			(float)fontSize;
-
-		uint8_t* pixels;
-		size_t pixelCount;
-		uint32_t pixelLength;
-
-		result = createTextPixels(
-			face,
-			fontSize,
-			glyphs,
-			glyphCount,
-			0,
-			&pixels,
-			&pixelCount,
-			&pixelLength);
-
-		if (result == false)
-		{
-			free(data);
-			free(glyphs);
-			free(uniChars);
-			free(text);
-			return NULL;
-		}
-
-		Image texture = createImage(
-			window,
-			IMAGE_2D_TYPE,
-			R8_UNORM_IMAGE_FORMAT,
-			(const void**)&pixels,
-			vec3U(pixelLength, pixelLength, 1),
-			1,
-			isConstant,
-			false);
-
-		free(pixels);
-
-		if (texture == NULL)
-		{
-			free(data);
-			free(glyphs);
-			free(uniChars);
-			free(text);
-			return NULL;
-		}
-
-		float* vertices;
-		size_t vertexCount;
-		Vec2F textSize;
-
-		result = createTextVertices(
-			uniChars,
-			uniCharCount,
-			glyphs,
-			glyphCount,
-			newLineAdvance,
-			alignment,
-			&vertices,
-			&vertexCount,
-			&textSize);
-
-		free(glyphs);
-		free(uniChars);
-
-		if (result == false)
-		{
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
-
-		Buffer vertexBuffer = createBuffer(
-			window,
-			VERTEX_BUFFER_TYPE,
-			vertices,
-			vertexCount * sizeof(float),
-			isConstant);
-
-		free(vertices);
-
-		if (vertexBuffer == NULL)
-		{
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
-
-		uint32_t* indices;
-		size_t indexCount;
-
-		result = createTextIndices(
-			uniCharCount,
-			&indices,
-			&indexCount);
-
-		if (result == false)
-		{
-			destroyBuffer(vertexBuffer);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
-
-		Buffer indexBuffer = createBuffer(
-			window,
-			INDEX_BUFFER_TYPE,
-			indices,
-			indexCount * sizeof(uint32_t),
-			isConstant);
-
-		free(indices);
-
-		if (indexBuffer == NULL)
-		{
-			destroyBuffer(vertexBuffer);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
-
-		Mesh mesh = createMesh(
-			window,
-			UINT32_DRAW_INDEX,
-			indexCount,
-			0,
-			vertexBuffer,
-			indexBuffer);
-
-		if (mesh == NULL)
-		{
-			destroyBuffer(indexBuffer);
-			destroyBuffer(vertexBuffer);
-			destroyImage(texture);
-			free(data);
-			free(text);
-			return NULL;
-		}
-
-#if MPGX_SUPPORT_VULKAN
-		if (api == VULKAN_GRAPHICS_API)
-		{
-			VkWindow vkWindow = getVkWindow(window);
-			VkDevice device = vkWindow->device;
-
-			PipelineHandle pipelineHandle = pipeline->vk.handle;
-			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
-
-			VkDescriptorPool descriptorPool = createVkDescriptorPool(
-				device,
-				bufferCount);
-
-			if (descriptorPool == NULL)
-			{
-				destroyMesh(mesh, true);
-				destroyImage(texture);
-				free(data);
-				free(text);
-				return NULL;
-			}
-
-			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
-				device,
-				pipelineHandle->vk.descriptorSetLayout,
-				descriptorPool,
-				bufferCount,
-				pipelineHandle->vk.sampler->vk.handle,
-				texture->vk.imageView);
-
-			if (descriptorSets == NULL)
-			{
-				vkDestroyDescriptorPool(
-					device,
-					descriptorPool,
-					NULL);
-				destroyMesh(mesh, true);
-				destroyImage(texture);
-				free(data);
-				free(text);
-				return NULL;
-			}
-
-			text->descriptorPool = descriptorPool;
-			text->descriptorSets = descriptorSets;
-		}
-		else
-		{
-			text->descriptorPool = NULL;
-			text->descriptorSets = NULL;
-		}
-#endif
-
-		text->data = data;
-		text->dataSize = dataSize;
-		text->texture = texture;
-		text->mesh = mesh;
-		text->textSize = textSize;
-		text->uniCharCount = uniCharCount;
+		text->descriptorPool = NULL;
+		text->descriptorSets = NULL;
 	}
+#endif
 
 	text->font = font;
 	text->pipeline = pipeline;
 	text->fontSize = fontSize;
 	text->alignment = alignment;
 	text->isConstant = isConstant;
+	text->data = data;
+	text->dataCapacity = dataLength;
+	text->dataLength = dataLength;
+	text->texture = texture;
+	text->mesh = mesh;
+	text->textSize = textSize;
 
 	PipelineHandle pipelineHandle = pipeline->base.handle;
 	size_t count = pipelineHandle->base.textCount;
@@ -1350,6 +1186,52 @@ Text createText(
 
 	pipelineHandle->base.texts[count] = text;
 	pipelineHandle->base.textCount = count + 1;
+	return text;
+}
+Text createText8(
+	Pipeline pipeline,
+	Font font,
+	uint32_t fontSize,
+	AlignmentType alignment,
+	const char* data,
+	size_t dataLength,
+	bool isConstant)
+{
+	assert(data != NULL);
+	assert(dataLength != 0);
+
+	size_t uniCharCount;
+
+	bool result = getTextUniCharCount(
+		data,
+		dataLength,
+		&uniCharCount);
+
+	if (result == false)
+		return NULL;
+
+	uint32_t* uniChars = createTextUniChars(
+		data,
+		dataLength,
+		uniCharCount);
+
+	if (uniChars == NULL)
+		return NULL;
+
+	Text text = createText32(
+		pipeline,
+		font,
+		fontSize,
+		alignment,
+		uniChars,
+		dataLength,
+		isConstant);
+
+	free(uniChars);
+
+	if (text == NULL)
+		return NULL;
+
 	return text;
 }
 void destroyText(Text text)
@@ -1418,17 +1300,12 @@ bool isTextConstant(Text text)
 	assert(text != NULL);
 	return text->isConstant;
 }
+
 Vec2F getTextSize(Text text)
 {
 	assert(text != NULL);
 	return text->textSize;
 }
-size_t getTextIndexCount(Text text)
-{
-	assert(text != NULL);
-	return getMeshIndexCount(text->mesh);
-}
-
 Vec2F getTextOffset(Text text)
 {
 	assert(text != NULL);
@@ -1478,13 +1355,8 @@ Vec2F getTextOffset(Text text)
 			offset.y);
 	}
 }
-size_t getTextUnicodeCharCount(
-	Text text)
-{
-	assert(text != NULL);
-	return text->uniCharCount;
-}
-bool getTextUnicodeCharAdvance(
+
+/*bool getTextUnicodeCharAdvance(
 	Text text,
 	size_t index,
 	Vec2F* _advance)
@@ -1571,6 +1443,17 @@ bool getTextUnicodeCharAdvance(
 
 	*_advance = advance;
 	return true;
+}*/ // TODO: remove
+
+bool getTextCaretAdvance(
+	Text text,
+	Vec2F* advance,
+	size_t* index)
+{
+	assert(text != NULL);
+	assert(advance != NULL);
+
+	// TODO:
 }
 
 Font getTextFont(
@@ -1621,54 +1504,117 @@ void setTextAlignment(
 	text->alignment = alignment;
 }
 
-const char* getTextData(
+size_t getTextDataLength(Text text)
+{
+	assert(text != NULL);
+	return text->dataLength;
+}
+const uint32_t* getTextData(
 	Text text)
 {
 	assert(text != NULL);
 	return text->data;
 }
-bool setTextData(
+
+bool setTextData32(
 	Text text,
-	const char* _data)
+	const uint32_t* _data,
+	size_t dataLength,
+	bool reuseBuffers)
 {
 	assert(text != NULL);
 	assert(_data != NULL);
+	assert(dataLength != 0);
 	assert(text->isConstant == false);
 
-	size_t dataSize =
-		strlen(_data) + 1;
-
-	if (dataSize > text->dataSize)
+	if (reuseBuffers == true)
 	{
-		char* data = realloc(
-			text->data,
-			dataSize);
+		if (dataLength > text->dataCapacity)
+		{
+			uint32_t* data = realloc(
+				text->data,
+				dataLength * sizeof(uint32_t));
+
+			if (data == NULL)
+				return false;
+
+			memcpy(
+				data,
+				_data,
+				dataLength * sizeof(uint32_t));
+
+			text->data = data;
+			text->dataCapacity = dataLength;
+			text->dataLength = dataLength;
+			return true;
+		}
+		else
+		{
+			memcpy(
+				text->data,
+				_data,
+				dataLength * sizeof(uint32_t));
+			text->dataLength = dataLength;
+			return true;
+		}
+	}
+	else
+	{
+		uint32_t* data = malloc(
+			dataLength * sizeof(uint32_t));
 
 		if (data == NULL)
 			return false;
 
-		memcpy(
-			data,
-			_data,
-			dataSize);
+		free(text->data);
 
 		text->data = data;
-		text->dataSize = dataSize;
+		text->dataCapacity = dataLength;
+		text->dataLength = dataLength;
 		return true;
 	}
-	else
-	{
-		memcpy(
-			text->data,
-			_data,
-			dataSize);
-		return true;
-	}
+}
+bool setTextData8(
+	Text text,
+	const char* data,
+	size_t dataLength,
+	bool reuseBuffers)
+{
+	assert(data != NULL);
+	assert(dataLength != 0);
+	assert(text->isConstant == false);
+
+	size_t uniCharCount;
+
+	bool result = getTextUniCharCount(
+		data,
+		dataLength,
+		&uniCharCount);
+
+	if (result == false)
+		return NULL;
+
+	uint32_t* uniChars = createTextUniChars(
+		data,
+		dataLength,
+		uniCharCount);
+
+	if (uniChars == NULL)
+		return NULL;
+
+	result = setTextData32(
+		text,
+		uniChars,
+		uniCharCount,
+		reuseBuffers);
+
+	free(uniChars);
+	return result;
 }
 
 bool bakeText(
 	Text text,
-	bool reuse)
+	bool reuseBuffers)
 {
 	assert(text != NULL);
 	assert(text->isConstant == false);
@@ -1677,518 +1623,73 @@ bool bakeText(
 	Window window = pipeline->base.framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
-	const char* _data = text->data;
-	size_t dataLength = strlen(_data);
+	uint32_t* data = text->data;
+	size_t dataLength = text->dataLength;
 
-	size_t uniCharCount = getTextUniCharCount(
-		_data,
-		dataLength);
-
-	if (reuse == true)
+	if (reuseBuffers == true)
 	{
-		if (uniCharCount == 0)
+		Glyph* glyphs;
+		size_t glyphCount;
+
+		bool result = createTextGlyphs(
+			data,
+			dataLength,
+			&glyphs,
+			&glyphCount);
+
+		if (result == false)
+			return false;
+
+		FT_Face face = text->font->face;
+		uint32_t fontSize = text->fontSize;
+
+		FT_Error ftResult = FT_Set_Pixel_Sizes(
+			face,
+			0,
+			(FT_UInt)fontSize);
+
+		if (ftResult != 0)
 		{
-			setMeshIndexCount(
-				text->mesh,
-				0);
-			text->textSize = zeroVec2F;
-			text->uniCharCount = 0;
-		}
-		else
-		{
-			uint32_t* uniChars = createTextUniChars(
-				_data,
-				dataLength,
-				uniCharCount);
-
-			if (uniChars == NULL)
-				return false;
-
-			Glyph* glyphs;
-			size_t glyphCount;
-
-			bool result = createTextGlyphs(
-				uniChars,
-				uniCharCount,
-				&glyphs,
-				&glyphCount);
-
-			if (result == false)
-			{
-				free(uniChars);
-				return false;
-			}
-
-			FT_Face face = text->font->face;
-			uint32_t fontSize = text->fontSize;
-
-			FT_Error ftResult = FT_Set_Pixel_Sizes(
-				face,
-				0,
-				(FT_UInt)fontSize);
-
-			if (ftResult != 0)
-			{
-				free(glyphs);
-				free(uniChars);
-				return false;
-			}
-
-			float newLineAdvance =
-				((float)face->size->metrics.height / 64.0f) /
-				(float)fontSize;
-
-			uint32_t textPixelLength =
-				getImageSize(text->texture).x;
-
-			uint8_t* pixels;
-			size_t pixelCount;
-			uint32_t pixelLength;
-
-			result = createTextPixels(
-				face,
-				fontSize,
-				glyphs,
-				glyphCount,
-				textPixelLength,
-				&pixels,
-				&pixelCount,
-				&pixelLength);
-
-			if (result == false)
-			{
-				free(glyphs);
-				free(uniChars);
-				return false;
-			}
-
-			Image texture;
-
-#if MPGX_SUPPORT_VULKAN
-			VkDescriptorSet* descriptorSets;
-#endif
-
-			if (pixelLength > textPixelLength)
-			{
-				texture = createImage(
-					window,
-					IMAGE_2D_TYPE,
-					R8_UNORM_IMAGE_FORMAT,
-					(const void**)&pixels,
-					vec3U(pixelLength, pixelLength, 1),
-					1,
-					false,
-					false);
-
-				free(pixels);
-				pixels = NULL;
-
-				if (texture == NULL)
-				{
-					free(glyphs);
-					free(uniChars);
-					return false;
-				}
-
-#if MPGX_SUPPORT_VULKAN
-				if (api == VULKAN_GRAPHICS_API)
-				{
-					VkWindow vkWindow = getVkWindow(window);
-					VkDevice device = vkWindow->device;
-					PipelineHandle pipelineHandle = pipeline->vk.handle;
-
-					descriptorSets = createVkDescriptorSets(
-						device,
-						pipelineHandle->vk.descriptorSetLayout,
-						text->descriptorPool,
-						pipelineHandle->vk.bufferCount,
-						pipelineHandle->vk.sampler->vk.handle,
-						texture->vk.imageView);
-
-					if (descriptorSets == NULL)
-					{
-						destroyImage(texture);
-						free(glyphs);
-						free(uniChars);
-						return false;
-					}
-				}
-#endif
-			}
-			else
-			{
-				texture = NULL;
-			}
-
-			float* vertices;
-			size_t vertexCount;
-			Vec2F textSize;
-
-			result = createTextVertices(
-				uniChars,
-				uniCharCount,
-				glyphs,
-				glyphCount,
-				newLineAdvance,
-				text->alignment,
-				&vertices,
-				&vertexCount,
-				&textSize);
-
 			free(glyphs);
-			free(uniChars);
-
-			if (result == false)
-			{
-				destroyImage(texture);
-				free(pixels);
-				return false;
-			}
-
-			Buffer vertexBuffer = NULL;
-			Buffer indexBuffer = NULL;
-
-			size_t textVertexBufferSize = getBufferSize(
-				getMeshVertexBuffer(text->mesh));
-
-			if (vertexCount * sizeof(float) > textVertexBufferSize)
-			{
-				vertexBuffer = createBuffer(
-					window,
-					VERTEX_BUFFER_TYPE,
-					vertices,
-					vertexCount * sizeof(float),
-					false);
-
-				free(vertices);
-
-				if (vertexBuffer == NULL)
-				{
-					destroyImage(texture);
-					free(pixels);
-					return false;
-				}
-
-				uint32_t* indices;
-				size_t indexCount;
-
-				result = createTextIndices(
-					uniCharCount,
-					&indices,
-					&indexCount);
-
-				if (result == false)
-				{
-					destroyBuffer(vertexBuffer);
-					destroyImage(texture);
-					free(pixels);
-					return false;
-				}
-
-				indexBuffer = createBuffer(
-					window,
-					INDEX_BUFFER_TYPE,
-					indices,
-					indexCount * sizeof(uint32_t),
-					false);
-
-				free(indices);
-
-				if (indexBuffer == NULL)
-				{
-					destroyBuffer(vertexBuffer);
-					destroyImage(texture);
-					free(pixels);
-					return false;
-				}
-			}
-
-			if (texture == NULL)
-			{
-				setImageData(
-					text->texture,
-					pixels,
-					vec3U(pixelLength, pixelLength, 1),
-					zeroVec3U);
-				free(pixels); // TODO: replace pixels with image data map
-			}
-			else
-			{
-#if MPGX_SUPPORT_VULKAN
-				if (api == VULKAN_GRAPHICS_API)
-				{
-					VkWindow vkWindow = getVkWindow(window);
-					VkDevice device = vkWindow->device;
-					PipelineHandle pipelineHandle = pipeline->vk.handle;
-
-					vkFreeDescriptorSets(
-						device,
-						text->descriptorPool,
-						pipelineHandle->vk.bufferCount,
-						text->descriptorSets);
-					free(text->descriptorSets);
-
-					text->descriptorSets = descriptorSets;
-				}
-#endif
-
-				destroyImage(text->texture);
-				text->texture = texture;
-			}
-
-			if (vertexBuffer == NULL)
-			{
-				Mesh mesh = text->mesh;
-				Buffer _vertexBuffer = getMeshVertexBuffer(mesh);
-
-				setBufferData(
-					_vertexBuffer,
-					vertices,
-					vertexCount * sizeof(float),
-					0);
-				setMeshIndexCount(
-					mesh,
-					uniCharCount * 6);
-
-				free(vertices);
-			}
-			else
-			{
-				Mesh mesh = text->mesh;
-				Buffer _vertexBuffer = getMeshVertexBuffer(mesh);
-				Buffer _indexBuffer = getMeshIndexBuffer(mesh);
-
-				destroyBuffer(_vertexBuffer);
-				destroyBuffer(_indexBuffer);
-
-				setMeshVertexBuffer(
-					mesh,
-					vertexBuffer);
-				setMeshIndexBuffer(
-					mesh,
-					UINT32_DRAW_INDEX,
-					uniCharCount * 6,
-					0,
-					indexBuffer);
-			}
-
-			text->textSize = textSize;
-			text->uniCharCount = uniCharCount;
+			return false;
 		}
-	}
-	else
-	{
-		if (uniCharCount == 0)
+
+		float newLineAdvance =
+			((float)face->size->metrics.height / 64.0f) /
+			(float)fontSize;
+
+		uint32_t textPixelLength =
+			getImageSize(text->texture).x;
+
+		uint8_t* pixels;
+		size_t pixelCount;
+		uint32_t pixelLength;
+
+		result = createTextPixels(
+			face,
+			fontSize,
+			glyphs,
+			glyphCount,
+			textPixelLength,
+			&pixels,
+			&pixelCount,
+			&pixelLength);
+
+		if (result == false)
 		{
-			size_t dataSize = 1;
+			free(glyphs);
+			return false;
+		}
 
-			char* data = malloc(
-				dataSize * sizeof(char));
-
-			if (data == NULL)
-				return false;
-
-			data[0] = '\0';
-
-			void* pixels = NULL;
-
-			Image texture = createImage(
-				window,
-				IMAGE_2D_TYPE,
-				R8_UNORM_IMAGE_FORMAT,
-				(const void**)&pixels,
-				vec3U(text->fontSize, text->fontSize, 1),
-				1,
-				false,
-				false);
-
-			if (texture == NULL)
-			{
-				free(data);
-				return false;
-			}
-
-			Buffer vertexBuffer = createBuffer(
-				window,
-				VERTEX_BUFFER_TYPE,
-				NULL,
-				16,
-				false);
-
-			if (vertexBuffer == NULL)
-			{
-				destroyImage(texture);
-				free(data);
-				return false;
-			}
-
-			Buffer indexBuffer = createBuffer(
-				window,
-				INDEX_BUFFER_TYPE,
-				NULL,
-				6,
-				false);
-
-			if (indexBuffer == NULL)
-			{
-				destroyBuffer(vertexBuffer);
-				destroyImage(texture);
-				free(data);
-				return false;
-			}
-
-			Mesh mesh = createMesh(
-				window,
-				UINT32_DRAW_INDEX,
-				0,
-				0,
-				vertexBuffer,
-				indexBuffer);
-
-			if (mesh == NULL)
-			{
-				destroyBuffer(indexBuffer);
-				destroyBuffer(vertexBuffer);
-				destroyImage(texture);
-				free(data);
-				return false;
-			}
+		Image texture;
 
 #if MPGX_SUPPORT_VULKAN
-			if (api == VULKAN_GRAPHICS_API)
-			{
-				VkWindow vkWindow = getVkWindow(window);
-				VkDevice device = vkWindow->device;
-				PipelineHandle pipelineHandle = pipeline->vk.handle;
-				uint8_t bufferCount = pipelineHandle->vk.bufferCount;
-				VkDescriptorPool descriptorPool = text->descriptorPool;
-
-				VkDescriptorSet* descriptorSets = createVkDescriptorSets(
-					device,
-					pipelineHandle->vk.descriptorSetLayout,
-					descriptorPool,
-					bufferCount,
-					pipelineHandle->vk.sampler->vk.handle,
-					texture->vk.imageView);
-
-				if (descriptorSets == NULL)
-				{
-					destroyMesh(mesh, true);
-					destroyImage(texture);
-					free(data);
-					free(text);
-					return false;
-				}
-
-				vkFreeDescriptorSets(
-					device,
-					descriptorPool,
-					bufferCount,
-					text->descriptorSets);
-				free(text->descriptorSets);
-
-				text->descriptorSets = descriptorSets;
-			}
+		VkDescriptorSet* descriptorSets;
 #endif
 
-			destroyMesh(
-				text->mesh,
-				true);
-			destroyImage(text->texture);
-			free(text->data);
-
-			text->data = data;
-			text->dataSize = 1;
-			text->texture = texture;
-			text->mesh = mesh;
-			text->textSize = zeroVec2F;
-			text->uniCharCount = 0;
-		}
-		else
+		if (pixelLength > textPixelLength)
 		{
-			uint32_t* uniChars = createTextUniChars(
-				_data,
-				dataLength,
-				uniCharCount);
-
-			if (uniChars == NULL)
-				return false;
-
-			Glyph* glyphs;
-			size_t glyphCount;
-
-			bool result = createTextGlyphs(
-				uniChars,
-				uniCharCount,
-				&glyphs,
-				&glyphCount);
-
-			if (result == false)
-			{
-				free(uniChars);
-				return false;
-			}
-
-			size_t dataSize =
-				dataLength + 1;
-			char* data = malloc(
-				dataSize * sizeof(char));
-
-			if (data == NULL)
-			{
-				free(glyphs);
-				free(uniChars);
-				return false;
-			}
-
-			memcpy(
-				data,
-				_data,
-				dataSize * sizeof(char));
-
-			FT_Face face = text->font->face;
-			uint32_t fontSize = text->fontSize;
-
-			FT_Error ftResult = FT_Set_Pixel_Sizes(
-				face,
-				0,
-				(FT_UInt)fontSize);
-
-			if (ftResult != 0)
-			{
-				free(data);
-				free(glyphs);
-				free(uniChars);
-				return false;
-			}
-
-			float newLineAdvance =
-				((float)face->size->metrics.height / 64.0f) /
-				(float)fontSize;
-
-			uint8_t* pixels;
-			size_t pixelCount;
-			uint32_t pixelLength;
-
-			result = createTextPixels(
-				face,
-				fontSize,
-				glyphs,
-				glyphCount,
-				0,
-				&pixels,
-				&pixelCount,
-				&pixelLength);
-
-			if (result == false)
-			{
-				free(data);
-				free(glyphs);
-				free(uniChars);
-				return false;
-			}
-
-			Image texture = createImage(
+			texture = createImage(
 				window,
 				IMAGE_2D_TYPE,
 				R8_UNORM_IMAGE_FORMAT,
@@ -2199,41 +1700,76 @@ bool bakeText(
 				false);
 
 			free(pixels);
+			pixels = NULL;
 
 			if (texture == NULL)
 			{
-				free(data);
 				free(glyphs);
-				free(uniChars);
 				return false;
 			}
 
-			float* vertices;
-			size_t vertexCount;
-			Vec2F textSize;
-
-			result = createTextVertices(
-				uniChars,
-				uniCharCount,
-				glyphs,
-				glyphCount,
-				newLineAdvance,
-				text->alignment,
-				&vertices,
-				&vertexCount,
-				&textSize);
-
-			free(glyphs);
-			free(uniChars);
-
-			if (result == false)
+#if MPGX_SUPPORT_VULKAN
+			if (api == VULKAN_GRAPHICS_API)
 			{
-				destroyImage(texture);
-				free(data);
-				return false;
-			}
+				VkWindow vkWindow = getVkWindow(window);
+				VkDevice device = vkWindow->device;
+				PipelineHandle pipelineHandle = pipeline->vk.handle;
 
-			Buffer vertexBuffer = createBuffer(
+				descriptorSets = createVkDescriptorSets(
+					device,
+					pipelineHandle->vk.descriptorSetLayout,
+					text->descriptorPool,
+					pipelineHandle->vk.bufferCount,
+					pipelineHandle->vk.sampler->vk.handle,
+					texture->vk.imageView);
+
+				if (descriptorSets == NULL)
+				{
+					destroyImage(texture);
+					free(glyphs);
+					return false;
+				}
+			}
+#endif
+		}
+		else
+		{
+			texture = NULL;
+		}
+
+		float* vertices;
+		size_t vertexCount;
+		Vec2F textSize;
+
+		result = createTextVertices(
+			data,
+			dataLength,
+			glyphs,
+			glyphCount,
+			newLineAdvance,
+			text->alignment,
+			&vertices,
+			&vertexCount,
+			&textSize);
+
+		free(glyphs);
+
+		if (result == false)
+		{
+			destroyImage(texture);
+			free(pixels);
+			return false;
+		}
+
+		Buffer vertexBuffer = NULL;
+		Buffer indexBuffer = NULL;
+
+		size_t textVertexBufferSize = getBufferSize(
+			getMeshVertexBuffer(text->mesh));
+
+		if (vertexCount * sizeof(float) > textVertexBufferSize)
+		{
+			vertexBuffer = createBuffer(
 				window,
 				VERTEX_BUFFER_TYPE,
 				vertices,
@@ -2245,7 +1781,7 @@ bool bakeText(
 			if (vertexBuffer == NULL)
 			{
 				destroyImage(texture);
-				free(data);
+				free(pixels);
 				return false;
 			}
 
@@ -2253,7 +1789,7 @@ bool bakeText(
 			size_t indexCount;
 
 			result = createTextIndices(
-				uniCharCount,
+				dataLength,
 				&indices,
 				&indexCount);
 
@@ -2261,11 +1797,11 @@ bool bakeText(
 			{
 				destroyBuffer(vertexBuffer);
 				destroyImage(texture);
-				free(data);
+				free(pixels);
 				return false;
 			}
 
-			Buffer indexBuffer = createBuffer(
+			indexBuffer = createBuffer(
 				window,
 				INDEX_BUFFER_TYPE,
 				indices,
@@ -2278,78 +1814,281 @@ bool bakeText(
 			{
 				destroyBuffer(vertexBuffer);
 				destroyImage(texture);
-				free(data);
+				free(pixels);
 				return false;
 			}
+		}
 
-			Mesh mesh = createMesh(
-				window,
-				UINT32_DRAW_INDEX,
-				indexCount,
-				0,
-				vertexBuffer,
-				indexBuffer);
-
-			if (mesh == NULL)
-			{
-				destroyBuffer(indexBuffer);
-				destroyBuffer(vertexBuffer);
-				destroyImage(texture);
-				free(data);
-				return false;
-			}
-
+		if (texture == NULL)
+		{
+			setImageData(
+				text->texture,
+				pixels,
+				vec3U(pixelLength, pixelLength, 1),
+				zeroVec3U);
+			free(pixels); // TODO: replace pixels with image data map
+		}
+		else
+		{
 #if MPGX_SUPPORT_VULKAN
 			if (api == VULKAN_GRAPHICS_API)
 			{
 				VkWindow vkWindow = getVkWindow(window);
 				VkDevice device = vkWindow->device;
 				PipelineHandle pipelineHandle = pipeline->vk.handle;
-				uint8_t bufferCount = pipelineHandle->vk.bufferCount;
-				VkDescriptorPool descriptorPool = text->descriptorPool;
-
-				VkDescriptorSet* descriptorSets = createVkDescriptorSets(
-					device,
-					pipelineHandle->vk.descriptorSetLayout,
-					descriptorPool,
-					bufferCount,
-					pipelineHandle->vk.sampler->vk.handle,
-					texture->vk.imageView);
-
-				if (descriptorSets == NULL)
-				{
-					destroyMesh(mesh, true);
-					destroyImage(texture);
-					free(data);
-					free(text);
-					return false;
-				}
 
 				vkFreeDescriptorSets(
 					device,
-					descriptorPool,
-					bufferCount,
+					text->descriptorPool,
+					pipelineHandle->vk.bufferCount,
 					text->descriptorSets);
 				free(text->descriptorSets);
 
-				text->descriptorPool = descriptorPool;
 				text->descriptorSets = descriptorSets;
 			}
 #endif
 
-			destroyMesh(
-				text->mesh,
-				true);
 			destroyImage(text->texture);
-			free(text->data);
-
-			text->data = data;
-			text->dataSize = dataSize;
 			text->texture = texture;
-			text->mesh = mesh;
-			text->textSize = textSize;
-			text->uniCharCount = uniCharCount;
 		}
+
+		if (vertexBuffer == NULL)
+		{
+			Mesh mesh = text->mesh;
+			Buffer _vertexBuffer = getMeshVertexBuffer(mesh);
+
+			setBufferData(
+				_vertexBuffer,
+				vertices,
+				vertexCount * sizeof(float),
+				0);
+			setMeshIndexCount(
+				mesh,
+				dataLength * 6);
+
+			free(vertices);
+		}
+		else
+		{
+			Mesh mesh = text->mesh;
+			Buffer _vertexBuffer = getMeshVertexBuffer(mesh);
+			Buffer _indexBuffer = getMeshIndexBuffer(mesh);
+
+			destroyBuffer(_vertexBuffer);
+			destroyBuffer(_indexBuffer);
+
+			setMeshVertexBuffer(
+				mesh,
+				vertexBuffer);
+			setMeshIndexBuffer(
+				mesh,
+				UINT32_DRAW_INDEX,
+				dataLength * 6,
+				0,
+				indexBuffer);
+		}
+
+		text->textSize = textSize;
+	}
+	else
+	{
+		Glyph* glyphs;
+		size_t glyphCount;
+
+		bool result = createTextGlyphs(
+			data,
+			dataLength,
+			&glyphs,
+			&glyphCount);
+
+		if (result == false)
+			return false;
+
+		FT_Face face = text->font->face;
+		uint32_t fontSize = text->fontSize;
+
+		FT_Error ftResult = FT_Set_Pixel_Sizes(
+			face,
+			0,
+			(FT_UInt)fontSize);
+
+		if (ftResult != 0)
+		{
+			free(glyphs);
+			return false;
+		}
+
+		float newLineAdvance =
+			((float)face->size->metrics.height / 64.0f) /
+			(float)fontSize;
+
+		uint8_t* pixels;
+		size_t pixelCount;
+		uint32_t pixelLength;
+
+		result = createTextPixels(
+			face,
+			fontSize,
+			glyphs,
+			glyphCount,
+			0,
+			&pixels,
+			&pixelCount,
+			&pixelLength);
+
+		if (result == false)
+		{
+			free(glyphs);
+			return false;
+		}
+
+		Image texture = createImage(
+			window,
+			IMAGE_2D_TYPE,
+			R8_UNORM_IMAGE_FORMAT,
+			(const void**)&pixels,
+			vec3U(pixelLength, pixelLength, 1),
+			1,
+			false,
+			false);
+
+		free(pixels);
+
+		if (texture == NULL)
+		{
+			free(glyphs);
+			return false;
+		}
+
+		float* vertices;
+		size_t vertexCount;
+		Vec2F textSize;
+
+		result = createTextVertices(
+			data,
+			dataLength,
+			glyphs,
+			glyphCount,
+			newLineAdvance,
+			text->alignment,
+			&vertices,
+			&vertexCount,
+			&textSize);
+
+		free(glyphs);
+
+		if (result == false)
+		{
+			destroyImage(texture);
+			return false;
+		}
+
+		Buffer vertexBuffer = createBuffer(
+			window,
+			VERTEX_BUFFER_TYPE,
+			vertices,
+			vertexCount * sizeof(float),
+			false);
+
+		free(vertices);
+
+		if (vertexBuffer == NULL)
+		{
+			destroyImage(texture);
+			return false;
+		}
+
+		uint32_t* indices;
+		size_t indexCount;
+
+		result = createTextIndices(
+			dataLength,
+			&indices,
+			&indexCount);
+
+		if (result == false)
+		{
+			destroyBuffer(vertexBuffer);
+			destroyImage(texture);
+			return false;
+		}
+
+		Buffer indexBuffer = createBuffer(
+			window,
+			INDEX_BUFFER_TYPE,
+			indices,
+			indexCount * sizeof(uint32_t),
+			false);
+
+		free(indices);
+
+		if (indexBuffer == NULL)
+		{
+			destroyBuffer(vertexBuffer);
+			destroyImage(texture);
+			return false;
+		}
+
+		Mesh mesh = createMesh(
+			window,
+			UINT32_DRAW_INDEX,
+			indexCount,
+			0,
+			vertexBuffer,
+			indexBuffer);
+
+		if (mesh == NULL)
+		{
+			destroyBuffer(indexBuffer);
+			destroyBuffer(vertexBuffer);
+			destroyImage(texture);
+			return false;
+		}
+
+#if MPGX_SUPPORT_VULKAN
+		if (api == VULKAN_GRAPHICS_API)
+		{
+			VkWindow vkWindow = getVkWindow(window);
+			VkDevice device = vkWindow->device;
+			PipelineHandle pipelineHandle = pipeline->vk.handle;
+			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
+			VkDescriptorPool descriptorPool = text->descriptorPool;
+
+			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+				device,
+				pipelineHandle->vk.descriptorSetLayout,
+				descriptorPool,
+				bufferCount,
+				pipelineHandle->vk.sampler->vk.handle,
+				texture->vk.imageView);
+
+			if (descriptorSets == NULL)
+			{
+				destroyMesh(mesh, true);
+				destroyImage(texture);
+				return false;
+			}
+
+			vkFreeDescriptorSets(
+				device,
+				descriptorPool,
+				bufferCount,
+				text->descriptorSets);
+			free(text->descriptorSets);
+
+			text->descriptorPool = descriptorPool;
+			text->descriptorSets = descriptorSets;
+		}
+#endif
+
+		destroyMesh(
+			text->mesh,
+			true);
+		destroyImage(text->texture);
+
+		text->texture = texture;
+		text->mesh = mesh;
+		text->textSize = textSize;
 	}
 
 	return true;
@@ -2423,6 +2162,26 @@ size_t drawText(
 	return drawMesh(
 		text->mesh,
 		pipeline);
+}
+
+float getTextPlatformScale(Pipeline pipeline)
+{
+	assert(pipeline != NULL);
+
+	assert(strcmp(
+		pipeline->base.name,
+		TEXT_PIPELINE_NAME) == 0);
+
+	Framebuffer framebuffer =
+		getPipelineFramebuffer(pipeline);
+	Vec2U framebufferSize =
+		getFramebufferSize(framebuffer);
+	Vec2U windowSize = getWindowSize(
+		getFramebufferWindow(framebuffer));
+
+	return max(
+		(float)framebufferSize.x / (float)windowSize.x,
+		(float)framebufferSize.y / (float)windowSize.y);
 }
 
 Sampler createTextSampler(Window window)

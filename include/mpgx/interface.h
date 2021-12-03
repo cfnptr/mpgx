@@ -27,6 +27,18 @@ typedef void(*OnInterfaceElementDestroy)(
 typedef void(*OnInterfaceElementEvent)(
 	InterfaceElement element);
 
+typedef struct InterfaceElementEvents
+{
+	OnInterfaceElementEvent onUpdate;
+	OnInterfaceElementEvent onEnable;
+	OnInterfaceElementEvent onDisable;
+	OnInterfaceElementEvent onEnter;
+	OnInterfaceElementEvent onExit;
+	OnInterfaceElementEvent onStay;
+	OnInterfaceElementEvent onPress;
+	OnInterfaceElementEvent onRelease;
+} InterfaceElementEvents;
+
 Interface createInterface(
 	Window window,
 	float scale,
@@ -56,11 +68,7 @@ InterfaceElement createInterfaceElement(
 	Box2F bounds,
 	bool isEnabled,
 	OnInterfaceElementDestroy onDestroy,
-	OnInterfaceElementEvent onEnter,
-	OnInterfaceElementEvent onExit,
-	OnInterfaceElementEvent onStay,
-	OnInterfaceElementEvent onEnable,
-	OnInterfaceElementEvent onDisable,
+	const InterfaceElementEvents* events,
 	void* handle);
 void destroyInterfaceElement(
 	InterfaceElement element,
@@ -72,15 +80,7 @@ Transform getInterfaceElementTransform(
 	InterfaceElement element);
 OnInterfaceElementDestroy getInterfaceElementOnDestroy(
 	InterfaceElement element);
-OnInterfaceElementEvent getInterfaceElementOnEnter(
-	InterfaceElement element);
-OnInterfaceElementEvent getInterfaceElementOnExit(
-	InterfaceElement element);
-OnInterfaceElementEvent getInterfaceElementOnStay(
-	InterfaceElement element);
-OnInterfaceElementEvent getInterfaceElementOnEnable(
-	InterfaceElement element);
-OnInterfaceElementEvent getInterfaceElementOnDisable(
+const InterfaceElementEvents* getInterfaceElementEvents(
 	InterfaceElement element);
 void* getInterfaceElementHandle(
 	InterfaceElement element);

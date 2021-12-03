@@ -208,6 +208,17 @@ typedef enum CursorMode
 	LOCKED_CURSOR_MODE = 0x00034003,
 } CursorMode;
 
+typedef enum CursorType
+{
+	DEFAULT_CURSOR_TYPE = 0,
+	IBEAM_CURSOR_TYPE = 1,
+	CROSSHAIR_CURSOR_TYPE = 2,
+	HAND_CURSOR_TYPE = 3,
+	HRESIZE_CURSOR_TYPE = 4,
+	VRESIZE_CURSOR_TYPE = 5,
+	CURSOR_TYPE_COUNT = 6,
+} CursorType;
+
 typedef enum BufferType
 {
 	VERTEX_BUFFER_TYPE = 0,
@@ -458,10 +469,11 @@ GraphicsAPI getWindowGraphicsAPI(Window window);
 bool isWindowUseStencilBuffer(Window window);
 OnWindowUpdate getWindowOnUpdate(Window window);
 void* getWindowUpdateArgument(Window window);
+const uint32_t* getWindowInputBuffer(Window window);
+size_t getWindowInputLength(Window window);
 double getWindowUpdateTime(Window window);
 double getWindowDeltaTime(Window window);
 Vec2F getWindowContentScale(Window window);
-const char* getWindowClipboard(Window window);
 const char* getWindowGpuName(Window window);
 
 void* getVkWindow(Window window);
@@ -479,6 +491,12 @@ bool getWindowKeyboardKey(
 bool getWindowMouseButton(
 	Window window,
 	MouseButton button);
+
+const char* getWindowClipboard(
+	Window window);
+void setWindowClipboard(
+	Window window,
+	const char* clipboard);
 
 Vec2U getWindowSize(
 	Window window);
@@ -503,6 +521,12 @@ CursorMode getWindowCursorMode(
 void setWindowCursorMode(
 	Window window,
 	CursorMode cursorMode);
+
+CursorType getWindowCursorType(
+	Window window);
+void setWindowCursorType(
+	Window window,
+	CursorType cursorType);
 
 bool isWindowFocused(Window window);
 bool isWindowIconified(Window window);

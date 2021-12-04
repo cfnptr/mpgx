@@ -20,9 +20,9 @@
 #include "ft2build.h"
 #include FT_FREETYPE_H
 
+#include "cmmt/common.h"
 #include <assert.h>
 
-// TODO: make better look
 // TODO: possibly bake in separated text pipeline thread
 
 // TODO: on integrated GPU system occurs artifacts
@@ -253,10 +253,9 @@ static int compareGlyph(
 
 	abort();
 }
-inline static bool getTextUniCharCount(
+inline static size_t getTextUniCharCount(
 	const char* data,
-	size_t dataLength,
-	size_t* _uniCharCount)
+	size_t dataLength)
 {
 	size_t uniCharCount = 0;
 
@@ -286,14 +285,13 @@ inline static bool getTextUniCharCount(
 		}
 		else
 		{
-			return false;
+			return 0;
 		}
 
 		uniCharCount++;
 	}
 
-	*_uniCharCount = uniCharCount;
-	return true;
+	return uniCharCount;
 }
 inline static uint32_t* createTextUniChars(
 	const char* data,
@@ -352,13 +350,13 @@ inline static bool createTextGlyphs(
 	Glyph** _glyphs,
 	size_t* _glyphCount)
 {
-	size_t glyphCount = 0;
-
 	Glyph* glyphs = malloc(
 		uniCharCount * sizeof(Glyph));
 
 	if (glyphs == NULL)
 		return false;
+
+	size_t glyphCount = 0;
 
 	for (size_t i = 0; i < uniCharCount; i++)
 	{
@@ -392,6 +390,12 @@ inline static bool createTextGlyphs(
 		}
 	}
 
+	if (glyphCount == 0)
+	{
+		free(glyphs);
+		return false;
+	}
+
 	*_glyphs = glyphs;
 	*_glyphCount = glyphCount;
 	return true;
@@ -406,7 +410,7 @@ inline static bool createTextPixels(
 	size_t* _pixelCount,
 	uint32_t* _pixelLength)
 {
-	uint32_t glyphLength = (uint32_t)sqrtf((float)glyphCount) + 1;
+	uint32_t glyphLength = (uint32_t)ceilf(sqrtf((float)glyphCount));
 	uint32_t pixelLength = glyphLength * fontSize;
 	size_t pixelCount = (size_t)pixelLength * pixelLength;
 
@@ -501,17 +505,16 @@ inline static bool createTextVertices(
 {
 	// TODO: use mapBuffer here
 	size_t vertexCount = uniCharCount * 16;
-	float* vertices = malloc(
-		vertexCount * sizeof(float));
-	Vec2F textSize = zeroVec2F;
+	float* vertices = malloc(vertexCount * sizeof(float));
 
 	if (vertices == NULL)
 		return false;
 
-	size_t vertexIndex = 0;
-
 	Vec2F vertexOffset = vec2F(
 		0.0f, -newLineAdvance * 0.5f);
+	Vec2F textSize = zeroVec2F;
+
+	size_t vertexIndex = 0;
 
 	for (size_t i = 0; i < uniCharCount; i++)
 	{
@@ -594,6 +597,12 @@ inline static bool createTextVertices(
 		}
 
 		vertexOffset.x += glyph->advance;
+	}
+
+	if (vertexIndex == 0)
+	{
+		free(vertices);
+		return false;
 	}
 
 	if (textSize.x < vertexOffset.x)
@@ -720,16 +729,16 @@ inline static bool createTextVertices(
 	}
 
 	*_vertices = vertices;
-	*_vertexCount = vertexCount;
+	*_vertexCount = vertexIndex;
 	*_textSize = textSize;
 	return true;
 }
 inline static bool createTextIndices(
-	size_t uniCharCount,
+	size_t vertexCount,
 	uint32_t** _indices,
 	size_t* _indexCount)
 {
-	size_t indexCount = uniCharCount * 6;
+	size_t indexCount = (vertexCount / 16) * 6;
 
 	uint32_t* indices = malloc(
 		indexCount * sizeof(uint32_t));
@@ -895,8 +904,19 @@ Text createText32(
 	if (text == NULL)
 		return NULL;
 
-	Window window = pipeline->base.framebuffer->base.window;
-	GraphicsAPI api = getWindowGraphicsAPI(window);
+	uint32_t* data = malloc(
+		dataLength * sizeof(uint32_t));
+
+	if (data == NULL)
+	{
+		free(text);
+		return NULL;
+	}
+
+	memcpy(
+		data,
+		_data,
+		dataLength * sizeof(uint32_t));
 
 	Glyph* glyphs;
 	size_t glyphCount;
@@ -909,24 +929,10 @@ Text createText32(
 
 	if (result == false)
 	{
+		free(data);
 		free(text);
 		return NULL;
 	}
-
-	uint32_t* data = malloc(
-		dataLength * sizeof(uint32_t));
-
-	if (data == NULL)
-	{
-		free(glyphs);
-		free(text);
-		return NULL;
-	}
-
-	memcpy(
-		data,
-		_data,
-		dataLength * sizeof(uint32_t));
 
 	FT_Face face = font->face;
 
@@ -938,6 +944,8 @@ Text createText32(
 	if (ftResult != 0)
 	{
 		free(glyphs);
+		free(data);
+		free(text);
 		return false;
 	}
 
@@ -961,11 +969,13 @@ Text createText32(
 
 	if (result == false)
 	{
-		free(data);
 		free(glyphs);
+		free(data);
 		free(text);
 		return NULL;
 	}
+
+	Window window = pipeline->base.framebuffer->base.window;
 
 	Image texture = createImage(
 		window,
@@ -981,8 +991,8 @@ Text createText32(
 
 	if (texture == NULL)
 	{
-		free(data);
 		free(glyphs);
+		free(data);
 		free(text);
 		return NULL;
 	}
@@ -1033,7 +1043,7 @@ Text createText32(
 	size_t indexCount;
 
 	result = createTextIndices(
-		dataLength,
+		vertexCount,
 		&indices,
 		&indexCount);
 
@@ -1081,6 +1091,8 @@ Text createText32(
 		free(text);
 		return NULL;
 	}
+
+	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 #if MPGX_SUPPORT_VULKAN
 	if (api == VULKAN_GRAPHICS_API)
@@ -1200,14 +1212,11 @@ Text createText8(
 	assert(data != NULL);
 	assert(dataLength != 0);
 
-	size_t uniCharCount;
-
-	bool result = getTextUniCharCount(
+	size_t uniCharCount = getTextUniCharCount(
 		data,
-		dataLength,
-		&uniCharCount);
+		dataLength);
 
-	if (result == false)
+	if (uniCharCount == 0)
 		return NULL;
 
 	uint32_t* uniChars = createTextUniChars(
@@ -1447,11 +1456,88 @@ Vec2F getTextOffset(Text text)
 
 bool getTextCaretAdvance(
 	Text text,
+	size_t index,
+	Vec2F* _advance)
+{
+	assert(text != NULL);
+	assert(_advance != NULL);
+
+	if (index == 0)
+	{
+		*_advance = zeroVec2F;
+		return true;
+	}
+
+	FT_Face face = text->font->face;
+	uint32_t fontSize = text->fontSize;
+
+	float newLineAdvance = ((float)face->size->metrics.height /
+		64.0f) / (float)fontSize;
+
+	const uint32_t* data = text->data;
+	size_t dataLength = text->dataLength;
+
+	if (index > dataLength)
+		index = dataLength;
+
+	Vec2F advance = zeroVec2F;
+
+	for (size_t i = 0; i < index; i++)
+	{
+		uint32_t uniChar = data[i];
+
+		if (uniChar == '\n')
+		{
+			advance.y += newLineAdvance;
+			advance.x = 0.0f;
+			continue;
+		}
+		else if (uniChar == '\t')
+		{
+			uniChar = ' ';
+
+			FT_UInt charIndex = FT_Get_Char_Index(
+				face,
+				uniChar);
+			FT_Error result = FT_Load_Glyph(
+				face,
+				charIndex,
+				FT_LOAD_BITMAP_METRICS_ONLY);
+
+			if (result != 0)
+				return false;
+
+			advance.x += ((float)face->glyph->advance.x /
+				64.0f) / (float)fontSize * 4;
+			continue;
+		}
+
+		FT_UInt charIndex = FT_Get_Char_Index(
+			face,
+			uniChar);
+		FT_Error result = FT_Load_Glyph(
+			face,
+			charIndex,
+			FT_LOAD_BITMAP_METRICS_ONLY);
+
+		if (result != 0)
+			return false;
+
+		advance.x += ((float)face->glyph->advance.x /
+			64.0f) / (float)fontSize;
+	}
+
+	*_advance = advance;
+	return true;
+}
+bool getTextCaretPosition(
+	Text text,
 	Vec2F* advance,
 	size_t* index)
 {
 	assert(text != NULL);
 	assert(advance != NULL);
+	assert(index != NULL);
 
 	// TODO:
 }
@@ -1584,14 +1670,11 @@ bool setTextData8(
 	assert(dataLength != 0);
 	assert(text->isConstant == false);
 
-	size_t uniCharCount;
-
-	bool result = getTextUniCharCount(
+	size_t uniCharCount = getTextUniCharCount(
 		data,
-		dataLength,
-		&uniCharCount);
+		dataLength);
 
-	if (result == false)
+	if (uniCharCount == 0)
 		return NULL;
 
 	uint32_t* uniChars = createTextUniChars(
@@ -1602,7 +1685,7 @@ bool setTextData8(
 	if (uniChars == NULL)
 		return NULL;
 
-	result = setTextData32(
+	bool result = setTextData32(
 		text,
 		uniChars,
 		uniCharCount,
@@ -1789,7 +1872,7 @@ bool bakeText(
 			size_t indexCount;
 
 			result = createTextIndices(
-				dataLength,
+				vertexCount,
 				&indices,
 				&indexCount);
 
@@ -1864,7 +1947,7 @@ bool bakeText(
 				0);
 			setMeshIndexCount(
 				mesh,
-				dataLength * 6);
+				(vertexCount / 16) * 6);
 
 			free(vertices);
 		}
@@ -1883,7 +1966,7 @@ bool bakeText(
 			setMeshIndexBuffer(
 				mesh,
 				UINT32_DRAW_INDEX,
-				dataLength * 6,
+				(vertexCount / 16) * 6,
 				0,
 				indexBuffer);
 		}
@@ -2002,7 +2085,7 @@ bool bakeText(
 		size_t indexCount;
 
 		result = createTextIndices(
-			dataLength,
+			vertexCount,
 			&indices,
 			&indexCount);
 

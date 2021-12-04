@@ -69,6 +69,10 @@ Vec2F getTextOffset(Text text);
 
 bool getTextCaretAdvance(
 	Text text,
+	size_t index,
+	Vec2F* advance);
+bool getTextCaretPosition(
+	Text text,
 	Vec2F* advance,
 	size_t* index);
 

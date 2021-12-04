@@ -355,13 +355,14 @@ void updateInterface(Interface interface)
 			if (lastElement->events.onExit != NULL)
 				lastElement->events.onExit(lastElement);
 
+			lastElement->isPressed = false;
+
 			if (newElement != NULL &&
 				newElement->events.onEnter != NULL)
 			{
 				newElement->events.onEnter(newElement);
 			}
 
-			lastElement->isPressed = false;
 			interface->lastElement = newElement;
 		}
 		else

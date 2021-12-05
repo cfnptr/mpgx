@@ -57,7 +57,7 @@ struct Text
 typedef struct Glyph
 {
 	bool isVisible;
-	uint32_t uniChar;
+	uint32_t value;
 	Vec4F position;
 	Vec4F texCoords;
 	float advance;
@@ -119,6 +119,122 @@ union PipelineHandle
 };
 
 typedef union PipelineHandle* PipelineHandle;
+
+bool createCharArray8(
+	const uint32_t* data,
+	size_t dataLength,
+	char** _array,
+	size_t* _arrayLength)
+{
+	assert(data != NULL);
+	assert(dataLength != 0);
+	assert(_array != NULL);
+	assert(_arrayLength != NULL);
+	// TODO:
+	abort();
+}
+void destroyCharArray8(char* array)
+{
+	free(array);
+}
+
+bool createCharArray32(
+	const char* data,
+	size_t dataLength,
+	uint32_t** _array,
+	size_t* _arrayLength)
+{
+	assert(data != NULL);
+	assert(dataLength != 0);
+	assert(_array != NULL);
+	assert(_arrayLength != NULL);
+
+	size_t arrayLength = 0;
+
+	for (size_t i = 0; i < dataLength;)
+	{
+		if ((data[i] & 0b10000000) == 0)
+		{
+			i += 1;
+		}
+		else if ((data[i] & 0b11100000) == 0b11000000 &&
+			(data[i + 1] & 0b11000000) == 0b10000000)
+		{
+			i += 2;
+		}
+		else if ((data[i] & 0b11110000) == 0b11100000 &&
+			(data[i + 1] & 0b11000000) == 0b10000000 &&
+			(data[i + 2] & 0b11000000) == 0b10000000)
+		{
+			i += 3;
+		}
+		else if ((data[i] & 0b11111000) == 0b11110000 &&
+			(data[i + 1] & 0b11000000) == 0b10000000 &&
+			(data[i + 2] & 0b11000000) == 0b10000000 &&
+			(data[i + 3] & 0b11000000) == 0b10000000)
+		{
+			i += 4;
+		}
+		else
+		{
+			return false;
+		}
+
+		arrayLength++;
+	}
+
+	if (arrayLength == 0)
+		return false;
+
+	uint32_t* array = malloc(
+		sizeof(uint32_t) * arrayLength);
+
+	if (array == NULL)
+		return false;
+
+	for (size_t i = 0, j = 0; i < dataLength; j++)
+	{
+		if ((data[i] & 0b10000000) == 0)
+		{
+			array[j] = (uint32_t)data[i];
+			i += 1;
+		}
+		else if ((data[i] & 0b11100000) == 0b11000000)
+		{
+			array[j] = (uint32_t)(data[i] & 0b00011111) << 6 |
+				(uint32_t)(data[i + 1] & 0b00111111);
+			i += 2;
+		}
+		else if ((data[i] & 0b11110000) == 0b11100000)
+		{
+			array[j] = (uint32_t)(data[i] & 0b00001111) << 12 |
+				(uint32_t)(data[i + 1] & 0b00111111) << 6 |
+				(uint32_t)(data[i + 2] & 0b00111111);
+			i += 3;
+		}
+		else if ((data[i] & 0b11111000) == 0b11110000)
+		{
+			array[j] = (uint32_t)(data[i] & 0b00000111) << 18 |
+				(uint32_t)(data[i + 1] & 0b00111111) << 12 |
+				(uint32_t)(data[i + 2] & 0b00111111) << 6 |
+				(uint32_t)(data[i + 3] & 0b00111111);
+			i += 4;
+		}
+		else
+		{
+			free(array);
+			return false;
+		}
+	}
+
+	*_array = array;
+	*_arrayLength = arrayLength;
+	return true;
+}
+void destroyCharArray32(uint32_t* array)
+{
+	free(array);
+}
 
 Font createFont(
 	const void* _data,
@@ -235,140 +351,40 @@ static int compareGlyph(
 	const void* a,
 	const void* b)
 {
-	if (((Glyph*)a)->uniChar <
-		((Glyph*)b)->uniChar)
-	{
+	if (((Glyph*)a)->value < ((Glyph*)b)->value)
 		return -1;
-	}
-	if (((Glyph*)a)->uniChar ==
-		((Glyph*)b)->uniChar)
-	{
+	if (((Glyph*)a)->value == ((Glyph*)b)->value)
 		return 0;
-	}
-	if (((Glyph*)a)->uniChar >
-		((Glyph*)b)->uniChar)
-	{
+	if (((Glyph*)a)->value > ((Glyph*)b)->value)
 		return 1;
-	}
 
 	abort();
 }
-inline static size_t getTextUniCharCount(
-	const char* data,
-	size_t dataLength)
-{
-	size_t uniCharCount = 0;
-
-	for (size_t i = 0; i < dataLength;)
-	{
-		if ((data[i] & 0b10000000) == 0)
-		{
-			i += 1;
-		}
-		else if ((data[i] & 0b11100000) == 0b11000000 &&
-			(data[i + 1] & 0b11000000) == 0b10000000)
-		{
-			i += 2;
-		}
-		else if ((data[i] & 0b11110000) == 0b11100000 &&
-			(data[i + 1] & 0b11000000) == 0b10000000 &&
-			(data[i + 2] & 0b11000000) == 0b10000000)
-		{
-			i += 3;
-		}
-		else if ((data[i] & 0b11111000) == 0b11110000 &&
-			(data[i + 1] & 0b11000000) == 0b10000000 &&
-			(data[i + 2] & 0b11000000) == 0b10000000 &&
-			(data[i + 3] & 0b11000000) == 0b10000000)
-		{
-			i += 4;
-		}
-		else
-		{
-			return 0;
-		}
-
-		uniCharCount++;
-	}
-
-	return uniCharCount;
-}
-inline static uint32_t* createTextUniChars(
-	const char* data,
-	size_t dataLength,
-	size_t uniCharCount)
-{
-	uint32_t* uniChars = malloc(
-		uniCharCount * sizeof(uint32_t));
-
-	if (uniChars == NULL)
-		return NULL;
-
-	for (size_t i = 0, j = 0; i < dataLength; j++)
-	{
-		if ((data[i] & 0b10000000) == 0)
-		{
-			uniChars[j] = (uint32_t)data[i];
-			i += 1;
-		}
-		else if ((data[i] & 0b11100000) == 0b11000000)
-		{
-			uniChars[j] =
-				(uint32_t)(data[i] & 0b00011111) << 6 |
-				(uint32_t)(data[i + 1] & 0b00111111);
-			i += 2;
-		}
-		else if ((data[i] & 0b11110000) == 0b11100000)
-		{
-			uniChars[j] =
-				(uint32_t)(data[i] & 0b00001111) << 12 |
-				(uint32_t)(data[i + 1] & 0b00111111) << 6 |
-				(uint32_t)(data[i + 2] & 0b00111111);
-			i += 3;
-		}
-		else if ((data[i] & 0b11111000) == 0b11110000)
-		{
-			uniChars[j] =
-				(uint32_t)(data[i] & 0b00000111) << 18 |
-				(uint32_t)(data[i + 1] & 0b00111111) << 12 |
-				(uint32_t)(data[i + 2] & 0b00111111) << 6 |
-				(uint32_t)(data[i + 3] & 0b00111111);
-			i += 4;
-		}
-		else
-		{
-			free(uniChars);
-			return NULL;
-		}
-	}
-
-	return uniChars;
-}
 inline static bool createTextGlyphs(
-	const uint32_t* uniChars,
-	size_t uniCharCount,
+	const uint32_t* array,
+	size_t arrayLength,
 	Glyph** _glyphs,
 	size_t* _glyphCount)
 {
 	Glyph* glyphs = malloc(
-		uniCharCount * sizeof(Glyph));
+		arrayLength * sizeof(Glyph));
 
 	if (glyphs == NULL)
 		return false;
 
 	size_t glyphCount = 0;
 
-	for (size_t i = 0; i < uniCharCount; i++)
+	for (size_t i = 0; i < arrayLength; i++)
 	{
-		uint32_t uniChar = uniChars[i];
+		uint32_t value = array[i];
 
-		if (uniChar == '\n')
+		if (value == '\n')
 			continue;
-		else if (uniChar == '\t')
-			uniChar = ' ';
+		else if (value == '\t')
+			value = ' ';
 
 		Glyph searchGlyph;
-		searchGlyph.uniChar = uniChar;
+		searchGlyph.value = value;
 
 		Glyph* glyph = bsearch(
 			&searchGlyph,
@@ -379,7 +395,7 @@ inline static bool createTextGlyphs(
 
 		if (glyph == NULL)
 		{
-			glyphs[glyphCount].uniChar = uniChar;
+			glyphs[glyphCount].value = value;
 			glyphCount++;
 
 			qsort(
@@ -427,11 +443,11 @@ inline static bool createTextPixels(
 	for (size_t i = 0; i < glyphCount; i++)
 	{
 		Glyph glyph;
-		glyph.uniChar = glyphs[i].uniChar;
+		glyph.value = glyphs[i].value;
 
 		FT_UInt charIndex = FT_Get_Char_Index(
 			face,
-			glyph.uniChar);
+			glyph.value);
 		FT_Error result = FT_Load_Glyph(
 			face,
 			charIndex,
@@ -493,8 +509,8 @@ inline static bool createTextPixels(
 	return true;
 }
 inline static bool createTextVertices(
-	const uint32_t* uniChars,
-	size_t uniCharCount,
+	const uint32_t* array,
+	size_t arrayLength,
 	const Glyph* glyphs,
 	size_t glyphCount,
 	float newLineAdvance,
@@ -504,7 +520,7 @@ inline static bool createTextVertices(
 	Vec2F* _textSize)
 {
 	// TODO: use mapBuffer here
-	size_t vertexCount = uniCharCount * 16;
+	size_t vertexCount = arrayLength * 16;
 	float* vertices = malloc(vertexCount * sizeof(float));
 
 	if (vertices == NULL)
@@ -516,11 +532,11 @@ inline static bool createTextVertices(
 
 	size_t vertexIndex = 0;
 
-	for (size_t i = 0; i < uniCharCount; i++)
+	for (size_t i = 0; i < arrayLength; i++)
 	{
-		uint32_t uniChar = uniChars[i];
+		uint32_t value = array[i];
 
-		if (uniChar == '\n')
+		if (value == '\n')
 		{
 			if (textSize.x < vertexOffset.x)
 				textSize.x = vertexOffset.x;
@@ -529,10 +545,10 @@ inline static bool createTextVertices(
 			vertexOffset.x = 0.0f;
 			continue;
 		}
-		else if (uniChar == '\t')
+		else if (value == '\t')
 		{
 			Glyph searchGlyph;
-			searchGlyph.uniChar = ' ';
+			searchGlyph.value = ' ';
 
 			Glyph* glyph = bsearch(
 				&searchGlyph,
@@ -552,7 +568,7 @@ inline static bool createTextVertices(
 		}
 
 		Glyph searchGlyph;
-		searchGlyph.uniChar = uniChar;
+		searchGlyph.value = value;
 
 		Glyph* glyph = bsearch(
 			&searchGlyph,
@@ -1212,19 +1228,16 @@ Text createText8(
 	assert(data != NULL);
 	assert(dataLength != 0);
 
-	size_t uniCharCount = getTextUniCharCount(
-		data,
-		dataLength);
+	uint32_t* array;
+	size_t arrayLength;
 
-	if (uniCharCount == 0)
-		return NULL;
-
-	uint32_t* uniChars = createTextUniChars(
+	bool result = createCharArray32(
 		data,
 		dataLength,
-		uniCharCount);
+		&array,
+		&arrayLength);
 
-	if (uniChars == NULL)
+	if (result == false)
 		return NULL;
 
 	Text text = createText32(
@@ -1232,11 +1245,11 @@ Text createText8(
 		font,
 		fontSize,
 		alignment,
-		uniChars,
-		dataLength,
+		array,
+		arrayLength,
 		isConstant);
 
-	free(uniChars);
+	destroyCharArray32(array);
 
 	if (text == NULL)
 		return NULL;
@@ -1484,21 +1497,21 @@ bool getTextCaretAdvance(
 
 	for (size_t i = 0; i < index; i++)
 	{
-		uint32_t uniChar = data[i];
+		uint32_t value = data[i];
 
-		if (uniChar == '\n')
+		if (value == '\n')
 		{
 			advance.y += newLineAdvance;
 			advance.x = 0.0f;
 			continue;
 		}
-		else if (uniChar == '\t')
+		else if (value == '\t')
 		{
-			uniChar = ' ';
+			value = ' ';
 
 			FT_UInt charIndex = FT_Get_Char_Index(
 				face,
-				uniChar);
+				value);
 			FT_Error result = FT_Load_Glyph(
 				face,
 				charIndex,
@@ -1514,7 +1527,7 @@ bool getTextCaretAdvance(
 
 		FT_UInt charIndex = FT_Get_Char_Index(
 			face,
-			uniChar);
+			value);
 		FT_Error result = FT_Load_Glyph(
 			face,
 			charIndex,
@@ -1540,6 +1553,7 @@ bool getTextCaretPosition(
 	assert(index != NULL);
 
 	// TODO:
+	abort();
 }
 
 Font getTextFont(
@@ -1670,28 +1684,25 @@ bool setTextData8(
 	assert(dataLength != 0);
 	assert(text->isConstant == false);
 
-	size_t uniCharCount = getTextUniCharCount(
-		data,
-		dataLength);
+	uint32_t* array;
+	size_t arrayLength;
 
-	if (uniCharCount == 0)
-		return NULL;
-
-	uint32_t* uniChars = createTextUniChars(
+	bool result = createCharArray32(
 		data,
 		dataLength,
-		uniCharCount);
+		&array,
+		&arrayLength);
 
-	if (uniChars == NULL)
+	if (result == false)
 		return NULL;
 
-	bool result = setTextData32(
+	result = setTextData32(
 		text,
-		uniChars,
-		uniCharCount,
+		array,
+		arrayLength,
 		reuseBuffers);
 
-	free(uniChars);
+	destroyCharArray32(array);
 	return result;
 }
 

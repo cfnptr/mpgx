@@ -76,18 +76,9 @@ void destroyInterface(Interface interface)
 	if (interface == NULL)
 		return;
 
-	InterfaceElement* elements = interface->elements;
-	size_t elementCount = interface->elementCount;
+	assert(interface->elementCount == 0);
 
-	for (size_t i = 0; i < elementCount; i++)
-	{
-		InterfaceElement element = elements[i];
-
-		element->onDestroy(element->handle);
-		free(element);
-	}
-
-	free(elements);
+	free(interface->elements);
 	free(interface);
 }
 

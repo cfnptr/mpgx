@@ -3,6 +3,7 @@
 ## Features
 * Vulkan API and OpenGL rendering backends
 * Window creation, manipulation (using GLFW)
+* Mesh rendering with frustum culling
 * Optimized text rendering (using FreeType)
 * Implemented shaders (Vulkan API, OpenGL)
 

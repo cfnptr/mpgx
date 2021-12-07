@@ -2,8 +2,8 @@
 
 ## Features
 * Vulkan API and OpenGL rendering backends
-* Window creation, manipulation (using GLFW)
 * Mesh rendering with frustum culling
+* Window creation, manipulation (using GLFW)
 * Optimized text rendering (using FreeType)
 * Implemented shaders (Vulkan API, OpenGL)
 
@@ -39,7 +39,7 @@ cmake --build build/
 
 ### CMake options
 | Name                | Description                   | Default value |
-| ------------------- | ----------------------------- | ------------- |
+|---------------------|-------------------------------|---------------|
 | MPGX_BUILD_EXAMPLES | Build MPGX usage examples     | ON            |
 | MPGX_USE_VULKAN     | Use modern Vulkan API library | ON            |
 

@@ -36,19 +36,27 @@ typedef enum AlignmentType
 	ALIGNMENT_TYPE_COUNT = 9,
 } AlignmentType;
 
-bool createCharArray8(
+bool createStringUTF8(
 	const uint32_t* data,
 	size_t dataLength,
 	char** array,
 	size_t* arrayLength);
-void destroyCharArray8(char* array);
+void destroyStringUTF8(char* array);
 
-bool createCharArray32(
+bool validateStringUTF8(
+	const char* array,
+	size_t arrayLength);
+
+bool createStringUTF32(
 	const char* data,
 	size_t dataLength,
 	uint32_t** array,
 	size_t* arrayLength);
-void destroyCharArray32(uint32_t* array);
+void destroyStringUTF32(uint32_t* array);
+
+bool validateStringUTF32(
+	const uint32_t* array,
+	size_t arrayLength);
 
 Font createFont(
 	const void* data,

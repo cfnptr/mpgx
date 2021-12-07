@@ -120,7 +120,7 @@ union PipelineHandle
 
 typedef union PipelineHandle* PipelineHandle;
 
-bool createCharArray8(
+bool createStringUTF8(
 	const uint32_t* data,
 	size_t dataLength,
 	char** _array,
@@ -130,15 +130,110 @@ bool createCharArray8(
 	assert(dataLength != 0);
 	assert(_array != NULL);
 	assert(_arrayLength != NULL);
-	// TODO:
-	abort();
+
+	size_t arrayLength = 0;
+
+	for (size_t i = 0; i < dataLength; i++)
+	{
+		uint32_t value = data[i];
+
+		if (value < 128)
+			arrayLength += 1;
+		else if (value < 2048)
+			arrayLength += 2;
+		else if (value < 65536)
+			arrayLength += 3;
+		else if (value < 2097152)
+			arrayLength += 4;
+		else
+			return false;
+	}
+
+	char* array = malloc(
+		(arrayLength + 1) * sizeof(char));
+
+	if (array == NULL)
+		return false;
+
+	for (size_t i = 0, j = 0; i < dataLength; i++)
+	{
+		uint32_t value = data[i];
+
+		if (value < 128)
+		{
+			array[j] = (char)value;
+			j += 1;
+		}
+		else if (value < 2048)
+		{
+			array[j] = (char)(value >> 6 | 0b11000000 & 0b11011111);
+			array[j + 1] = (char)(value | 0b10000000 & 0b10111111);
+			j += 2;
+		}
+		else if (value < 65536)
+		{
+			array[j] = (char)(value >> 12 | 0b11100000 & 0b11101111);
+			array[j + 1] = (char)(value >> 6 | 0b10000000 & 0b10111111);
+			array[j + 2] = (char)(value | 0b10000000 & 0b10111111);
+			j += 3;
+		}
+		else
+		{
+			array[j] = (char)(value >> 18 | 0b11110000 & 0b11110111);
+			array[j + 1] = (char)(value >> 12 | 0b10000000 & 0b10111111);
+			array[j + 2] = (char)(value >> 6 | 0b10000000 & 0b10111111);
+			array[j + 3] = (char)(value | 0b10000000 & 0b10111111);
+			j += 4;
+		}
+	}
+
+	array[arrayLength] = '\0';
+
+	*_array = array;
+	*_arrayLength = arrayLength;
+	return true;
 }
-void destroyCharArray8(char* array)
+void destroyStringUTF8(char* array)
 {
 	free(array);
 }
 
-bool createCharArray32(
+bool validateStringUTF8(
+	const char* array,
+	size_t arrayLength)
+{
+	assert(array != NULL);
+	assert(arrayLength != 0);
+
+	for (size_t i = 0; i < arrayLength; i++)
+	{
+		char value = array[i];
+
+		if (!((value & 0b10000000) == 0) ||
+
+			!(i + 1 < arrayLength &&
+			(value & 0b11100000) == 0b11000000 &&
+			(array[i + 1] & 0b11000000) == 0b10000000) ||
+
+			!(i + 2 < arrayLength &&
+			(value & 0b11110000) == 0b11100000 &&
+			(array[i + 1] & 0b11000000) == 0b10000000 &&
+			(array[i + 2] & 0b11000000) == 0b10000000) ||
+
+			!(i + 3 < arrayLength &&
+			(value & 0b11111000) == 0b11110000 &&
+			(array[i + 1] & 0b11000000) == 0b10000000 &&
+			(array[i + 2] & 0b11000000) == 0b10000000 &&
+			(array[i + 3] & 0b11000000) == 0b10000000))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool createStringUTF32(
 	const char* data,
 	size_t dataLength,
 	uint32_t** _array,
@@ -153,22 +248,27 @@ bool createCharArray32(
 
 	for (size_t i = 0; i < dataLength;)
 	{
-		if ((data[i] & 0b10000000) == 0)
+		char value = data[i];
+
+		if ((value & 0b10000000) == 0)
 		{
 			i += 1;
 		}
-		else if ((data[i] & 0b11100000) == 0b11000000 &&
+		else if (i + 1 < dataLength &&
+			(value & 0b11100000) == 0b11000000 &&
 			(data[i + 1] & 0b11000000) == 0b10000000)
 		{
 			i += 2;
 		}
-		else if ((data[i] & 0b11110000) == 0b11100000 &&
+		else if (i + 2 < dataLength &&
+			(value & 0b11110000) == 0b11100000 &&
 			(data[i + 1] & 0b11000000) == 0b10000000 &&
 			(data[i + 2] & 0b11000000) == 0b10000000)
 		{
 			i += 3;
 		}
-		else if ((data[i] & 0b11111000) == 0b11110000 &&
+		else if (i + 3 < dataLength &&
+			(value & 0b11111000) == 0b11110000 &&
 			(data[i + 1] & 0b11000000) == 0b10000000 &&
 			(data[i + 2] & 0b11000000) == 0b10000000 &&
 			(data[i + 3] & 0b11000000) == 0b10000000)
@@ -183,36 +283,35 @@ bool createCharArray32(
 		arrayLength++;
 	}
 
-	if (arrayLength == 0)
-		return false;
-
 	uint32_t* array = malloc(
-		sizeof(uint32_t) * arrayLength);
+		(arrayLength + 1) * sizeof(uint32_t));
 
 	if (array == NULL)
 		return false;
 
 	for (size_t i = 0, j = 0; i < dataLength; j++)
 	{
-		if ((data[i] & 0b10000000) == 0)
+		char value = data[i];
+
+		if ((value & 0b10000000) == 0)
 		{
 			array[j] = (uint32_t)data[i];
 			i += 1;
 		}
-		else if ((data[i] & 0b11100000) == 0b11000000)
+		else if ((value & 0b11100000) == 0b11000000)
 		{
 			array[j] = (uint32_t)(data[i] & 0b00011111) << 6 |
 				(uint32_t)(data[i + 1] & 0b00111111);
 			i += 2;
 		}
-		else if ((data[i] & 0b11110000) == 0b11100000)
+		else if ((value & 0b11110000) == 0b11100000)
 		{
 			array[j] = (uint32_t)(data[i] & 0b00001111) << 12 |
 				(uint32_t)(data[i + 1] & 0b00111111) << 6 |
 				(uint32_t)(data[i + 2] & 0b00111111);
 			i += 3;
 		}
-		else if ((data[i] & 0b11111000) == 0b11110000)
+		else
 		{
 			array[j] = (uint32_t)(data[i] & 0b00000111) << 18 |
 				(uint32_t)(data[i + 1] & 0b00111111) << 12 |
@@ -220,20 +319,33 @@ bool createCharArray32(
 				(uint32_t)(data[i + 3] & 0b00111111);
 			i += 4;
 		}
-		else
-		{
-			free(array);
-			return false;
-		}
 	}
+
+	array[arrayLength] = 0;
 
 	*_array = array;
 	*_arrayLength = arrayLength;
 	return true;
 }
-void destroyCharArray32(uint32_t* array)
+void destroyStringUTF32(uint32_t* array)
 {
 	free(array);
+}
+
+bool validateStringUTF32(
+	const uint32_t* array,
+	size_t arrayLength)
+{
+	assert(array != NULL);
+	assert(arrayLength != 0);
+
+	for (size_t i = 0; i < arrayLength; i++)
+	{
+		if (array[i] >= 2097152)
+			return false;
+	}
+
+	return true;
 }
 
 Font createFont(
@@ -531,6 +643,9 @@ inline static bool createTextVertices(
 	Vec2F textSize = zeroVec2F;
 
 	size_t vertexIndex = 0;
+	size_t lastNewLineIndex = 0;
+
+	float offset;
 
 	for (size_t i = 0; i < arrayLength; i++)
 	{
@@ -538,6 +653,85 @@ inline static bool createTextVertices(
 
 		if (value == '\n')
 		{
+			switch (alignment)
+			{
+			default:
+				abort();
+			case CENTER_ALIGNMENT_TYPE:
+				offset = vertexOffset.x * -0.5f;
+
+				for (size_t j = lastNewLineIndex; j < vertexIndex; j += 16)
+				{
+					vertices[j + 0] += offset;
+					vertices[j + 4] += offset;
+					vertices[j + 8] += offset;
+					vertices[j + 12] += offset;
+				}
+				break;
+			case LEFT_ALIGNMENT_TYPE:
+				break;
+			case RIGHT_ALIGNMENT_TYPE:
+				offset = -vertexOffset.x;
+
+				for (size_t j = lastNewLineIndex; j < vertexIndex; j += 16)
+				{
+					vertices[j + 0] += offset;
+					vertices[j + 4] += offset;
+					vertices[j + 8] += offset;
+					vertices[j + 12] += offset;
+				}
+				break;
+			case BOTTOM_ALIGNMENT_TYPE:
+				offset = vertexOffset.x * -0.5f;
+
+				for (size_t j = lastNewLineIndex; j < vertexIndex; j += 16)
+				{
+					vertices[j + 0] += offset;
+					vertices[j + 4] += offset;
+					vertices[j + 8] += offset;
+					vertices[j + 12] += offset;
+				}
+				break;
+			case TOP_ALIGNMENT_TYPE:
+				offset = vertexOffset.x * -0.5f;
+
+				for (size_t j = lastNewLineIndex; j < vertexIndex; j += 16)
+				{
+					vertices[j + 0] += offset;
+					vertices[j + 4] += offset;
+					vertices[j + 8] += offset;
+					vertices[j + 12] += offset;
+				}
+				break;
+			case LEFT_BOTTOM_ALIGNMENT_TYPE:
+			case LEFT_TOP_ALIGNMENT_TYPE:
+				break;
+			case RIGHT_BOTTOM_ALIGNMENT_TYPE:
+				offset = -vertexOffset.x;
+
+				for (size_t j = lastNewLineIndex; j < vertexIndex; j += 16)
+				{
+					vertices[j + 0] += offset;
+					vertices[j + 4] += offset;
+					vertices[j + 8] += offset;
+					vertices[j + 12] += offset;
+				}
+				break;
+			case RIGHT_TOP_ALIGNMENT_TYPE:
+				offset = -vertexOffset.x;
+
+				for (size_t j = lastNewLineIndex; j < vertexIndex; j += 16)
+				{
+					vertices[j + 0] += offset;
+					vertices[j + 4] += offset;
+					vertices[j + 8] += offset;
+					vertices[j + 12] += offset;
+				}
+				break;
+			}
+
+			lastNewLineIndex = vertexIndex;
+
 			if (textSize.x < vertexOffset.x)
 				textSize.x = vertexOffset.x;
 
@@ -623,123 +817,140 @@ inline static bool createTextVertices(
 
 	if (textSize.x < vertexOffset.x)
 		textSize.x = vertexOffset.x;
-
 	textSize.y = -vertexOffset.y;
-
-	// TODO: make also alignment inside text lines
 
 	switch (alignment)
 	{
 	default:
 		abort();
 	case CENTER_ALIGNMENT_TYPE:
-		vertexOffset.x = textSize.x * -0.5f;
-		vertexOffset.y = textSize.y * 0.5f;
+		offset = vertexOffset.x * -0.5f;
 
-		for (size_t i = 0; i < vertexCount; i += 16)
+		for (size_t i = lastNewLineIndex; i < vertexIndex; i += 16)
 		{
-			vertices[i + 0] += vertexOffset.x;
-			vertices[i + 1] += vertexOffset.y;
-			vertices[i + 4] += vertexOffset.x;
-			vertices[i + 5] += vertexOffset.y;
-			vertices[i + 8] += vertexOffset.x;
-			vertices[i + 9] += vertexOffset.y;
-			vertices[i + 12] += vertexOffset.x;
-			vertices[i + 13] += vertexOffset.y;
+			vertices[i + 0] += offset;
+			vertices[i + 4] += offset;
+			vertices[i + 8] += offset;
+			vertices[i + 12] += offset;
+		}
+
+		offset = textSize.y * 0.5f;
+
+		for (size_t i = 0; i < vertexIndex; i += 16)
+		{
+			vertices[i + 1] += offset;
+			vertices[i + 5] += offset;
+			vertices[i + 9] += offset;
+			vertices[i + 13] += offset;
 		}
 		break;
 	case LEFT_ALIGNMENT_TYPE:
-		vertexOffset.y = textSize.y * 0.5f;
+		offset = textSize.y * 0.5f;
 
-		for (size_t i = 0; i < vertexCount; i += 16)
+		for (size_t i = 0; i < vertexIndex; i += 16)
 		{
-			vertices[i + 1] += vertexOffset.y;
-			vertices[i + 5] += vertexOffset.y;
-			vertices[i + 9] += vertexOffset.y;
-			vertices[i + 13] += vertexOffset.y;
+			vertices[i + 1] += offset;
+			vertices[i + 5] += offset;
+			vertices[i + 9] += offset;
+			vertices[i + 13] += offset;
 		}
 		break;
 	case RIGHT_ALIGNMENT_TYPE:
-		vertexOffset.x = -textSize.x;
-		vertexOffset.y = textSize.y * 0.5f;
+		offset = -vertexOffset.x;
 
-		for (size_t i = 0; i < vertexCount; i += 16)
+		for (size_t i = lastNewLineIndex; i < vertexIndex; i += 16)
 		{
-			vertices[i + 0] += vertexOffset.x;
-			vertices[i + 1] += vertexOffset.y;
-			vertices[i + 4] += vertexOffset.x;
-			vertices[i + 5] += vertexOffset.y;
-			vertices[i + 8] += vertexOffset.x;
-			vertices[i + 9] += vertexOffset.y;
-			vertices[i + 12] += vertexOffset.x;
-			vertices[i + 13] += vertexOffset.y;
+			vertices[i + 0] += offset;
+			vertices[i + 4] += offset;
+			vertices[i + 8] += offset;
+			vertices[i + 12] += offset;
+		}
+
+		offset = textSize.y * 0.5f;
+
+		for (size_t i = 0; i < vertexIndex; i += 16)
+		{
+			vertices[i + 1] += offset;
+			vertices[i + 5] += offset;
+			vertices[i + 9] += offset;
+			vertices[i + 13] += offset;
 		}
 		break;
 	case BOTTOM_ALIGNMENT_TYPE:
-		vertexOffset.x = textSize.x * -0.5f;
-		vertexOffset.y = textSize.y;
+		offset = vertexOffset.x * -0.5f;
 
-		for (size_t i = 0; i < vertexCount; i += 16)
+		for (size_t i = lastNewLineIndex; i < vertexIndex; i += 16)
 		{
-			vertices[i + 0] += vertexOffset.x;
-			vertices[i + 1] += vertexOffset.y;
-			vertices[i + 4] += vertexOffset.x;
-			vertices[i + 5] += vertexOffset.y;
-			vertices[i + 8] += vertexOffset.x;
-			vertices[i + 9] += vertexOffset.y;
-			vertices[i + 12] += vertexOffset.x;
-			vertices[i + 13] += vertexOffset.y;
+			vertices[i + 0] += offset;
+			vertices[i + 4] += offset;
+			vertices[i + 8] += offset;
+			vertices[i + 12] += offset;
+		}
+
+		offset = textSize.y;
+
+		for (size_t i = 0; i < vertexIndex; i += 16)
+		{
+			vertices[i + 1] += offset;
+			vertices[i + 5] += offset;
+			vertices[i + 9] += offset;
+			vertices[i + 13] += offset;
 		}
 		break;
 	case TOP_ALIGNMENT_TYPE:
-		vertexOffset.x = textSize.x * -0.5f;
+		offset = vertexOffset.x * -0.5f;
 
-		for (size_t i = 0; i < vertexCount; i += 16)
+		for (size_t i = lastNewLineIndex; i < vertexIndex; i += 16)
 		{
-			vertices[i + 0] += vertexOffset.x;
-			vertices[i + 4] += vertexOffset.x;
-			vertices[i + 8] += vertexOffset.x;
-			vertices[i + 12] += vertexOffset.x;
+			vertices[i + 0] += offset;
+			vertices[i + 4] += offset;
+			vertices[i + 8] += offset;
+			vertices[i + 12] += offset;
 		}
 		break;
 	case LEFT_BOTTOM_ALIGNMENT_TYPE:
-		vertexOffset.y = textSize.y;
+		offset = textSize.y;
 
-		for (size_t i = 0; i < vertexCount; i += 16)
+		for (size_t i = 0; i < vertexIndex; i += 16)
 		{
-			vertices[i + 1] += vertexOffset.y;
-			vertices[i + 5] += vertexOffset.y;
-			vertices[i + 9] += vertexOffset.y;
-			vertices[i + 13] += vertexOffset.y;
+			vertices[i + 1] += offset;
+			vertices[i + 5] += offset;
+			vertices[i + 9] += offset;
+			vertices[i + 13] += offset;
 		}
 		break;
 	case LEFT_TOP_ALIGNMENT_TYPE:
 		break;
 	case RIGHT_BOTTOM_ALIGNMENT_TYPE:
-		vertexOffset.x = -textSize.x;
-		vertexOffset.y = textSize.y;
+		offset = -vertexOffset.x;
 
-		for (size_t i = 0; i < vertexCount; i += 16)
+		for (size_t i = lastNewLineIndex; i < vertexIndex; i += 16)
 		{
-			vertices[i + 0] += vertexOffset.x;
-			vertices[i + 1] += vertexOffset.y;
-			vertices[i + 4] += vertexOffset.x;
-			vertices[i + 5] += vertexOffset.y;
-			vertices[i + 8] += vertexOffset.x;
-			vertices[i + 9] += vertexOffset.y;
-			vertices[i + 12] += vertexOffset.x;
-			vertices[i + 13] += vertexOffset.y;
+			vertices[i + 0] += offset;
+			vertices[i + 4] += offset;
+			vertices[i + 8] += offset;
+			vertices[i + 12] += offset;
+		}
+
+		offset = textSize.y;
+
+		for (size_t i = 0; i < vertexIndex; i += 16)
+		{
+			vertices[i + 1] += offset;
+			vertices[i + 5] += offset;
+			vertices[i + 9] += offset;
+			vertices[i + 13] += offset;
 		}
 		break;
 	case RIGHT_TOP_ALIGNMENT_TYPE:
-		vertexOffset.x = -textSize.x;
+		offset = -vertexOffset.x;
 
-		for (size_t i = 0; i < vertexCount; i += 16)
+		for (size_t i = lastNewLineIndex; i < vertexIndex; i += 16)
 		{
-			vertices[i + 0] += vertexOffset.x;
-			vertices[i + 4] += vertexOffset.x;
-			vertices[i + 8] += vertexOffset.x;
-			vertices[i + 12] += vertexOffset.x;
+			vertices[i + 0] += offset;
+			vertices[i + 4] += offset;
+			vertices[i + 8] += offset;
+			vertices[i + 12] += offset;
 		}
 		break;
 	}
@@ -1231,7 +1442,7 @@ Text createText8(
 	uint32_t* array;
 	size_t arrayLength;
 
-	bool result = createCharArray32(
+	bool result = createStringUTF32(
 		data,
 		dataLength,
 		&array,
@@ -1249,7 +1460,7 @@ Text createText8(
 		arrayLength,
 		isConstant);
 
-	destroyCharArray32(array);
+	destroyStringUTF32(array);
 
 	if (text == NULL)
 		return NULL;
@@ -1333,7 +1544,7 @@ Vec2F getTextOffset(Text text)
 	assert(text != NULL);
 
 	AlignmentType alignment = text->alignment;
-	Vec2F offset = text->textSize;
+	Vec2F textSize = text->textSize;
 
 	switch (alignment)
 	{
@@ -1341,24 +1552,24 @@ Vec2F getTextOffset(Text text)
 		abort();
 	case CENTER_ALIGNMENT_TYPE:
 		return vec2F(
-			-offset.x * 0.5f,
-			offset.y * 0.5f);
+			-textSize.x * 0.5f,
+			textSize.y * 0.5f);
 	case LEFT_ALIGNMENT_TYPE:
 		return vec2F(
 			0.0f,
-			offset.y * 0.5f);
+			textSize.y * 0.5f);
 	case RIGHT_ALIGNMENT_TYPE:
 		return vec2F(
-			-offset.x,
-			offset.y * 0.5f);
+			-textSize.x,
+			textSize.y * 0.5f);
 	case BOTTOM_ALIGNMENT_TYPE:
 		return vec2F(
-			-offset.x * 0.5f,
+			-textSize.x * 0.5f,
 			0.0f);
 	case TOP_ALIGNMENT_TYPE:
 		return vec2F(
-			-offset.x * 0.5f,
-			offset.y);
+			-textSize.x * 0.5f,
+			textSize.y);
 	case LEFT_BOTTOM_ALIGNMENT_TYPE:
 		return vec2F(
 			0.0f,
@@ -1366,107 +1577,19 @@ Vec2F getTextOffset(Text text)
 	case LEFT_TOP_ALIGNMENT_TYPE:
 		return vec2F(
 			0.0f,
-			offset.y);
+			textSize.y);
 	case RIGHT_BOTTOM_ALIGNMENT_TYPE:
 		return vec2F(
-			-offset.x,
+			-textSize.x,
 			0.0f);
 	case RIGHT_TOP_ALIGNMENT_TYPE:
 		return vec2F(
-			-offset.x,
-			offset.y);
+			-textSize.x,
+			textSize.y);
 	}
 }
 
-/*bool getTextUnicodeCharAdvance(
-	Text text,
-	size_t index,
-	Vec2F* _advance)
-{
-	assert(text != NULL);
-	assert(index < text->uniCharCount);
-	assert(_advance != NULL);
-
-	const char* data = text->data;
-	FT_Face face = text->font->face;
-	uint32_t fontSize = text->fontSize;
-
-	float newLineAdvance =
-		((float)face->size->metrics.height / 64.0f) /
-		(float)fontSize;
-
-	Vec2F advance = zeroVec2F;
-
-	for (size_t i = 0, j = 0; j <= index; j++)
-	{
-		uint32_t uniChar;
-
-		if ((data[i] & 0b10000000) == 0)
-		{
-			uniChar = (uint32_t)data[i];
-			i += 1;
-		}
-		else if ((data[i] & 0b11100000) == 0b11000000 &&
-			(data[i + 1] & 0b11000000) == 0b10000000)
-		{
-			uniChar =
-				(uint32_t)(data[i] & 0b00011111) << 6 |
-				(uint32_t)(data[i + 1] & 0b00111111);
-			i += 2;
-		}
-		else if ((data[i] & 0b11110000) == 0b11100000 &&
-			(data[i + 1] & 0b11000000) == 0b10000000 &&
-			(data[i + 2] & 0b11000000) == 0b10000000)
-		{
-			uniChar =
-				(uint32_t)(data[i] & 0b00001111) << 12 |
-				(uint32_t)(data[i + 1] & 0b00111111) << 6 |
-				(uint32_t)(data[i + 2] & 0b00111111);
-			i += 3;
-		}
-		else if ((data[i] & 0b11111000) == 0b11110000 &&
-			(data[i + 1] & 0b11000000) == 0b10000000 &&
-			(data[i + 2] & 0b11000000) == 0b10000000 &&
-			(data[i + 3] & 0b11000000) == 0b10000000)
-		{
-			uniChar =
-				(uint32_t)(data[i] & 0b00000111) << 18 |
-				(uint32_t)(data[i + 1] & 0b00111111) << 12 |
-				(uint32_t)(data[i + 2] & 0b00111111) << 6 |
-				(uint32_t)(data[i + 3] & 0b00111111);
-			i += 4;
-		}
-		else
-		{
-			return false;
-		}
-
-		if (uniChar == '\n')
-		{
-			advance.y -= newLineAdvance;
-			advance.x = 0.0f;
-			continue;
-		}
-
-		FT_UInt charIndex = FT_Get_Char_Index(
-			face,
-			uniChar);
-		FT_Error result = FT_Load_Glyph(
-			face,
-			charIndex,
-			FT_LOAD_BITMAP_METRICS_ONLY);
-
-		if (result != 0)
-			return false;
-
-		advance.x += ((float)face->glyph->advance.x / 64.0f) /
-			(float)fontSize;
-	}
-
-	*_advance = advance;
-	return true;
-}*/ // TODO: remove
-
+// TODO: take into account text alignment
 bool getTextCaretAdvance(
 	Text text,
 	size_t index,
@@ -1687,7 +1810,7 @@ bool setTextData8(
 	uint32_t* array;
 	size_t arrayLength;
 
-	bool result = createCharArray32(
+	bool result = createStringUTF32(
 		data,
 		dataLength,
 		&array,
@@ -1702,7 +1825,7 @@ bool setTextData8(
 		arrayLength,
 		reuseBuffers);
 
-	destroyCharArray32(array);
+	destroyStringUTF32(array);
 	return result;
 }
 
@@ -2477,6 +2600,9 @@ static bool onVkHandleResize(
 static void onVkHandleDestroy(void* handle)
 {
 	PipelineHandle pipelineHandle = handle;
+
+	assert(pipelineHandle->vk.textCount == 0);
+
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
 	VkDevice device = vkWindow->device;
 
@@ -2484,9 +2610,6 @@ static void onVkHandleDestroy(void* handle)
 		device,
 		pipelineHandle->vk.descriptorSetLayout,
 		NULL);
-
-	assert(pipelineHandle->vk.textCount == 0);
-
 	free(pipelineHandle->vk.texts);
 	free(pipelineHandle);
 }

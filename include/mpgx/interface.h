@@ -19,9 +19,6 @@
 #include "cmmt/camera.h"
 #include "cmmt/bounding.h"
 
-// TODO: add element stretching type
-// to do automatic message window stretching
-
 typedef struct Interface* Interface;
 typedef struct InterfaceElement* InterfaceElement;
 

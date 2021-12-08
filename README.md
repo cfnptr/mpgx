@@ -1,4 +1,5 @@
 # Work in Progress!
+![Graphics example](https://pbs.twimg.com/media/E_1KoY1VcAUHllK?format=jpg&name=large)
 
 ## Features
 * Vulkan API and OpenGL rendering backends

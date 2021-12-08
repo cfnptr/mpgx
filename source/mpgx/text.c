@@ -25,10 +25,6 @@
 
 // TODO: possibly bake in separated text pipeline thread
 
-// TODO: on integrated GPU system occurs artifacts
-// due to the text vertex buffer change during frame rendering,
-// because memory is shared.
-
 struct Font
 {
 	uint8_t* data;
@@ -166,23 +162,23 @@ bool createStringUTF8(
 		}
 		else if (value < 2048)
 		{
-			array[j] = (char)(value >> 6 | 0b11000000 & 0b11011111);
-			array[j + 1] = (char)(value | 0b10000000 & 0b10111111);
+			array[j] = (char)(((value >> 6) | 0b11000000) & 0b11011111);
+			array[j + 1] = (char)((value | 0b10000000) & 0b10111111);
 			j += 2;
 		}
 		else if (value < 65536)
 		{
-			array[j] = (char)(value >> 12 | 0b11100000 & 0b11101111);
-			array[j + 1] = (char)(value >> 6 | 0b10000000 & 0b10111111);
-			array[j + 2] = (char)(value | 0b10000000 & 0b10111111);
+			array[j] = (char)(((value >> 12) | 0b11100000) & 0b11101111);
+			array[j + 1] = (char)(((value >> 6) | 0b10000000) & 0b10111111);
+			array[j + 2] = (char)((value | 0b10000000) & 0b10111111);
 			j += 3;
 		}
 		else
 		{
-			array[j] = (char)(value >> 18 | 0b11110000 & 0b11110111);
-			array[j + 1] = (char)(value >> 12 | 0b10000000 & 0b10111111);
-			array[j + 2] = (char)(value >> 6 | 0b10000000 & 0b10111111);
-			array[j + 3] = (char)(value | 0b10000000 & 0b10111111);
+			array[j] = (char)(((value >> 18) | 0b11110000) & 0b11110111);
+			array[j + 1] = (char)(((value >> 12) | 0b10000000) & 0b10111111);
+			array[j + 2] = (char)(((value >> 6) | 0b10000000) & 0b10111111);
+			array[j + 3] = (char)((value | 0b10000000) & 0b10111111);
 			j += 4;
 		}
 	}
@@ -1606,6 +1602,14 @@ bool getTextCaretAdvance(
 
 	FT_Face face = text->font->face;
 	uint32_t fontSize = text->fontSize;
+
+	FT_Error ftResult = FT_Set_Pixel_Sizes(
+		face,
+		0,
+		(FT_UInt)fontSize);
+
+	if (ftResult != 0)
+		return false;
 
 	float newLineAdvance = ((float)face->size->metrics.height /
 		64.0f) / (float)fontSize;

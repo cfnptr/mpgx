@@ -18,13 +18,13 @@
 #include <stdlib.h>
 #include <assert.h>
 
-struct Transformer
+struct Transformer_T
 {
 	Transform* transforms;
 	size_t transformCapacity;
 	size_t transformCount;
 };
-struct Transform
+struct Transform_T
 {
 	Transformer transformer;
 	Vec3F position;
@@ -41,7 +41,7 @@ Transformer createTransformer(size_t capacity)
 	assert(capacity != 0);
 
 	Transformer transformer = malloc(
-		sizeof(struct Transformer));
+		sizeof(Transformer_T));
 
 	if (transformer == NULL)
 		return NULL;
@@ -98,8 +98,7 @@ Transform createTransform(
 	assert((parent == NULL) || (parent != NULL &&
 		transformer == parent->transformer));
 
-	Transform transform = malloc(
-		sizeof(struct Transform));
+	Transform transform = malloc(sizeof(Transform_T));
 
 	if (transform == NULL)
 		return NULL;

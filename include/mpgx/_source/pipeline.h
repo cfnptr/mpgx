@@ -78,7 +78,7 @@ typedef struct _GlPipeline
 	GLenum alphaBlendOperator;
 	GLenum frontFace;
 } _GlPipeline;
-union Pipeline
+union Pipeline_T
 {
 	_BasePipeline base;
 	_VkPipeline vk;
@@ -678,8 +678,7 @@ inline static Pipeline createVkPipeline(
 	OnPipelineHandleDestroy onHandleDestroy,
 	void* handle)
 {
-	Pipeline pipeline = malloc(
-		sizeof(union Pipeline));
+	Pipeline pipeline = malloc(sizeof(Pipeline_T));
 
 	if (pipeline == NULL)
 		return NULL;
@@ -998,8 +997,7 @@ inline static Pipeline createGlPipeline(
 	OnPipelineHandleDestroy onHandleDestroy,
 	void* handle)
 {
-	Pipeline pipeline = malloc(
-		sizeof(union Pipeline));
+	Pipeline pipeline = malloc(sizeof(Pipeline_T));
 
 	if (pipeline == NULL)
 		return NULL;

@@ -17,12 +17,16 @@
 #include "cmmt/color.h"
 
 #include <stdbool.h>
+
 #define TEXT_PIPELINE_NAME "Text"
 
-typedef struct Font* Font;
-typedef struct Text* Text;
+typedef struct Font_T Font_T;
+typedef Font_T* Font;
 
-typedef enum AlignmentType
+typedef struct Text_T Text_T;
+typedef Text_T* Text;
+
+typedef enum AlignmentType_T
 {
 	CENTER_ALIGNMENT_TYPE = 0,
 	LEFT_ALIGNMENT_TYPE = 1,
@@ -34,7 +38,9 @@ typedef enum AlignmentType
 	RIGHT_BOTTOM_ALIGNMENT_TYPE = 7,
 	RIGHT_TOP_ALIGNMENT_TYPE = 8,
 	ALIGNMENT_TYPE_COUNT = 9,
-} AlignmentType;
+} AlignmentType_T;
+
+typedef uint8_t AlignmentType;
 
 bool createStringUTF8(
 	const uint32_t* data,

@@ -25,13 +25,13 @@
 
 // TODO: possibly bake in separated text pipeline thread
 
-struct Font
+struct Font_T
 {
 	uint8_t* data;
 	FT_Face face;
 };
 
-struct Text
+struct Text_T
 {
 	Font font;
 	Pipeline pipeline;
@@ -107,14 +107,15 @@ typedef struct GlPipelineHandle
 	GLint colorLocation;
 	GLint textureLocation;
 } GlPipelineHandle;
-union PipelineHandle
+union PipelineHandle_T
 {
 	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
 };
 
-typedef union PipelineHandle* PipelineHandle;
+typedef union PipelineHandle_T PipelineHandle_T;
+typedef PipelineHandle_T* PipelineHandle;
 
 bool createStringUTF8(
 	const uint32_t* data,
@@ -351,8 +352,7 @@ Font createFont(
 	assert(_data != NULL);
 	assert(size != 0);
 
-	Font font = malloc(
-		sizeof(struct Font));
+	Font font = malloc(sizeof(Font_T));
 
 	if (font == NULL)
 		return NULL;
@@ -407,8 +407,7 @@ Font createFontFromFile(
 {
 	assert(filePath != NULL);
 
-	Font font = malloc(
-		sizeof(struct Font));
+	Font font = malloc(sizeof(Font_T));
 
 	if (font == NULL)
 		return NULL;
@@ -1121,8 +1120,7 @@ Text createText32(
 		pipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 
-	Text text = malloc(
-		sizeof(struct Text));
+	Text text = malloc(sizeof(Text_T));
 
 	if (text == NULL)
 		return NULL;
@@ -1821,7 +1819,7 @@ bool setTextData8(
 		&arrayLength);
 
 	if (result == false)
-		return NULL;
+		return false;
 
 	result = setTextData32(
 		text,
@@ -2815,7 +2813,7 @@ Pipeline createExtTextPipeline(
 	assert(sampler->base.window == framebuffer->base.window);
 
 	PipelineHandle pipelineHandle = malloc(
-		sizeof(union PipelineHandle));
+		sizeof(PipelineHandle_T));
 
 	if (pipelineHandle == NULL)
 		return NULL;

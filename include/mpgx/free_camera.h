@@ -18,7 +18,8 @@
 
 #include "cmmt/camera.h"
 
-typedef struct FreeCamera* FreeCamera;
+typedef struct FreeCamera_T FreeCamera_T;
+typedef FreeCamera_T* FreeCamera;
 
 FreeCamera createFreeCamera(
 	Framebuffer framebuffer,

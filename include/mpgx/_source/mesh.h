@@ -44,7 +44,7 @@ typedef struct _GlMesh
 	Buffer indexBuffer;
 	GLuint handle;
 } _GlMesh;
-union Mesh
+union Mesh_T
 {
 	_BaseMesh base;
 	_VkMesh vk;
@@ -60,8 +60,7 @@ inline static Mesh createVkMesh(
 	Buffer vertexBuffer,
 	Buffer indexBuffer)
 {
-	Mesh mesh = malloc(
-		sizeof(union Mesh));
+	Mesh mesh = malloc(sizeof(Mesh_T));
 
 	if (mesh == NULL)
 		return NULL;
@@ -135,8 +134,7 @@ inline static Mesh createGlMesh(
 	Buffer vertexBuffer,
 	Buffer indexBuffer)
 {
-	Mesh mesh = malloc(
-		sizeof(union Mesh));
+	Mesh mesh = malloc(sizeof(Mesh_T));
 
 	if (mesh == NULL)
 		return NULL;

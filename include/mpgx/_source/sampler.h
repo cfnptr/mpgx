@@ -64,7 +64,7 @@ typedef struct _GlSampler
 	float mipmapLodBias;
 	GLuint handle;
 } _GlSampler;
-union Sampler
+union Sampler_T
 {
 	_BaseSampler base;
 	_VkSampler vk;
@@ -159,8 +159,7 @@ inline static Sampler createVkSampler(
 	Vec2F mipmapLodRange,
 	float mipmapLodBias)
 {
-	Sampler sampler = malloc(
-		sizeof(union Sampler));
+	Sampler sampler = malloc(sizeof(Sampler_T));
 
 	if (sampler == NULL)
 		return NULL;
@@ -358,8 +357,7 @@ inline static Sampler createGlSampler(
 	bool useCompare,
 	Vec2F mipmapLodRange)
 {
-	Sampler sampler = malloc(
-		sizeof(union Sampler));
+	Sampler sampler = malloc(sizeof(Sampler_T));
 
 	if (sampler == NULL)
 		return NULL;

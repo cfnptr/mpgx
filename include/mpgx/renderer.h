@@ -19,15 +19,20 @@
 
 #include "cmmt/camera.h"
 
-typedef struct Renderer* Renderer;
-typedef struct Render* Render;
+typedef struct Renderer_T Renderer_T;
+typedef Renderer_T* Renderer;
 
-typedef enum RenderSorting
+typedef struct Render_T Render_T;
+typedef Render_T* Render;
+
+typedef enum RenderSorting_T
 {
 	ASCENDING_RENDER_SORTING = 0,
 	DESCENDING_RENDER_SORTING = 1,
 	RENDER_SORTING_COUNT = 2,
-} RenderSorting;
+} RenderSorting_T;
+
+typedef uint8_t RenderSorting;
 
 typedef struct RenderData
 {

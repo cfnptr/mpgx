@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #pragma once
+#include <stdint.h>
 
 #define __MPGX__
 
@@ -57,13 +58,15 @@ inline static const char* mpgxResultToString(
 	return mpgxResultStrings[result];
 }
 
-typedef enum GraphicsAPI
+typedef enum GraphicsAPI_T
 {
 	VULKAN_GRAPHICS_API = 0,
 	OPENGL_GRAPHICS_API = 1,
 	OPENGL_ES_GRAPHICS_API = 2,
 	GRAPHICS_API_COUNT = 3,
-} GraphicsAPI;
+} GraphicsAPI_T;
+
+typedef uint8_t GraphicsAPI;
 
 inline static const char* graphicsApiToString(GraphicsAPI api)
 {

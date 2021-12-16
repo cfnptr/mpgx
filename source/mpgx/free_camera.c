@@ -22,7 +22,7 @@
 
 // TODO: make camera movement smooth
 
-struct FreeCamera
+struct FreeCamera_T
 {
 	Framebuffer framebuffer;
 	Transform transform;
@@ -47,8 +47,7 @@ FreeCamera createFreeCamera(
 	assert(framebuffer != NULL);
 	assert(transformer != NULL);
 
-	FreeCamera freeCamera = malloc(
-		sizeof(struct FreeCamera));
+	FreeCamera freeCamera = malloc(sizeof(FreeCamera_T));
 
 	if (freeCamera == NULL)
 		return NULL;

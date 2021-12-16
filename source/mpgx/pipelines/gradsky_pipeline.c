@@ -67,14 +67,15 @@ typedef struct GlPipelineHandle
 	GLint sunColorLocation;
 	GLint textureLocation;
 } GlPipelineHandle;
-union PipelineHandle
+union PipelineHandle_T
 {
 	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
 };
 
-typedef union PipelineHandle* PipelineHandle;
+typedef union PipelineHandle_T PipelineHandle_T;
+typedef PipelineHandle_T* PipelineHandle;
 
 GradSkyAmbient createGradSkyAmbient(
 	ImageData gradient)
@@ -728,7 +729,7 @@ Pipeline createExtGradSkyPipeline(
 	assert(sampler->base.window == framebuffer->base.window);
 
 	PipelineHandle pipelineHandle = malloc(
-		sizeof(union PipelineHandle));
+		sizeof(PipelineHandle_T));
 
 	if (pipelineHandle == NULL)
 		return NULL;

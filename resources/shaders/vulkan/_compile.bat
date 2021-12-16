@@ -1,8 +1,23 @@
-@echo off
+@ECHO OFF
 
-for %%f in (*.vert *.tesc *.tese *.geom *.frag *.comp *.rgen *.rahit *.rchit *.rmiss *.rint *.rcall *.task *.mesh) do (
-    glslc --target-env=vulkan1.2 -c -O %%f
-    echo Compiled "%%f" shader.
+glslc --version
+
+IF NOT %ERRORLEVEL% == 0 (
+    ECHO Failed to get GLSLC version, please check if Vulkan SDK is installed.
 )
 
-pause
+ECHO(
+ECHO Compiling shaders...
+
+FOR %%f IN (*.vert *.tesc *.tese *.geom *.frag *.comp *.rgen *.rahit *.rchit *.rmiss *.rint *.rcall *.task *.mesh) DO (
+    glslc --target-env=vulkan1.2 -c -O %%f
+
+    IF %ERRORLEVEL% == 0 (
+        ECHO Compiled "%%f" shader.
+    ) ELSE (
+        ECHO Failed to compile "%%f" shader.
+        EXIT
+    )
+)
+
+PAUSE

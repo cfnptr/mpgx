@@ -185,7 +185,7 @@ typedef enum KeyboardKey
 	LAST_KEYBOARD_KEY = MENU_KEYBOARD_KEY,
 } KeyboardKey;
 
-typedef enum MouseButton
+typedef enum MouseButton_T
 {
 	N1_MOUSE_BUTTON = 0,
 	N2_MOUSE_BUTTON = 1,
@@ -199,7 +199,9 @@ typedef enum MouseButton
 	LEFT_MOUSE_BUTTON = N1_MOUSE_BUTTON,
 	RIGHT_MOUSE_BUTTON = N2_MOUSE_BUTTON,
 	MIDDLE_MOUSE_BUTTON = N3_MOUSE_BUTTON,
-} MouseButton;
+} MouseButton_T;
+
+typedef uint8_t MouseButton;
 
 typedef enum CursorMode
 {
@@ -208,7 +210,7 @@ typedef enum CursorMode
 	LOCKED_CURSOR_MODE = 0x00034003,
 } CursorMode;
 
-typedef enum CursorType
+typedef enum CursorType_T
 {
 	DEFAULT_CURSOR_TYPE = 0,
 	IBEAM_CURSOR_TYPE = 1,
@@ -217,25 +219,31 @@ typedef enum CursorType
 	HRESIZE_CURSOR_TYPE = 4,
 	VRESIZE_CURSOR_TYPE = 5,
 	CURSOR_TYPE_COUNT = 6,
-} CursorType;
+} CursorType_T;
 
-typedef enum BufferType
+typedef uint8_t CursorType;
+
+typedef enum BufferType_T
 {
 	VERTEX_BUFFER_TYPE = 0,
 	INDEX_BUFFER_TYPE = 1,
 	UNIFORM_BUFFER_TYPE = 2,
 	BUFFER_TYPE_COUNT = 3,
-} BufferType;
+} BufferType_T;
 
-typedef enum ImageType
+typedef uint8_t BufferType;
+
+typedef enum ImageType_T
 {
 	IMAGE_1D_TYPE = 0,
 	IMAGE_2D_TYPE = 1,
 	IMAGE_3D_TYPE = 2,
 	IMAGE_TYPE_COUNT = 3,
-} ImageType;
+} ImageType_T;
 
-typedef enum ImageFormat
+typedef uint8_t ImageType;
+
+typedef enum ImageFormat_T
 {
 	R8_UNORM_IMAGE_FORMAT = 0,
 	R8G8B8A8_UNORM_IMAGE_FORMAT = 1,
@@ -247,16 +255,20 @@ typedef enum ImageFormat
 	D24_UNORM_S8_UINT_IMAGE_FORMAT = 7,
 	D32_SFLOAT_S8_UINT_IMAGE_FORMAT = 8,
 	IMAGE_FORMAT_COUNT = 9,
-} ImageFormat;
+} ImageFormat_T;
 
-typedef enum ImageFilter
+typedef uint8_t ImageFormat;
+
+typedef enum ImageFilter_T
 {
 	LINEAR_IMAGE_FILTER = 0,
 	NEAREST_IMAGE_FILTER = 1,
 	IMAGE_FILTER_COUNT = 2,
-} ImageFilter;
+} ImageFilter_T;
 
-typedef enum ImageWrap
+typedef uint8_t ImageFilter;
+
+typedef enum ImageWrap_T
 {
 	REPEAT_IMAGE_WRAP = 0,
 	MIRRORED_REPEAT_IMAGE_WRAP = 1,
@@ -264,9 +276,11 @@ typedef enum ImageWrap
 	CLAMP_TO_BORDER_IMAGE_WRAP = 3,
 	MIRROR_CLAMP_TO_EDGE_IMAGE_WRAP = 4,
 	IMAGE_WRAP_COUNT = 5,
-} ImageWrap;
+} ImageWrap_T;
 
-typedef enum ShaderType
+typedef uint8_t ImageWrap;
+
+typedef enum ShaderType_T
 {
 	VERTEX_SHADER_TYPE = 0,
 	FRAGMENT_SHADER_TYPE = 1,
@@ -275,9 +289,11 @@ typedef enum ShaderType
 	TESSELLATION_EVALUATION_SHADER_TYPE = 4,
 	GEOMETRY_SHADER_TYPE = 5,
 	SHADER_TYPE_COUNT = 6,
-} ShaderType;
+} ShaderType_T;
 
-typedef enum DrawMode
+typedef uint8_t ShaderType;
+
+typedef enum DrawMode_T
 {
 	POINT_LIST_DRAW_MODE = 0,
 	LINE_STRIP_DRAW_MODE = 1,
@@ -292,25 +308,31 @@ typedef enum DrawMode
 	TRIANGLE_STRIP_WITH_ADJACENCY_DRAW_MODE = 10,
 	PATCH_LIST_DRAW_MODE = 11,
 	DRAW_MODE_COUNT = 12,
-} DrawMode;
+} DrawMode_T;
 
-typedef enum PolygonMode
+typedef uint8_t DrawMode;
+
+typedef enum PolygonMode_T
 {
 	POINT_POLYGON_MODE = 0,
 	LINE_POLYGON_MODE = 1,
 	FILL_POLYGON_MODE = 2,
 	POLYGON_MODE_COUNT = 3,
-} PolygonMode;
+} PolygonMode_T;
 
-typedef enum CullMode
+typedef uint8_t PolygonMode;
+
+typedef enum CullMode_T
 {
 	FRONT_CULL_MODE = 0,
 	BACK_CULL_MODE = 1,
 	FRONT_AND_BACK_CULL_MODE = 2,
 	CULL_MODE_COUNT = 3,
-} CullMode;
+} CullMode_T;
 
-typedef enum CompareOperator
+typedef uint8_t CullMode;
+
+typedef enum CompareOperator_T
 {
 	LESS_OR_EQUAL_COMPARE_OPERATOR = 0,
 	GREATER_OR_EQUAL_COMPARE_OPERATOR = 1,
@@ -321,9 +343,11 @@ typedef enum CompareOperator
 	ALWAYS_COMPARE_OPERATOR = 6,
 	NEVER_COMPARE_OPERATOR = 7,
 	COMPARE_OPERATOR_COUNT = 8,
-} CompareOperator;
+} CompareOperator_T;
 
-typedef enum ColorComponent
+typedef uint8_t CompareOperator;
+
+typedef enum ColorComponent_T
 {
 	NONE_COLOR_COMPONENT = 0b0000,
 	RED_COLOR_COMPONENT = 0b0001,
@@ -331,9 +355,11 @@ typedef enum ColorComponent
 	BLUE_COLOR_COMPONENT = 0b0100,
 	ALPHA_COLOR_COMPONENT = 0b1000,
 	ALL_COLOR_COMPONENT = 0b1111,
-} ColorComponent;
+} ColorComponent_T;
 
-typedef enum BlendFactor
+typedef uint8_t ColorComponent;
+
+typedef enum BlendFactor_T
 {
 	ZERO_BLEND_FACTOR = 0,
 	ONE_BLEND_FACTOR = 1,
@@ -355,9 +381,11 @@ typedef enum BlendFactor
 	SRC1_ALPHA_BLEND_FACTOR = 17,
 	ONE_MINUS_SRC1_ALPHA_BLEND_FACTOR = 18,
 	BLEND_FACTOR_COUNT = 19,
-} BlendFactor;
+} BlendFactor_T;
 
-typedef enum BlendOperator
+typedef uint8_t BlendFactor;
+
+typedef enum BlendOperator_T
 {
 	ADD_BLEND_OPERATOR = 0,
 	SUBTRACT_BLEND_OPERATOR = 1,
@@ -365,14 +393,18 @@ typedef enum BlendOperator
 	MIN_BLEND_OPERATOR = 3,
 	MAX_BLEND_OPERATOR = 4,
 	BLEND_OPERATOR_COUNT = 5,
-} BlendOperator;
+} BlendOperator_T;
 
-typedef enum DrawIndex
+typedef uint8_t BlendOperator;
+
+typedef enum DrawIndex_T
 {
 	UINT16_DRAW_INDEX = 0,
 	UINT32_DRAW_INDEX = 1,
 	DRAW_INDEX_COUNT = 2,
-} DrawIndex;
+} DrawIndex_T;
+
+typedef uint8_t DrawIndex;
 
 typedef struct DepthStencilClear
 {
@@ -415,15 +447,32 @@ typedef struct PipelineState
 	Vec4F blendColor;
 } PipelineState;
 
-typedef struct Window* Window;
-typedef union Buffer* Buffer;
-typedef union Mesh* Mesh;
-typedef union Image* Image;
-typedef union Sampler* Sampler;
-typedef union Framebuffer* Framebuffer;
-typedef union Shader* Shader;
-typedef union Pipeline* Pipeline;
-typedef struct ImageData* ImageData;
+typedef struct Window_T Window_T;
+typedef Window_T* Window;
+
+typedef union Buffer_T Buffer_T;
+typedef Buffer_T* Buffer;
+
+typedef union Mesh_T Mesh_T;
+typedef Mesh_T* Mesh;
+
+typedef union Image_T Image_T;
+typedef Image_T* Image;
+
+typedef union Sampler_T Sampler_T;
+typedef Sampler_T* Sampler;
+
+typedef union Framebuffer_T Framebuffer_T;
+typedef Framebuffer_T* Framebuffer;
+
+typedef union Shader_T Shader_T;
+typedef Shader_T* Shader;
+
+typedef union Pipeline_T Pipeline_T;
+typedef Pipeline_T* Pipeline;
+
+typedef struct ImageData_T ImageData_T;
+typedef ImageData_T* ImageData;
 
 typedef void(*OnWindowUpdate)(void* argument);
 typedef void(*OnPipelineHandleDestroy)(void* handle);

@@ -17,7 +17,7 @@
 #include <string.h>
 #include <assert.h>
 
-struct RenderHandle
+struct RenderHandle_T
 {
 	LinearColor color;
 	Vec2F size;
@@ -25,7 +25,8 @@ struct RenderHandle
 	Mesh mesh;
 };
 
-typedef struct RenderHandle* RenderHandle;
+typedef struct RenderHandle_T RenderHandle_T;
+typedef RenderHandle_T* RenderHandle;
 
 static void onRenderHandleDestroy(void* handle)
 {
@@ -103,7 +104,7 @@ Render createTexColRender(
 		TEXCOL_PIPELINE_NAME) == 0);
 
 	RenderHandle renderHandle = malloc(
-		sizeof(struct RenderHandle));
+		sizeof(RenderHandle_T));
 
 	if (renderHandle == NULL)
 		return NULL;

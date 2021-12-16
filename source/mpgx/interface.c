@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-struct InterfaceElement
+struct InterfaceElement_T
 {
 	Interface interface;
 	Transform transform;
@@ -30,7 +30,7 @@ struct InterfaceElement
 	void* handle;
 	bool isPressed;
 };
-struct Interface
+struct Interface_T
 {
 	Window window;
 	float scale;
@@ -48,8 +48,7 @@ Interface createInterface(
 	assert(window != NULL);
 	assert(capacity != 0);
 
-	Interface interface = malloc(
-		sizeof(struct Interface));
+	Interface interface = malloc(sizeof(Interface_T));
 
 	if (interface == NULL)
 		return NULL;
@@ -410,7 +409,7 @@ InterfaceElement createInterfaceElement(
 	assert(handle != NULL);
 
 	InterfaceElement element = malloc(
-		sizeof(struct InterfaceElement));
+		sizeof(InterfaceElement_T));
 
 	if (element == NULL)
 		return NULL;

@@ -57,7 +57,7 @@ typedef struct _GlShader
 #endif
 	GLuint handle;
 } _GlShader;
-union Shader
+union Shader_T
 {
 	_BaseShader base;
 	_GlShader gl;
@@ -72,8 +72,7 @@ inline static Shader createVkShader(
 	const void* code,
 	size_t size)
 {
-	Shader shader = malloc(
-		sizeof(union Shader));
+	Shader shader = malloc(sizeof(Shader_T));
 
 	if (shader == NULL)
 		return NULL;
@@ -148,8 +147,7 @@ inline static Shader createGlShader(
 	size_t size,
 	GraphicsAPI api)
 {
-	Shader shader = malloc(
-		sizeof(union Shader));
+	Shader shader = malloc(sizeof(Shader_T));
 
 	if (shader == NULL)
 		return NULL;

@@ -61,7 +61,7 @@ typedef struct _GlFramebuffer
 	size_t pipelineCount;
 	GLuint handle;
 } _GlFramebuffer;
-union Framebuffer
+union Framebuffer_T
 {
 	_BaseFramebuffer base;
 	_VkFramebuffer vk;
@@ -347,8 +347,7 @@ inline static Framebuffer createDefaultVkFramebuffer(
 	Window window,
 	Vec2U size)
 {
-	Framebuffer framebuffer = malloc(
-		sizeof(union Framebuffer));
+	Framebuffer framebuffer = malloc(sizeof(Framebuffer_T));
 
 	if (framebuffer == NULL)
 		return NULL;
@@ -387,8 +386,7 @@ inline static Framebuffer createVkFramebuffer(
 	Image depthStencilAttachment,
 	size_t pipelineCapacity)
 {
-	Framebuffer framebuffer = malloc(
-		sizeof(union Framebuffer));
+	Framebuffer framebuffer = malloc(sizeof(Framebuffer_T));
 
 	if (framebuffer == NULL)
 		return NULL;
@@ -775,8 +773,7 @@ inline static Framebuffer createDefaultGlFramebuffer(
 	Window window,
 	Vec2U size)
 {
-	Framebuffer framebuffer = malloc(
-		sizeof(union Framebuffer));
+	Framebuffer framebuffer = malloc(sizeof(Framebuffer_T));
 
 	if (framebuffer == NULL)
 		return NULL;
@@ -811,8 +808,7 @@ inline static Framebuffer createGlFramebuffer(
 	Image depthStencilAttachment,
 	size_t pipelineCapacity)
 {
-	Framebuffer framebuffer = malloc(
-		sizeof(union Framebuffer));
+	Framebuffer framebuffer = malloc(sizeof(Framebuffer_T));
 
 	if (framebuffer == NULL)
 		return NULL;

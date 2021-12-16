@@ -58,7 +58,7 @@ typedef struct _GlImage
 	GLenum dataFormat;
 	GLuint handle;
 } _GlImage;
-union Image
+union Image_T
 {
 	_BaseImage base;
 	_VkImage vk;
@@ -86,8 +86,7 @@ inline static Image createVkImage(
 {
 	// TODO: mipmap generation, multisampling
 
-	Image image = malloc(
-		sizeof(union Image));
+	Image image = malloc(sizeof(Image_T));
 
 	if (image == NULL)
 		return NULL;
@@ -1188,8 +1187,7 @@ inline static Image createGlImage(
 {
 	// TODO: use isAttachment for renderbuffer optimization
 
-	Image image = malloc(
-		sizeof(union Image));
+	Image image = malloc(sizeof(Image_T));
 
 	if (image == NULL)
 		return NULL;

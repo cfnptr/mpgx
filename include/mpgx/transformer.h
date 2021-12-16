@@ -16,16 +16,21 @@
 #include "cmmt/quaternion.h"
 #include <stdint.h>
 
-typedef struct Transformer* Transformer;
-typedef struct Transform* Transform;
+typedef struct Transformer_T Transformer_T;
+typedef Transformer_T* Transformer;
 
-typedef enum RotationType
+typedef struct Transform_T Transform_T;
+typedef Transform_T* Transform;
+
+typedef enum RotationType_T
 {
 	NO_ROTATION_TYPE = 0,
 	SPIN_ROTATION_TYPE = 1,
 	ORBIT_ROTATION_TYPE = 2,
 	ROTATION_TYPE_COUNT = 3,
-} RotationType;
+} RotationType_T;
+
+typedef uint8_t RotationType;
 
 Transformer createTransformer(size_t capacity);
 void destroyTransformer(Transformer transformer);

@@ -47,7 +47,7 @@ typedef struct _GlBuffer
 	GLenum glType;
 	GLuint handle;
 } _GlBuffer;
-union Buffer
+union Buffer_T
 {
 	_BaseBuffer base;
 	_VkBuffer vk;
@@ -164,8 +164,7 @@ inline static Buffer createVkBuffer(
 	size_t size,
 	bool isConstant)
 {
-	Buffer buffer = malloc(
-		sizeof(union Buffer));
+	Buffer buffer = malloc(sizeof(Buffer_T));
 
 	if (buffer == NULL)
 		return NULL;
@@ -535,8 +534,7 @@ inline static Buffer createGlBuffer(
 	size_t size,
 	bool isConstant)
 {
-	Buffer buffer = malloc(
-		sizeof(union Buffer));
+	Buffer buffer = malloc(sizeof(Buffer_T));
 
 	if (buffer == NULL)
 		return NULL;

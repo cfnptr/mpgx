@@ -19,8 +19,11 @@
 #include "cmmt/camera.h"
 #include "cmmt/bounding.h"
 
-typedef struct Interface* Interface;
-typedef struct InterfaceElement* InterfaceElement;
+typedef struct Interface_T Interface_T;
+typedef Interface_T* Interface;
+
+typedef struct InterfaceElement_T InterfaceElement_T;
+typedef InterfaceElement_T* InterfaceElement;
 
 typedef void(*OnInterfaceElementDestroy)(
 	void* handle);

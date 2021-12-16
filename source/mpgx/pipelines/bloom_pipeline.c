@@ -51,14 +51,15 @@ typedef struct GlPipelineHandle
 	GLint thresholdLocation;
 	GLint bufferLocation;
 } GlPipelineHandle;
-union PipelineHandle
+union PipelineHandle_T
 {
 	BasePipelineHandle base;
 	VkPipelineHandle vk;
 	GlPipelineHandle gl;
 };
 
-typedef union PipelineHandle* PipelineHandle;
+typedef union PipelineHandle_T PipelineHandle_T;
+typedef PipelineHandle_T* PipelineHandle;
 
 #if MPGX_SUPPORT_VULKAN
 static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
@@ -593,7 +594,7 @@ Pipeline createExtBloomPipeline(
 	assert(sampler->base.window == framebuffer->base.window);
 
 	PipelineHandle pipelineHandle = malloc(
-		sizeof(union PipelineHandle));
+		sizeof(PipelineHandle_T));
 
 	if (pipelineHandle == NULL)
 		return NULL;

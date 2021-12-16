@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <string.h>
 
-struct Render
+struct Render_T
 {
 	Renderer renderer;
 	Transform transform;
@@ -30,7 +30,7 @@ typedef struct RenderElement
 	Vec3F renderPosition;
 	Render render;
 } RenderElement;
-struct Renderer
+struct Renderer_T
 {
 	Pipeline pipeline;
 	RenderSorting sorting;
@@ -58,8 +58,7 @@ Renderer createRenderer(
 	assert(onHandleDraw != NULL);
 	assert(capacity != 0);
 
-	Renderer renderer = malloc(
-		sizeof(struct Renderer));
+	Renderer renderer = malloc(sizeof(Renderer_T));
 
 	if (renderer == NULL)
 		return NULL;
@@ -525,8 +524,7 @@ Render createRender(
 	assert(transform != NULL);
 	assert(handle != NULL);
 
-	Render render = malloc(
-		sizeof(struct Render));
+	Render render = malloc(sizeof(Render_T));
 
 	if (render == NULL)
 		return NULL;

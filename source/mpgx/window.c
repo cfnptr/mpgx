@@ -31,14 +31,14 @@
 
 // TODO: add VMA defragmentation
 
-struct ImageData
+struct ImageData_T
 {
 	uint8_t* pixels;
 	Vec2U size;
 	uint8_t channelCount;
 };
 
-struct Window
+struct Window_T
 {
 	GraphicsAPI api;
 	bool useStencilBuffer;
@@ -216,10 +216,10 @@ void* getFtLibrary()
 }
 
 static void onWindowChar(
-	GLFWwindow* _window,
+	GLFWwindow* handle,
 	unsigned int codepoint)
 {
-	Window window = glfwGetWindowUserPointer(_window);
+	Window window = glfwGetWindowUserPointer(handle);
 
 	size_t length = window->inputLength;
 
@@ -249,14 +249,14 @@ MpgxResult createWindow(
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
 	bool isVisible,
-	Window* _window)
+	Window* window)
 {
 	assert(api < GRAPHICS_API_COUNT);
 	assert(size.x != 0);
 	assert(size.y != 0);
 	assert(title != NULL);
 	assert(onUpdate != NULL);
-	assert(_window != NULL);
+	assert(window != NULL);
 	assert(graphicsInitialized == true);
 
 	glfwDefaultWindowHints();
@@ -374,10 +374,9 @@ MpgxResult createWindow(
 		GLFW_VISIBLE,
 		isVisible ? GLFW_TRUE : GLFW_FALSE);
 
-	Window window = malloc(
-		sizeof(struct Window));
+	Window windowInstance = malloc(sizeof(Window_T));
 
-	if (window == NULL)
+	if (windowInstance == NULL)
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 
 	GLFWwindow* handle = glfwCreateWindow(
@@ -389,7 +388,7 @@ MpgxResult createWindow(
 
 	if (handle == NULL)
 	{
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -410,7 +409,7 @@ MpgxResult createWindow(
 
 	glfwSetWindowUserPointer(
 		handle,
-		window);
+		windowInstance);
 	glfwSetCharCallback(
 		handle,
 		onWindowChar);
@@ -421,7 +420,7 @@ MpgxResult createWindow(
 	if (ibeamCursor == NULL)
 	{
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -432,7 +431,7 @@ MpgxResult createWindow(
 	{
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -444,7 +443,7 @@ MpgxResult createWindow(
 		glfwDestroyCursor(crosshairCursor);
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -457,7 +456,7 @@ MpgxResult createWindow(
 		glfwDestroyCursor(crosshairCursor);
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -471,7 +470,7 @@ MpgxResult createWindow(
 		glfwDestroyCursor(crosshairCursor);
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -485,7 +484,7 @@ MpgxResult createWindow(
 		glfwDestroyCursor(crosshairCursor);
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -523,7 +522,7 @@ MpgxResult createWindow(
 			glfwDestroyCursor(crosshairCursor);
 			glfwDestroyCursor(ibeamCursor);
 			glfwDestroyWindow(handle);
-			free(window);
+			free(windowInstance);
 			return FAILED_TO_ALLOCATE_MPGX_RESULT;
 		}
 
@@ -533,7 +532,7 @@ MpgxResult createWindow(
 		framebuffer = createDefaultVkFramebuffer(
 			swapchain->renderPass,
 			firstBuffer.framebuffer,
-			window,
+			windowInstance,
 			framebufferSize);
 
 		if (framebuffer == NULL)
@@ -546,7 +545,7 @@ MpgxResult createWindow(
 			glfwDestroyCursor(crosshairCursor);
 			glfwDestroyCursor(ibeamCursor);
 			glfwDestroyWindow(handle);
-			free(window);
+			free(windowInstance);
 			return FAILED_TO_ALLOCATE_MPGX_RESULT;
 		}
 #else
@@ -567,14 +566,14 @@ MpgxResult createWindow(
 			glfwDestroyCursor(crosshairCursor);
 			glfwDestroyCursor(ibeamCursor);
 			glfwDestroyWindow(handle);
-			free(window);
+			free(windowInstance);
 			return FAILED_TO_INIT_OPENGL_MPGX_RESULT;
 		}
 
 		glEnable(GL_FRAMEBUFFER_SRGB);
 
 		framebuffer = createDefaultGlFramebuffer(
-			window,
+			windowInstance,
 			framebufferSize);
 
 		if (framebuffer == NULL)
@@ -586,7 +585,7 @@ MpgxResult createWindow(
 			glfwDestroyCursor(crosshairCursor);
 			glfwDestroyCursor(ibeamCursor);
 			glfwDestroyWindow(handle);
-			free(window);
+			free(windowInstance);
 			return FAILED_TO_ALLOCATE_MPGX_RESULT;
 		}
 	}
@@ -615,7 +614,7 @@ MpgxResult createWindow(
 		glfwDestroyCursor(crosshairCursor);
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -645,7 +644,7 @@ MpgxResult createWindow(
 		glfwDestroyCursor(crosshairCursor);
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -676,7 +675,7 @@ MpgxResult createWindow(
 		glfwDestroyCursor(crosshairCursor);
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -708,7 +707,7 @@ MpgxResult createWindow(
 		glfwDestroyCursor(crosshairCursor);
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -741,7 +740,7 @@ MpgxResult createWindow(
 		glfwDestroyCursor(crosshairCursor);
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
@@ -776,54 +775,54 @@ MpgxResult createWindow(
 		glfwDestroyCursor(crosshairCursor);
 		glfwDestroyCursor(ibeamCursor);
 		glfwDestroyWindow(handle);
-		free(window);
+		free(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
-	window->api = api;
-	window->useStencilBuffer = useStencilBuffer;
-	window->onUpdate = onUpdate;
-	window->updateArgument = updateArgument;
-	window->handle = handle;
-	window->cursorType = DEFAULT_CURSOR_TYPE;
-	window->ibeamCursor = ibeamCursor;
-	window->crosshairCursor = crosshairCursor;
-	window->handCursor = handCursor;
-	window->hresizeCursor = hresizeCursor;
-	window->vresizeCursor = vresizeCursor;
-	window->inputBuffer = inputBuffer;
-	window->inputCapacity = MPGX_DEFAULT_CAPACITY;
-	window->inputLength = 0;
-	window->framebuffer = framebuffer;
-	window->buffers = buffers;
-	window->bufferCapacity = MPGX_DEFAULT_CAPACITY;
-	window->bufferCount = 0;
-	window->images = images;
-	window->imageCapacity = MPGX_DEFAULT_CAPACITY;
-	window->imageCount = 0;
-	window->samplers = samplers;
-	window->samplerCapacity = MPGX_DEFAULT_CAPACITY;
-	window->samplerCount = 0;
-	window->shaders = shaders;
-	window->shaderCapacity = MPGX_DEFAULT_CAPACITY;
-	window->shaderCount = 0;
-	window->framebuffers = framebuffers;
-	window->framebufferCapacity = MPGX_DEFAULT_CAPACITY;
-	window->framebufferCount = 0;
-	window->meshes = meshes;
-	window->meshCapacity = MPGX_DEFAULT_CAPACITY;
-	window->meshCount = 0;
-	window->targetFPS = 60.0;
-	window->updateTime = 0.0;
-	window->deltaTime = 0.0;
-	window->isRecording = false;
-	window->renderFramebuffer = NULL;
+	windowInstance->api = api;
+	windowInstance->useStencilBuffer = useStencilBuffer;
+	windowInstance->onUpdate = onUpdate;
+	windowInstance->updateArgument = updateArgument;
+	windowInstance->handle = handle;
+	windowInstance->cursorType = DEFAULT_CURSOR_TYPE;
+	windowInstance->ibeamCursor = ibeamCursor;
+	windowInstance->crosshairCursor = crosshairCursor;
+	windowInstance->handCursor = handCursor;
+	windowInstance->hresizeCursor = hresizeCursor;
+	windowInstance->vresizeCursor = vresizeCursor;
+	windowInstance->inputBuffer = inputBuffer;
+	windowInstance->inputCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->inputLength = 0;
+	windowInstance->framebuffer = framebuffer;
+	windowInstance->buffers = buffers;
+	windowInstance->bufferCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->bufferCount = 0;
+	windowInstance->images = images;
+	windowInstance->imageCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->imageCount = 0;
+	windowInstance->samplers = samplers;
+	windowInstance->samplerCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->samplerCount = 0;
+	windowInstance->shaders = shaders;
+	windowInstance->shaderCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->shaderCount = 0;
+	windowInstance->framebuffers = framebuffers;
+	windowInstance->framebufferCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->framebufferCount = 0;
+	windowInstance->meshes = meshes;
+	windowInstance->meshCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->meshCount = 0;
+	windowInstance->targetFPS = 60.0;
+	windowInstance->updateTime = 0.0;
+	windowInstance->deltaTime = 0.0;
+	windowInstance->isRecording = false;
+	windowInstance->renderFramebuffer = NULL;
 #if MPGX_SUPPORT_VULKAN
-	window->vkWindow = vkWindow;
+	windowInstance->vkWindow = vkWindow;
 #endif
 
-	currentWindow = window;
-	*_window = window;
+	currentWindow = windowInstance;
+	*window = windowInstance;
 	return SUCCESS_MPGX_RESULT;
 }
 MpgxResult createAnyWindow(
@@ -2131,29 +2130,28 @@ void setBufferData(
 ImageData createImageData(
 	const void* data,
 	size_t size,
-	uint8_t _channelCount)
+	uint8_t channelCount)
 {
 	assert(data != NULL);
 	assert(size != 0);
-	assert(_channelCount <= 4);
+	assert(channelCount <= 4);
 
-	ImageData imageData = malloc(
-		sizeof(struct ImageData));
+	ImageData imageData = malloc(sizeof(ImageData_T));
 
 	if (imageData == NULL)
 		return NULL;
 
 	stbi_set_flip_vertically_on_load(true);
 
-	int width, height, channelCount;
+	int width, height, channels;
 
 	stbi_uc* pixels = stbi_load_from_memory(
 		data,
 		(int)size,
 		&width,
 		&height,
-		&channelCount,
-		_channelCount);
+		&channels,
+		channelCount);
 
 	if (pixels == NULL)
 	{
@@ -2161,7 +2159,7 @@ ImageData createImageData(
 		return NULL;
 	}
 
-	if (channelCount != _channelCount)
+	if (channels != channelCount)
 	{
 		stbi_image_free(pixels);
 		free(imageData);
@@ -2170,32 +2168,31 @@ ImageData createImageData(
 
 	imageData->pixels = pixels;
 	imageData->size = vec2U(width, height);
-	imageData->channelCount = _channelCount;
+	imageData->channelCount = channelCount;
 	return imageData;
 }
 ImageData createImageDataFromFile(
 	const char* filePath,
-	uint8_t _channelCount)
+	uint8_t channelCount)
 {
 	assert(filePath != NULL);
-	assert(_channelCount <= 4);
+	assert(channelCount <= 4);
 
-	ImageData imageData = malloc(
-		sizeof(struct ImageData));
+	ImageData imageData = malloc(sizeof(ImageData_T));
 
 	if (imageData == NULL)
 		return NULL;
 
 	stbi_set_flip_vertically_on_load(true);
 
-	int width, height, channelCount;
+	int width, height, channels;
 
 	stbi_uc* pixels = stbi_load(
 		filePath,
 		&width,
 		&height,
-		&channelCount,
-		_channelCount);
+		&channels,
+		channelCount);
 
 	if (pixels == NULL)
 	{
@@ -2203,7 +2200,7 @@ ImageData createImageDataFromFile(
 		return NULL;
 	}
 
-	if (channelCount != _channelCount)
+	if (channels != channelCount)
 	{
 		stbi_image_free(pixels);
 		free(imageData);
@@ -2212,7 +2209,7 @@ ImageData createImageDataFromFile(
 
 	imageData->pixels = pixels;
 	imageData->size = vec2U(width, height);
-	imageData->channelCount = _channelCount;
+	imageData->channelCount = channelCount;
 	return imageData;
 }
 void destroyImageData(ImageData imageData)

@@ -4,6 +4,8 @@ glslc --version
 
 IF NOT %ERRORLEVEL% == 0 (
     ECHO Failed to get GLSLC version, please check if Vulkan SDK is installed.
+    PAUSE
+    EXIT
 )
 
 ECHO(
@@ -16,6 +18,7 @@ FOR %%f IN (*.vert *.tesc *.tese *.geom *.frag *.comp *.rgen *.rahit *.rchit *.r
         ECHO Compiled "%%f" shader.
     ) ELSE (
         ECHO Failed to compile "%%f" shader.
+        PAUSE
         EXIT
     )
 )

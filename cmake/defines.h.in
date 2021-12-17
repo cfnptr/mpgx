@@ -22,9 +22,16 @@
 #define MPGX_VERSION_PATCH @mpgx_VERSION_PATCH@
 
 #define MPGX_SUPPORT_VULKAN @MPGX_SUPPORT_VULKAN@
+
+/*
+ * Default MPGX array capacity in bytes,
+ */
 #define MPGX_DEFAULT_CAPACITY 4
 
-typedef enum MpgxResult
+/*
+ * MPGX result strings.
+ */
+typedef enum MpgxResult_T
 {
 	SUCCESS_MPGX_RESULT = 0,
 	FAILED_TO_ALLOCATE_MPGX_RESULT = 1,
@@ -34,8 +41,16 @@ typedef enum MpgxResult
 	FAILED_TO_INIT_OPENGL_MPGX_RESULT = 5,
 	NO_VULKAN_SUPPORT_MPGX_RESULT = 6,
 	MPGX_RESULT_COUNT = 7,
-} MpgxResult;
+} MpgxResult_T;
+/*
+ * Returns MPGX result as string.
+ * result - MPGX result.
+ */
+typedef uint8_t MpgxResult;
 
+/*
+ * MPGX result strings.
+ */
 static const char* const mpgxResultStrings[MPGX_RESULT_COUNT] = {
 	"Success",
 	"Failed to allocate",
@@ -46,18 +61,21 @@ static const char* const mpgxResultStrings[MPGX_RESULT_COUNT] = {
 	"No Vulkan support",
 };
 
+/*
+ * Returns MPGX result as string.
+ * result - MPGX result.
+ */
 inline static const char* mpgxResultToString(
 	MpgxResult result)
 {
-	if (result < SUCCESS_MPGX_RESULT ||
-		result >= MPGX_RESULT_COUNT)
-	{
-		return "Unknown mpgx result";
-	}
-
+	if (result >= MPGX_RESULT_COUNT)
+		return "Unknown MPGX result";
 	return mpgxResultStrings[result];
 }
 
+/*
+ * Graphics APIs.
+ */
 typedef enum GraphicsAPI_T
 {
 	VULKAN_GRAPHICS_API = 0,
@@ -65,10 +83,17 @@ typedef enum GraphicsAPI_T
 	OPENGL_ES_GRAPHICS_API = 2,
 	GRAPHICS_API_COUNT = 3,
 } GraphicsAPI_T;
-
+/*
+ * Graphics API type.
+ */
 typedef uint8_t GraphicsAPI;
 
-inline static const char* graphicsApiToString(GraphicsAPI api)
+/*
+ * Returns graphics API as string.
+ * api - graphics API.
+ */
+inline static const char* graphicsApiToString(
+	GraphicsAPI api)
 {
 	if (api == VULKAN_GRAPHICS_API)
 		return "Vulkan";

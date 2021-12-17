@@ -5,6 +5,7 @@ cd $(dirname "$BASH_SOURCE")
 
 if ! glslc --version ; then
     echo "Failed to get GLSLC version, please check if Vulkan SDK is installed."
+    exit
 fi
 
 echo ""
@@ -16,6 +17,6 @@ do
         echo "Compiled \"$f\" shader."
     else
         echo "Failed to compile \"$f\" shader."
-        break
+        exit
     fi
 done

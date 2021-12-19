@@ -22,6 +22,7 @@ if (TARGET mpgx)
 	return()
 endif ()
 
+option(MPGX_BUILD_SHARED "Build MPGX shared library" ON)
 option(MPGX_BUILD_EXAMPLES "Build MPGX usage examples" ON)
 option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
 
@@ -57,6 +58,34 @@ add_subdirectory(libraries/glfw)
 set(MPMT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(libraries/mpmt)
 
+set(MPGX_SOURCES
+	source/mpgx/pipelines/bloom_pipeline.c
+	source/mpgx/pipelines/color_pipeline.c
+	source/mpgx/pipelines/diffuse_pipeline.c
+	source/mpgx/pipelines/gaussblur_pipeline.c
+	source/mpgx/pipelines/gradsky_pipeline.c
+	source/mpgx/pipelines/simpshad_pipeline.c
+	source/mpgx/pipelines/sprite_pipeline.c
+	source/mpgx/pipelines/texcol_pipeline.c
+	source/mpgx/pipelines/texspr_pipeline.c
+
+	source/mpgx/renderers/color_renderer.c
+	source/mpgx/renderers/diffuse_renderer.c
+	source/mpgx/renderers/gradsky_renderer.c
+	source/mpgx/renderers/simpshad_renderer.c
+	source/mpgx/renderers/sprite_renderer.c
+	source/mpgx/renderers/texcol_renderer.c
+	source/mpgx/renderers/texspr_renderer.c
+	source/mpgx/renderers/text_renderer.c
+
+	source/mpgx/free_camera.c
+	source/mpgx/interface.c
+	source/mpgx/md5.c
+	source/mpgx/renderer.c
+	source/mpgx/text.c
+	source/mpgx/transformer.c
+	source/mpgx/window.c)
+
 set(MPGX_LINK_LIBRARIES
 	cmmt
 	freetype
@@ -86,39 +115,30 @@ configure_file(
 	cmake/defines.h.in
 	mpgx/defines.h)
 
-add_library(mpgx STATIC
-	source/mpgx/pipelines/bloom_pipeline.c
-	source/mpgx/pipelines/color_pipeline.c
-	source/mpgx/pipelines/diffuse_pipeline.c
-	source/mpgx/pipelines/gaussblur_pipeline.c
-	source/mpgx/pipelines/gradsky_pipeline.c
-    source/mpgx/pipelines/simpshad_pipeline.c
-	source/mpgx/pipelines/sprite_pipeline.c
-	source/mpgx/pipelines/texcol_pipeline.c
-	source/mpgx/pipelines/texspr_pipeline.c
-
-	source/mpgx/renderers/color_renderer.c
-	source/mpgx/renderers/diffuse_renderer.c
-	source/mpgx/renderers/gradsky_renderer.c
-	source/mpgx/renderers/simpshad_renderer.c
-	source/mpgx/renderers/sprite_renderer.c
-	source/mpgx/renderers/texcol_renderer.c
-	source/mpgx/renderers/texspr_renderer.c
-	source/mpgx/renderers/text_renderer.c
-
-	source/mpgx/free_camera.c
-	source/mpgx/interface.c
-	source/mpgx/md5.c
-	source/mpgx/renderer.c
-	source/mpgx/text.c
-	source/mpgx/transformer.c
-	source/mpgx/window.c)
-target_link_libraries(mpgx PUBLIC
+add_library(mpgx-static STATIC
+	${MPGX_SOURCES})
+set_target_properties(mpgx-static PROPERTIES
+	OUTPUT_NAME "mpgx")
+target_link_libraries(mpgx-static PUBLIC
 	${MPGX_LINK_LIBRARIES})
-target_include_directories(mpgx PUBLIC
+target_include_directories(mpgx-static PUBLIC
 	${PROJECT_BINARY_DIR}
 	${PROJECT_SOURCE_DIR}/include
 	${PROJECT_SOURCE_DIR}/libraries/stb)
+
+if (MPGX_BUILD_SHARED)
+	add_library(mpgx-shared SHARED
+		${MPGX_SOURCES})
+	set_target_properties(mpgx-shared PROPERTIES
+		OUTPUT_NAME "mpgx"
+		WINDOWS_EXPORT_ALL_SYMBOLS ON)
+	target_link_libraries(mpgx-shared PUBLIC
+		${WARPJUMP_SERVER_LINK_LIBRARIES})
+	target_include_directories(mpgx-shared PUBLIC
+		${PROJECT_BINARY_DIR}
+		${PROJECT_SOURCE_DIR}/include
+		${PROJECT_SOURCE_DIR}/libraries/stb)
+endif ()
 
 if (MPGX_BUILD_EXAMPLES)
 	add_executable(mpgx-window-example

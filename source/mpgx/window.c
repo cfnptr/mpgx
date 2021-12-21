@@ -336,7 +336,7 @@ MpgxResult createWindow(
 			GLFW_CLIENT_API,
 			GLFW_NO_API);
 #else
-		return NO_VULKAN_SUPPORT_MPGX_RESULT;
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API)

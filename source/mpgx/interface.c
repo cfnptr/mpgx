@@ -40,36 +40,6 @@ struct Interface_T
 	InterfaceElement lastElement;
 };
 
-Interface createInterface(
-	Window window,
-	float scale,
-	size_t capacity)
-{
-	assert(window != NULL);
-	assert(capacity != 0);
-
-	Interface interface = malloc(sizeof(Interface_T));
-
-	if (interface == NULL)
-		return NULL;
-
-	InterfaceElement* elements = malloc(
-		sizeof(InterfaceElement) * capacity);
-
-	if (elements == NULL)
-	{
-		free(interface);
-		return NULL;
-	}
-
-	interface->window = window;
-	interface->scale = scale;
-	interface->elements = elements;
-	interface->elementCapacity = capacity;
-	interface->elementCount = 0;
-	interface->lastElement = NULL;
-	return interface;
-}
 void destroyInterface(Interface interface)
 {
 	if (interface == NULL)
@@ -79,6 +49,38 @@ void destroyInterface(Interface interface)
 
 	free(interface->elements);
 	free(interface);
+}
+Interface createInterface(
+	Window window,
+	float scale,
+	size_t capacity)
+{
+	assert(window != NULL);
+	assert(capacity != 0);
+
+	Interface interface = calloc(1,
+		sizeof(Interface_T));
+
+	if (interface == NULL)
+		return NULL;
+
+	interface->window = window;
+	interface->scale = scale;
+
+	InterfaceElement* elements = malloc(
+		sizeof(InterfaceElement) * capacity);
+
+	if (elements == NULL)
+	{
+		destroyInterface(interface);
+		return NULL;
+	}
+
+	interface->elements = elements;
+	interface->elementCapacity = capacity;
+	interface->elementCount = 0;
+	interface->lastElement = NULL;
+	return interface;
 }
 
 bool isInterfaceEmpty(Interface interface)

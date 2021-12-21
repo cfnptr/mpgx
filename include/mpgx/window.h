@@ -494,22 +494,23 @@ bool isGraphicsInitialized();
 
 void* getFtLibrary();
 
-// TODO: add useDepthBuffer option
 MpgxResult createWindow(
 	GraphicsAPI api,
-	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
+	bool useStencilBuffer,
+	bool useRayTracing,
 	bool isVisible,
 	Window* window);
 MpgxResult createAnyWindow(
-	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
+	bool useStencilBuffer,
+	bool useRayTracing,
 	bool isVisible,
 	Window* window);
 void destroyWindow(Window window);
@@ -520,6 +521,7 @@ OnWindowUpdate getWindowOnUpdate(Window window);
 void* getWindowUpdateArgument(Window window);
 const uint32_t* getWindowInputBuffer(Window window);
 size_t getWindowInputLength(Window window);
+Framebuffer getWindowFramebuffer(Window window);
 double getWindowUpdateTime(Window window);
 double getWindowDeltaTime(Window window);
 Vec2F getWindowContentScale(Window window);
@@ -577,6 +579,10 @@ void setWindowCursorType(
 	Window window,
 	CursorType cursorType);
 
+void setWindowTitle(
+	Window window,
+	const char* title);
+
 bool isWindowFocused(Window window);
 bool isWindowIconified(Window window);
 bool isWindowMaximized(Window window);
@@ -591,7 +597,6 @@ void hideWindow(Window window);
 void focusWindow(Window window);
 void requestWindowAttention(Window window);
 
-Framebuffer getWindowFramebuffer(Window window);
 void makeWindowContextCurrent(Window window);
 void updateWindow(Window window);
 

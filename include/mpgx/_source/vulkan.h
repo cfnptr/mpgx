@@ -21,7 +21,7 @@
 #define VK_VERSION VK_API_VERSION_1_2
 #define VK_FRAME_LAG 2
 
-struct VkWindow
+typedef struct VkWindow_T
 {
 	VkSurfaceKHR surface;
 	VkPhysicalDevice physicalDevice;
@@ -39,6 +39,7 @@ struct VkWindow
 	VkSemaphore imageAcquiredSemaphores[VK_FRAME_LAG];
 	VkSemaphore drawCompleteSemaphores[VK_FRAME_LAG];
 	VkSemaphore imageOwnershipSemaphores[VK_FRAME_LAG];
+	VkFence stagingFence;
 	VkSwapchain swapchain;
 	uint32_t frameIndex;
 	uint32_t bufferIndex;
@@ -46,10 +47,9 @@ struct VkWindow
 	VkBuffer stagingBuffer;
 	VmaAllocation stagingAllocation;
 	size_t stagingSize;
-	VkFence stagingFence;
-};
+} VkWindow_T;
 
-typedef struct VkWindow* VkWindow;
+typedef VkWindow_T* VkWindow;
 
 static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -399,8 +399,7 @@ inline static VkDebugUtilsMessengerEXT createVkDebugUtilsMessenger(
 
 	PFN_vkCreateDebugUtilsMessengerEXT createFunction =
 		(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			instance,
-			"vkCreateDebugUtilsMessengerEXT");
+			instance, "vkCreateDebugUtilsMessengerEXT");
 
 	if (createFunction == NULL)
 		return NULL;
@@ -427,8 +426,7 @@ inline static void destroyVkDebugUtilsMessenger(
 
 	PFN_vkDestroyDebugUtilsMessengerEXT destroyFunction =
 		(PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			instance,
-			"vkDestroyDebugUtilsMessengerEXT");
+			instance, "vkDestroyDebugUtilsMessengerEXT");
 
 	if (destroyFunction == NULL)
 		abort();
@@ -450,8 +448,7 @@ inline static VkPhysicalDevice getBestVkPhysicalDevice(
 		&deviceCount,
 		NULL);
 
-	if (result != VK_SUCCESS ||
-		deviceCount == 0)
+	if (result != VK_SUCCESS || deviceCount == 0)
 		return NULL;
 
 	VkPhysicalDevice* devices = malloc(
@@ -609,7 +606,7 @@ inline static bool getVkQueueFamilyIndices(
 	return false;
 }
 
-inline static VkDevice createVkDevice(
+inline static MpgxResult createVkDevice(
 	VkPhysicalDevice physicalDevice,
 	uint32_t graphicsQueueFamilyIndex,
 	uint32_t presentQueueFamilyIndex,
@@ -617,7 +614,8 @@ inline static VkDevice createVkDevice(
 	uint32_t requiredExtensionCount,
 	const char** preferredExtensions,
 	uint32_t preferredExtensionCount,
-	bool* supportedExtensions)
+	bool* supportedExtensions,
+	VkDevice* device)
 {
 	float priority = 1.0f;
 
@@ -667,17 +665,14 @@ inline static VkDevice createVkDevice(
 		&propertyCount,
 		NULL);
 
-	if (result != VK_SUCCESS ||
-		propertyCount == 0)
-	{
-		return NULL;
-	}
+	if (result != VK_SUCCESS || propertyCount == 0)
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 
 	VkExtensionProperties* properties = malloc(
 		propertyCount * sizeof(VkExtensionProperties));
 
 	if (properties == NULL)
-		return NULL;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 
 	result = vkEnumerateDeviceExtensionProperties(
 		physicalDevice,
@@ -685,11 +680,10 @@ inline static VkDevice createVkDevice(
 		&propertyCount,
 		properties);
 
-	if (result != VK_SUCCESS ||
-		propertyCount == 0)
+	if (result != VK_SUCCESS || propertyCount == 0)
 	{
 		free(properties);
-		return NULL;
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	uint32_t extensionSize =
@@ -700,7 +694,7 @@ inline static VkDevice createVkDevice(
 	if (extensions == NULL)
 	{
 		free(properties);
-		return NULL;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
 	uint32_t extensionCount = requiredExtensionCount;
@@ -757,20 +751,17 @@ inline static VkDevice createVkDevice(
 		NULL,
 	};
 
-	VkDevice device;
-
 	result = vkCreateDevice(
 		physicalDevice,
 		&deviceCreateInfo,
 		NULL,
-		&device);
+		device);
 
 	free(extensions);
 
 	if (result != VK_SUCCESS)
-		return NULL;
-
-	return device;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static VmaAllocator createVmaAllocator(
@@ -780,10 +771,8 @@ inline static VmaAllocator createVmaAllocator(
 {
 	VmaAllocatorCreateInfo createInfo;
 
-	memset(
-		&createInfo,
-		0,
-		sizeof(VmaAllocatorCreateInfo));
+	memset(&createInfo,
+		0, sizeof(VmaAllocatorCreateInfo));
 
 	createInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
 	createInfo.physicalDevice = physicalDevice;
@@ -852,7 +841,6 @@ inline static VkFence createVkFence(
 
 	return fence;
 }
-
 inline static VkSemaphore createVkSemaphore(VkDevice device)
 {
 	VkSemaphoreCreateInfo createInfo = {
@@ -875,459 +863,12 @@ inline static VkSemaphore createVkSemaphore(VkDevice device)
 	return semaphore;
 }
 
-inline static VkWindow createVkWindow(
-	VkInstance instance,
-	GLFWwindow* handle,
-	bool useStencilBuffer,
-	Vec2U framebufferSize)
-{
-	VkWindow vkWindow = malloc(
-		sizeof(struct VkWindow));
-
-	if (vkWindow == NULL)
-		return NULL;
-
-	VkSurfaceKHR surface;
-
-	VkResult vkResult = glfwCreateWindowSurface(
-		instance,
-		handle,
-		NULL,
-		&surface);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		free(vkWindow);
-		return NULL;
-	}
-
-	bool isGpuIntegrated;
-
-	VkPhysicalDevice physicalDevice = getBestVkPhysicalDevice(
-		instance,
-		&isGpuIntegrated);
-
-	if (physicalDevice == NULL)
-	{
-		vkDestroySurfaceKHR(
-			instance,
-			surface,
-			NULL);
-		free(vkWindow);
-		return NULL;
-	}
-
-	uint32_t graphicsQueueFamilyIndex,
-		presentQueueFamilyIndex;
-
-	bool result = getVkQueueFamilyIndices(
-		physicalDevice,
-		surface,
-		&graphicsQueueFamilyIndex,
-		&presentQueueFamilyIndex);
-
-	if (result == false)
-	{
-		vkDestroySurfaceKHR(
-			instance,
-			surface,
-			NULL);
-		free(vkWindow);
-		return NULL;
-	}
-
-	const char* requiredExtensions[1] = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	};
-
-	const char* preferredExtensions[1];
-	uint32_t preferredExtensionCount = 0;
-
-#if __APPLE__
-	preferredExtensions[preferredExtensionCount++] =
-		"VK_KHR_portability_subset";
-#endif
-
-	bool supportedExtensions[1];
-
-	VkDevice device = createVkDevice(
-		physicalDevice,
-		graphicsQueueFamilyIndex,
-		presentQueueFamilyIndex,
-		requiredExtensions,
-		1,
-		preferredExtensions,
-		preferredExtensionCount,
-		supportedExtensions);
-
-	if (device == NULL)
-	{
-		vkDestroySurfaceKHR(
-			instance,
-			surface,
-			NULL);
-		free(vkWindow);
-		return NULL;
-	}
-
-	VmaAllocator allocator = createVmaAllocator(
-		physicalDevice,
-		device,
-		instance);
-
-	if (allocator == NULL)
-	{
-		vkDestroyDevice(
-			device,
-			NULL);
-		vkDestroySurfaceKHR(
-			instance,
-			surface,
-			NULL);
-		free(vkWindow);
-		return NULL;
-	}
-
-	VkQueue graphicsQueue, presentQueue;
-
-	vkGetDeviceQueue(
-		device,
-		graphicsQueueFamilyIndex,
-		0,
-		&graphicsQueue);
-
-	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-	{
-		presentQueue = graphicsQueue;
-	}
-	else
-	{
-		vkGetDeviceQueue(
-			device,
-			presentQueueFamilyIndex,
-			0,
-			&presentQueue);
-	}
-
-	VkCommandPool graphicsCommandPool = createVkCommandPool(
-		device,
-		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		graphicsQueueFamilyIndex);
-
-	if (graphicsCommandPool == NULL)
-	{
-		vmaDestroyAllocator(
-			allocator);
-		vkDestroyDevice(
-			device,
-			NULL);
-		vkDestroySurfaceKHR(
-			instance,
-			surface,
-			NULL);
-		free(vkWindow);
-		return NULL;
-	}
-
-	VkCommandPool presentCommandPool;
-
-	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-	{
-		presentCommandPool = graphicsCommandPool;
-	}
-	else
-	{
-		presentCommandPool = createVkCommandPool(
-			device,
-			VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			presentQueueFamilyIndex);
-
-		if (presentCommandPool == NULL)
-		{
-			vkDestroyCommandPool(
-				device,
-				graphicsCommandPool,
-				NULL);
-			vmaDestroyAllocator(
-				allocator);
-			vkDestroyDevice(
-				device,
-				NULL);
-			vkDestroySurfaceKHR(
-				instance,
-				surface,
-				NULL);
-			free(vkWindow);
-			return NULL;
-		}
-	}
-
-	VkCommandPool transferCommandPool = createVkCommandPool(
-		device,
-		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-		graphicsQueueFamilyIndex);
-
-	if (transferCommandPool == NULL)
-	{
-		if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-		{
-			vkDestroyCommandPool(
-				device,
-				graphicsCommandPool,
-				NULL);
-		}
-		else
-		{
-			vkDestroyCommandPool(
-				device,
-				graphicsCommandPool,
-				NULL);
-			vkDestroyCommandPool(
-				device,
-				presentCommandPool,
-				NULL);
-		}
-
-		vmaDestroyAllocator(
-			allocator);
-		vkDestroyDevice(
-			device,
-			NULL);
-		vkDestroySurfaceKHR(
-			instance,
-			surface,
-			NULL);
-		free(vkWindow);
-		return NULL;
-	}
-
-	VkSwapchain swapchain = createVkSwapchain(
-		surface,
-		physicalDevice,
-		graphicsQueueFamilyIndex,
-		presentQueueFamilyIndex,
-		device,
-		allocator,
-		graphicsCommandPool,
-		presentCommandPool,
-		useStencilBuffer,
-		framebufferSize);
-
-	if (swapchain == NULL)
-	{
-		vkDestroyCommandPool(
-			device,
-			transferCommandPool,
-			NULL);
-
-		if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-		{
-			vkDestroyCommandPool(
-				device,
-				graphicsCommandPool,
-				NULL);
-		}
-		else
-		{
-			vkDestroyCommandPool(
-				device,
-				graphicsCommandPool,
-				NULL);
-			vkDestroyCommandPool(
-				device,
-				presentCommandPool,
-				NULL);
-		}
-
-		vmaDestroyAllocator(
-			allocator);
-		vkDestroyDevice(
-			device,
-			NULL);
-		vkDestroySurfaceKHR(
-			instance,
-			surface,
-			NULL);
-		free(vkWindow);
-		return NULL;
-	}
-
-	VkFence stagingFence = createVkFence(
-		device,
-		0);
-
-	if (stagingFence == NULL)
-	{
-		destroyVkSwapchain(
-			device,
-			allocator,
-			graphicsCommandPool,
-			presentCommandPool,
-			swapchain);
-		vkDestroyCommandPool(
-			device,
-			transferCommandPool,
-			NULL);
-
-		if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-		{
-			vkDestroyCommandPool(
-				device,
-				graphicsCommandPool,
-				NULL);
-		}
-		else
-		{
-			vkDestroyCommandPool(
-				device,
-				graphicsCommandPool,
-				NULL);
-			vkDestroyCommandPool(
-				device,
-				presentCommandPool,
-				NULL);
-		}
-
-		vmaDestroyAllocator(
-			allocator);
-		vkDestroyDevice(
-			device,
-			NULL);
-		vkDestroySurfaceKHR(
-			instance,
-			surface,
-			NULL);
-		free(vkWindow);
-		return NULL;
-	}
-
-	vkWindow->surface = surface;
-	vkWindow->physicalDevice = physicalDevice;
-	vkWindow->isGpuIntegrated = isGpuIntegrated;
-	vkWindow->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
-	vkWindow->presentQueueFamilyIndex = presentQueueFamilyIndex;
-	vkWindow->device = device;
-	vkWindow->allocator = allocator;
-	vkWindow->graphicsQueue = graphicsQueue;
-	vkWindow->presentQueue = presentQueue;
-	vkWindow->graphicsCommandPool = graphicsCommandPool;
-	vkWindow->presentCommandPool = presentCommandPool;
-	vkWindow->transferCommandPool = transferCommandPool;
-	vkWindow->swapchain = swapchain;
-	vkWindow->frameIndex = 0;
-	vkWindow->bufferIndex = 0;
-	vkWindow->currenCommandBuffer = NULL;
-	vkWindow->stagingBuffer = NULL;
-	vkWindow->stagingAllocation = NULL;
-	vkWindow->stagingSize = 0;
-	vkWindow->stagingFence = stagingFence;
-
-	VkFence* fences = vkWindow->fences;
-
-	VkSemaphore* imageAcquiredSemaphores =
-		vkWindow->imageAcquiredSemaphores;
-	VkSemaphore* drawCompleteSemaphores =
-		vkWindow->drawCompleteSemaphores;
-	VkSemaphore* imageOwnershipSemaphores =
-		vkWindow->imageOwnershipSemaphores;
-
-	for (uint8_t i = 0; i < VK_FRAME_LAG; i++)
-	{
-		fences[i] = createVkFence(
-			device,
-			VK_FENCE_CREATE_SIGNALED_BIT);
-
-		imageAcquiredSemaphores[i] = createVkSemaphore(device);
-		drawCompleteSemaphores[i] = createVkSemaphore(device);
-		imageOwnershipSemaphores[i] = createVkSemaphore(device);
-
-		if (fences[i] == NULL ||
-			imageAcquiredSemaphores[i] == NULL ||
-			drawCompleteSemaphores[i] == NULL ||
-			imageOwnershipSemaphores[i] == NULL)
-		{
-			vkDestroyFence(
-				device,
-				fences[i],
-				NULL);
-			vkDestroySemaphore(
-				device,
-				imageAcquiredSemaphores[i],
-				NULL);
-			vkDestroySemaphore(
-				device,
-				drawCompleteSemaphores[i],
-				NULL);
-			vkDestroySemaphore(
-				device,
-				imageOwnershipSemaphores[i],
-				NULL);
-
-			vkDestroyFence(
-				device,
-				stagingFence,
-				NULL);
-			destroyVkSwapchain(
-				device,
-				allocator,
-				graphicsCommandPool,
-				presentCommandPool,
-				swapchain);
-			vkDestroyCommandPool(
-				device,
-				transferCommandPool,
-				NULL);
-
-			if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-			{
-				vkDestroyCommandPool(
-					device,
-					graphicsCommandPool,
-					NULL);
-			}
-			else
-			{
-				vkDestroyCommandPool(
-					device,
-					graphicsCommandPool,
-					NULL);
-				vkDestroyCommandPool(
-					device,
-					presentCommandPool,
-					NULL);
-			}
-
-			vmaDestroyAllocator(
-				allocator);
-			vkDestroyDevice(
-				device,
-				NULL);
-			vkDestroySurfaceKHR(
-				instance,
-				surface,
-				NULL);
-			free(vkWindow);
-			return NULL;
-		}
-	}
-
-	return vkWindow;
-}
 inline static void destroyVkWindow(
 	VkInstance instance,
 	VkWindow vkWindow)
 {
 	if (vkWindow == NULL)
 		return;
-
-	VkDevice device = vkWindow->device;
-
-	vkDestroyFence(
-		device,
-		vkWindow->stagingFence,
-		NULL);
 
 	VmaAllocator allocator = vkWindow->allocator;
 
@@ -1339,6 +880,7 @@ inline static void destroyVkWindow(
 			vkWindow->stagingAllocation);
 	}
 
+	VkDevice device = vkWindow->device;
 	VkCommandPool graphicsCommandPool =
 		vkWindow->graphicsCommandPool;
 	VkCommandPool presentCommandPool =
@@ -1351,8 +893,12 @@ inline static void destroyVkWindow(
 		presentCommandPool,
 		vkWindow->swapchain);
 
-	VkFence* fences = vkWindow->fences;
+	vkDestroyFence(
+		device,
+		vkWindow->stagingFence,
+		NULL);
 
+	VkFence* fences = vkWindow->fences;
 	VkSemaphore* imageAcquiredSemaphores =
 		vkWindow->imageAcquiredSemaphores;
 	VkSemaphore* drawCompleteSemaphores =
@@ -1362,16 +908,6 @@ inline static void destroyVkWindow(
 
 	for (uint8_t i = 0; i < VK_FRAME_LAG; i++)
 	{
-		VkResult result = vkWaitForFences(
-			device,
-			1,
-			&fences[i],
-			VK_TRUE,
-			UINT64_MAX);
-
-		if(result != VK_SUCCESS)
-			abort();
-
 		vkDestroySemaphore(
 			device,
 			imageOwnershipSemaphores[i],
@@ -1384,10 +920,26 @@ inline static void destroyVkWindow(
 			device,
 			imageAcquiredSemaphores[i],
 			NULL);
-		vkDestroyFence(
-			device,
-			fences[i],
-			NULL);
+
+		VkFence fence = fences[i];
+
+		if (fence != NULL)
+		{
+			VkResult result = vkWaitForFences(
+				device,
+				1,
+				&fence,
+				VK_TRUE,
+				UINT64_MAX);
+
+			if (result != VK_SUCCESS)
+				abort();
+
+			vkDestroyFence(
+				device,
+				fences[i],
+				NULL);
+		}
 	}
 
 	vkDestroyCommandPool(
@@ -1415,8 +967,8 @@ inline static void destroyVkWindow(
 			NULL);
 	}
 
-	vmaDestroyAllocator(
-		allocator);
+	vmaDestroyAllocator(allocator);
+
 	vkDestroyDevice(
 		device,
 		NULL);
@@ -1424,8 +976,312 @@ inline static void destroyVkWindow(
 		instance,
 		vkWindow->surface,
 		NULL);
-
 	free(vkWindow);
+}
+inline static MpgxResult createVkWindow(
+	VkInstance instance,
+	GLFWwindow* handle,
+	bool useStencilBuffer,
+	bool useRayTracing,
+	Vec2U framebufferSize,
+	VkWindow* vkWindow)
+{
+	VkWindow window = calloc(1, sizeof(VkWindow_T));
+
+	if (window == NULL)
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+
+	VkSurfaceKHR surface;
+
+	VkResult vkResult = glfwCreateWindowSurface(
+		instance,
+		handle,
+		NULL,
+		&surface);
+
+	if (vkResult != VK_SUCCESS)
+	{
+		destroyVkWindow(
+			instance,
+			window);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	window->surface = surface;
+
+	bool isGpuIntegrated;
+
+	VkPhysicalDevice physicalDevice = getBestVkPhysicalDevice(
+		instance,
+		&isGpuIntegrated);
+
+	if (physicalDevice == NULL)
+	{
+		destroyVkWindow(
+			instance,
+			window);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	window->physicalDevice = physicalDevice;
+	window->isGpuIntegrated = isGpuIntegrated;
+
+	uint32_t graphicsQueueFamilyIndex,
+		presentQueueFamilyIndex;
+
+	bool result = getVkQueueFamilyIndices(
+		physicalDevice,
+		surface,
+		&graphicsQueueFamilyIndex,
+		&presentQueueFamilyIndex);
+
+	if (result == false)
+	{
+		destroyVkWindow(
+			instance,
+			window);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	window->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
+	window->presentQueueFamilyIndex = presentQueueFamilyIndex;
+
+	size_t requiredExtensionCount = 1;
+
+	const char* requiredExtensions[2] = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	};
+
+#if __APPLE__
+	requiredExtensions[requiredExtensionCount++] =
+		"VK_KHR_portability_subset";
+#endif
+
+	const char* preferredExtensions[2];
+	uint32_t preferredExtensionCount = 0;
+
+	uint32_t accelerationStructureExtIndex;
+	uint32_t rayTracingPipelineExtIndex;
+
+	if (useRayTracing == true)
+	{
+		accelerationStructureExtIndex = preferredExtensionCount;
+		preferredExtensions[preferredExtensionCount++] =
+			VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME;
+
+		rayTracingPipelineExtIndex = preferredExtensionCount;
+		preferredExtensions[preferredExtensionCount++] =
+			VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME;
+	}
+
+	bool supportedExtensions[2];
+
+	VkDevice device;
+
+	MpgxResult mpgxResult = createVkDevice(
+		physicalDevice,
+		graphicsQueueFamilyIndex,
+		presentQueueFamilyIndex,
+		requiredExtensions,
+		requiredExtensionCount,
+		preferredExtensions,
+		preferredExtensionCount,
+		supportedExtensions,
+		&device);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		destroyVkWindow(
+			instance,
+			window);
+		return mpgxResult;
+	}
+
+	window->device = device;
+
+	if (useRayTracing == true)
+	{
+		if (supportedExtensions[accelerationStructureExtIndex] == false ||
+			supportedExtensions[rayTracingPipelineExtIndex] == false)
+		{
+			destroyVkWindow(
+				instance,
+				window);
+			return RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT;
+		}
+	}
+
+	VmaAllocator allocator = createVmaAllocator(
+		physicalDevice,
+		device,
+		instance);
+
+	if (allocator == NULL)
+	{
+		destroyVkWindow(
+			instance,
+			window);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	window->allocator = allocator;
+
+	VkQueue graphicsQueue, presentQueue;
+
+	vkGetDeviceQueue(
+		device,
+		graphicsQueueFamilyIndex,
+		0,
+		&graphicsQueue);
+
+	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
+	{
+		presentQueue = graphicsQueue;
+	}
+	else
+	{
+		vkGetDeviceQueue(
+			device,
+			presentQueueFamilyIndex,
+			0,
+			&presentQueue);
+	}
+
+	window->graphicsQueue = graphicsQueue;
+	window->presentQueue = presentQueue;
+
+	VkCommandPool graphicsCommandPool = createVkCommandPool(
+		device,
+		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		graphicsQueueFamilyIndex);
+
+	if (graphicsCommandPool == NULL)
+	{
+		destroyVkWindow(
+			instance,
+			window);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	window->graphicsCommandPool = graphicsCommandPool;
+
+	VkCommandPool presentCommandPool;
+
+	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
+	{
+		presentCommandPool = graphicsCommandPool;
+	}
+	else
+	{
+		presentCommandPool = createVkCommandPool(
+			device,
+			VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
+				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+			presentQueueFamilyIndex);
+
+		if (presentCommandPool == NULL)
+		{
+			destroyVkWindow(
+				instance,
+				window);
+			return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		}
+	}
+
+	window->presentCommandPool = presentCommandPool;
+
+	VkCommandPool transferCommandPool = createVkCommandPool(
+		device,
+		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+		graphicsQueueFamilyIndex);
+
+	if (transferCommandPool == NULL)
+	{
+		destroyVkWindow(
+			instance,
+			window);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	window->transferCommandPool = transferCommandPool;
+
+	VkFence* fences = window->fences;
+	VkSemaphore* imageAcquiredSemaphores =
+		window->imageAcquiredSemaphores;
+	VkSemaphore* drawCompleteSemaphores =
+		window->drawCompleteSemaphores;
+	VkSemaphore* imageOwnershipSemaphores =
+		window->imageOwnershipSemaphores;
+
+	for (uint8_t i = 0; i < VK_FRAME_LAG; i++)
+	{
+		fences[i] = createVkFence(device,
+			VK_FENCE_CREATE_SIGNALED_BIT);
+
+		imageAcquiredSemaphores[i] = createVkSemaphore(device);
+		drawCompleteSemaphores[i] = createVkSemaphore(device);
+		imageOwnershipSemaphores[i] = createVkSemaphore(device);
+
+		if (fences[i] == NULL ||
+			imageAcquiredSemaphores[i] == NULL ||
+			drawCompleteSemaphores[i] == NULL ||
+			imageOwnershipSemaphores[i] == NULL)
+		{
+			destroyVkWindow(
+				instance,
+				window);
+			return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		}
+	}
+
+	VkFence stagingFence = createVkFence(
+		device,
+		0);
+
+	if (stagingFence == NULL)
+	{
+		destroyVkWindow(
+			instance,
+			window);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	window->stagingFence = stagingFence;
+
+	VkSwapchain swapchain;
+
+	mpgxResult = createVkSwapchain(
+		surface,
+		physicalDevice,
+		graphicsQueueFamilyIndex,
+		presentQueueFamilyIndex,
+		device,
+		allocator,
+		graphicsCommandPool,
+		presentCommandPool,
+		useStencilBuffer,
+		framebufferSize,
+		&swapchain);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		destroyVkWindow(
+			instance,
+			window);
+		return mpgxResult;
+	}
+
+	window->swapchain = swapchain;
+	window->frameIndex = 0;
+	window->bufferIndex = 0;
+	window->currenCommandBuffer = NULL;
+	window->stagingBuffer = NULL;
+	window->stagingAllocation = NULL;
+	window->stagingSize = 0;
+
+	*vkWindow = window;
+	return SUCCESS_MPGX_RESULT;
 }
 
 static VkPhysicalDeviceProperties properties;

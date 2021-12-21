@@ -130,10 +130,8 @@ inline static void setVkBufferData(
 
 	uint8_t* _mappedData = mappedData;
 
-	memcpy(
-		_mappedData + offset,
-		data,
-		size);
+	memcpy(_mappedData + offset,
+		data, size);
 
 	result = vmaFlushAllocation(
 		allocator,
@@ -147,6 +145,17 @@ inline static void setVkBufferData(
 	vmaUnmapMemory(
 		allocator,
 		allocation);
+}
+
+inline static void destroyVkBuffer(
+	VmaAllocator allocator,
+	Buffer buffer)
+{
+	vmaDestroyBuffer(
+		allocator,
+		buffer->vk.handle,
+		buffer->vk.allocation);
+	free(buffer);
 }
 inline static Buffer createVkBuffer(
 	VkDevice device,
@@ -164,17 +173,26 @@ inline static Buffer createVkBuffer(
 	size_t size,
 	bool isConstant)
 {
-	Buffer buffer = malloc(sizeof(Buffer_T));
+	Buffer buffer = calloc(1, sizeof(Buffer_T));
 
 	if (buffer == NULL)
 		return NULL;
+
+	buffer->vk.window = window;
+	buffer->vk.type = type;
+	buffer->vk.size = size;
+	buffer->vk.isConstant = isConstant;
+	buffer->vk.isMapped = false;
+	buffer->vk.writeAccess = false;
 
 	VkBufferUsageFlags vkUsage = _vkUsage;
 
 	switch (type)
 	{
 	default:
-		free(buffer);
+		destroyVkBuffer(
+			allocator,
+			buffer);
 		return NULL;
 	case VERTEX_BUFFER_TYPE:
 		vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -203,9 +221,7 @@ inline static Buffer createVkBuffer(
 
 	VmaAllocationCreateInfo allocationCreateInfo;
 
-	memset(
-		&allocationCreateInfo,
-		0,
+	memset(&allocationCreateInfo, 0,
 		sizeof(VmaAllocationCreateInfo));
 
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
@@ -231,9 +247,14 @@ inline static Buffer createVkBuffer(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		free(buffer);
+		destroyVkBuffer(
+			allocator,
+			buffer);
 		return NULL;
 	}
+
+	buffer->vk.handle = handle;
+	buffer->vk.allocation = allocation;
 
 	if (data != NULL)
 	{
@@ -257,11 +278,9 @@ inline static Buffer createVkBuffer(
 
 				if (vkResult != VK_SUCCESS)
 				{
-					vmaDestroyBuffer(
+					destroyVkBuffer(
 						allocator,
-						handle,
-						allocation);
-					free(buffer);
+						buffer);
 					return NULL;
 				}
 
@@ -299,11 +318,9 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
-				vmaDestroyBuffer(
+				destroyVkBuffer(
 					allocator,
-					handle,
-					allocation);
-				free(buffer);
+					buffer);
 				return NULL;
 			}
 
@@ -325,11 +342,9 @@ inline static Buffer createVkBuffer(
 					transferCommandPool,
 					1,
 					&commandBuffer);
-				vmaDestroyBuffer(
+				destroyVkBuffer(
 					allocator,
-					handle,
-					allocation);
-				free(buffer);
+					buffer);
 				return NULL;
 			}
 
@@ -355,11 +370,9 @@ inline static Buffer createVkBuffer(
 					transferCommandPool,
 					1,
 					&commandBuffer);
-				vmaDestroyBuffer(
+				destroyVkBuffer(
 					allocator,
-					handle,
-					allocation);
-				free(buffer);
+					buffer);
 				return NULL;
 			}
 
@@ -375,11 +388,9 @@ inline static Buffer createVkBuffer(
 					transferCommandPool,
 					1,
 					&commandBuffer);
-				vmaDestroyBuffer(
+				destroyVkBuffer(
 					allocator,
-					handle,
-					allocation);
-				free(buffer);
+					buffer);
 				return false;
 			}
 
@@ -408,11 +419,9 @@ inline static Buffer createVkBuffer(
 					transferCommandPool,
 					1,
 					&commandBuffer);
-				vmaDestroyBuffer(
+				destroyVkBuffer(
 					allocator,
-					handle,
-					allocation);
-				free(buffer);
+					buffer);
 				return NULL;
 			}
 
@@ -431,11 +440,9 @@ inline static Buffer createVkBuffer(
 
 			if (vkResult != VK_SUCCESS)
 			{
-				vmaDestroyBuffer(
+				destroyVkBuffer(
 					allocator,
-					handle,
-					allocation);
-				free(buffer);
+					buffer);
 				return NULL;
 			}
 		}
@@ -450,25 +457,7 @@ inline static Buffer createVkBuffer(
 		}
 	}
 
-	buffer->vk.window = window;
-	buffer->vk.type = type;
-	buffer->vk.size = size;
-	buffer->vk.isConstant = isConstant;
-	buffer->vk.isMapped = false;
-	buffer->vk.writeAccess = false;
-	buffer->vk.handle = handle;
-	buffer->vk.allocation = allocation;
 	return buffer;
-}
-inline static void destroyVkBuffer(
-	VmaAllocator allocator,
-	Buffer buffer)
-{
-	vmaDestroyBuffer(
-		allocator,
-		buffer->vk.handle,
-		buffer->vk.allocation);
-	free(buffer);
 }
 #endif
 
@@ -527,6 +516,23 @@ inline static void setGlBufferData(
 		data);
 	assertOpenGL();
 }
+
+inline static void destroyGlBuffer(
+	Buffer buffer)
+{
+	if (buffer == NULL)
+		return;
+
+	makeWindowContextCurrent(
+		buffer->gl.window);
+
+	glDeleteBuffers(
+		GL_ONE,
+		&buffer->gl.handle);
+	assertOpenGL();
+
+	free(buffer);
+}
 inline static Buffer createGlBuffer(
 	Window window,
 	BufferType type,
@@ -534,10 +540,16 @@ inline static Buffer createGlBuffer(
 	size_t size,
 	bool isConstant)
 {
-	Buffer buffer = malloc(sizeof(Buffer_T));
+	Buffer buffer = calloc(1, sizeof(Buffer_T));
 
 	if (buffer == NULL)
 		return NULL;
+
+	buffer->gl.window = window;
+	buffer->gl.type = type;
+	buffer->gl.size = size;
+	buffer->gl.isConstant = isConstant;
+	buffer->gl.isMapped = false;
 
 	GLenum glType;
 
@@ -555,9 +567,11 @@ inline static Buffer createGlBuffer(
 	}
 	else
 	{
-		free(buffer);
+		destroyGlBuffer(buffer);
 		return NULL;
 	}
+
+	buffer->gl.glType = glType;
 
 	makeWindowContextCurrent(window);
 
@@ -566,6 +580,8 @@ inline static Buffer createGlBuffer(
 	glGenBuffers(
 		GL_ONE,
 		&handle);
+
+	buffer->gl.handle = handle;
 
 	GLenum usage = isConstant ?
 		GL_STATIC_DRAW :
@@ -587,29 +603,9 @@ inline static Buffer createGlBuffer(
 		glDeleteBuffers(
 			GL_ONE,
 			&handle);
-		free(buffer);
+		destroyGlBuffer(buffer);
 		return NULL;
 	}
 
-	buffer->gl.window = window;
-	buffer->gl.type = type;
-	buffer->gl.size = size;
-	buffer->gl.isConstant = isConstant;
-	buffer->gl.isMapped = false;
-	buffer->gl.glType = glType;
-	buffer->gl.handle = handle;
 	return buffer;
-}
-inline static void destroyGlBuffer(
-	Buffer buffer)
-{
-	makeWindowContextCurrent(
-		buffer->gl.window);
-
-	glDeleteBuffers(
-		GL_ONE,
-		&buffer->gl.handle);
-	assertOpenGL();
-
-	free(buffer);
 }

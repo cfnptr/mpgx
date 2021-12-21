@@ -144,6 +144,20 @@ inline static bool getVkImageWrap(
 		return false;
 	}
 }
+
+inline static void destroyVkSampler(
+	VkDevice device,
+	Sampler sampler)
+{
+	if (sampler == NULL)
+		return;
+
+	vkDestroySampler(
+		device,
+		sampler->vk.handle,
+		NULL);
+	free(sampler);
+}
 inline static Sampler createVkSampler(
 	VkDevice device,
 	Window window,
@@ -159,10 +173,24 @@ inline static Sampler createVkSampler(
 	Vec2F mipmapLodRange,
 	float mipmapLodBias)
 {
-	Sampler sampler = malloc(sizeof(Sampler_T));
+	Sampler sampler = calloc(1,
+		sizeof(Sampler_T));
 
 	if (sampler == NULL)
 		return NULL;
+
+	sampler->vk.window = window;
+	sampler->vk.minImageFilter = minImageFilter;
+	sampler->vk.magImageFilter = magImageFilter;
+	sampler->vk.minMipmapFilter = minMipmapFilter;
+	sampler->vk.useMipmapping = useMipmapping;
+	sampler->vk.imageWrapX = imageWrapX;
+	sampler->vk.imageWrapY = imageWrapY;
+	sampler->vk.imageWrapZ = imageWrapZ;
+	sampler->vk.compareOperator = compareOperator;
+	sampler->vk.useCompare = useCompare;
+	sampler->vk.mipmapLodRange = mipmapLodRange;
+	sampler->vk.mipmapLodBias = mipmapLodBias;
 
 	VkFilter minFilter, magFilter;
 	VkSamplerMipmapMode mipmapMode;
@@ -193,7 +221,9 @@ inline static Sampler createVkSampler(
 
 	if (result == false)
 	{
-		free(sampler);
+		destroyVkSampler(
+			device,
+			sampler);
 		return NULL;
 	}
 
@@ -228,34 +258,14 @@ inline static Sampler createVkSampler(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		free(sampler);
+		destroyVkSampler(
+			device,
+			sampler);
 		return NULL;
 	}
 
-	sampler->vk.window = window;
-	sampler->vk.minImageFilter = minImageFilter;
-	sampler->vk.magImageFilter = magImageFilter;
-	sampler->vk.minMipmapFilter = minMipmapFilter;
-	sampler->vk.useMipmapping = useMipmapping;
-	sampler->vk.imageWrapX = imageWrapX;
-	sampler->vk.imageWrapY = imageWrapY;
-	sampler->vk.imageWrapZ = imageWrapZ;
-	sampler->vk.compareOperator = compareOperator;
-	sampler->vk.useCompare = useCompare;
-	sampler->vk.mipmapLodRange = mipmapLodRange;
-	sampler->vk.mipmapLodBias = mipmapLodBias;
 	sampler->vk.handle = handle;
 	return sampler;
-}
-inline static void destroyVkSampler(
-	VkDevice device,
-	Sampler sampler)
-{
-	vkDestroySampler(
-		device,
-		sampler->vk.handle,
-		NULL);
-	free(sampler);
 }
 #endif
 
@@ -344,6 +354,23 @@ inline static bool getGlImageWrap(
 		return false;
 	}
 }
+
+inline static void destroyGlSampler(
+	Sampler sampler)
+{
+	if (sampler == NULL)
+		return;
+
+	makeWindowContextCurrent(
+		sampler->gl.window);
+
+	glDeleteSamplers(
+		GL_ONE,
+		&sampler->gl.handle);
+	assertOpenGL();
+
+	free(sampler);
+}
 inline static Sampler createGlSampler(
 	Window window,
 	ImageFilter minImageFilter,
@@ -357,10 +384,24 @@ inline static Sampler createGlSampler(
 	bool useCompare,
 	Vec2F mipmapLodRange)
 {
-	Sampler sampler = malloc(sizeof(Sampler_T));
+	Sampler sampler = calloc(1,
+		sizeof(Sampler_T));
 
 	if (sampler == NULL)
 		return NULL;
+
+	sampler->gl.window = window;
+	sampler->gl.minImageFilter = minImageFilter;
+	sampler->gl.magImageFilter = magImageFilter;
+	sampler->gl.minMipmapFilter = minMipmapFilter;
+	sampler->gl.useMipmapping = useMipmapping;
+	sampler->gl.imageWrapX = imageWrapX;
+	sampler->gl.imageWrapY = imageWrapY;
+	sampler->gl.imageWrapZ = imageWrapZ;
+	sampler->gl.compareOperator = compareOperator;
+	sampler->gl.useCompare = useCompare;
+	sampler->gl.mipmapLodRange = mipmapLodRange;
+	sampler->gl.mipmapLodBias = 0.0f;
 
 	makeWindowContextCurrent(window);
 
@@ -369,6 +410,8 @@ inline static Sampler createGlSampler(
 	glGenSamplers(
 		GL_ONE,
 		&handle);
+
+	sampler->gl.handle = handle;
 
 	GLenum minFilter, magFilter,
 		wrapX, wrapY, wrapZ, compare;
@@ -398,10 +441,7 @@ inline static Sampler createGlSampler(
 
 	if (result == false)
 	{
-		glDeleteSamplers(
-			GL_ONE,
-			&handle);
-		free(sampler);
+		destroyGlSampler(sampler);
 		return NULL;
 	}
 
@@ -449,38 +489,9 @@ inline static Sampler createGlSampler(
 
 	if (error != GL_NO_ERROR)
 	{
-		glDeleteSamplers(
-			GL_ONE,
-			&handle);
-		free(sampler);
+		destroyGlSampler(sampler);
 		return NULL;
 	}
 
-	sampler->gl.window = window;
-	sampler->gl.minImageFilter = minImageFilter;
-	sampler->gl.magImageFilter = magImageFilter;
-	sampler->gl.minMipmapFilter = minMipmapFilter;
-	sampler->gl.useMipmapping = useMipmapping;
-	sampler->gl.imageWrapX = imageWrapX;
-	sampler->gl.imageWrapY = imageWrapY;
-	sampler->gl.imageWrapZ = imageWrapZ;
-	sampler->gl.compareOperator = compareOperator;
-	sampler->gl.useCompare = useCompare;
-	sampler->gl.mipmapLodRange = mipmapLodRange;
-	sampler->gl.mipmapLodBias = 0.0f;
-	sampler->gl.handle = handle;
 	return sampler;
-}
-inline static void destroyGlSampler(
-	Sampler sampler)
-{
-	makeWindowContextCurrent(
-		sampler->gl.window);
-
-	glDeleteSamplers(
-		GL_ONE,
-		&sampler->gl.handle);
-	assertOpenGL();
-
-	free(sampler);
 }

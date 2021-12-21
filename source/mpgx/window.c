@@ -115,22 +115,24 @@ MpgxResult initializeGraphics(
 	uint8_t appVersionPatch)
 {
 	assert(appName != NULL);
-	assert(graphicsInitialized == false);
+
+	if (graphicsInitialized == true)
+		return GRAPHICS_IS_ALREADY_INITIALIZED_MPGX_RESULT;
 
 	if(glfwInit() == GLFW_FALSE)
-		return FAILED_TO_INIT_GLFW_MPGX_RESULT;
+		return FAILED_TO_INITIALIZE_GLFW_MPGX_RESULT;
 
 	glfwSetErrorCallback(glfwErrorCallback);
 
 	if (FT_Init_FreeType(&ftLibrary) != 0)
 	{
 		glfwTerminate();
-		return FAILED_TO_INIT_FREETYPE_MPGX_RESULT;
+		return FAILED_TO_INITIALIZE_FREETYPE_MPGX_RESULT;
 	}
 
 #if MPGX_SUPPORT_VULKAN
 	if (glfwVulkanSupported() == GLFW_FALSE)
-		return FAILED_TO_INIT_VULKAN_MPGX_RESULT;
+		return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
 
 	const char* preferredLayers[1] = {
 		"VK_LAYER_KHRONOS_validation",
@@ -160,7 +162,7 @@ MpgxResult initializeGraphics(
 	{
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
-		return FAILED_TO_INIT_VULKAN_MPGX_RESULT;
+		return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
 	}
 
 #ifndef NDEBUG
@@ -174,7 +176,7 @@ MpgxResult initializeGraphics(
 			NULL);
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
-		return FAILED_TO_INIT_VULKAN_MPGX_RESULT;
+		return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
 	}
 #endif
 
@@ -185,7 +187,8 @@ MpgxResult initializeGraphics(
 }
 void terminateGraphics()
 {
-	assert(graphicsInitialized == true);
+	if (graphicsInitialized == true)
+		return;
 
 #if MPGX_SUPPORT_VULKAN
 
@@ -241,13 +244,76 @@ static void onWindowChar(
 	window->inputBuffer[length] = codepoint;
 	window->inputLength = length + 1;
 }
+
+void destroyWindow(Window window)
+{
+	if (window == NULL)
+		return;
+
+	assert(window->bufferCount == 0);
+	assert(window->imageCount == 0);
+	assert(window->samplerCount == 0);
+	assert(window->framebufferCount == 0);
+	assert(window->shaderCount == 0);
+	assert(window->meshCount == 0);
+
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+
+		if (vkWindow != NULL)
+		{
+			VkDevice device = vkWindow->device;
+			VkResult result = vkDeviceWaitIdle(device);
+
+			if (result != VK_SUCCESS)
+				abort();
+
+			destroyVkFramebuffer(
+				device,
+				window->framebuffer);
+			destroyVkWindow(
+				vkInstance,
+				vkWindow);
+		}
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+			 api == OPENGL_ES_GRAPHICS_API)
+	{
+		destroyGlFramebuffer(window->framebuffer);
+	}
+	else
+	{
+		abort();
+	}
+
+	free(window->buffers);
+	free(window->images);
+	free(window->samplers);
+	free(window->framebuffers);
+	free(window->shaders);
+	free(window->meshes);
+	free(window->inputBuffer);
+	glfwDestroyCursor(window->vresizeCursor);
+	glfwDestroyCursor(window->hresizeCursor);
+	glfwDestroyCursor(window->handCursor);
+	glfwDestroyCursor(window->crosshairCursor);
+	glfwDestroyCursor(window->ibeamCursor);
+	glfwDestroyWindow(window->handle);
+	free(window);
+}
 MpgxResult createWindow(
 	GraphicsAPI api,
-	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
+	bool useStencilBuffer,
+	bool useRayTracing,
 	bool isVisible,
 	Window* window)
 {
@@ -257,7 +323,9 @@ MpgxResult createWindow(
 	assert(title != NULL);
 	assert(onUpdate != NULL);
 	assert(window != NULL);
-	assert(graphicsInitialized == true);
+
+	if (graphicsInitialized == false)
+		return GRAPHICS_IS_NOT_INITIALIZED_MPGX_RESULT;
 
 	glfwDefaultWindowHints();
 
@@ -273,6 +341,9 @@ MpgxResult createWindow(
 	}
 	else if (api == OPENGL_GRAPHICS_API)
 	{
+		if (useRayTracing == true)
+			return RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT;
+
 		glfwWindowHint(
 			GLFW_CLIENT_API,
 			GLFW_OPENGL_API);
@@ -370,14 +441,18 @@ MpgxResult createWindow(
 		abort();
 	}
 
-	glfwWindowHint(
-		GLFW_VISIBLE,
+	glfwWindowHint(GLFW_VISIBLE,
 		isVisible ? GLFW_TRUE : GLFW_FALSE);
 
 	Window windowInstance = malloc(sizeof(Window_T));
 
 	if (windowInstance == NULL)
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+
+	windowInstance->api = api;
+	windowInstance->useStencilBuffer = useStencilBuffer;
+	windowInstance->onUpdate = onUpdate;
+	windowInstance->updateArgument = updateArgument;
 
 	GLFWwindow* handle = glfwCreateWindow(
 		(int)size.x,
@@ -388,9 +463,11 @@ MpgxResult createWindow(
 
 	if (handle == NULL)
 	{
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->handle = handle;
 
 	glfwSetWindowSizeLimits(
 		handle,
@@ -419,74 +496,69 @@ MpgxResult createWindow(
 
 	if (ibeamCursor == NULL)
 	{
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->cursorType = DEFAULT_CURSOR_TYPE;
+	windowInstance->ibeamCursor = ibeamCursor;
 
 	GLFWcursor* crosshairCursor = glfwCreateStandardCursor(
 		GLFW_CROSSHAIR_CURSOR);
 
 	if (crosshairCursor == NULL)
 	{
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->crosshairCursor = crosshairCursor;
 
 	GLFWcursor* handCursor = glfwCreateStandardCursor(
 		GLFW_HAND_CURSOR);
 
 	if (handCursor == NULL)
 	{
-		glfwDestroyCursor(crosshairCursor);
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->handCursor = handCursor;
 
 	GLFWcursor* hresizeCursor = glfwCreateStandardCursor(
 		GLFW_HRESIZE_CURSOR);
 
 	if (hresizeCursor == NULL)
 	{
-		glfwDestroyCursor(handCursor);
-		glfwDestroyCursor(crosshairCursor);
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->hresizeCursor = hresizeCursor;
 
 	GLFWcursor* vresizeCursor = glfwCreateStandardCursor(
 		GLFW_VRESIZE_CURSOR);
 
 	if (vresizeCursor == NULL)
 	{
-		glfwDestroyCursor(hresizeCursor);
-		glfwDestroyCursor(handCursor);
-		glfwDestroyCursor(crosshairCursor);
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->vresizeCursor = vresizeCursor;
 
 	uint32_t* inputBuffer = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(uint32_t));
 
 	if (inputBuffer == NULL)
 	{
-		glfwDestroyCursor(hresizeCursor);
-		glfwDestroyCursor(handCursor);
-		glfwDestroyCursor(crosshairCursor);
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->inputBuffer = inputBuffer;
+	windowInstance->inputCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->inputLength = 0;
 
 #if MPGX_SUPPORT_VULKAN
 	VkWindow vkWindow = NULL;
@@ -502,34 +574,30 @@ MpgxResult createWindow(
 	Vec2U framebufferSize =
 		vec2U(width, height);
 
-	Framebuffer framebuffer;
-
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		vkWindow = createVkWindow(
+		MpgxResult mpgxResult = createVkWindow(
 			vkInstance,
 			handle,
 			useStencilBuffer,
-			framebufferSize);
+			useRayTracing,
+			framebufferSize,
+			&vkWindow);
 
-		if (vkWindow == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
-			free(inputBuffer);
-			glfwDestroyCursor(vresizeCursor);
-			glfwDestroyCursor(hresizeCursor);
-			glfwDestroyCursor(handCursor);
-			glfwDestroyCursor(crosshairCursor);
-			glfwDestroyCursor(ibeamCursor);
-			glfwDestroyWindow(handle);
-			free(windowInstance);
-			return FAILED_TO_ALLOCATE_MPGX_RESULT;
+			destroyWindow(windowInstance);
+			return mpgxResult;
 		}
+
+		windowInstance->vkWindow = vkWindow;
 
 		VkSwapchain swapchain = vkWindow->swapchain;
 		VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
 
-		framebuffer = createDefaultVkFramebuffer(
+		Framebuffer framebuffer = createDefaultVkFramebuffer(
+			vkWindow->device,
 			swapchain->renderPass,
 			firstBuffer.framebuffer,
 			windowInstance,
@@ -537,17 +605,11 @@ MpgxResult createWindow(
 
 		if (framebuffer == NULL)
 		{
-			destroyVkWindow(vkInstance, vkWindow);
-			free(inputBuffer);
-			glfwDestroyCursor(vresizeCursor);
-			glfwDestroyCursor(hresizeCursor);
-			glfwDestroyCursor(handCursor);
-			glfwDestroyCursor(crosshairCursor);
-			glfwDestroyCursor(ibeamCursor);
-			glfwDestroyWindow(handle);
-			free(windowInstance);
+			destroyWindow(windowInstance);
 			return FAILED_TO_ALLOCATE_MPGX_RESULT;
 		}
+
+		windowInstance->framebuffer = framebuffer;
 #else
 		abort();
 #endif
@@ -559,35 +621,23 @@ MpgxResult createWindow(
 
 		if (gladLoadGL() == 0)
 		{
-			free(inputBuffer);
-			glfwDestroyCursor(vresizeCursor);
-			glfwDestroyCursor(hresizeCursor);
-			glfwDestroyCursor(handCursor);
-			glfwDestroyCursor(crosshairCursor);
-			glfwDestroyCursor(ibeamCursor);
-			glfwDestroyWindow(handle);
-			free(windowInstance);
-			return FAILED_TO_INIT_OPENGL_MPGX_RESULT;
+			destroyWindow(windowInstance);
+			return FAILED_TO_INITIALIZE_OPENGL_MPGX_RESULT;
 		}
 
 		glEnable(GL_FRAMEBUFFER_SRGB);
 
-		framebuffer = createDefaultGlFramebuffer(
+		Framebuffer framebuffer = createDefaultGlFramebuffer(
 			windowInstance,
 			framebufferSize);
 
 		if (framebuffer == NULL)
 		{
-			free(inputBuffer);
-			glfwDestroyCursor(vresizeCursor);
-			glfwDestroyCursor(hresizeCursor);
-			glfwDestroyCursor(handCursor);
-			glfwDestroyCursor(crosshairCursor);
-			glfwDestroyCursor(ibeamCursor);
-			glfwDestroyWindow(handle);
-			free(windowInstance);
+			destroyWindow(windowInstance);
 			return FAILED_TO_ALLOCATE_MPGX_RESULT;
 		}
+
+		windowInstance->framebuffer = framebuffer;
 	}
 
 	Buffer* buffers = malloc(
@@ -595,252 +645,107 @@ MpgxResult createWindow(
 
 	if (buffers == NULL)
 	{
-		if (api == VULKAN_GRAPHICS_API)
-		{
-#if MPGX_SUPPORT_VULKAN
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-			destroyVkWindow(vkInstance, vkWindow);
-#endif
-		}
-		else
-		{
-			destroyGlFramebuffer(framebuffer);
-		}
-
-		free(inputBuffer);
-		glfwDestroyCursor(vresizeCursor);
-		glfwDestroyCursor(hresizeCursor);
-		glfwDestroyCursor(handCursor);
-		glfwDestroyCursor(crosshairCursor);
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->buffers = buffers;
+	windowInstance->bufferCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->bufferCount = 0;
 
 	Image* images = malloc(
 		4 * sizeof(Image));
 
 	if (images == NULL)
 	{
-		free(buffers);
-
-		if (api == VULKAN_GRAPHICS_API)
-		{
-#if MPGX_SUPPORT_VULKAN
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-			destroyVkWindow(vkInstance, vkWindow);
-#endif
-		}
-		else
-		{
-			destroyGlFramebuffer(framebuffer);
-		}
-
-		free(inputBuffer);
-		glfwDestroyCursor(vresizeCursor);
-		glfwDestroyCursor(hresizeCursor);
-		glfwDestroyCursor(handCursor);
-		glfwDestroyCursor(crosshairCursor);
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->images = images;
+	windowInstance->imageCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->imageCount = 0;
 
 	Sampler* samplers = malloc(
 		4 * sizeof(Sampler));
 
 	if (samplers == NULL)
 	{
-		free(images);
-		free(buffers);
-
-		if (api == VULKAN_GRAPHICS_API)
-		{
-#if MPGX_SUPPORT_VULKAN
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-			destroyVkWindow(vkInstance, vkWindow);
-#endif
-		}
-		else
-		{
-			destroyGlFramebuffer(framebuffer);
-		}
-
-		free(inputBuffer);
-		glfwDestroyCursor(vresizeCursor);
-		glfwDestroyCursor(hresizeCursor);
-		glfwDestroyCursor(handCursor);
-		glfwDestroyCursor(crosshairCursor);
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->samplers = samplers;
+	windowInstance->samplerCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->samplerCount = 0;
 
 	Shader* shaders = malloc(
 		4 * sizeof(Shader));
 
 	if (shaders == NULL)
 	{
-		free(samplers);
-		free(images);
-		free(buffers);
-
-		if (api == VULKAN_GRAPHICS_API)
-		{
-#if MPGX_SUPPORT_VULKAN
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-			destroyVkWindow(vkInstance, vkWindow);
-#endif
-		}
-		else
-		{
-			destroyGlFramebuffer(framebuffer);
-		}
-
-		free(inputBuffer);
-		glfwDestroyCursor(vresizeCursor);
-		glfwDestroyCursor(hresizeCursor);
-		glfwDestroyCursor(handCursor);
-		glfwDestroyCursor(crosshairCursor);
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->shaders = shaders;
+	windowInstance->shaderCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->shaderCount = 0;
 
 	Framebuffer* framebuffers = malloc(
 		4 * sizeof(Framebuffer));
 
 	if (framebuffers == NULL)
 	{
-		free(shaders);
-		free(samplers);
-		free(images);
-		free(buffers);
-
-		if (api == VULKAN_GRAPHICS_API)
-		{
-#if MPGX_SUPPORT_VULKAN
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-			destroyVkWindow(vkInstance, vkWindow);
-#endif
-		}
-		else
-		{
-			destroyGlFramebuffer(framebuffer);
-		}
-
-		free(inputBuffer);
-		glfwDestroyCursor(vresizeCursor);
-		glfwDestroyCursor(hresizeCursor);
-		glfwDestroyCursor(handCursor);
-		glfwDestroyCursor(crosshairCursor);
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
+
+	windowInstance->framebuffers = framebuffers;
+	windowInstance->framebufferCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->framebufferCount = 0;
 
 	Mesh* meshes = malloc(
 		4 * sizeof(Mesh));
 
 	if (meshes == NULL)
 	{
-		free(framebuffers);
-		free(shaders);
-		free(samplers);
-		free(images);
-		free(meshes);
-		free(buffers);
-
-		if (api == VULKAN_GRAPHICS_API)
-		{
-#if MPGX_SUPPORT_VULKAN
-			destroyVkFramebuffer(vkWindow->device, framebuffer);
-			destroyVkWindow(vkInstance, vkWindow);
-#endif
-		}
-		else
-		{
-			destroyGlFramebuffer(framebuffer);
-		}
-
-		free(inputBuffer);
-		glfwDestroyCursor(vresizeCursor);
-		glfwDestroyCursor(hresizeCursor);
-		glfwDestroyCursor(handCursor);
-		glfwDestroyCursor(crosshairCursor);
-		glfwDestroyCursor(ibeamCursor);
-		glfwDestroyWindow(handle);
-		free(windowInstance);
+		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
-	windowInstance->api = api;
-	windowInstance->useStencilBuffer = useStencilBuffer;
-	windowInstance->onUpdate = onUpdate;
-	windowInstance->updateArgument = updateArgument;
-	windowInstance->handle = handle;
-	windowInstance->cursorType = DEFAULT_CURSOR_TYPE;
-	windowInstance->ibeamCursor = ibeamCursor;
-	windowInstance->crosshairCursor = crosshairCursor;
-	windowInstance->handCursor = handCursor;
-	windowInstance->hresizeCursor = hresizeCursor;
-	windowInstance->vresizeCursor = vresizeCursor;
-	windowInstance->inputBuffer = inputBuffer;
-	windowInstance->inputCapacity = MPGX_DEFAULT_CAPACITY;
-	windowInstance->inputLength = 0;
-	windowInstance->framebuffer = framebuffer;
-	windowInstance->buffers = buffers;
-	windowInstance->bufferCapacity = MPGX_DEFAULT_CAPACITY;
-	windowInstance->bufferCount = 0;
-	windowInstance->images = images;
-	windowInstance->imageCapacity = MPGX_DEFAULT_CAPACITY;
-	windowInstance->imageCount = 0;
-	windowInstance->samplers = samplers;
-	windowInstance->samplerCapacity = MPGX_DEFAULT_CAPACITY;
-	windowInstance->samplerCount = 0;
-	windowInstance->shaders = shaders;
-	windowInstance->shaderCapacity = MPGX_DEFAULT_CAPACITY;
-	windowInstance->shaderCount = 0;
-	windowInstance->framebuffers = framebuffers;
-	windowInstance->framebufferCapacity = MPGX_DEFAULT_CAPACITY;
-	windowInstance->framebufferCount = 0;
 	windowInstance->meshes = meshes;
 	windowInstance->meshCapacity = MPGX_DEFAULT_CAPACITY;
 	windowInstance->meshCount = 0;
+
 	windowInstance->targetFPS = 60.0;
 	windowInstance->updateTime = 0.0;
 	windowInstance->deltaTime = 0.0;
 	windowInstance->isRecording = false;
 	windowInstance->renderFramebuffer = NULL;
-#if MPGX_SUPPORT_VULKAN
-	windowInstance->vkWindow = vkWindow;
-#endif
 
 	currentWindow = windowInstance;
 	*window = windowInstance;
 	return SUCCESS_MPGX_RESULT;
 }
 MpgxResult createAnyWindow(
-	bool useStencilBuffer,
 	Vec2U size,
 	const char* title,
 	OnWindowUpdate updateFunction,
 	void* updateArgument,
+	bool useStencilBuffer,
+	bool useRayTracing,
 	bool visible,
 	Window* window)
 {
 	MpgxResult mpgxResult = createWindow(
 		VULKAN_GRAPHICS_API,
-		useStencilBuffer,
 		size,
 		title,
 		updateFunction,
 		updateArgument,
+		useStencilBuffer,
+		useRayTracing,
 		visible,
 		window);
 
@@ -849,11 +754,12 @@ MpgxResult createAnyWindow(
 
 	mpgxResult = createWindow(
 		OPENGL_GRAPHICS_API,
-		useStencilBuffer,
 		size,
 		title,
 		updateFunction,
 		updateArgument,
+		useStencilBuffer,
+		useRayTracing,
 		visible,
 		window);
 
@@ -862,73 +768,14 @@ MpgxResult createAnyWindow(
 
 	return createWindow(
 		OPENGL_ES_GRAPHICS_API,
-		useStencilBuffer,
 		size,
 		title,
 		updateFunction,
 		updateArgument,
+		useStencilBuffer,
+		useRayTracing,
 		visible,
 		window);
-}
-void destroyWindow(Window window)
-{
-	if (window == NULL)
-        return;
-
-	assert(window->bufferCount == 0);
-	assert(window->imageCount == 0);
-	assert(window->samplerCount == 0);
-	assert(window->framebufferCount == 0);
-	assert(window->shaderCount == 0);
-	assert(window->meshCount == 0);
-
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		VkWindow vkWindow = window->vkWindow;
-		VkDevice device = vkWindow->device;
-		VmaAllocator allocator = vkWindow->allocator;
-
-		VkResult result = vkDeviceWaitIdle(
-			vkWindow->device);
-
-		if (result != VK_SUCCESS)
-			abort();
-
-		destroyVkFramebuffer(
-			device,
-			window->framebuffer);
-		destroyVkWindow(
-			vkInstance,
-			vkWindow);
-#endif
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		destroyGlFramebuffer(window->framebuffer);
-	}
-	else
-	{
-		abort();
-	}
-
-	free(window->buffers);
-	free(window->images);
-	free(window->samplers);
-	free(window->framebuffers);
-	free(window->shaders);
-	free(window->meshes);
-	free(window->inputBuffer);
-	glfwDestroyCursor(window->vresizeCursor);
-	glfwDestroyCursor(window->hresizeCursor);
-	glfwDestroyCursor(window->handCursor);
-	glfwDestroyCursor(window->crosshairCursor);
-	glfwDestroyCursor(window->ibeamCursor);
-	glfwDestroyWindow(window->handle);
-	free(window);
 }
 
 GraphicsAPI getWindowGraphicsAPI(Window window)
@@ -960,6 +807,11 @@ size_t getWindowInputLength(Window window)
 {
 	assert(window != NULL);
 	return window->inputLength;
+}
+Framebuffer getWindowFramebuffer(Window window)
+{
+	assert(window != NULL);
+	return window->framebuffer;
 }
 double getWindowUpdateTime(Window window)
 {
@@ -1245,6 +1097,15 @@ void setWindowCursorType(
 	}
 }
 
+void setWindowTitle(
+	Window window,
+	const char* title)
+{
+	assert(window != NULL);
+	assert(title != NULL);
+	glfwSetWindowTitle(window->handle, title);
+}
+
 bool isWindowFocused(Window window)
 {
 	assert(window != NULL);
@@ -1322,11 +1183,6 @@ void requestWindowAttention(Window window)
 	glfwRequestWindowAttention(window->handle);
 }
 
-Framebuffer getWindowFramebuffer(Window window)
-{
-	assert(window != NULL);
-	return window->framebuffer;
-}
 void makeWindowContextCurrent(Window window)
 {
 	assert(window != NULL);

@@ -36,6 +36,16 @@ struct Transform_T
 	bool isActive;
 };
 
+void destroyTransformer(Transformer transformer)
+{
+	if (transformer == NULL)
+		return;
+
+	assert(transformer->transformCount == 0);
+
+	free(transformer->transforms);
+	free(transformer);
+}
 Transformer createTransformer(size_t capacity)
 {
 	assert(capacity != 0);
@@ -51,7 +61,7 @@ Transformer createTransformer(size_t capacity)
 
 	if (transforms == NULL)
 	{
-		free(transformer);
+		destroyTransformer(transformer);
 		return NULL;
 	}
 
@@ -59,16 +69,6 @@ Transformer createTransformer(size_t capacity)
 	transformer->transformCapacity = capacity;
 	transformer->transformCount = 0;
 	return transformer;
-}
-void destroyTransformer(Transformer transformer)
-{
-	if (transformer == NULL)
-		return;
-
-	assert(transformer->transformCount == 0);
-
-	free(transformer->transforms);
-	free(transformer);
 }
 
 void enumerateTransformer(

@@ -19,14 +19,14 @@
 typedef struct _BasePipeline
 {
 	Framebuffer framebuffer;
-	Shader* shaders;
-	size_t shaderCount;
 	PipelineState state;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
 	OnPipelineHandleResize onHandleResize;
 	OnPipelineHandleDestroy onHandleDestroy;
 	void* handle;
+	Shader* shaders;
+	size_t shaderCount;
 #ifndef NDEBUG
 	const char* name;
 #endif
@@ -34,14 +34,14 @@ typedef struct _BasePipeline
 typedef struct _VkPipeline
 {
 	Framebuffer framebuffer;
-	Shader* shaders;
-	size_t shaderCount;
 	PipelineState state;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
 	OnPipelineHandleResize onHandleResize;
 	OnPipelineHandleDestroy onHandleDestroy;
 	void* handle;
+	Shader* shaders;
+	size_t shaderCount;
 #ifndef NDEBUG
 	const char* name;
 #endif
@@ -54,14 +54,14 @@ typedef struct _VkPipeline
 typedef struct _GlPipeline
 {
 	Framebuffer framebuffer;
-	Shader* shaders;
-	size_t shaderCount;
 	PipelineState state;
 	OnPipelineHandleBind onHandleBind;
 	OnPipelineUniformsSet onUniformsSet;
 	OnPipelineHandleResize onHandleResize;
 	OnPipelineHandleDestroy onHandleDestroy;
 	void* handle;
+	Shader* shaders;
+	size_t shaderCount;
 #ifndef NDEBUG
 	const char* name;
 #endif
@@ -664,6 +664,29 @@ inline static bool recreateVkPipelineHandle(
 	return true;
 }
 
+inline static void destroyVkPipeline(
+	VkDevice device,
+	Pipeline pipeline)
+{
+	if (pipeline == NULL)
+		return;
+
+	vkDestroyPipeline(
+		device,
+		pipeline->vk.vkHandle,
+		NULL);
+	vkDestroyPipelineLayout(
+		device,
+		pipeline->vk.layout,
+		NULL);
+	vkDestroyPipelineCache(
+		device,
+		pipeline->vk.cache,
+		NULL);
+
+	free(pipeline->gl.shaders);
+	free(pipeline);
+}
 inline static Pipeline createVkPipeline(
 	VkDevice device,
 	VkPipelineCreateInfo* createInfo,
@@ -678,22 +701,38 @@ inline static Pipeline createVkPipeline(
 	OnPipelineHandleDestroy onHandleDestroy,
 	void* handle)
 {
-	Pipeline pipeline = malloc(sizeof(Pipeline_T));
+	Pipeline pipeline = calloc(1, sizeof(Pipeline_T));
 
 	if (pipeline == NULL)
 		return NULL;
+
+	pipeline->vk.framebuffer = framebuffer;
+	pipeline->vk.state = state;
+	pipeline->vk.onHandleBind = onHandleBind;
+	pipeline->vk.onUniformsSet = onUniformsSet;
+	pipeline->vk.onHandleResize = onHandleResize;
+	pipeline->vk.onHandleDestroy = onHandleDestroy;
+	pipeline->vk.handle = handle;
 
 	Shader* shaders = malloc(
 		shaderCount * sizeof(Shader));
 
 	if (shaders == NULL)
 	{
-		free(pipeline);
+		destroyVkPipeline(
+			device,
+			pipeline);
 		return NULL;
 	}
 
 	for (size_t i = 0; i < shaderCount; i++)
 		shaders[i] = _shaders[i];
+
+	pipeline->vk.shaders = shaders;
+	pipeline->vk.shaderCount = shaderCount;
+#ifndef NDEBUG
+	pipeline->vk.name = name;
+#endif
 
 	VkPipelineCacheCreateInfo cacheCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
@@ -713,10 +752,13 @@ inline static Pipeline createVkPipeline(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		free(shaders);
-		free(pipeline);
+		destroyVkPipeline(
+			device,
+			pipeline);
 		return NULL;
 	}
+
+	pipeline->vk.cache = cache;
 
 	VkPipelineLayoutCreateInfo layoutCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -738,14 +780,13 @@ inline static Pipeline createVkPipeline(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		vkDestroyPipelineCache(
+		destroyVkPipeline(
 			device,
-			cache,
-			NULL);
-		free(shaders);
-		free(pipeline);
+			pipeline);
 		return NULL;
 	}
+
+	pipeline->vk.layout = layout;
 
 	VkPipeline vkHandle = createVkPipelineHandle(
 		device,
@@ -761,57 +802,16 @@ inline static Pipeline createVkPipeline(
 
 	if (vkHandle == NULL)
 	{
-		vkDestroyPipelineLayout(
+		destroyVkPipeline(
 			device,
-			layout,
-			NULL);
-		vkDestroyPipelineCache(
-			device,
-			cache,
-			NULL);
-		free(shaders);
-		free(pipeline);
+			pipeline);
 		return NULL;
 	}
 
-	pipeline->vk.framebuffer = framebuffer;
-	pipeline->vk.shaders = shaders;
-	pipeline->vk.shaderCount = shaderCount;
-	pipeline->vk.state = state;
-
-	pipeline->vk.onHandleBind = onHandleBind;
-	pipeline->vk.onUniformsSet = onUniformsSet;
-	pipeline->vk.onHandleResize = onHandleResize;
-	pipeline->vk.onHandleDestroy = onHandleDestroy;
-	pipeline->vk.handle = handle;
-#ifndef NDEBUG
-	pipeline->vk.name = name;
-#endif
-	pipeline->vk.cache = cache;
-	pipeline->vk.layout = layout;
 	pipeline->vk.vkHandle = vkHandle;
 	return pipeline;
 }
-inline static void destroyVkPipeline(
-	VkDevice device,
-	Pipeline pipeline)
-{
-	vkDestroyPipeline(
-		device,
-		pipeline->vk.vkHandle,
-		NULL);
-	vkDestroyPipelineLayout(
-		device,
-		pipeline->vk.layout,
-		NULL);
-	vkDestroyPipelineCache(
-		device,
-		pipeline->vk.cache,
-		NULL);
 
-	free(pipeline->gl.shaders);
-	free(pipeline);
-}
 inline static void bindVkPipeline(
 	VkCommandBuffer commandBuffer,
 	Pipeline pipeline)
@@ -985,6 +985,23 @@ inline static bool getGlBlendOperator(
 		return true;
 	}
 }
+
+inline static void destroyGlPipeline(
+	Pipeline pipeline)
+{
+	if (pipeline == NULL)
+		return;
+
+	makeWindowContextCurrent(
+		pipeline->gl.framebuffer->gl.window);
+
+	glDeleteProgram(
+		pipeline->gl.glHandle);
+	assertOpenGL();
+
+	free(pipeline->gl.shaders);
+	free(pipeline);
+}
 inline static Pipeline createGlPipeline(
 	Framebuffer framebuffer,
 	const char* name,
@@ -997,19 +1014,33 @@ inline static Pipeline createGlPipeline(
 	OnPipelineHandleDestroy onHandleDestroy,
 	void* handle)
 {
-	Pipeline pipeline = malloc(sizeof(Pipeline_T));
+	Pipeline pipeline = calloc(1, sizeof(Pipeline_T));
 
 	if (pipeline == NULL)
 		return NULL;
+
+	pipeline->gl.framebuffer = framebuffer;
+	pipeline->gl.state = state;
+	pipeline->gl.onHandleBind = onHandleBind;
+	pipeline->gl.onUniformsSet = onUniformsSet;
+	pipeline->gl.onHandleResize = onHandleResize;
+	pipeline->gl.onHandleDestroy = onHandleDestroy;
+	pipeline->gl.handle = handle;
 
 	Shader* shaders = malloc(
 		shaderCount * sizeof(Shader));
 
 	if (shaders == NULL)
 	{
-		free(pipeline);
+		destroyGlPipeline(pipeline);
 		return NULL;
 	}
+
+	pipeline->gl.shaders = shaders;
+	pipeline->gl.shaderCount = shaderCount;
+#ifndef NDEBUG
+	pipeline->gl.name = name;
+#endif
 
 	GLenum drawMode, polygonMode,
 		cullMode, depthCompareOperator,
@@ -1059,19 +1090,32 @@ inline static Pipeline createGlPipeline(
 
 	if (result == false)
 	{
-		free(shaders);
-		free(pipeline);
+		destroyGlPipeline(pipeline);
 		return NULL;
 	}
+
+	pipeline->gl.drawMode = drawMode;
+	pipeline->gl.polygonMode = polygonMode;
+	pipeline->gl.cullMode = cullMode;
+	pipeline->gl.depthCompareOperator = depthCompareOperator;
+	pipeline->gl.srcColorBlendFactor = srcColorBlendFactor;
+	pipeline->gl.dstColorBlendFactor = dstColorBlendFactor;
+	pipeline->gl.srcAlphaBlendFactor = srcAlphaBlendFactor;
+	pipeline->gl.dstAlphaBlendFactor = dstAlphaBlendFactor;
+	pipeline->gl.colorBlendOperator = colorBlendOperator;
+	pipeline->gl.alphaBlendOperator = alphaBlendOperator;
 
 	GLenum frontFace =
 		state.clockwiseFrontFace == true ?
 		GL_CW : GL_CCW;
 
+	pipeline->gl.frontFace = frontFace;
+
 	Window window = framebuffer->gl.window;
 	makeWindowContextCurrent(window);
 
 	GLuint glHandle = glCreateProgram();
+	pipeline->gl.glHandle = glHandle;
 
 	for (size_t i = 0; i < shaderCount; i++)
 	{
@@ -1115,9 +1159,7 @@ inline static Pipeline createGlPipeline(
 
 			if (infoLog == NULL)
 			{
-				glDeleteProgram(glHandle);
-				free(shaders);
-				free(pipeline);
+				destroyGlPipeline(pipeline);
 				return NULL;
 			}
 
@@ -1134,9 +1176,7 @@ inline static Pipeline createGlPipeline(
 
 		assertOpenGL();
 
-		glDeleteProgram(glHandle);
-		free(shaders);
-		free(pipeline);
+		destroyGlPipeline(pipeline);
 		return NULL;
 	}
 
@@ -1144,51 +1184,13 @@ inline static Pipeline createGlPipeline(
 
 	if (error != GL_NO_ERROR)
 	{
-		glDeleteProgram(glHandle);
-		free(shaders);
-		free(pipeline);
+		destroyGlPipeline(pipeline);
 		return NULL;
 	}
 
-	pipeline->gl.framebuffer = framebuffer;
-	pipeline->gl.shaders = shaders;
-	pipeline->gl.shaderCount = shaderCount;
-	pipeline->gl.state = state;
-	pipeline->gl.onHandleBind = onHandleBind;
-	pipeline->gl.onUniformsSet = onUniformsSet;
-	pipeline->gl.onHandleResize = onHandleResize;
-	pipeline->gl.onHandleDestroy = onHandleDestroy;
-	pipeline->gl.handle = handle;
-#ifndef NDEBUG
-	pipeline->gl.name = name;
-#endif
-	pipeline->gl.glHandle = glHandle;
-	pipeline->gl.drawMode = drawMode;
-	pipeline->gl.polygonMode = polygonMode;
-	pipeline->gl.cullMode = cullMode;
-	pipeline->gl.depthCompareOperator = depthCompareOperator;
-	pipeline->gl.srcColorBlendFactor = srcColorBlendFactor;
-	pipeline->gl.dstColorBlendFactor = dstColorBlendFactor;
-	pipeline->gl.srcAlphaBlendFactor = srcAlphaBlendFactor;
-	pipeline->gl.dstAlphaBlendFactor = dstAlphaBlendFactor;
-	pipeline->gl.colorBlendOperator = colorBlendOperator;
-	pipeline->gl.alphaBlendOperator = alphaBlendOperator;
-	pipeline->gl.frontFace = frontFace;
 	return pipeline;
 }
-inline static void destroyGlPipeline(
-	Pipeline pipeline)
-{
-	makeWindowContextCurrent(
-		pipeline->gl.framebuffer->gl.window);
 
-	glDeleteProgram(
-		pipeline->gl.glHandle);
-	assertOpenGL();
-
-	free(pipeline->gl.shaders);
-	free(pipeline);
-}
 inline static void bindGlPipeline(
 	Pipeline pipeline)
 {
@@ -1197,6 +1199,7 @@ inline static void bindGlPipeline(
 	if (viewport.z + viewport.w > 0)
 	{
 		Vec2F depthRange = pipeline->gl.state.depthRange;
+
 		glViewport(
 			(GLint)viewport.x,
 			(GLint)viewport.y,

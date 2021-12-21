@@ -65,6 +65,19 @@ union Shader_T
 };
 
 #if MPGX_SUPPORT_VULKAN
+inline static void destroyVkShader(
+	VkDevice device,
+	Shader shader)
+{
+	if (shader == NULL)
+		return;
+
+	vkDestroyShaderModule(
+		device,
+		shader->vk.handle,
+		NULL);
+	free(shader);
+}
 inline static Shader createVkShader(
 	VkDevice device,
 	Window window,
@@ -72,10 +85,13 @@ inline static Shader createVkShader(
 	const void* code,
 	size_t size)
 {
-	Shader shader = malloc(sizeof(Shader_T));
+	Shader shader = calloc(1, sizeof(Shader_T));
 
 	if (shader == NULL)
 		return NULL;
+
+	shader->vk.window = window;
+	shader->vk.type = type;
 
 	VkShaderModuleCreateInfo createInfo = {
 		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -95,24 +111,14 @@ inline static Shader createVkShader(
 
 	if (result != VK_SUCCESS)
 	{
-		free(shader);
+		destroyVkShader(
+			device,
+			shader);
 		return NULL;
 	}
 
-	shader->vk.window = window;
-	shader->vk.type = type;
 	shader->vk.handle = handle;
 	return shader;
-}
-inline static void destroyVkShader(
-	VkDevice device,
-	Shader shader)
-{
-	vkDestroyShaderModule(
-		device,
-		shader->vk.handle,
-		NULL);
-	free(shader);
 }
 #endif
 
@@ -140,6 +146,21 @@ inline static bool getGlShaderType(
 		return false;
 	}
 }
+
+inline static void destroyGlShader(
+	Shader shader)
+{
+	if (shader == NULL)
+		return;
+
+	makeWindowContextCurrent(
+		shader->gl.window);
+
+	glDeleteShader(shader->gl.handle);
+	assertOpenGL();
+
+	free(shader);
+}
 inline static Shader createGlShader(
 	Window window,
 	ShaderType type,
@@ -147,10 +168,13 @@ inline static Shader createGlShader(
 	size_t size,
 	GraphicsAPI api)
 {
-	Shader shader = malloc(sizeof(Shader_T));
+	Shader shader = calloc(1, sizeof(Shader_T));
 
 	if (shader == NULL)
 		return NULL;
+
+	shader->gl.window = window;
+	shader->gl.type = type;
 
 	GLenum glType;
 
@@ -160,7 +184,7 @@ inline static Shader createGlShader(
 
 	if (result == false)
 	{
-		free(shader);
+		destroyGlShader(shader);
 		return NULL;
 	}
 
@@ -188,6 +212,7 @@ inline static Shader createGlShader(
 	makeWindowContextCurrent(window);
 
 	GLuint handle = glCreateShader(glType);
+	shader->gl.handle = handle;
 
 	glShaderSource(
 		handle,
@@ -220,8 +245,7 @@ inline static Shader createGlShader(
 
 			if (infoLog == NULL)
 			{
-				glDeleteShader(handle);
-				free(shader);
+				destroyGlShader(shader);
 				return NULL;
 			}
 
@@ -248,8 +272,7 @@ inline static Shader createGlShader(
 
 		assertOpenGL();
 
-		glDeleteShader(handle);
-		free(shader);
+		destroyGlShader(shader);
 		return NULL;
 	}
 
@@ -257,25 +280,9 @@ inline static Shader createGlShader(
 
 	if (error != GL_NO_ERROR)
 	{
-		glDeleteShader(handle);
-		free(shader);
+		destroyGlShader(shader);
 		return NULL;
 	}
 
-	shader->gl.window = window;
-	shader->gl.type = type;
-	shader->gl.handle = handle;
 	return shader;
-}
-inline static void destroyGlShader(
-	Shader shader)
-{
-	makeWindowContextCurrent(
-		shader->gl.window);
-
-	glDeleteShader(
-		shader->gl.handle);
-	assertOpenGL();
-
-	free(shader);
 }

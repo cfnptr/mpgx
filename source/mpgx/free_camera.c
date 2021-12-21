@@ -25,7 +25,6 @@
 struct FreeCamera_T
 {
 	Framebuffer framebuffer;
-	Transform transform;
 	Vec2F rotation;
 	Vec2F lastCursorPosition;
 	float moveSpeed;
@@ -33,8 +32,17 @@ struct FreeCamera_T
 	float fieldOfView;
 	float nearClipPlane;
 	float farClipPlane;
+	Transform transform;
 };
 
+void destroyFreeCamera(FreeCamera freeCamera)
+{
+	if (freeCamera == NULL)
+		return;
+
+	destroyTransform(freeCamera->transform);
+	free(freeCamera);
+}
 FreeCamera createFreeCamera(
 	Framebuffer framebuffer,
 	Transformer transformer,
@@ -47,10 +55,23 @@ FreeCamera createFreeCamera(
 	assert(framebuffer != NULL);
 	assert(transformer != NULL);
 
-	FreeCamera freeCamera = malloc(sizeof(FreeCamera_T));
+	FreeCamera freeCamera = calloc(1,
+		sizeof(FreeCamera_T));
 
 	if (freeCamera == NULL)
 		return NULL;
+
+	Vec2F lasCursorPosition = getWindowCursorPosition(
+		getFramebufferWindow(framebuffer));
+
+	freeCamera->framebuffer = framebuffer;
+	freeCamera->rotation = zeroVec2F;
+	freeCamera->lastCursorPosition = lasCursorPosition;
+	freeCamera->moveSpeed = moveSpeed;
+	freeCamera->viewSpeed = viewSpeed;
+	freeCamera->fieldOfView = fieldOfView;
+	freeCamera->nearClipPlane = nearClipPlane;
+	freeCamera->farClipPlane = farClipPlane;
 
 	Transform transform = createTransform(
 		transformer,
@@ -63,31 +84,12 @@ FreeCamera createFreeCamera(
 
 	if (transform == NULL)
 	{
-		free(freeCamera);
+		destroyFreeCamera(freeCamera);
 		return NULL;
 	}
 
-	Vec2F lasCursorPosition = getWindowCursorPosition(
-		getFramebufferWindow(framebuffer));
-
-	freeCamera->framebuffer = framebuffer;
 	freeCamera->transform = transform;
-	freeCamera->rotation = zeroVec2F;
-	freeCamera->lastCursorPosition = lasCursorPosition;
-	freeCamera->moveSpeed = moveSpeed;
-	freeCamera->viewSpeed = viewSpeed;
-	freeCamera->fieldOfView = fieldOfView;
-	freeCamera->nearClipPlane = nearClipPlane;
-	freeCamera->farClipPlane = farClipPlane;
 	return freeCamera;
-}
-void destroyFreeCamera(FreeCamera freeCamera)
-{
-	if (freeCamera == NULL)
-		return;
-
-	destroyTransform(freeCamera->transform);
-	free(freeCamera);
 }
 
 Framebuffer getFreeCameraFramebuffer(

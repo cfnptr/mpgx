@@ -60,7 +60,7 @@ inline static Mesh createVkMesh(
 	Buffer vertexBuffer,
 	Buffer indexBuffer)
 {
-	Mesh mesh = malloc(sizeof(Mesh_T));
+	Mesh mesh = calloc(1, sizeof(Mesh_T));
 
 	if (mesh == NULL)
 		return NULL;
@@ -126,40 +126,12 @@ inline static void drawVkMesh(
 }
 #endif
 
-inline static Mesh createGlMesh(
-	Window window,
-	DrawIndex drawIndex,
-	size_t indexCount,
-	size_t indexOffset,
-	Buffer vertexBuffer,
-	Buffer indexBuffer)
-{
-	Mesh mesh = malloc(sizeof(Mesh_T));
-
-	if (mesh == NULL)
-		return NULL;
-
-	makeWindowContextCurrent(window);
-
-	GLuint handle = GL_ZERO;
-
-	glGenVertexArrays(
-		GL_ONE,
-		&handle);
-	assertOpenGL();
-
-	mesh->gl.window = window;
-	mesh->gl.drawIndex = drawIndex;
-	mesh->gl.indexCount = indexCount;
-	mesh->gl.indexOffset = indexOffset;
-	mesh->gl.vertexBuffer = vertexBuffer;
-	mesh->gl.indexBuffer = indexBuffer;
-	mesh->gl.handle = handle;
-	return mesh;
-}
 inline static void destroyGlMesh(
 	Mesh mesh)
 {
+	if (mesh == NULL)
+		return;
+
 	makeWindowContextCurrent(
 		mesh->gl.window);
 
@@ -170,6 +142,47 @@ inline static void destroyGlMesh(
 
 	free(mesh);
 }
+inline static Mesh createGlMesh(
+	Window window,
+	DrawIndex drawIndex,
+	size_t indexCount,
+	size_t indexOffset,
+	Buffer vertexBuffer,
+	Buffer indexBuffer)
+{
+	Mesh mesh = calloc(1, sizeof(Mesh_T));
+
+	if (mesh == NULL)
+		return NULL;
+
+	mesh->gl.window = window;
+	mesh->gl.drawIndex = drawIndex;
+	mesh->gl.indexCount = indexCount;
+	mesh->gl.indexOffset = indexOffset;
+	mesh->gl.vertexBuffer = vertexBuffer;
+	mesh->gl.indexBuffer = indexBuffer;
+
+	makeWindowContextCurrent(window);
+
+	GLuint handle = GL_ZERO;
+
+	glGenVertexArrays(
+		GL_ONE,
+		&handle);
+
+	mesh->gl.handle = handle;
+
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+	{
+		destroyGlMesh(mesh);
+		return NULL;
+	}
+
+	return mesh;
+}
+
 inline static void drawGlMesh(
 	Mesh mesh,
 	Pipeline pipeline)

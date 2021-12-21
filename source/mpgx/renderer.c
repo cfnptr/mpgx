@@ -43,6 +43,17 @@ struct Renderer_T
 	size_t renderCount;
 };
 
+void destroyRenderer(Renderer renderer)
+{
+	if (renderer == NULL)
+		return;
+
+	assert(renderer->renderCount == 0);
+
+	free(renderer->renderElements);
+	free(renderer->renders);
+	free(renderer);
+}
 Renderer createRenderer(
 	Pipeline pipeline,
 	RenderSorting sorting,
@@ -63,46 +74,36 @@ Renderer createRenderer(
 	if (renderer == NULL)
 		return NULL;
 
+	renderer->pipeline = pipeline;
+	renderer->sorting = sorting;
+	renderer->useCulling = useCulling;
+	renderer->onHandleDestroy = onHandleDestroy;
+	renderer->onHandleDraw = onHandleDraw;
+
 	Render* renders = malloc(
 		sizeof(Render) * capacity);
 
 	if (renders == NULL)
 	{
-		free(renderer);
+		destroyRenderer(renderer);
 		return NULL;
 	}
+
+	renderer->renders = renders;
+	renderer->renderCapacity = capacity;
+	renderer->renderCount = 0;
 
 	RenderElement* renderElements = malloc(
 		sizeof(RenderElement) * capacity);
 
 	if (renderElements == NULL)
 	{
-		free(renders);
-		free(renderer);
+		destroyRenderer(renderer);
 		return NULL;
 	}
 
-	renderer->pipeline = pipeline;
-	renderer->sorting = sorting;
-	renderer->useCulling = useCulling;
-	renderer->onHandleDestroy = onHandleDestroy;
-	renderer->onHandleDraw = onHandleDraw;
-	renderer->renders = renders;
 	renderer->renderElements = renderElements;
-	renderer->renderCapacity = capacity;
-	renderer->renderCount = 0;
 	return renderer;
-}
-void destroyRenderer(Renderer renderer)
-{
-	if (renderer == NULL)
-		return;
-
-	assert(renderer->renderCount == 0);
-
-	free(renderer->renderElements);
-	free(renderer->renders);
-	free(renderer);
 }
 
 Pipeline getRendererPipeline(Renderer renderer)

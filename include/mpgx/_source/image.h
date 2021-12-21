@@ -36,14 +36,14 @@ typedef struct _VkImage
 	Vec3U size;
 	bool isConstant;
 #if MPGX_SUPPORT_VULKAN
-	VkImage handle;
-	VkImageView imageView;
-	VmaAllocation allocation;
-	VkBuffer stagingBuffer;
-	VmaAllocation stagingAllocation;
 	VkFormat vkFormat;
 	VkImageAspectFlagBits vkAspect;
 	uint8_t sizeMultiplier;
+	VkImage handle;
+	VmaAllocation allocation;
+	VkImageView imageView;
+	VkBuffer stagingBuffer;
+	VmaAllocation stagingAllocation;
 #endif
 } _VkImage;
 typedef struct _GlImage
@@ -66,6 +66,28 @@ union Image_T
 };
 
 #if MPGX_SUPPORT_VULKAN
+inline static void destroyVkImage(
+	VkDevice device,
+	VmaAllocator allocator,
+	Image image)
+{
+	if (image == NULL)
+		return;
+
+	vmaDestroyBuffer(
+		allocator,
+		image->vk.stagingBuffer,
+		image->vk.stagingAllocation);
+	vkDestroyImageView(
+		device,
+		image->vk.imageView,
+		NULL);
+	vmaDestroyImage(
+		allocator,
+		image->vk.handle,
+		image->vk.allocation);
+	free(image);
+}
 inline static Image createVkImage(
 	VkDevice device,
 	VmaAllocator allocator,
@@ -86,10 +108,16 @@ inline static Image createVkImage(
 {
 	// TODO: mipmap generation, multisampling
 
-	Image image = malloc(sizeof(Image_T));
+	Image image = calloc(1, sizeof(Image_T));
 
 	if (image == NULL)
 		return NULL;
+
+	image->vk.window = window;
+	image->vk.type = type;
+	image->vk.format = format;
+	image->vk.size = size;
+	image->vk.isConstant = isConstant;
 
 	VkImageType vkType;
 	VkImageViewType vkViewType;
@@ -123,7 +151,10 @@ inline static Image createVkImage(
 	switch (format)
 	{
 	default:
-		free(image);
+		destroyVkImage(
+			device,
+			allocator,
+			image);
 		return NULL;
 	case R8_UNORM_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_R8_UNORM;
@@ -202,6 +233,10 @@ inline static Image createVkImage(
 	if (data[0] != NULL)
 		vkUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
+	image->vk.vkFormat = vkFormat;
+	image->vk.vkAspect = vkAspect;
+	image->vk.sizeMultiplier = sizeMultiplier;
+
 	VkImageCreateInfo imageCreateInfo = {
 		VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 		NULL,
@@ -222,10 +257,8 @@ inline static Image createVkImage(
 
 	VmaAllocationCreateInfo allocationCreateInfo;
 
-	memset(
-		&allocationCreateInfo,
-		0,
-		sizeof(VmaAllocationCreateInfo));
+	memset(&allocationCreateInfo,
+		0, sizeof(VmaAllocationCreateInfo));
 
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -247,9 +280,15 @@ inline static Image createVkImage(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		free(image);
+		destroyVkImage(
+			device,
+			allocator,
+			image);
 		return NULL;
 	}
+
+	image->vk.handle = handle;
+	image->vk.allocation = allocation;
 
 	VkImageViewCreateInfo imageViewCreateInfo = {
 		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -283,13 +322,14 @@ inline static Image createVkImage(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		vmaDestroyImage(
+		destroyVkImage(
+			device,
 			allocator,
-			handle,
-			allocation);
-		free(image);
+			image);
 		return NULL;
 	}
+
+	image->vk.imageView = imageView;
 
 	VkDeviceSize bufferSize =
 		size.x * size.y * size.z *
@@ -298,22 +338,44 @@ inline static Image createVkImage(
 	VkBuffer stagingBuffer;
 	VmaAllocation stagingAllocation;
 
-	if (data[0] != NULL)
+	VkBufferCreateInfo bufferCreateInfo = {
+		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		NULL,
+		0,
+		bufferSize,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_SHARING_MODE_EXCLUSIVE,
+		0,
+		NULL,
+	};
+
+	allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+
+	if (isConstant == false)
 	{
-		VkBufferCreateInfo bufferCreateInfo = {
-			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-			NULL,
-			0,
-			bufferSize,
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_SHARING_MODE_EXCLUSIVE,
-			0,
-			NULL,
-		};
+		vkResult = vmaCreateBuffer(
+			allocator,
+			&bufferCreateInfo,
+			&allocationCreateInfo,
+			&stagingBuffer,
+			&stagingAllocation,
+			NULL);
 
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+		if (vkResult != VK_SUCCESS)
+		{
+			destroyVkImage(
+				device,
+				allocator,
+				image);
+			return NULL;
+		}
 
-		if (isConstant == false)
+		image->vk.stagingBuffer = stagingBuffer;
+		image->vk.stagingAllocation = stagingAllocation;
+	}
+	else
+	{
+		if (bufferSize > *_stagingSize)
 		{
 			vkResult = vmaCreateBuffer(
 				allocator,
@@ -325,60 +387,34 @@ inline static Image createVkImage(
 
 			if (vkResult != VK_SUCCESS)
 			{
-				vkDestroyImageView(
+				destroyVkImage(
 					device,
-					imageView,
-					NULL);
-				vmaDestroyImage(
 					allocator,
-					handle,
-					allocation);
-				free(image);
+					image);
 				return NULL;
 			}
+
+			vmaDestroyBuffer(
+				allocator,
+				*_stagingBuffer,
+				*_stagingAllocation);
+
+			*_stagingBuffer = stagingBuffer;
+			*_stagingAllocation = stagingAllocation;
+			*_stagingSize = bufferSize;
 		}
 		else
 		{
-			if (bufferSize > *_stagingSize)
-			{
-				vkResult = vmaCreateBuffer(
-					allocator,
-					&bufferCreateInfo,
-					&allocationCreateInfo,
-					&stagingBuffer,
-					&stagingAllocation,
-					NULL);
-
-				if (vkResult != VK_SUCCESS)
-				{
-					vkDestroyImageView(
-						device,
-						imageView,
-						NULL);
-					vmaDestroyImage(
-						allocator,
-						handle,
-						allocation);
-					free(image);
-					return NULL;
-				}
-
-				vmaDestroyBuffer(
-					allocator,
-					*_stagingBuffer,
-					*_stagingAllocation);
-
-				*_stagingBuffer = stagingBuffer;
-				*_stagingAllocation = stagingAllocation;
-				*_stagingSize = bufferSize;
-			}
-			else
-			{
-				stagingBuffer = *_stagingBuffer;
-				stagingAllocation = *_stagingAllocation;
-			}
+			stagingBuffer = *_stagingBuffer;
+			stagingAllocation = *_stagingAllocation;
 		}
 
+		image->vk.stagingBuffer = NULL;
+		image->vk.stagingAllocation = NULL;
+	}
+
+	if (data[0] != NULL)
+	{
 		setVkBufferData(
 			allocator,
 			stagingAllocation,
@@ -403,22 +439,10 @@ inline static Image createVkImage(
 
 		if (vkResult != VK_SUCCESS)
 		{
-			if (isConstant == false)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
-			}
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
 		}
 
@@ -440,22 +464,10 @@ inline static Image createVkImage(
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			if (isConstant == false)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
-			}
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
 		}
 
@@ -542,22 +554,10 @@ inline static Image createVkImage(
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			if (isConstant == false)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
-			}
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
 		}
 
@@ -573,22 +573,10 @@ inline static Image createVkImage(
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			if (isConstant == false)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
-			}
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
 		}
 
@@ -617,22 +605,10 @@ inline static Image createVkImage(
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			if (isConstant == false)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
-			}
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
 		}
 
@@ -651,29 +627,11 @@ inline static Image createVkImage(
 
 		if (vkResult != VK_SUCCESS)
 		{
-			if (isConstant == false)
-			{
-				vmaDestroyBuffer(
-					allocator,
-					stagingBuffer,
-					stagingAllocation);
-			}
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
-		}
-
-		if (isConstant == true)
-		{
-			stagingBuffer = NULL;
-			stagingAllocation = NULL;
 		}
 	}
 	else
@@ -695,15 +653,10 @@ inline static Image createVkImage(
 
 		if (vkResult != VK_SUCCESS)
 		{
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
 		}
 
@@ -725,15 +678,10 @@ inline static Image createVkImage(
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
 		}
 
@@ -777,15 +725,10 @@ inline static Image createVkImage(
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
 		}
 
@@ -801,15 +744,10 @@ inline static Image createVkImage(
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return false;
 		}
 
@@ -838,15 +776,10 @@ inline static Image createVkImage(
 				transferCommandPool,
 				1,
 				&commandBuffer);
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
 		}
 
@@ -865,95 +798,15 @@ inline static Image createVkImage(
 
 		if (vkResult != VK_SUCCESS)
 		{
-			vkDestroyImageView(
+			destroyVkImage(
 				device,
-				imageView,
-				NULL);
-			vmaDestroyImage(
 				allocator,
-				handle,
-				allocation);
-			free(image);
+				image);
 			return NULL;
-		}
-
-		if (isConstant == false)
-		{
-			VkBufferCreateInfo bufferCreateInfo = {
-				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-				NULL,
-				0,
-				bufferSize,
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				VK_SHARING_MODE_EXCLUSIVE,
-				0,
-				NULL,
-			};
-
-			allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-
-			vkResult = vmaCreateBuffer(
-				allocator,
-				&bufferCreateInfo,
-				&allocationCreateInfo,
-				&stagingBuffer,
-				&stagingAllocation,
-				NULL);
-
-			if (vkResult != VK_SUCCESS)
-			{
-				vkDestroyImageView(
-					device,
-					imageView,
-					NULL);
-				vmaDestroyImage(
-					allocator,
-					handle,
-					allocation);
-				free(image);
-				return NULL;
-			}
-		}
-		else
-		{
-			stagingBuffer = NULL;
-			stagingAllocation = NULL;
 		}
 	}
 
-	image->vk.window = window;
-	image->vk.type = type;
-	image->vk.format = format;
-	image->vk.size = size;
-	image->vk.isConstant = isConstant;
-	image->vk.handle = handle;
-	image->vk.imageView = imageView;
-	image->vk.allocation = allocation;
-	image->vk.stagingBuffer = stagingBuffer;
-	image->vk.stagingAllocation = stagingAllocation;
-	image->vk.vkFormat = vkFormat;
-	image->vk.vkAspect = vkAspect;
-	image->vk.sizeMultiplier = sizeMultiplier;
 	return image;
-}
-inline static void destroyVkImage(
-	VkDevice device,
-	VmaAllocator allocator,
-	Image image)
-{
-	vmaDestroyBuffer(
-		allocator,
-		image->vk.stagingBuffer,
-		image->vk.stagingAllocation);
-	vkDestroyImageView(
-		device,
-		image->vk.imageView,
-		NULL);
-	vmaDestroyImage(
-		allocator,
-		image->vk.handle,
-		image->vk.allocation);
-	free(image);
 }
 
 inline static bool setVkImageData(
@@ -1175,6 +1028,22 @@ inline static bool setVkImageData(
 }
 #endif
 
+inline static void destroyGlImage(
+	Image image)
+{
+	if (image == NULL)
+		return;
+
+	makeWindowContextCurrent(
+		image->gl.window);
+
+	glDeleteTextures(
+		GL_ONE,
+		&image->gl.handle);
+	assertOpenGL();
+
+	free(image);
+}
 inline static Image createGlImage(
 	Window window,
 	ImageType type,
@@ -1187,14 +1056,19 @@ inline static Image createGlImage(
 {
 	// TODO: use isAttachment for renderbuffer optimization
 
-	Image image = malloc(sizeof(Image_T));
+	Image image = calloc(1, sizeof(Image_T));
 
 	if (image == NULL)
 		return NULL;
 
+	image->gl.window = window;
+	image->gl.type = type;
+	image->gl.format = format;
+	image->gl.size = size;
+	image->gl.isConstant = isConstant;
+
 	GLenum glType;
-	GLenum dataFormat;
-	GLenum dataType;
+
 
 	if (type == IMAGE_2D_TYPE)
 	{
@@ -1206,16 +1080,20 @@ inline static Image createGlImage(
 	}
 	else
 	{
-		free(image);
+		destroyGlImage(image);
 		return NULL;
 	}
 
+	image->gl.glType = glType;
+
 	GLint glFormat;
+	GLenum dataFormat;
+	GLenum dataType;
 
 	switch (format)
 	{
 	default:
-		free(image);
+		destroyGlImage(image);
 		return NULL;
 	case R8_UNORM_IMAGE_FORMAT:
 		glFormat = GL_R8;
@@ -1259,6 +1137,9 @@ inline static Image createGlImage(
 		break;
 	}
 
+	image->gl.dataType = dataType;
+	image->gl.dataFormat = dataFormat;
+
 	makeWindowContextCurrent(window);
 
 	GLuint handle = GL_ZERO;
@@ -1266,6 +1147,9 @@ inline static Image createGlImage(
 	glGenTextures(
 		GL_ONE,
 		&handle);
+
+	image->gl.handle = handle;
+
 	glBindTexture(
 		glType,
 		handle);
@@ -1374,36 +1258,11 @@ inline static Image createGlImage(
 
 	if (error != GL_NO_ERROR)
 	{
-		glDeleteTextures(
-			GL_ONE,
-			&handle);
-		free(image);
+		destroyGlImage(image);
 		return NULL;
 	}
 
-	image->gl.window = window;
-	image->gl.type = type;
-	image->gl.format = format;
-	image->gl.size = size;
-	image->gl.isConstant = isConstant;
-	image->gl.glType = glType;
-	image->gl.dataType = dataType;
-	image->gl.dataFormat = dataFormat;
-	image->gl.handle = handle;
 	return image;
-}
-inline static void destroyGlImage(
-	Image image)
-{
-	makeWindowContextCurrent(
-		image->gl.window);
-
-	glDeleteTextures(
-		GL_ONE,
-		&image->gl.handle);
-	assertOpenGL();
-
-	free(image);
 }
 
 inline static void setGlImageData(

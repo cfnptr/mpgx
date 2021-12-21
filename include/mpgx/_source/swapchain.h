@@ -25,7 +25,7 @@ typedef struct VkSwapchainBuffer
 	VkCommandBuffer presentCommandBuffer;
 } VkSwapchainBuffer;
 
-struct VkSwapchain
+typedef struct VkSwapchain_T
 {
 	VkSwapchainKHR handle;
 	VkImage depthImage;
@@ -34,9 +34,9 @@ struct VkSwapchain
 	VkRenderPass renderPass;
 	VkSwapchainBuffer* buffers;
 	uint32_t bufferCount;
-};
+} VkSwapchain_T;
 
-typedef struct VkSwapchain* VkSwapchain;
+typedef VkSwapchain_T* VkSwapchain;
 
 inline static bool getBestVkSurfaceFormat(
 	VkPhysicalDevice physicalDevice,
@@ -645,8 +645,7 @@ inline static bool createVkSwapchainBuffers(
 		&imageCount,
 		images);
 
-	if (result != VK_SUCCESS ||
-		imageCount == 0)
+	if (result != VK_SUCCESS || imageCount == 0)
 	{
 		free(images);
 		return false;
@@ -701,7 +700,6 @@ inline static bool createVkSwapchainBuffers(
 				presentCommandPool,
 				buffers,
 				i);
-			free(buffers);
 			free(images);
 			return false;
 		}
@@ -743,7 +741,6 @@ inline static bool createVkSwapchainBuffers(
 				presentCommandPool,
 				buffers,
 				i);
-			free(buffers);
 			free(images);
 			return false;
 		}
@@ -780,7 +777,6 @@ inline static bool createVkSwapchainBuffers(
 				presentCommandPool,
 				buffers,
 				i);
-			free(buffers);
 			free(images);
 			return false;
 		}
@@ -815,7 +811,6 @@ inline static bool createVkSwapchainBuffers(
 					presentCommandPool,
 					buffers,
 					i);
-				free(buffers);
 				free(images);
 				return false;
 			}
@@ -857,7 +852,6 @@ inline static bool createVkSwapchainBuffers(
 					presentCommandPool,
 					buffers,
 					i);
-				free(buffers);
 				free(images);
 				return false;
 			}
@@ -921,7 +915,6 @@ inline static bool createVkSwapchainBuffers(
 					presentCommandPool,
 					buffers,
 					i);
-				free(buffers);
 				free(images);
 				return false;
 			}
@@ -949,228 +942,6 @@ inline static bool createVkSwapchainBuffers(
 	return true;
 }
 
-inline static VkSwapchain createVkSwapchain(
-	VkSurfaceKHR surface,
-	VkPhysicalDevice physicalDevice,
-	uint32_t graphicsQueueFamilyIndex,
-	uint32_t presentQueueFamilyIndex,
-	VkDevice device,
-	VmaAllocator allocator,
-	VkCommandPool graphicsCommandPool,
-	VkCommandPool presentCommandPool,
-	bool useStencilBuffer,
-	Vec2U framebufferSize)
-{
-	VkSwapchain swapchain = malloc(
-		sizeof(struct VkSwapchain));
-
-	if (swapchain == NULL)
-		return NULL;
-
-	VkSurfaceFormatKHR surfaceFormat;
-
-	bool result = getBestVkSurfaceFormat(
-		physicalDevice,
-		surface,
-		&surfaceFormat);
-
-	if (result == false)
-	{
-		free(swapchain);
-		return NULL;
-	}
-
-	VkPresentModeKHR presentMode;
-
-	result = getBestVkPresentMode(
-		physicalDevice,
-		surface,
-		&presentMode);
-
-	if (result == false)
-	{
-		free(swapchain);
-		return NULL;
-	}
-
-	VkSurfaceCapabilitiesKHR surfaceCapabilities;
-
-	result = getVkSurfaceCapabilities(
-		physicalDevice,
-		surface,
-		&surfaceCapabilities);
-
-	if (result == false)
-	{
-		free(swapchain);
-		return NULL;
-	}
-
-	VkExtent2D surfaceExtent = getBestVkSurfaceExtent(
-		&surfaceCapabilities,
-		framebufferSize);
-
-	uint32_t imageCount =
-		getBestVkImageCount(&surfaceCapabilities);
-	VkSurfaceTransformFlagBitsKHR surfaceTransform =
-		getBestVkSurfaceTransform(&surfaceCapabilities);
-
-	VkCompositeAlphaFlagBitsKHR compositeAlpha;
-
-	result = getBestVkCompositeAlpha(
-		&surfaceCapabilities,
-		&compositeAlpha);
-
-	if (result == false)
-	{
-		free(swapchain);
-		return NULL;
-	}
-
-	VkSwapchainKHR handle = createVkSwapchainHandle(
-		surface,
-		device,
-		imageCount,
-		surfaceFormat,
-		surfaceExtent,
-		surfaceTransform,
-		compositeAlpha,
-		presentMode,
-		NULL);
-
-	if (handle == NULL)
-	{
-		free(swapchain);
-		return NULL;
-	}
-
-	VkFormat depthFormat;
-
-	result = getBestVkDepthFormat(
-		physicalDevice,
-		useStencilBuffer,
-		&depthFormat);
-
-	if (result == false)
-	{
-		vkDestroySwapchainKHR(
-			device,
-			handle,
-			NULL);
-		free(swapchain);
-		return NULL;
-	}
-
-	VkImage depthImage;
-	VmaAllocation depthAllocation;
-
-	result = createVkDepthImage(
-		allocator,
-		depthFormat,
-		surfaceExtent,
-		&depthImage,
-		&depthAllocation);
-
-	if (result == false)
-	{
-		vkDestroySwapchainKHR(
-			device,
-			handle,
-			NULL);
-		free(swapchain);
-		return NULL;
-	}
-
-	VkImageView depthImageView = createVkDepthImageView(
-		device,
-		depthImage,
-		depthFormat);
-
-	if (depthImageView == NULL)
-	{
-		vmaDestroyImage(
-			allocator,
-			depthImage,
-			depthAllocation);
-		vkDestroySwapchainKHR(
-			device,
-			handle,
-			NULL);
-		free(swapchain);
-		return NULL;
-	}
-
-	VkRenderPass renderPass = createVkRenderPass(
-		device,
-		surfaceFormat.format,
-		depthFormat);
-
-	if (renderPass == NULL)
-	{
-		vkDestroyImageView(
-			device,
-			depthImageView,
-			NULL);
-		vmaDestroyImage(
-			allocator,
-			depthImage,
-			depthAllocation);
-		vkDestroySwapchainKHR(
-			device,
-			handle,
-			NULL);
-		free(swapchain);
-		return NULL;
-	}
-
-	VkSwapchainBuffer* buffers;
-	uint32_t bufferCount;
-
-	result = createVkSwapchainBuffers(
-		graphicsQueueFamilyIndex,
-		presentQueueFamilyIndex,
-		device,
-		handle,
-		renderPass,
-		graphicsCommandPool,
-		presentCommandPool,
-		surfaceFormat.format,
-		depthImageView,
-		surfaceExtent,
-		&buffers,
-		&bufferCount);
-
-	if (result == false)
-	{
-		vkDestroyRenderPass(
-			device,
-			renderPass,
-			NULL);
-		vkDestroyImageView(
-			device,
-			depthImageView,
-			NULL);
-		vmaDestroyImage(
-			allocator,
-			depthImage,
-			depthAllocation);
-		vkDestroySwapchainKHR(
-			device,
-			handle,
-			NULL);
-		free(swapchain);
-		return NULL;
-	}
-
-	swapchain->handle = handle;
-	swapchain->depthImage = depthImage;
-	swapchain->depthAllocation = depthAllocation;
-	swapchain->depthImageView = depthImageView;
-	swapchain->renderPass = renderPass;
-	swapchain->buffers = buffers;
-	swapchain->bufferCount = bufferCount;
-	return swapchain;
-}
 inline static void destroyVkSwapchain(
 	VkDevice device,
 	VmaAllocator allocator,
@@ -1178,6 +949,9 @@ inline static void destroyVkSwapchain(
 	VkCommandPool presentCommandPool,
 	VkSwapchain swapchain)
 {
+	if (swapchain == NULL)
+		return;
+
 	destroyVkSwapchainBuffers(
 		device,
 		graphicsCommandPool,
@@ -1201,6 +975,241 @@ inline static void destroyVkSwapchain(
 		swapchain->handle,
 		NULL);
 	free(swapchain);
+}
+inline static MpgxResult createVkSwapchain(
+	VkSurfaceKHR surface,
+	VkPhysicalDevice physicalDevice,
+	uint32_t graphicsQueueFamilyIndex,
+	uint32_t presentQueueFamilyIndex,
+	VkDevice device,
+	VmaAllocator allocator,
+	VkCommandPool graphicsCommandPool,
+	VkCommandPool presentCommandPool,
+	bool useStencilBuffer,
+	Vec2U framebufferSize,
+	VkSwapchain* vkSwapchain)
+{
+	VkSwapchain swapchain = calloc(1,
+		sizeof(VkSwapchain_T));
+
+	if (swapchain == NULL)
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+
+	VkSurfaceFormatKHR surfaceFormat;
+
+	bool result = getBestVkSurfaceFormat(
+		physicalDevice,
+		surface,
+		&surfaceFormat);
+
+	if (result == false)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	VkPresentModeKHR presentMode;
+
+	result = getBestVkPresentMode(
+		physicalDevice,
+		surface,
+		&presentMode);
+
+	if (result == false)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+
+	result = getVkSurfaceCapabilities(
+		physicalDevice,
+		surface,
+		&surfaceCapabilities);
+
+	if (result == false)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	VkExtent2D surfaceExtent = getBestVkSurfaceExtent(
+		&surfaceCapabilities,
+		framebufferSize);
+
+	uint32_t imageCount =
+		getBestVkImageCount(&surfaceCapabilities);
+	VkSurfaceTransformFlagBitsKHR surfaceTransform =
+		getBestVkSurfaceTransform(&surfaceCapabilities);
+
+	VkCompositeAlphaFlagBitsKHR compositeAlpha;
+
+	result = getBestVkCompositeAlpha(
+		&surfaceCapabilities,
+		&compositeAlpha);
+
+	if (result == false)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	VkSwapchainKHR handle = createVkSwapchainHandle(
+		surface,
+		device,
+		imageCount,
+		surfaceFormat,
+		surfaceExtent,
+		surfaceTransform,
+		compositeAlpha,
+		presentMode,
+		NULL);
+
+	if (handle == NULL)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	swapchain->handle = handle;
+
+	VkFormat depthFormat;
+
+	result = getBestVkDepthFormat(
+		physicalDevice,
+		useStencilBuffer,
+		&depthFormat);
+
+	if (result == false)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	VkImage depthImage;
+	VmaAllocation depthAllocation;
+
+	result = createVkDepthImage(
+		allocator,
+		depthFormat,
+		surfaceExtent,
+		&depthImage,
+		&depthAllocation);
+
+	if (result == false)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	swapchain->depthImage = depthImage;
+	swapchain->depthAllocation = depthAllocation;
+
+	VkImageView depthImageView = createVkDepthImageView(
+		device,
+		depthImage,
+		depthFormat);
+
+	if (depthImageView == NULL)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	swapchain->depthImageView = depthImageView;
+
+	VkRenderPass renderPass = createVkRenderPass(
+		device,
+		surfaceFormat.format,
+		depthFormat);
+
+	if (renderPass == NULL)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	swapchain->renderPass = renderPass;
+
+	VkSwapchainBuffer* buffers;
+	uint32_t bufferCount;
+
+	result = createVkSwapchainBuffers(
+		graphicsQueueFamilyIndex,
+		presentQueueFamilyIndex,
+		device,
+		handle,
+		renderPass,
+		graphicsCommandPool,
+		presentCommandPool,
+		surfaceFormat.format,
+		depthImageView,
+		surfaceExtent,
+		&buffers,
+		&bufferCount);
+
+	if (result == false)
+	{
+		destroyVkSwapchain(
+			device,
+			allocator,
+			graphicsCommandPool,
+			presentCommandPool,
+			swapchain);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	swapchain->buffers = buffers;
+	swapchain->bufferCount = bufferCount;
+
+	*vkSwapchain = swapchain;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static bool resizeVkSwapchain(

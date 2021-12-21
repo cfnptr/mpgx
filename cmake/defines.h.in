@@ -21,10 +21,13 @@
 #define MPGX_VERSION_MINOR @mpgx_VERSION_MINOR@
 #define MPGX_VERSION_PATCH @mpgx_VERSION_PATCH@
 
+/*
+ * Supported Vulkan API functionality.
+ */
 #define MPGX_SUPPORT_VULKAN @MPGX_SUPPORT_VULKAN@
 
 /*
- * Default MPGX array capacity in bytes,
+ * Default MPGX array capacity in bytes.
  */
 #define MPGX_DEFAULT_CAPACITY 4
 
@@ -35,12 +38,15 @@ typedef enum MpgxResult_T
 {
 	SUCCESS_MPGX_RESULT = 0,
 	FAILED_TO_ALLOCATE_MPGX_RESULT = 1,
-	FAILED_TO_INIT_GLFW_MPGX_RESULT = 2,
-	FAILED_TO_INIT_FREETYPE_MPGX_RESULT = 3,
-	FAILED_TO_INIT_VULKAN_MPGX_RESULT = 4,
-	FAILED_TO_INIT_OPENGL_MPGX_RESULT = 5,
-	NO_VULKAN_SUPPORT_MPGX_RESULT = 6,
-	MPGX_RESULT_COUNT = 7,
+	GRAPHICS_IS_NOT_INITIALIZED_MPGX_RESULT = 2,
+	GRAPHICS_IS_ALREADY_INITIALIZED_MPGX_RESULT = 3,
+	FAILED_TO_INITIALIZE_GLFW_MPGX_RESULT = 4,
+	FAILED_TO_INITIALIZE_FREETYPE_MPGX_RESULT = 5,
+	FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT = 6,
+	FAILED_TO_INITIALIZE_OPENGL_MPGX_RESULT = 7,
+	VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT = 8,
+	RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT = 9,
+	MPGX_RESULT_COUNT = 10,
 } MpgxResult_T;
 /*
  * Returns MPGX result as string.
@@ -54,11 +60,14 @@ typedef uint8_t MpgxResult;
 static const char* const mpgxResultStrings[MPGX_RESULT_COUNT] = {
 	"Success",
 	"Failed to allocate",
-	"Failed to init GLFW",
-	"Failed to init FreeType",
-	"Failed to init Vulkan",
-	"Failed to init OpenGL",
-	"No Vulkan support",
+	"Graphics is not initialized",
+	"Graphics is already initialized",
+	"Failed to initialize GLFW",
+	"Failed to initialize FreeType",
+	"Failed to initialize Vulkan",
+	"Failed to initialize OpenGL",
+	"Vulkan is not supported",
+	"Ray tracing is not supported",
 };
 
 /*
@@ -89,18 +98,22 @@ typedef enum GraphicsAPI_T
 typedef uint8_t GraphicsAPI;
 
 /*
+ * Graphics API strings.
+ */
+static const char* const graphicsApiStrings[MPGX_RESULT_COUNT] = {
+	"Vulkan",
+	"OpenGL",
+	"OpenGLES",
+};
+
+/*
  * Returns graphics API as string.
  * api - graphics API.
  */
 inline static const char* graphicsApiToString(
 	GraphicsAPI api)
 {
-	if (api == VULKAN_GRAPHICS_API)
-		return "Vulkan";
-	else if (api == OPENGL_GRAPHICS_API)
-		return "OpenGL";
-	else if (api == OPENGL_ES_GRAPHICS_API)
-		return "OpenGLES";
-	else
+	if (api >= GRAPHICS_API_COUNT)
 		return "Unknown";
+	return graphicsApiStrings[api];
 }

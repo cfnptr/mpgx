@@ -283,11 +283,12 @@ inline static Client* createClient()
 	Window window;
 
 	MpgxResult mpgxResult = createAnyWindow(
-		false,
 		defaultWindowSize,
 		APPLICATION_NAME,
 		onWindowUpdate,
 		client,
+		false,
+		false,
 		false,
 		&window);
 

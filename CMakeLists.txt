@@ -133,7 +133,7 @@ if (MPGX_BUILD_SHARED)
 		OUTPUT_NAME "mpgx"
 		WINDOWS_EXPORT_ALL_SYMBOLS ON)
 	target_link_libraries(mpgx-shared PUBLIC
-		${WARPJUMP_SERVER_LINK_LIBRARIES})
+		${MPGX_LINK_LIBRARIES})
 	target_include_directories(mpgx-shared PUBLIC
 		${PROJECT_BINARY_DIR}
 		${PROJECT_SOURCE_DIR}/include
@@ -144,7 +144,7 @@ if (MPGX_BUILD_EXAMPLES)
 	add_executable(mpgx-window-example
 		examples/window_example.c)
 	target_link_libraries(mpgx-window-example PRIVATE
-		mpgx)
+		mpgx-static)
 	target_include_directories(mpgx-window-example PRIVATE
 		${PROJECT_BINARY_DIR}
 		${PROJECT_SOURCE_DIR}/include)

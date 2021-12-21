@@ -22,7 +22,6 @@ if (TARGET mpgx)
 	return()
 endif ()
 
-option(MPGX_BUILD_SHARED "Build MPGX shared library" ON)
 option(MPGX_BUILD_EXAMPLES "Build MPGX usage examples" ON)
 option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
 
@@ -125,20 +124,6 @@ target_include_directories(mpgx-static PUBLIC
 	${PROJECT_BINARY_DIR}
 	${PROJECT_SOURCE_DIR}/include
 	${PROJECT_SOURCE_DIR}/libraries/stb)
-
-if (MPGX_BUILD_SHARED)
-	add_library(mpgx-shared SHARED
-		${MPGX_SOURCES})
-	set_target_properties(mpgx-shared PROPERTIES
-		OUTPUT_NAME "mpgx"
-		WINDOWS_EXPORT_ALL_SYMBOLS ON)
-	target_link_libraries(mpgx-shared PUBLIC
-		${MPGX_LINK_LIBRARIES})
-	target_include_directories(mpgx-shared PUBLIC
-		${PROJECT_BINARY_DIR}
-		${PROJECT_SOURCE_DIR}/include
-		${PROJECT_SOURCE_DIR}/libraries/stb)
-endif ()
 
 if (MPGX_BUILD_EXAMPLES)
 	add_executable(mpgx-window-example

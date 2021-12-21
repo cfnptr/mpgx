@@ -44,7 +44,6 @@ git clone --recursive https://github.com/cfnptr/mpgx
 
 | Name                | Description                   | Default value |
 |---------------------|-------------------------------|---------------|
-| MPGX_BUILD_SHARED   | Build MPGX shared library     | `ON`          |
 | MPGX_BUILD_EXAMPLES | Build MPGX usage examples     | `ON`          |
 | MPGX_USE_VULKAN     | Use modern Vulkan API library | `ON`          |
 

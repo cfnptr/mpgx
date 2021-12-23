@@ -20,15 +20,15 @@
 // VkGetPhysicalDeviceImageFormatProperties
 // https://stackoverflow.com/questions/38396578/vulkan-vkcreateimage-with-3-components
 
-typedef struct _BaseImage
+typedef struct BaseImage_T
 {
 	Window window;
 	ImageType type;
 	ImageFormat format;
 	Vec3U size;
 	bool isConstant;
-} _BaseImage;
-typedef struct _VkImage
+} BaseImage_T;
+typedef struct VkImage_T
 {
 	Window window;
 	ImageType type;
@@ -45,8 +45,8 @@ typedef struct _VkImage
 	VkBuffer stagingBuffer;
 	VmaAllocation stagingAllocation;
 #endif
-} _VkImage;
-typedef struct _GlImage
+} VkImage_T;
+typedef struct GlImage_T
 {
 	Window window;
 	ImageType type;
@@ -57,12 +57,12 @@ typedef struct _GlImage
 	GLenum dataType;
 	GLenum dataFormat;
 	GLuint handle;
-} _GlImage;
+} GlImage_T;
 union Image_T
 {
-	_BaseImage base;
-	_VkImage vk;
-	_GlImage gl;
+	BaseImage_T base;
+	VkImage_T vk;
+	GlImage_T gl;
 };
 
 #if MPGX_SUPPORT_VULKAN
@@ -93,10 +93,10 @@ inline static Image createVkImage(
 	VmaAllocator allocator,
 	VkQueue transferQueue,
 	VkCommandPool transferCommandPool,
+	VkFence transferFence,
 	VkBuffer* _stagingBuffer,
 	VmaAllocation* _stagingAllocation,
 	size_t* _stagingSize,
-	VkFence stagingFence,
 	Window window,
 	ImageType type,
 	ImageFormat format,
@@ -256,9 +256,7 @@ inline static Image createVkImage(
 	};
 
 	VmaAllocationCreateInfo allocationCreateInfo;
-
-	memset(&allocationCreateInfo,
-		0, sizeof(VmaAllocationCreateInfo));
+	memset(&allocationCreateInfo, 0, sizeof(VmaAllocationCreateInfo));
 
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -422,48 +420,11 @@ inline static Image createVkImage(
 			bufferSize,
 			0);
 
-		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			NULL,
-			transferCommandPool,
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			1,
-		};
+		VkCommandBuffer commandBuffer = allocateBeginVkOneTimeCommandBuffer(
+			device, transferCommandPool);
 
-		VkCommandBuffer commandBuffer;
-
-		vkResult = vkAllocateCommandBuffers(
-			device,
-			&commandBufferAllocateInfo,
-			&commandBuffer);
-
-		if (vkResult != VK_SUCCESS)
+		if (commandBuffer == NULL)
 		{
-			destroyVkImage(
-				device,
-				allocator,
-				image);
-			return NULL;
-		}
-
-		VkCommandBufferBeginInfo commandBufferBeginInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			NULL,
-			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-			NULL,
-		};
-
-		vkResult = vkBeginCommandBuffer(
-			commandBuffer,
-			&commandBufferBeginInfo);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
 			destroyVkImage(
 				device,
 				allocator,
@@ -545,87 +506,14 @@ inline static Image createVkImage(
 			1,
 			&imageMemoryBarrier);
 
-		vkResult = vkEndCommandBuffer(commandBuffer);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
-			destroyVkImage(
-				device,
-				allocator,
-				image);
-			return NULL;
-		}
-
-		vkResult = vkResetFences(
+		bool result = endSubmitWaitFreeVkCommandBuffer(
 			device,
-			1,
-			&stagingFence);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
-			destroyVkImage(
-				device,
-				allocator,
-				image);
-			return NULL;
-		}
-
-		VkSubmitInfo submitInfo = {
-			VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			NULL,
-			0,
-			NULL,
-			NULL,
-			1,
-			&commandBuffer,
-			0,
-			NULL,
-		};
-
-		vkResult = vkQueueSubmit(
 			transferQueue,
-			1,
-			&submitInfo,
-			stagingFence);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
-			destroyVkImage(
-				device,
-				allocator,
-				image);
-			return NULL;
-		}
-
-		vkResult = vkWaitForFences(
-			device,
-			1,
-			&stagingFence,
-			VK_TRUE,
-			UINT64_MAX);
-
-		vkFreeCommandBuffers(
-			device,
 			transferCommandPool,
-			1,
-			&commandBuffer);
+			transferFence,
+			commandBuffer);
 
-		if (vkResult != VK_SUCCESS)
+		if (result == false)
 		{
 			destroyVkImage(
 				device,
@@ -636,48 +524,11 @@ inline static Image createVkImage(
 	}
 	else
 	{
-		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			NULL,
-			transferCommandPool,
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			1,
-		};
+		VkCommandBuffer commandBuffer = allocateBeginVkOneTimeCommandBuffer(
+			device, transferCommandPool);
 
-		VkCommandBuffer commandBuffer;
-
-		vkResult = vkAllocateCommandBuffers(
-			device,
-			&commandBufferAllocateInfo,
-			&commandBuffer);
-
-		if (vkResult != VK_SUCCESS)
+		if (commandBuffer == NULL)
 		{
-			destroyVkImage(
-				device,
-				allocator,
-				image);
-			return NULL;
-		}
-
-		VkCommandBufferBeginInfo commandBufferBeginInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			NULL,
-			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-			NULL,
-		};
-
-		vkResult = vkBeginCommandBuffer(
-			commandBuffer,
-			&commandBufferBeginInfo);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
 			destroyVkImage(
 				device,
 				allocator,
@@ -716,87 +567,14 @@ inline static Image createVkImage(
 			1,
 			&imageMemoryBarrier);
 
-		vkResult = vkEndCommandBuffer(commandBuffer);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
-			destroyVkImage(
-				device,
-				allocator,
-				image);
-			return NULL;
-		}
-
-		vkResult = vkResetFences(
+		bool result = endSubmitWaitFreeVkCommandBuffer(
 			device,
-			1,
-			&stagingFence);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
-			destroyVkImage(
-				device,
-				allocator,
-				image);
-			return false;
-		}
-
-		VkSubmitInfo submitInfo = {
-			VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			NULL,
-			0,
-			NULL,
-			NULL,
-			1,
-			&commandBuffer,
-			0,
-			NULL,
-		};
-
-		vkResult = vkQueueSubmit(
 			transferQueue,
-			1,
-			&submitInfo,
-			stagingFence);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			vkFreeCommandBuffers(
-				device,
-				transferCommandPool,
-				1,
-				&commandBuffer);
-			destroyVkImage(
-				device,
-				allocator,
-				image);
-			return NULL;
-		}
-
-		vkResult = vkWaitForFences(
-			device,
-			1,
-			&stagingFence,
-			VK_TRUE,
-			UINT64_MAX);
-
-		vkFreeCommandBuffers(
-			device,
 			transferCommandPool,
-			1,
-			&commandBuffer);
+			transferFence,
+			commandBuffer);
 
-		if (vkResult != VK_SUCCESS)
+		if (result == false)
 		{
 			destroyVkImage(
 				device,
@@ -810,13 +588,13 @@ inline static Image createVkImage(
 }
 
 inline static bool setVkImageData(
-	VmaAllocator allocator,
-	VkBuffer stagingBuffer,
-	VmaAllocation stagingAllocation,
-	VkFence stagingFence,
 	VkDevice device,
+	VmaAllocator allocator,
 	VkQueue transferQueue,
 	VkCommandPool transferCommandPool,
+	VkFence transferFence,
+	VkBuffer stagingBuffer,
+	VmaAllocation stagingAllocation,
 	VkImage image,
 	VkImageAspectFlags aspect,
 	uint8_t sizeMultiplier,
@@ -846,36 +624,11 @@ inline static bool setVkImageData(
 		1,
 	};
 
-	VkCommandBuffer commandBuffer;
+	VkCommandBuffer commandBuffer = allocateBeginVkOneTimeCommandBuffer(
+		device, transferCommandPool);
 
-	VkResult vkResult = vkAllocateCommandBuffers(
-		device,
-		&commandBufferAllocateInfo,
-		&commandBuffer);
-
-	if (vkResult != VK_SUCCESS)
+	if (commandBuffer == NULL)
 		return false;
-
-	VkCommandBufferBeginInfo commandBufferBeginInfo = {
-		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		NULL,
-		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-		NULL,
-	};
-
-	vkResult = vkBeginCommandBuffer(
-		commandBuffer,
-		&commandBufferBeginInfo);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		vkFreeCommandBuffers(
-			device,
-			transferCommandPool,
-			1,
-			&commandBuffer);
-		return false;
-	}
 
 	VkImageMemoryBarrier imageMemoryBarrier = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -953,75 +706,14 @@ inline static bool setVkImageData(
 		1,
 		&imageMemoryBarrier);
 
-	vkResult = vkEndCommandBuffer(commandBuffer);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		vkFreeCommandBuffers(
-			device,
-			transferCommandPool,
-			1,
-			&commandBuffer);
-		return false;
-	}
-
-	vkResult = vkResetFences(
+	bool result = endSubmitWaitFreeVkCommandBuffer(
 		device,
-		1,
-		&stagingFence);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		vkFreeCommandBuffers(
-			device,
-			transferCommandPool,
-			1,
-			&commandBuffer);
-		return false;
-	}
-
-	VkSubmitInfo submitInfo = {
-		VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		NULL,
-		0,
-		NULL,
-		NULL,
-		1,
-		&commandBuffer,
-		0,
-		NULL,
-	};
-
-	vkResult = vkQueueSubmit(
 		transferQueue,
-		1,
-		&submitInfo,
-		stagingFence);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		vkFreeCommandBuffers(
-			device,
-			transferCommandPool,
-			1,
-			&commandBuffer);
-		return false;
-	}
-
-	vkResult = vkWaitForFences(
-		device,
-		1,
-		&stagingFence,
-		VK_TRUE,
-		UINT64_MAX);
-
-	vkFreeCommandBuffers(
-		device,
 		transferCommandPool,
-		1,
-		&commandBuffer);
+		transferFence,
+		commandBuffer);
 
-	if (vkResult != VK_SUCCESS)
+	if (result == false)
 		return false;
 
 	return true;

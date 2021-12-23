@@ -17,7 +17,7 @@
 #pragma once
 #include "mpgx/_source/image.h"
 
-typedef struct _BaseFramebuffer
+typedef struct BaseFramebuffer_T
 {
 	bool isDefault;
 	Window window;
@@ -29,8 +29,8 @@ typedef struct _BaseFramebuffer
 	Pipeline* pipelines;
 	size_t pipelineCapacity;
 	size_t pipelineCount;
-} _BaseFramebuffer;
-typedef struct _VkFramebuffer
+} BaseFramebuffer_T;
+typedef struct VkFramebuffer_T
 {
 	bool isDefault;
 	Window window;
@@ -46,8 +46,8 @@ typedef struct _VkFramebuffer
 	VkRenderPass renderPass;
 	VkFramebuffer handle;
 #endif
-} _VkFramebuffer;
-typedef struct _GlFramebuffer
+} VkFramebuffer_T;
+typedef struct GlFramebuffer_T
 {
 	bool isDefault;
 	Window window;
@@ -60,12 +60,12 @@ typedef struct _GlFramebuffer
 	size_t pipelineCapacity;
 	size_t pipelineCount;
 	GLuint handle;
-} _GlFramebuffer;
+} GlFramebuffer_T;
 union Framebuffer_T
 {
-	_BaseFramebuffer base;
-	_VkFramebuffer vk;
-	_GlFramebuffer gl;
+	BaseFramebuffer_T base;
+	VkFramebuffer_T vk;
+	GlFramebuffer_T gl;
 };
 
 #if MPGX_SUPPORT_VULKAN

@@ -228,7 +228,8 @@ typedef enum BufferType_T
 	VERTEX_BUFFER_TYPE = 0,
 	INDEX_BUFFER_TYPE = 1,
 	UNIFORM_BUFFER_TYPE = 2,
-	BUFFER_TYPE_COUNT = 3,
+	STORAGE_BUFFER_TYPE = 3,
+	BUFFER_TYPE_COUNT = 4,
 } BufferType_T;
 
 typedef uint8_t BufferType;
@@ -397,14 +398,14 @@ typedef enum BlendOperator_T
 
 typedef uint8_t BlendOperator;
 
-typedef enum DrawIndex_T
+typedef enum IndexType_T
 {
-	UINT16_DRAW_INDEX = 0,
-	UINT32_DRAW_INDEX = 1,
-	DRAW_INDEX_COUNT = 2,
-} DrawIndex_T;
+	UINT16_INDEX_TYPE = 0,
+	UINT32_INDEX_TYPE = 1,
+	INDEX_TYPE_COUNT = 2,
+} IndexType_T;
 
-typedef uint8_t DrawIndex;
+typedef uint8_t IndexType;
 
 typedef struct DepthStencilClear
 {
@@ -449,27 +450,27 @@ typedef struct PipelineState
 
 typedef struct Window_T Window_T;
 typedef Window_T* Window;
-
 typedef union Buffer_T Buffer_T;
 typedef Buffer_T* Buffer;
-
-typedef union Mesh_T Mesh_T;
-typedef Mesh_T* Mesh;
-
 typedef union Image_T Image_T;
 typedef Image_T* Image;
-
 typedef union Sampler_T Sampler_T;
 typedef Sampler_T* Sampler;
-
-typedef union Framebuffer_T Framebuffer_T;
-typedef Framebuffer_T* Framebuffer;
-
-typedef union Shader_T Shader_T;
-typedef Shader_T* Shader;
-
 typedef union Pipeline_T Pipeline_T;
 typedef Pipeline_T* Pipeline;
+typedef union Framebuffer_T Framebuffer_T;
+typedef Framebuffer_T* Framebuffer;
+typedef union Shader_T Shader_T;
+typedef Shader_T* Shader;
+typedef union Mesh_T Mesh_T;
+typedef Mesh_T* Mesh;
+typedef union RayMesh_T RayMesh_T;
+typedef RayMesh_T* RayMesh;
+typedef union RayRender_T RayRender_T;
+typedef RayRender_T* RayRender;
+typedef union RayPipeline_T RayPipeline_T;
+typedef RayPipeline_T* RayPipeline;
+
 
 typedef struct ImageData_T ImageData_T;
 typedef ImageData_T* ImageData;
@@ -481,8 +482,6 @@ typedef void(*OnPipelineUniformsSet)(Pipeline pipeline);
 
 typedef bool(*OnPipelineHandleResize)(
 	Pipeline pipeline, Vec2U newSize, void* createInfo);
-
-// TODO: add more MPGX results
 
 MpgxResult initializeGraphics(
 	const char* appName,
@@ -517,6 +516,7 @@ void destroyWindow(Window window);
 
 GraphicsAPI getWindowGraphicsAPI(Window window);
 bool isWindowUseStencilBuffer(Window window);
+bool isWindowUseRayTracing(Window window);
 OnWindowUpdate getWindowOnUpdate(Window window);
 void* getWindowUpdateArgument(Window window);
 const uint32_t* getWindowInputBuffer(Window window);
@@ -602,6 +602,9 @@ void updateWindow(Window window);
 
 bool beginWindowRecord(Window window);
 void endWindowRecord(Window window);
+
+// TODO: make create buffer/image/ray mesh batching system. (Vulkan)
+// Add option createNow or batch and create with shared cmd buffer
 
 Buffer createBuffer(
 	Window window,
@@ -803,7 +806,7 @@ void bindPipeline(Pipeline pipeline);
 
 Mesh createMesh(
 	Window window,
-	DrawIndex drawIndex,
+	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
@@ -813,7 +816,7 @@ void destroyMesh(
 	bool destroyBuffers);
 
 Window getMeshWindow(Mesh mesh);
-DrawIndex getMeshDrawIndex(Mesh mesh);
+IndexType getMeshIndexType(Mesh mesh);
 
 size_t getMeshIndexCount(
 	Mesh mesh);
@@ -837,7 +840,7 @@ Buffer getMeshIndexBuffer(
 	Mesh mesh);
 void setMeshIndexBuffer(
 	Mesh mesh,
-	DrawIndex drawIndex,
+	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer indexBuffer);
@@ -845,3 +848,25 @@ void setMeshIndexBuffer(
 size_t drawMesh(
 	Mesh mesh,
 	Pipeline pipeline);
+
+RayMesh createRayMesh(
+	Window window,
+	IndexType indexType,
+	const void* vertexData,
+	size_t vertexDataSize,
+	const void* indexData,
+	size_t indexDataSize);
+void destroyRayMesh(RayMesh rayMesh);
+
+// TODO: get set ray mesh transform matrix
+
+RayRender createRayRender(
+	Window window,
+	RayMesh* rayMeshes,
+	size_t rayMeshCount);
+void destroyRayRender(RayRender rayRender);
+
+RayPipeline createRayPipeline(
+	Window window);
+// TODO: add functions:
+// create buffer, image, ray mesh group

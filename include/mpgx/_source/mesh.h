@@ -16,45 +16,45 @@
 #include "mpgx/_source/buffer.h"
 #include "mpgx/_source/pipeline.h"
 
-typedef struct _BaseMesh
+typedef struct BaseMesh_T
 {
 	Window window;
-	DrawIndex drawIndex;
+	IndexType indexType;
 	size_t indexCount;
 	size_t indexOffset;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
-} _BaseMesh;
-typedef struct _VkMesh
+} BaseMesh_T;
+typedef struct VkMesh_T
 {
 	Window window;
-	DrawIndex drawIndex;
+	IndexType indexType;
 	size_t indexCount;
 	size_t indexOffset;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
-} _VkMesh;
-typedef struct _GlMesh
+} VkMesh_T;
+typedef struct GlMesh_T
 {
 	Window window;
-	DrawIndex drawIndex;
+	IndexType indexType;
 	size_t indexCount;
 	size_t indexOffset;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
 	GLuint handle;
-} _GlMesh;
+} GlMesh_T;
 union Mesh_T
 {
-	_BaseMesh base;
-	_VkMesh vk;
-	_GlMesh gl;
+	BaseMesh_T base;
+	VkMesh_T vk;
+	GlMesh_T gl;
 };
 
 #if MPGX_SUPPORT_VULKAN
 inline static Mesh createVkMesh(
 	Window window,
-	DrawIndex drawIndex,
+	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
@@ -66,7 +66,7 @@ inline static Mesh createVkMesh(
 		return NULL;
 
 	mesh->gl.window = window;
-	mesh->gl.drawIndex = drawIndex;
+	mesh->gl.indexType = indexType;
 	mesh->gl.indexCount = indexCount;
 	mesh->gl.indexOffset = indexOffset;
 	mesh->gl.vertexBuffer = vertexBuffer;
@@ -82,17 +82,17 @@ inline static void drawVkMesh(
 	VkCommandBuffer commandBuffer,
 	Mesh mesh)
 {
-	DrawIndex drawIndex = mesh->vk.drawIndex;
+	IndexType indexType = mesh->vk.indexType;
 
 	VkIndexType vkDrawIndex;
 	VkDeviceSize vkIndexOffset;
 
-	if (drawIndex == UINT16_DRAW_INDEX)
+	if (indexType == UINT16_INDEX_TYPE)
 	{
 		vkDrawIndex = VK_INDEX_TYPE_UINT16;
 		vkIndexOffset = mesh->vk.indexOffset * sizeof(uint16_t);
 	}
-	else if (drawIndex == UINT32_DRAW_INDEX)
+	else if (indexType == UINT32_INDEX_TYPE)
 	{
 		vkDrawIndex = VK_INDEX_TYPE_UINT32;
 		vkIndexOffset = mesh->vk.indexOffset * sizeof(uint32_t);
@@ -144,7 +144,7 @@ inline static void destroyGlMesh(
 }
 inline static Mesh createGlMesh(
 	Window window,
-	DrawIndex drawIndex,
+	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
@@ -156,7 +156,7 @@ inline static Mesh createGlMesh(
 		return NULL;
 
 	mesh->gl.window = window;
-	mesh->gl.drawIndex = drawIndex;
+	mesh->gl.indexType = indexType;
 	mesh->gl.indexCount = indexCount;
 	mesh->gl.indexOffset = indexOffset;
 	mesh->gl.vertexBuffer = vertexBuffer;
@@ -200,17 +200,17 @@ inline static void drawGlMesh(
 	if (pipeline->gl.onUniformsSet != NULL)
 		pipeline->gl.onUniformsSet(pipeline);
 
-	DrawIndex drawIndex = mesh->gl.drawIndex;
+	IndexType drawIndex = mesh->gl.indexType;
 
 	GLenum glDrawIndex;
 	size_t glIndexOffset;
 
-	if (drawIndex == UINT16_DRAW_INDEX)
+	if (drawIndex == UINT16_INDEX_TYPE)
 	{
 		glDrawIndex = GL_UNSIGNED_SHORT;
 		glIndexOffset = mesh->gl.indexOffset * sizeof(uint16_t);
 	}
-	else if (drawIndex == UINT32_DRAW_INDEX)
+	else if (drawIndex == UINT32_INDEX_TYPE)
 	{
 		glDrawIndex = GL_UNSIGNED_INT;
 		glIndexOffset = mesh->gl.indexOffset * sizeof(uint32_t);
@@ -225,6 +225,5 @@ inline static void drawGlMesh(
 		(GLsizei)mesh->gl.indexCount,
 		glDrawIndex,
 		(const void*)glIndexOffset);
-
 	assertOpenGL();
 }

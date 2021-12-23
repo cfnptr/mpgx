@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #include "mpgx/window.h"
+#include "mpgx/_source/window.h"
 #include "mpgx/_source/mesh.h"
 #include "mpgx/_source/sampler.h"
 #include "mpgx/_source/framebuffer.h"
+#include "mpgx/_source/ray_tracing.h"
 
 #include "mpio/file.h"
 #include "cmmt/common.h"
@@ -42,6 +44,7 @@ struct Window_T
 {
 	GraphicsAPI api;
 	bool useStencilBuffer;
+	bool useRayTracing;
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
@@ -54,6 +57,7 @@ struct Window_T
 	uint32_t* inputBuffer;
 	size_t inputCapacity;
 	size_t inputLength;
+	RayTracing rayTracing;
 	Framebuffer framebuffer;
 	Buffer* buffers;
 	size_t bufferCapacity;
@@ -131,32 +135,107 @@ MpgxResult initializeGraphics(
 	}
 
 #if MPGX_SUPPORT_VULKAN
-	if (glfwVulkanSupported() == GLFW_FALSE)
-		return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
+	uint32_t glfwExtensionCount;
 
-	const char* preferredLayers[1] = {
-		"VK_LAYER_KHRONOS_validation",
-	};
-	const char* preferredExtensions[1] = {
-		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-	};
+	const char** glfwExtensions =
+		glfwGetRequiredInstanceExtensions(
+		&glfwExtensionCount);
 
-	bool supportedExtensions[1];
+	if (glfwExtensionCount == 0 || glfwExtensions == NULL)
+	{
+		terminateFreeTypeLibrary(ftLibrary);
+		glfwTerminate();
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	const char* layers[1];
+	const char* targetLayers[1];
+	bool isLayerSupported[1];
+	uint32_t layerCount = 0;
+	uint32_t targetLayerCount = 0;
+
+#ifndef NDEBUG
+	targetLayers[targetLayerCount] =
+		"VK_LAYER_KHRONOS_validation";
+	uint32_t validationLayerIndex = targetLayerCount++;
+#endif
+
+	bool result = checkVkInstanceLayers(
+		targetLayers,
+		isLayerSupported,
+		targetLayerCount);
+
+	if (result == false)
+	{
+		terminateFreeTypeLibrary(ftLibrary);
+		glfwTerminate();
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+#ifndef NDEBUG
+	if (isLayerSupported[validationLayerIndex] == true)
+		layers[layerCount++] = targetLayers[validationLayerIndex];
+#endif
+
+	const char* targetExtensions[1];
+	bool isExtensionSupported[1];
+	uint32_t extensionCount = glfwExtensionCount;
+	uint32_t targetExtensionCount = 0;
+
+	const char** extensions = malloc(
+		(1 + glfwExtensionCount) * sizeof(const char*));
+
+	if (extensions == NULL)
+	{
+		terminateFreeTypeLibrary(ftLibrary);
+		glfwTerminate();
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	for (uint32_t i = 0; i < glfwExtensionCount; i++)
+		extensions[i] = glfwExtensions[i];
+
+#ifndef NDEBUG
+	extensions[extensionCount++] =
+		targetExtensions[targetExtensionCount] =
+		VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+	uint32_t debugUtilsExtIndex = targetExtensionCount++;
+#endif
+
+	result = checkVkInstanceExtensions(
+		targetExtensions,
+		isExtensionSupported,
+		targetExtensionCount);
+
+	if (result == false)
+	{
+		free((void*)extensions);
+		terminateFreeTypeLibrary(ftLibrary);
+		glfwTerminate();
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+#ifndef NDEBUG
+	if (isExtensionSupported[debugUtilsExtIndex] == false)
+	{
+		free((void*)extensions);
+		terminateFreeTypeLibrary(ftLibrary);
+		glfwTerminate();
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+#endif
 
 	vkInstance = createVkInstance(
 		appName,
 		appVersionMajor,
 		appVersionMinor,
 		appVersionPatch,
-		NULL,
-		0,
-		preferredLayers,
-		1,
-		NULL,
-		0,
-		preferredExtensions,
-		1,
-		supportedExtensions);
+		layers,
+		layerCount,
+		extensions,
+		extensionCount);
+
+	free((void*)extensions);
 
 	if (vkInstance == NULL)
 	{
@@ -176,10 +255,9 @@ MpgxResult initializeGraphics(
 			NULL);
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
-		return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 #endif
-
 #endif
 
 	graphicsInitialized = true;
@@ -275,6 +353,8 @@ void destroyWindow(Window window)
 			destroyVkFramebuffer(
 				device,
 				window->framebuffer);
+			destroyVkRayTracing(
+				window->rayTracing);
 			destroyVkWindow(
 				vkInstance,
 				vkWindow);
@@ -282,7 +362,7 @@ void destroyWindow(Window window)
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 		destroyGlFramebuffer(window->framebuffer);
 	}
@@ -291,19 +371,21 @@ void destroyWindow(Window window)
 		abort();
 	}
 
-	free(window->buffers);
-	free(window->images);
-	free(window->samplers);
-	free(window->framebuffers);
-	free(window->shaders);
 	free(window->meshes);
+	free(window->shaders);
+	free(window->framebuffers);
+	free(window->samplers);
+	free(window->images);
+	free(window->buffers);
 	free(window->inputBuffer);
+
 	glfwDestroyCursor(window->vresizeCursor);
 	glfwDestroyCursor(window->hresizeCursor);
 	glfwDestroyCursor(window->handCursor);
 	glfwDestroyCursor(window->crosshairCursor);
 	glfwDestroyCursor(window->ibeamCursor);
 	glfwDestroyWindow(window->handle);
+
 	free(window);
 }
 MpgxResult createWindow(
@@ -394,6 +476,9 @@ MpgxResult createWindow(
 	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
 	{
+		if (useRayTracing == true)
+			return RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT;
+
 		glfwWindowHint(
 			GLFW_CLIENT_API,
 			GLFW_OPENGL_ES_API);
@@ -444,13 +529,15 @@ MpgxResult createWindow(
 	glfwWindowHint(GLFW_VISIBLE,
 		isVisible ? GLFW_TRUE : GLFW_FALSE);
 
-	Window windowInstance = malloc(sizeof(Window_T));
+	Window windowInstance = calloc(1,
+		sizeof(Window_T));
 
 	if (windowInstance == NULL)
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 
 	windowInstance->api = api;
 	windowInstance->useStencilBuffer = useStencilBuffer;
+	windowInstance->useRayTracing = useRayTracing;
 	windowInstance->onUpdate = onUpdate;
 	windowInstance->updateArgument = updateArgument;
 
@@ -593,6 +680,23 @@ MpgxResult createWindow(
 
 		windowInstance->vkWindow = vkWindow;
 
+		if (useRayTracing == true)
+		{
+			RayTracing rayTracing = createVkRayTracing(vkInstance);
+
+			if (rayTracing == NULL)
+			{
+				destroyWindow(windowInstance);
+				return FAILED_TO_ALLOCATE_MPGX_RESULT;
+			}
+
+			windowInstance->rayTracing = rayTracing;
+		}
+		else
+		{
+			windowInstance->rayTracing = NULL;
+		}
+
 		VkSwapchain swapchain = vkWindow->swapchain;
 		VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
 
@@ -641,7 +745,7 @@ MpgxResult createWindow(
 	}
 
 	Buffer* buffers = malloc(
-		4 * sizeof(Buffer));
+		MPGX_DEFAULT_CAPACITY * sizeof(Buffer));
 
 	if (buffers == NULL)
 	{
@@ -654,7 +758,7 @@ MpgxResult createWindow(
 	windowInstance->bufferCount = 0;
 
 	Image* images = malloc(
-		4 * sizeof(Image));
+		MPGX_DEFAULT_CAPACITY * sizeof(Image));
 
 	if (images == NULL)
 	{
@@ -667,7 +771,7 @@ MpgxResult createWindow(
 	windowInstance->imageCount = 0;
 
 	Sampler* samplers = malloc(
-		4 * sizeof(Sampler));
+		MPGX_DEFAULT_CAPACITY * sizeof(Sampler));
 
 	if (samplers == NULL)
 	{
@@ -680,7 +784,7 @@ MpgxResult createWindow(
 	windowInstance->samplerCount = 0;
 
 	Shader* shaders = malloc(
-		4 * sizeof(Shader));
+		MPGX_DEFAULT_CAPACITY * sizeof(Shader));
 
 	if (shaders == NULL)
 	{
@@ -693,7 +797,7 @@ MpgxResult createWindow(
 	windowInstance->shaderCount = 0;
 
 	Framebuffer* framebuffers = malloc(
-		4 * sizeof(Framebuffer));
+		MPGX_DEFAULT_CAPACITY * sizeof(Framebuffer));
 
 	if (framebuffers == NULL)
 	{
@@ -706,7 +810,7 @@ MpgxResult createWindow(
 	windowInstance->framebufferCount = 0;
 
 	Mesh* meshes = malloc(
-		4 * sizeof(Mesh));
+		MPGX_DEFAULT_CAPACITY * sizeof(Mesh));
 
 	if (meshes == NULL)
 	{
@@ -787,6 +891,11 @@ bool isWindowUseStencilBuffer(Window window)
 {
 	assert(window != NULL);
 	return window->useStencilBuffer;
+}
+bool isWindowUseRayTracing(Window window)
+{
+	assert(window != NULL);
+	return window->useRayTracing;
 }
 OnWindowUpdate getWindowOnUpdate(Window window)
 {
@@ -1057,7 +1166,6 @@ void setWindowCursorType(
 	CursorType cursorType)
 {
 	assert(window != NULL);
-	assert(cursorType >= DEFAULT_CURSOR_TYPE);
 	assert(cursorType < CURSOR_TYPE_COUNT);
 
 	switch (cursorType)
@@ -1703,10 +1811,10 @@ Buffer createBuffer(
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
 			vkWindow->transferCommandPool,
+			vkWindow->transferFence,
 			&vkWindow->stagingBuffer,
 			&vkWindow->stagingAllocation,
 			&vkWindow->stagingSize,
-			vkWindow->stagingFence,
 			0,
 			window,
 			type,
@@ -2127,10 +2235,10 @@ Image createImage(
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
 			vkWindow->transferCommandPool,
+			vkWindow->transferFence,
 			&vkWindow->stagingBuffer,
 			&vkWindow->stagingAllocation,
 			&vkWindow->stagingSize,
-			vkWindow->stagingFence,
 			window,
 			type,
 			format,
@@ -2386,13 +2494,13 @@ void setImageData(
 			image->vk.window->vkWindow;
 
 		setVkImageData(
-			vkWindow->allocator,
-			image->vk.stagingBuffer,
-			image->vk.stagingAllocation,
-			vkWindow->stagingFence,
 			vkWindow->device,
+			vkWindow->allocator,
 			vkWindow->graphicsQueue,
 			vkWindow->transferCommandPool,
+			vkWindow->transferFence,
+			image->vk.stagingBuffer,
+			image->vk.stagingAllocation,
 			image->vk.handle,
 			image->vk.vkAspect,
 			image->vk.sizeMultiplier,
@@ -2797,7 +2905,6 @@ Shader createShader(
 				abort();
 			}
 
-			free(shader);
 			return NULL;
 		}
 
@@ -2938,7 +3045,7 @@ void destroyShader(Shader shader)
 #endif
 		}
 		else if (api == OPENGL_GRAPHICS_API ||
-				 api == OPENGL_ES_GRAPHICS_API)
+			api == OPENGL_ES_GRAPHICS_API)
 		{
 			destroyGlShader(shader);
 		}
@@ -3958,14 +4065,14 @@ void bindPipeline(Pipeline pipeline)
 
 Mesh createMesh(
 	Window window,
-	DrawIndex drawIndex,
+	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
 	Buffer indexBuffer)
 {
 	assert(window != NULL);
-	assert(drawIndex < DRAW_INDEX_COUNT);
+	assert(indexType < INDEX_TYPE_COUNT);
 	assert(window->isRecording == false);
 
 #ifndef NDEBUG
@@ -3979,13 +4086,13 @@ Mesh createMesh(
 		assert(indexBuffer->base.window == window);
 		assert(indexBuffer->base.type == INDEX_BUFFER_TYPE);
 
-		if (drawIndex == UINT16_DRAW_INDEX)
+		if (indexType == UINT16_INDEX_TYPE)
 		{
 			assert(indexCount * sizeof(uint16_t) +
 				indexOffset * sizeof(uint16_t) <=
 				indexBuffer->base.size);
 		}
-		else if (drawIndex == UINT32_DRAW_INDEX)
+		else if (indexType == UINT32_INDEX_TYPE)
 		{
 			assert(indexCount * sizeof(uint32_t) +
 				indexOffset * sizeof(uint32_t) <=
@@ -4007,7 +4114,7 @@ Mesh createMesh(
 #if MPGX_SUPPORT_VULKAN
 		mesh = createVkMesh(
 			window,
-			drawIndex,
+			indexType,
 			indexCount,
 			indexOffset,
 			vertexBuffer,
@@ -4017,11 +4124,11 @@ Mesh createMesh(
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 		mesh = createGlMesh(
 			window,
-			drawIndex,
+			indexType,
 			indexCount,
 			indexOffset,
 			vertexBuffer,
@@ -4135,10 +4242,10 @@ Window getMeshWindow(Mesh mesh)
 	assert(mesh != NULL);
 	return mesh->base.window;
 }
-DrawIndex getMeshDrawIndex(Mesh mesh)
+IndexType getMeshIndexType(Mesh mesh)
 {
 	assert(mesh != NULL);
-	return mesh->base.drawIndex;
+	return mesh->base.indexType;
 }
 
 size_t getMeshIndexCount(
@@ -4157,13 +4264,13 @@ void setMeshIndexCount(
 #ifndef NDEBUG
 	if (mesh->base.indexBuffer != NULL)
 	{
-		if (mesh->base.drawIndex == UINT16_DRAW_INDEX)
+		if (mesh->base.indexType == UINT16_INDEX_TYPE)
 		{
 			assert(indexCount * sizeof(uint16_t) +
 				mesh->base.indexOffset * sizeof(uint16_t) <=
 				mesh->base.indexBuffer->base.size);
 		}
-		else if (mesh->base.drawIndex == UINT32_DRAW_INDEX)
+		else if (mesh->base.indexType == UINT32_INDEX_TYPE)
 		{
 			assert(indexCount * sizeof(uint32_t) +
 				mesh->base.indexOffset * sizeof(uint32_t) <=
@@ -4195,13 +4302,13 @@ void setMeshIndexOffset(
 #ifndef NDEBUG
 	if (mesh->base.indexBuffer != NULL)
 	{
-		if (mesh->base.drawIndex == UINT16_DRAW_INDEX)
+		if (mesh->base.indexType == UINT16_INDEX_TYPE)
 		{
 			assert(mesh->base.indexCount * sizeof(uint16_t) +
 				indexOffset * sizeof(uint16_t) <=
 				mesh->base.indexBuffer->base.size);
 		}
-		else if (mesh->base.drawIndex == UINT32_DRAW_INDEX)
+		else if (mesh->base.indexType == UINT32_INDEX_TYPE)
 		{
 			assert(mesh->base.indexCount * sizeof(uint32_t) +
 				indexOffset * sizeof(uint32_t) <=
@@ -4249,13 +4356,13 @@ Buffer getMeshIndexBuffer(
 }
 void setMeshIndexBuffer(
 	Mesh mesh,
-	DrawIndex drawIndex,
+	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer indexBuffer)
 {
 	assert(mesh != NULL);
-	assert(drawIndex < DRAW_INDEX_COUNT);
+	assert(indexType < INDEX_TYPE_COUNT);
 	assert(mesh->base.window->isRecording == false);
 
 #ifndef NDEBUG
@@ -4264,13 +4371,13 @@ void setMeshIndexBuffer(
 		assert(mesh->base.window == indexBuffer->base.window);
 		assert(indexBuffer->base.type == INDEX_BUFFER_TYPE);
 
-		if (drawIndex == UINT16_DRAW_INDEX)
+		if (indexType == UINT16_INDEX_TYPE)
 		{
 			assert(indexCount * sizeof(uint16_t) +
 				indexOffset * sizeof(uint16_t) <=
 				indexBuffer->base.size);
 		}
-		else if (drawIndex == UINT32_DRAW_INDEX)
+		else if (indexType == UINT32_INDEX_TYPE)
 		{
 			assert(indexCount * sizeof(uint32_t) +
 				indexOffset * sizeof(uint32_t) <=
@@ -4283,7 +4390,7 @@ void setMeshIndexBuffer(
 	}
 #endif
 
-	mesh->base.drawIndex = drawIndex;
+	mesh->base.indexType = indexType;
 	mesh->base.indexCount = indexCount;
 	mesh->base.indexOffset = indexOffset;
 	mesh->base.indexBuffer = indexBuffer;
@@ -4336,4 +4443,279 @@ size_t drawMesh(
 	}
 
 	return mesh->base.indexCount;
+}
+
+RayMesh createRayMesh(
+	Window window,
+	IndexType indexType,
+	const void* vertexData,
+	size_t vertexDataSize,
+	const void* indexData,
+	size_t indexDataSize)
+{
+	assert(window != NULL);
+	assert(indexType < INDEX_TYPE_COUNT);
+	assert(vertexData != NULL);
+	assert(vertexDataSize != 0);
+	assert(indexData != NULL);
+	assert(indexDataSize != 0);
+	assert(window->useRayTracing == true);
+	assert(window->isRecording == false);
+
+	GraphicsAPI api = window->api;
+	RayTracing rayTracing = window->rayTracing;
+
+	RayMesh rayMesh;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+
+		rayMesh = createVkRayMesh(
+			vkWindow->device,
+			vkWindow->allocator,
+			vkWindow->graphicsQueue,
+			vkWindow->transferCommandPool,
+			vkWindow->transferFence,
+			rayTracing,
+			window,
+			indexType,
+			vertexData,
+			vertexDataSize,
+			indexData,
+			indexDataSize);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+
+	if (rayMesh == NULL)
+		return NULL;
+
+	size_t count = rayTracing->base.rayMeshCount;
+
+	if (count == rayTracing->base.rayMeshCapacity)
+	{
+		size_t capacity = rayTracing->base.rayMeshCapacity * 2;
+
+		RayMesh* rayMeshes = realloc(
+			rayTracing->base.rayMeshes,
+			sizeof(RayMesh) * capacity);
+
+		if (rayMeshes == NULL)
+		{
+			if (api == VULKAN_GRAPHICS_API)
+			{
+#if MPGX_SUPPORT_VULKAN
+				VkWindow vkWindow = window->vkWindow;
+
+				destroyVkRayMesh(
+					vkWindow->device,
+					vkWindow->allocator,
+					window->rayTracing,
+					rayMesh);
+#else
+				abort();
+#endif
+			}
+			else
+			{
+				abort();
+			}
+
+			return NULL;
+		}
+
+		rayTracing->base.rayMeshes = rayMeshes;
+		rayTracing->base.rayMeshCapacity = capacity;
+	}
+
+	rayTracing->base.rayMeshes[count] = rayMesh;
+	rayTracing->base.rayMeshCount = count + 1;
+	return rayMesh;
+}
+void destroyRayMesh(RayMesh rayMesh)
+{
+	if (rayMesh == NULL)
+		return;
+
+	assert(rayMesh->base.window->isRecording == false);
+
+	Window window = rayMesh->base.window;
+	RayTracing rayTracing = window->rayTracing;
+	RayMesh* rayMeshes = rayTracing->base.rayMeshes;
+	size_t rayMeshCount = rayTracing->base.rayMeshCount;
+
+	for (size_t i = 0; i < rayMeshCount; i++)
+	{
+		if (rayMesh != rayMeshes[i])
+			continue;
+
+		GraphicsAPI api = window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
+		{
+#if MPGX_SUPPORT_VULKAN
+			VkWindow vkWindow = window->vkWindow;
+
+			destroyVkRayMesh(
+				vkWindow->device,
+				vkWindow->allocator,
+				window->rayTracing,
+				rayMesh);
+#else
+			abort();
+#endif
+		}
+		else
+		{
+			abort();
+		}
+
+		for (size_t j = i + 1; j < rayMeshCount; j++)
+			rayMeshes[j - 1] = rayMeshes[j];
+
+		rayTracing->base.rayMeshCount--;
+		return;
+	}
+
+	abort();
+}
+
+RayRender createRayRender(
+	Window window,
+	RayMesh* rayMeshes,
+	size_t rayMeshCount)
+{
+	assert(window != NULL);
+	assert(rayMeshes != NULL);
+	assert(rayMeshCount != 0);
+	assert(window->useRayTracing == true);
+	assert(window->isRecording == false);
+
+	GraphicsAPI api = window->api;
+	RayTracing rayTracing = window->rayTracing;
+
+	RayRender rayRender;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+
+		rayRender = createVkRayRender(
+			vkWindow->device,
+			vkWindow->allocator,
+			vkWindow->graphicsQueue,
+			vkWindow->transferCommandPool,
+			vkWindow->transferFence,
+			rayTracing,
+			window,
+			rayMeshes,
+			rayMeshCount);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+
+	if (rayRender == NULL)
+		return NULL;
+
+	size_t count = rayTracing->base.rayRenderCount;
+
+	if (count == rayTracing->base.rayRenderCapacity)
+	{
+		size_t capacity = rayTracing->base.rayRenderCapacity * 2;
+
+		RayRender* rayRenders = realloc(
+			rayTracing->base.rayRenders,
+			sizeof(RayRender) * capacity);
+
+		if (rayRenders == NULL)
+		{
+			if (api == VULKAN_GRAPHICS_API)
+			{
+#if MPGX_SUPPORT_VULKAN
+				VkWindow vkWindow = window->vkWindow;
+
+				destroyVkRayRender(
+					vkWindow->device,
+					vkWindow->allocator,
+					window->rayTracing,
+					rayRender);
+#else
+				abort();
+#endif
+			}
+			else
+			{
+				abort();
+			}
+
+			return NULL;
+		}
+
+		rayTracing->base.rayRenders = rayRenders;
+		rayTracing->base.rayRenderCapacity = capacity;
+	}
+
+	rayTracing->base.rayRenders[count] = rayRender;
+	rayTracing->base.rayRenderCount = count + 1;
+	return rayRender;
+}
+void destroyRayRender(RayRender rayRender)
+{
+	if (rayRender == NULL)
+		return;
+
+	assert(rayRender->base.window->isRecording == false);
+
+	Window window = rayRender->base.window;
+	RayTracing rayTracing = window->rayTracing;
+	RayRender* rayRenders = rayTracing->base.rayRenders;
+	size_t rayRenderCount = rayTracing->base.rayRenderCount;
+
+	for (size_t i = 0; i < rayRenderCount; i++)
+	{
+		if (rayRender != rayRenders[i])
+			continue;
+
+		GraphicsAPI api = window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
+		{
+#if MPGX_SUPPORT_VULKAN
+			VkWindow vkWindow = window->vkWindow;
+
+			destroyVkRayRender(
+				vkWindow->device,
+				vkWindow->allocator,
+				window->rayTracing,
+				rayRender);
+#else
+			abort();
+#endif
+		}
+		else
+		{
+			abort();
+		}
+
+		for (size_t j = i + 1; j < rayRenderCount; j++)
+			rayRenders[j - 1] = rayRenders[j];
+
+		rayTracing->base.rayRenderCount--;
+		return;
+	}
+
+	abort();
 }

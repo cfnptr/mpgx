@@ -13,8 +13,7 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/window.h"
-#include "mpgx/_source/graphics.h"
+#include "glad/glad.h"
 
 #include <stdio.h>
 #include <stdbool.h>

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "mpgx/text.h"
+#include "mpgx/_source/window.h"
 #include "mpgx/_source/pipeline.h"
 #include "mpgx/_source/image.h"
 #include "mpgx/_source/sampler.h"
@@ -1297,7 +1298,7 @@ Text createText32(
 
 	Mesh mesh = createMesh(
 		window,
-		UINT32_DRAW_INDEX,
+		UINT32_INDEX_TYPE,
 		indexCount,
 		0,
 		vertexBuffer,
@@ -2101,7 +2102,7 @@ bool bakeText(
 				vertexBuffer);
 			setMeshIndexBuffer(
 				mesh,
-				UINT32_DRAW_INDEX,
+				UINT32_INDEX_TYPE,
 				(vertexCount / 16) * 6,
 				0,
 				indexBuffer);
@@ -2250,7 +2251,7 @@ bool bakeText(
 
 		Mesh mesh = createMesh(
 			window,
-			UINT32_DRAW_INDEX,
+			UINT32_INDEX_TYPE,
 			indexCount,
 			0,
 			vertexBuffer,

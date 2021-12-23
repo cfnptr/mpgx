@@ -27,9 +27,10 @@ typedef Render_T* Render;
 
 typedef enum RenderSorting_T
 {
-	ASCENDING_RENDER_SORTING = 0,
-	DESCENDING_RENDER_SORTING = 1,
-	RENDER_SORTING_COUNT = 2,
+	NO_RENDER_SORTING = 0,
+	ASCENDING_RENDER_SORTING = 1,
+	DESCENDING_RENDER_SORTING = 2,
+	RENDER_SORTING_COUNT = 3,
 } RenderSorting_T;
 
 typedef uint8_t RenderSorting;

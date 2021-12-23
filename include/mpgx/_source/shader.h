@@ -13,11 +13,8 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/_source/opengl.h"
-
-#if MPGX_SUPPORT_VULKAN
 #include "mpgx/_source/vulkan.h"
-#endif
+#include "mpgx/_source/opengl.h"
 
 #include "mpgx/md5.h"
 #include <string.h>
@@ -29,15 +26,15 @@
 	"precision highp float;\n"  \
 	"precision highp int;\n"
 
-typedef struct _BaseShader
+typedef struct BaseShader_T
 {
 	Window window;
 	ShaderType type;
 #ifndef NDEBUG
 	uint8_t hash[MD5_BLOCK_SIZE];
 #endif
-} _BaseShader;
-typedef struct _VkShader
+} BaseShader_T;
+typedef struct VkShader_T
 {
 	Window window;
 	ShaderType type;
@@ -47,8 +44,8 @@ typedef struct _VkShader
 #if MPGX_SUPPORT_VULKAN
 	VkShaderModule handle;
 #endif
-} _VkShader;
-typedef struct _GlShader
+} VkShader_T;
+typedef struct GlShader_T
 {
 	Window window;
 	ShaderType type;
@@ -56,12 +53,12 @@ typedef struct _GlShader
 	uint8_t hash[MD5_BLOCK_SIZE];
 #endif
 	GLuint handle;
-} _GlShader;
+} GlShader_T;
 union Shader_T
 {
-	_BaseShader base;
-	_GlShader gl;
-	_VkShader vk;
+	BaseShader_T base;
+	VkShader_T vk;
+	GlShader_T gl;
 };
 
 #if MPGX_SUPPORT_VULKAN

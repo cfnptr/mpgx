@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mpgx/pipelines/simpshad_pipeline.h"
+#include "mpgx/pipelines/color_pipeline.h"
 #include "mpgx/_source/window.h"
 #include "mpgx/_source/pipeline.h"
 
@@ -22,21 +22,29 @@ typedef struct VertexPushConstants
 {
 	Mat4F mvp;
 } VertexPushConstants;
+typedef struct FragmentPushConstants
+{
+	LinearColor color;
+} FragmentPushConstants;
 typedef struct BasePipelineHandle
 {
 	Window window;
 	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
 } BasePipelineHandle;
 typedef struct VkPipelineHandle
 {
 	Window window;
 	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
 } VkPipelineHandle;
 typedef struct GlPipelineHandle
 {
 	Window window;
 	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
 	GLint mvpLocation;
+	GLint colorLocation;
 } GlPipelineHandle;
 union PipelineHandle_T
 {
@@ -47,23 +55,6 @@ union PipelineHandle_T
 
 typedef union PipelineHandle_T PipelineHandle_T;
 typedef PipelineHandle_T* PipelineHandle;
-
-Sampler createSimpShadSampler(Window window)
-{
-	return createSampler(
-		window,
-		LINEAR_IMAGE_FILTER,
-		LINEAR_IMAGE_FILTER,
-		LINEAR_IMAGE_FILTER,
-		false,
-		REPEAT_IMAGE_WRAP,
-		REPEAT_IMAGE_WRAP,
-		REPEAT_IMAGE_WRAP,
-		LESS_COMPARE_OPERATOR,
-		true,
-		defaultMipmapLodRange,
-		DEFAULT_MIPMAP_LOD_BIAS);
-}
 
 #if MPGX_SUPPORT_VULKAN
 static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
@@ -81,11 +72,16 @@ static const VkVertexInputAttributeDescription vertexInputAttributeDescriptions[
 		0,
 	},
 };
-static const VkPushConstantRange pushConstantRanges[1] = {
+static const VkPushConstantRange pushConstantRanges[2] = {
 	{
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(VertexPushConstants),
+	},
+	{
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		sizeof(VertexPushConstants),
+		sizeof(FragmentPushConstants),
 	},
 };
 
@@ -93,20 +89,42 @@ static void onVkUniformsSet(Pipeline pipeline)
 {
 	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
+	VkPipelineLayout layout = pipeline->vk.layout;
 
 	vkCmdPushConstants(
-		vkWindow->currenCommandBuffer,
-		pipeline->vk.layout,
+		commandBuffer,
+		layout,
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(VertexPushConstants),
 		&pipelineHandle->vk.vpc);
+	vkCmdPushConstants(
+		commandBuffer,
+		layout,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		sizeof(VertexPushConstants),
+		sizeof(FragmentPushConstants),
+		&pipelineHandle->vk.fpc);
 }
 static bool onVkHandleResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
 {
+	Vec4U size = vec4U(0, 0,
+		newSize.x, newSize.y);
+
+	bool dynamic = pipeline->vk.state.viewport.z +
+				   pipeline->vk.state.viewport.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.viewport = size;
+
+	dynamic = pipeline->vk.state.scissor.z +
+			  pipeline->vk.state.scissor.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.scissor = size;
+
 	VkPipelineCreateInfo _createInfo = {
 		1,
 		vertexInputBindingDescriptions,
@@ -114,7 +132,7 @@ static bool onVkHandleResize(
 		vertexInputAttributeDescriptions,
 		0,
 		NULL,
-		1,
+		2,
 		pushConstantRanges,
 	};
 
@@ -139,13 +157,13 @@ inline static Pipeline createVkHandle(
 		vertexInputAttributeDescriptions,
 		0,
 		NULL,
-		1,
+		2,
 		pushConstantRanges,
 	};
 
 	return createPipeline(
 		framebuffer,
-		SIMPSHAD_PIPELINE_NAME,
+		COLOR_PIPELINE_NAME,
 		shaders,
 		shaderCount,
 		state,
@@ -167,6 +185,10 @@ static void onGlUniformsSet(Pipeline pipeline)
 		1,
 		GL_FALSE,
 		(const GLfloat*)&pipelineHandle->gl.vpc.mvp);
+	glUniform4fv(
+		pipelineHandle->gl.colorLocation,
+		1,
+		(const GLfloat*)&pipelineHandle->gl.fpc.color);
 
 	glEnableVertexAttribArray(0);
 
@@ -185,6 +207,18 @@ static bool onGlHandleResize(
 	Vec2U newSize,
 	void* createInfo)
 {
+	Vec4U size = vec4U(0, 0,
+		newSize.x, newSize.y);
+
+	bool dynamic = pipeline->vk.state.viewport.z +
+				   pipeline->vk.state.viewport.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.viewport = size;
+
+	dynamic = pipeline->vk.state.scissor.z +
+			  pipeline->vk.state.scissor.w == 0;
+	if (dynamic == false)
+		pipeline->vk.state.scissor = size;
 	return true;
 }
 static void onGlHandleDestroy(void* handle)
@@ -200,7 +234,7 @@ inline static Pipeline createGlHandle(
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
-		SIMPSHAD_PIPELINE_NAME,
+		COLOR_PIPELINE_NAME,
 		shaders,
 		shaderCount,
 		state,
@@ -216,12 +250,16 @@ inline static Pipeline createGlHandle(
 
 	GLuint glHandle = pipeline->gl.glHandle;
 
-	GLint mvpLocation;
+	GLint mvpLocation, colorLocation;
 
 	bool result = getGlUniformLocation(
 		glHandle,
 		"u_MVP",
 		&mvpLocation);
+	result &= getGlUniformLocation(
+		glHandle,
+		"u_Color",
+		&colorLocation);
 
 	if (result == false)
 	{
@@ -232,10 +270,11 @@ inline static Pipeline createGlHandle(
 	assertOpenGL();
 
 	pipelineHandle->gl.mvpLocation = mvpLocation;
+	pipelineHandle->gl.colorLocation = colorLocation;
 	return pipeline;
 }
 
-Pipeline createExtSimpShadPipeline(
+Pipeline createExtColorPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -258,6 +297,7 @@ Pipeline createExtSimpShadPipeline(
 	Window window = framebuffer->base.window;
 	pipelineHandle->base.window = window;
 	pipelineHandle->base.vpc.mvp = identMat4F;
+	pipelineHandle->base.fpc.color = whiteLinearColor;
 
 	Shader shaders[2] = {
 		vertexShader,
@@ -280,7 +320,7 @@ Pipeline createExtSimpShadPipeline(
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+			 api == OPENGL_ES_GRAPHICS_API)
 	{
 		return createGlHandle(
 			framebuffer,
@@ -294,39 +334,37 @@ Pipeline createExtSimpShadPipeline(
 		abort();
 	}
 }
-Pipeline createSimpShadPipeline(
+Pipeline createColorPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
-	Shader fragmentShader,
-	uint32_t shadowMapLength)
+	Shader fragmentShader)
 {
 	assert(framebuffer != NULL);
-	assert(shadowMapLength != 0);
 
+	Vec2U framebufferSize =
+		framebuffer->base.size;
 	Vec4U size = vec4U(0, 0,
-		shadowMapLength,
-		shadowMapLength);
-	Vec2F depthBias = vec2F(
-		1.1f,4.0f);
+		framebufferSize.x,
+		framebufferSize.y);
 
 	PipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
 		LESS_COMPARE_OPERATOR,
-		NONE_COLOR_COMPONENT,
+		ALL_COLOR_COMPONENT,
 		ZERO_BLEND_FACTOR,
 		ZERO_BLEND_FACTOR,
 		ZERO_BLEND_FACTOR,
 		ZERO_BLEND_FACTOR,
 		ADD_BLEND_OPERATOR,
 		ADD_BLEND_OPERATOR,
-		false,
-		false,
+		true,
+		true,
 		true,
 		true,
 		false,
-		true,
+		false,
 		false,
 		false,
 		false,
@@ -334,37 +372,61 @@ Pipeline createSimpShadPipeline(
 		size,
 		size,
 		defaultDepthRange,
-		depthBias,
+		defaultDepthBias,
 		defaultBlendColor,
 	};
 
-	return createExtSimpShadPipeline(
+	return createExtColorPipeline(
 		framebuffer,
 		vertexShader,
 		fragmentShader,
 		&state);
 }
 
-Mat4F getSimpShadPipelineMvp(
+Mat4F getColorPipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		SIMPSHAD_PIPELINE_NAME) == 0);
+		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.mvp;
 }
-void setSimpShadPipelineMvp(
+void setColorPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		SIMPSHAD_PIPELINE_NAME) == 0);
+		COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.mvp = mvp;
+}
+
+LinearColor getColorPipelineColor(
+	Pipeline pipeline)
+{
+	assert(pipeline != NULL);
+	assert(strcmp(
+		pipeline->base.name,
+		COLOR_PIPELINE_NAME) == 0);
+	PipelineHandle pipelineHandle =
+		pipeline->base.handle;
+	return pipelineHandle->base.fpc.color;
+}
+void setColorPipelineColor(
+	Pipeline pipeline,
+	LinearColor color)
+{
+	assert(pipeline != NULL);
+	assert(strcmp(
+		pipeline->base.name,
+		COLOR_PIPELINE_NAME) == 0);
+	PipelineHandle pipelineHandle =
+		pipeline->base.handle;
+	pipelineHandle->base.fpc.color = color;
 }

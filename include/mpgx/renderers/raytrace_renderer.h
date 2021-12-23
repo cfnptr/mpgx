@@ -13,12 +13,20 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/defines.h"
+#include "mpgx/renderer.h"
+#include "mpgx/pipelines/raytrace_pipeline.h"
 
-#if MPGX_SUPPORT_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#include "vk_mem_alloc.h"
-#endif
+Renderer createRayTraceRenderer(
+	Pipeline pipeline,
+	size_t capacity);
+Render createRayTraceRender(
+	Renderer renderer,
+	Transform transform,
+	Box3F bounding,
+	Mesh mesh);
 
-#include "glad/glad.h"
-#include "GLFW/glfw3.h"
+Mesh getRayTraceRenderMesh(
+	Render render);
+void setRayTraceRenderMesh(
+	Render render,
+	Mesh mesh);

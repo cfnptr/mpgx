@@ -16,7 +16,7 @@
 #include "mpgx/_source/shader.h"
 #include "mpgx/_source/framebuffer.h"
 
-typedef struct _BasePipeline
+typedef struct BasePipeline_T
 {
 	Framebuffer framebuffer;
 	PipelineState state;
@@ -30,8 +30,8 @@ typedef struct _BasePipeline
 #ifndef NDEBUG
 	const char* name;
 #endif
-} _BasePipeline;
-typedef struct _VkPipeline
+} BasePipeline_T;
+typedef struct VkPipeline_T
 {
 	Framebuffer framebuffer;
 	PipelineState state;
@@ -50,8 +50,8 @@ typedef struct _VkPipeline
 	VkPipelineLayout layout;
 	VkPipeline vkHandle;
 #endif
-} _VkPipeline;
-typedef struct _GlPipeline
+} VkPipeline_T;
+typedef struct GlPipeline_T
 {
 	Framebuffer framebuffer;
 	PipelineState state;
@@ -77,12 +77,12 @@ typedef struct _GlPipeline
 	GLenum colorBlendOperator;
 	GLenum alphaBlendOperator;
 	GLenum frontFace;
-} _GlPipeline;
+} GlPipeline_T;
 union Pipeline_T
 {
-	_BasePipeline base;
-	_VkPipeline vk;
-	_GlPipeline gl;
+	BasePipeline_T base;
+	VkPipeline_T vk;
+	GlPipeline_T gl;
 };
 
 #if MPGX_SUPPORT_VULKAN

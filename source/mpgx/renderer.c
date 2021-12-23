@@ -63,7 +63,6 @@ Renderer createRenderer(
 	size_t capacity)
 {
 	assert(pipeline != NULL);
-	assert(sorting >= ASCENDING_RENDER_SORTING);
 	assert(sorting < RENDER_SORTING_COUNT);
 	assert(onHandleDestroy != NULL);
 	assert(onHandleDraw != NULL);
@@ -133,7 +132,6 @@ void setRendererSorting(
 	RenderSorting sorting)
 {
 	assert(renderer != NULL);
-	assert(sorting >= ASCENDING_RENDER_SORTING);
 	assert(sorting < RENDER_SORTING_COUNT);
 	renderer->sorting = sorting;
 }
@@ -458,22 +456,20 @@ RenderResult drawRenderer(
 	if (elementCount == 0)
 		return result;
 
-	if (elementCount > 1)
-	{
-		RenderSorting sorting = renderer->sorting;
+	RenderSorting sorting = renderer->sorting;
 
+	if (sorting != NO_RENDER_SORTING && elementCount > 1)
+	{
 		if (sorting == ASCENDING_RENDER_SORTING)
 		{
-			qsort(
-				renderElements,
+			qsort(renderElements,
 				elementCount,
 				sizeof(RenderElement),
 				ascendingRenderCompare);
 		}
 		else if (sorting == DESCENDING_RENDER_SORTING)
 		{
-			qsort(
-				renderElements,
+			qsort(renderElements,
 				elementCount,
 				sizeof(RenderElement),
 				descendingRenderCompare);

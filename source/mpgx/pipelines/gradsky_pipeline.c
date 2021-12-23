@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "mpgx/pipelines/gradsky_pipeline.h"
+#include "mpgx/_source/window.h"
 #include "mpgx/_source/pipeline.h"
 #include "mpgx/_source/sampler.h"
 

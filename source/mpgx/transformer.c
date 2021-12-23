@@ -31,7 +31,7 @@ struct Transform_T
 	Vec3F scale;
 	Quat rotation;
 	RotationType rotationType;
-	Mat4F model;
+	Mat4F model; // TODO: use Mat4x3F
 	Transform parent;
 	bool isActive;
 };
@@ -92,7 +92,6 @@ Transform createTransform(
 	bool isActive)
 {
 	assert(transformer != NULL);
-	assert(rotationType >= NO_ROTATION_TYPE);
 	assert(rotationType < ROTATION_TYPE_COUNT);
 
 	assert((parent == NULL) || (parent != NULL &&
@@ -221,7 +220,6 @@ void setTransformRotationType(
 	RotationType rotationType)
 {
 	assert(transform != NULL);
-	assert(rotationType >= NO_ROTATION_TYPE);
 	assert(rotationType < ROTATION_TYPE_COUNT);
 	transform->rotationType = rotationType;
 }

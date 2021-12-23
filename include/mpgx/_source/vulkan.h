@@ -13,1286 +13,136 @@
 // limitations under the License.
 
 #pragma once
+#include "mpgx/defines.h"
 
-#include "mpgx/_source/graphics.h"
-#include "mpgx/_source/swapchain.h"
+#if MPGX_SUPPORT_VULKAN
+#include "vulkan/vulkan.h"
+#include "vk_mem_alloc.h"
 
-#define ENGINE_NAME "MPGX"
-#define VK_VERSION VK_API_VERSION_1_2
-#define VK_FRAME_LAG 2
-
-typedef struct VkWindow_T
+inline static VkCommandBuffer allocateBeginVkOneTimeCommandBuffer(
+	VkDevice device,
+	VkCommandPool commandPool)
 {
-	VkSurfaceKHR surface;
-	VkPhysicalDevice physicalDevice;
-	bool isGpuIntegrated;
-	uint32_t graphicsQueueFamilyIndex;
-	uint32_t presentQueueFamilyIndex;
-	VkDevice device;
-	VmaAllocator allocator;
-	VkQueue graphicsQueue;
-	VkQueue presentQueue;
-	VkCommandPool graphicsCommandPool;
-	VkCommandPool presentCommandPool;
-	VkCommandPool transferCommandPool;
-	VkFence fences[VK_FRAME_LAG];
-	VkSemaphore imageAcquiredSemaphores[VK_FRAME_LAG];
-	VkSemaphore drawCompleteSemaphores[VK_FRAME_LAG];
-	VkSemaphore imageOwnershipSemaphores[VK_FRAME_LAG];
-	VkFence stagingFence;
-	VkSwapchain swapchain;
-	uint32_t frameIndex;
-	uint32_t bufferIndex;
-	VkCommandBuffer currenCommandBuffer;
-	VkBuffer stagingBuffer;
-	VmaAllocation stagingAllocation;
-	size_t stagingSize;
-} VkWindow_T;
-
-typedef VkWindow_T* VkWindow;
-
-static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
-	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-	const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
-	void* userData)
-{
-#if __APPLE__
-	if (callbackData->messageIdNumber == 0x6bbb14 ||
-		callbackData->messageIdNumber == 0xf467460 ||
-		strcmp(callbackData->pMessage, "Unrecognized "
-		"CreateInstance->pCreateInfo->pApplicationInfo->apiVersion "
-		"number (0x00402000). Assuming MoltenVK 1.1 version.") == 0)
-	{
-		// TODO: fix MoltenVK Vulkan 1.2 shader error logs
-		return VK_FALSE;
-	}
-#endif
-
-	const char* severity;
-
-	if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
-		severity = "Vulkan VERBOSE";
-	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
-		severity = "Vulkan INFO";
-	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-		severity = "Vulkan WARNING";
-	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-		severity = "Vulkan ERROR";
-
-	fprintf(stdout,
-		"%s: %s\n",
-		severity,
-		callbackData->pMessage);
-	return VK_FALSE;
-}
-
-inline static VkInstance createVkInstance(
-	const char* appName,
-	uint8_t appVersionMajor,
-	uint8_t appVersionMinor,
-	uint8_t appVersionPatch,
-	const char** requiredLayers,
-	uint32_t requiredLayerCount,
-	const char** preferredLayers,
-	uint32_t preferredLayerCount,
-	const char** requiredExtensions,
-	uint32_t requiredExtensionCount,
-	const char** preferredExtensions,
-	uint32_t preferredExtensionCount,
-	bool* supportedExtensions)
-{
-	VkResult result;
-	uint32_t layerCount;
-	const char** layers;
-
-#ifndef NDEBUG
-	uint32_t layerPropertyCount;
-
-	result = vkEnumerateInstanceLayerProperties(
-		&layerPropertyCount,
-		NULL);
-
-	if (result != VK_SUCCESS ||
-		layerPropertyCount == 0)
-	{
-		return NULL;
-	}
-
-	VkLayerProperties* layerProperties = malloc(
-		layerPropertyCount * sizeof(VkLayerProperties));
-
-	if (layerProperties == NULL)
-		return NULL;
-
-	result = vkEnumerateInstanceLayerProperties(
-		&layerPropertyCount,
-		layerProperties);
-
-	if (result != VK_SUCCESS ||
-		layerPropertyCount == 0)
-	{
-		free(layerProperties);
-		return NULL;
-	}
-
-	uint32_t layerSize = requiredLayerCount + preferredLayerCount;
-	layers = malloc(layerSize * sizeof(const char*));
-
-	if (layers == NULL)
-	{
-		free(layerProperties);
-		return NULL;
-	}
-
-	layerCount = requiredLayerCount;
-
-	for (uint32_t i = 0; i < requiredLayerCount; i++)
-		layers[i] = requiredLayers[i];
-
-	for (uint32_t i = 0; i < preferredLayerCount; i++)
-	{
-		bool isLayerFound = false;
-
-		for (uint32_t j = 0; j < layerPropertyCount; j++)
-		{
-			if (strcmp(preferredLayers[i],
-				layerProperties[j].layerName) == 0)
-			{
-				isLayerFound = true;
-				break;
-			}
-		}
-
-		if (isLayerFound == true)
-		{
-			isLayerFound = false;
-
-			for (uint32_t j = 0; j < layerCount; j++)
-			{
-				if (strcmp(layers[j],
-					preferredLayers[i]) == 0)
-				{
-					isLayerFound = true;
-					break;
-				}
-			}
-
-			if (isLayerFound == false)
-				layers[layerCount++] = preferredLayers[i];
-		}
-	}
-
-	free(layerProperties);
-#else
-	layerCount = 0;
-	layers = NULL;
-#endif
-
-	uint32_t glfwExtensionCount;
-
-	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(
-		&glfwExtensionCount);
-
-	if (glfwExtensionCount == 0 ||
-		glfwExtensions == NULL)
-	{
-		free((void*)layers);
-		return NULL;
-	}
-
-	uint32_t extensionPropertyCount;
-
-	result = vkEnumerateInstanceExtensionProperties(
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		NULL,
-		&extensionPropertyCount,
-		NULL);
-
-	if (result != VK_SUCCESS ||
-		extensionPropertyCount == 0)
-	{
-		free((void*)layers);
-		return NULL;
-	}
-
-	VkExtensionProperties* extensionProperties = malloc(
-		extensionPropertyCount * sizeof(VkLayerProperties));
-
-	if (extensionProperties == NULL)
-	{
-		free((void*)layers);
-		return NULL;
-	}
-
-	result = vkEnumerateInstanceExtensionProperties(
-		NULL,
-		&extensionPropertyCount,
-		extensionProperties);
-
-	if (result != VK_SUCCESS ||
-		extensionPropertyCount == 0)
-	{
-		free(extensionProperties);
-		free((void*)layers);
-		return NULL;
-	}
-
-	uint32_t extensionSize = glfwExtensionCount +
-		requiredExtensionCount + preferredExtensionCount;
-
-	const char** extensions = malloc(
-		extensionSize * sizeof(const char*));
-
-	if (extensions == NULL)
-	{
-		free(extensionProperties);
-		free((void*)layers);
-		return NULL;
-	}
-
-	uint32_t extensionCount = glfwExtensionCount;
-
-	for (uint32_t i = 0; i < glfwExtensionCount; i++)
-		extensions[i] = glfwExtensions[i];
-
-	for (uint32_t i = 0; i < requiredExtensionCount; i++)
-	{
-		bool isExtensionFound = false;
-
-		for (uint32_t j = 0; j < extensionCount; j++)
-		{
-			if (strcmp(extensions[j],
-				requiredExtensions[i]) == 0)
-			{
-				isExtensionFound = true;
-				break;
-			}
-		}
-
-		if (isExtensionFound == false)
-			extensions[extensionCount++] = requiredExtensions[i];
-	}
-
-	for (uint32_t i = 0; i < preferredExtensionCount; i++)
-	{
-		bool isExtensionFound = false;
-
-		for (uint32_t j = 0; j < extensionPropertyCount; j++)
-		{
-			if (strcmp(preferredExtensions[i],
-				extensionProperties[j].extensionName) == 0)
-			{
-				isExtensionFound = true;
-				break;
-			}
-		}
-
-		if (isExtensionFound == true)
-		{
-			supportedExtensions[i] = isExtensionFound;
-			isExtensionFound = false;
-
-			for (uint32_t j = 0; j < extensionCount; j++)
-			{
-				if (strcmp(extensions[j],
-					preferredExtensions[i]) == 0)
-				{
-					isExtensionFound = true;
-					break;
-				}
-			}
-
-			if (isExtensionFound == false)
-				extensions[extensionCount++] = preferredExtensions[i];
-		}
-	}
-
-	free(extensionProperties);
-
-	uint32_t appVersion = VK_MAKE_API_VERSION(
-		0,
-		appVersionMajor,
-		appVersionMinor,
-		appVersionPatch);
-	const uint32_t engineVersion = VK_MAKE_API_VERSION(
-		0,
-		MPGX_VERSION_MAJOR,
-		MPGX_VERSION_MINOR,
-		MPGX_VERSION_PATCH);
-	VkApplicationInfo applicationInfo = {
-		VK_STRUCTURE_TYPE_APPLICATION_INFO,
-		NULL,
-		appName,
-		appVersion,
-		ENGINE_NAME,
-		engineVersion,
-		VK_VERSION,
-	};
-
-	VkInstanceCreateInfo instanceCreateInfo = {
-		VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-		NULL,
-		0,
-		&applicationInfo,
-		layerCount,
-		layers,
-		extensionCount,
-		extensions,
-	};
-
-#ifndef NDEBUG
-	for (uint32_t i = 0; i < extensionCount; i++)
-	{
-		if (strcmp(extensions[i],
-			VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
-		{
-			VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo = {
-				VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-				NULL,
-				0,
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
-				VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-				vkDebugMessengerCallback,
-				NULL,
-			};
-
-			instanceCreateInfo.pNext = &messengerCreateInfo;
-			break;
-		}
-	}
-#endif
-
-	VkInstance instance;
-
-	result = vkCreateInstance(
-		&instanceCreateInfo,
-		NULL,
-		&instance);
-
-	free((void*)extensions);
-	free((void*)layers);
-
-	if (result != VK_SUCCESS)
-		return NULL;
-
-	return instance;
-}
-
-inline static VkDebugUtilsMessengerEXT createVkDebugUtilsMessenger(
-	VkInstance instance)
-{
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = {
-		VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-		NULL,
-		0,
-		VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
-		VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-		vkDebugMessengerCallback,
-		NULL,
-	};
-
-	PFN_vkCreateDebugUtilsMessengerEXT createFunction =
-		(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			instance, "vkCreateDebugUtilsMessengerEXT");
-
-	if (createFunction == NULL)
-		return NULL;
-
-	VkDebugUtilsMessengerEXT messenger;
-
-	VkResult result = createFunction(
-		instance,
-		&createInfo,
-		NULL,
-		&messenger);
-
-	if (result != VK_SUCCESS)
-		return NULL;
-
-	return messenger;
-}
-inline static void destroyVkDebugUtilsMessenger(
-	VkInstance instance,
-	VkDebugUtilsMessengerEXT debugUtilsMessenger)
-{
-	if (debugUtilsMessenger == NULL)
-		return;
-
-	PFN_vkDestroyDebugUtilsMessengerEXT destroyFunction =
-		(PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			instance, "vkDestroyDebugUtilsMessengerEXT");
-
-	if (destroyFunction == NULL)
-		abort();
-
-	destroyFunction(
-		instance,
-		debugUtilsMessenger,
-		NULL);
-}
-
-inline static VkPhysicalDevice getBestVkPhysicalDevice(
-	VkInstance instance,
-	bool* _isGpuIntegrated)
-{
-	uint32_t deviceCount;
-
-	VkResult result = vkEnumeratePhysicalDevices(
-		instance,
-		&deviceCount,
-		NULL);
-
-	if (result != VK_SUCCESS || deviceCount == 0)
-		return NULL;
-
-	VkPhysicalDevice* devices = malloc(
-		deviceCount * sizeof(VkPhysicalDevice));
-
-	if (devices == NULL)
-		return NULL;
-
-	result = vkEnumeratePhysicalDevices(
-		instance,
-		&deviceCount,
-		devices);
-
-	if (result != VK_SUCCESS ||
-		deviceCount == 0)
-	{
-		free(devices);
-		return NULL;
-	}
-
-	VkPhysicalDevice targetDevice = NULL;
-	uint32_t targetScore = 0;
-	bool isGpuIntegrated = false;
-
-	for (uint32_t i = 0; i < deviceCount; i++)
-	{
-		VkPhysicalDevice device = devices[i];
-		VkPhysicalDeviceProperties properties;
-
-		vkGetPhysicalDeviceProperties(
-			device,
-			&properties);
-
-		uint32_t score = 0;
-
-		if (properties.deviceType ==
-			VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-		{
-			score += 1000;
-		}
-		else if (properties.deviceType ==
-			VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
-		{
-			score += 750;
-		}
-		else if (properties.deviceType ==
-			VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
-		{
-			score += 500;
-		}
-		else if (properties.deviceType ==
-			VK_PHYSICAL_DEVICE_TYPE_CPU)
-		{
-			score += 250;
-		}
-
-		// TODO: add other tests
-
-		if (score > targetScore)
-		{
-			targetDevice = device;
-			targetScore = score;
-
-			isGpuIntegrated = properties.deviceType ==
-				VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
-		}
-	}
-
-	free(devices);
-
-	*_isGpuIntegrated = isGpuIntegrated;
-	return targetDevice;
-}
-inline static bool getVkQueueFamilyIndices(
-	VkPhysicalDevice physicalDevice,
-	VkSurfaceKHR surface,
-	uint32_t* _graphicsQueueFamilyIndex,
-	uint32_t* _presentQueueFamilyIndex)
-{
-	uint32_t propertyCount;
-
-	vkGetPhysicalDeviceQueueFamilyProperties(
-		physicalDevice,
-		&propertyCount,
-		NULL);
-
-	if (propertyCount == 0)
-		return false;
-
-	VkQueueFamilyProperties* properties = malloc(
-		propertyCount * sizeof(VkQueueFamilyProperties));
-
-	if (properties == NULL)
-		return false;
-
-	vkGetPhysicalDeviceQueueFamilyProperties(
-		physicalDevice,
-		&propertyCount,
-		properties);
-
-	if (propertyCount == 0)
-	{
-		free(properties);
-		return false;
-	}
-
-	uint32_t graphicsQueueFamilyIndex = UINT32_MAX;
-	uint32_t presentQueueFamilyIndex = UINT32_MAX;
-
-	for (uint32_t i = 0; i < propertyCount; i++)
-	{
-		VkQueueFamilyProperties* property = &properties[i];
-
-		if (property->queueFlags & VK_QUEUE_GRAPHICS_BIT)
-		{
-			if (graphicsQueueFamilyIndex == UINT32_MAX)
-				graphicsQueueFamilyIndex = i;
-		}
-
-		VkBool32 isSupported;
-
-		VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(
-			physicalDevice,
-			i,
-			surface,
-			&isSupported);
-
-		// TESTING PURPOSE:
-		//if (graphicsQueueFamilyIndex == i) continue;
-
-		if (result != VK_SUCCESS)
-		{
-			free(properties);
-			return false;
-		}
-
-		if (isSupported == VK_TRUE)
-		{
-			if (presentQueueFamilyIndex == UINT32_MAX)
-				presentQueueFamilyIndex = i;
-		}
-
-		if (graphicsQueueFamilyIndex != UINT32_MAX &&
-			presentQueueFamilyIndex != UINT32_MAX)
-		{
-			*_graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
-			*_presentQueueFamilyIndex = presentQueueFamilyIndex;
-
-			free(properties);
-			return true;
-		}
-	}
-
-	free(properties);
-	return false;
-}
-
-inline static MpgxResult createVkDevice(
-	VkPhysicalDevice physicalDevice,
-	uint32_t graphicsQueueFamilyIndex,
-	uint32_t presentQueueFamilyIndex,
-	const char** requiredExtensions,
-	uint32_t requiredExtensionCount,
-	const char** preferredExtensions,
-	uint32_t preferredExtensionCount,
-	bool* supportedExtensions,
-	VkDevice* device)
-{
-	float priority = 1.0f;
-
-	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = {
-		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-		NULL,
-		0,
-		graphicsQueueFamilyIndex,
+		commandPool,
+		VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 		1,
-		&priority,
-	};
-	VkDeviceQueueCreateInfo presentQueueCreateInfo = {
-		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-		NULL,
-		0,
-		presentQueueFamilyIndex,
-		1,
-		&priority,
-	};
-	const VkDeviceQueueCreateInfo oneCreateInfos[1] = {
-		graphicsQueueCreateInfo,
-	};
-	const VkDeviceQueueCreateInfo twoCreateInfos[2] = {
-		graphicsQueueCreateInfo,
-		presentQueueCreateInfo,
 	};
 
-	const VkDeviceQueueCreateInfo* queueCreateInfos;
-	uint32_t queueCreateInfoCount;
+	VkCommandBuffer commandBuffer;
 
-	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-	{
-		queueCreateInfos = oneCreateInfos;
-		queueCreateInfoCount = 1;
-	}
-	else
-	{
-		queueCreateInfos = twoCreateInfos;
-		queueCreateInfoCount = 2;
-	}
+	VkResult vkResult = vkAllocateCommandBuffers(
+		device,
+		&commandBufferAllocateInfo,
+		&commandBuffer);
 
-	uint32_t propertyCount;
-
-	VkResult result = vkEnumerateDeviceExtensionProperties(
-		physicalDevice,
-		NULL,
-		&propertyCount,
-		NULL);
-
-	if (result != VK_SUCCESS || propertyCount == 0)
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
-
-	VkExtensionProperties* properties = malloc(
-		propertyCount * sizeof(VkExtensionProperties));
-
-	if (properties == NULL)
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
-
-	result = vkEnumerateDeviceExtensionProperties(
-		physicalDevice,
-		NULL,
-		&propertyCount,
-		properties);
-
-	if (result != VK_SUCCESS || propertyCount == 0)
-	{
-		free(properties);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
-	}
-
-	uint32_t extensionSize =
-		requiredExtensionCount + preferredExtensionCount;
-	const char** extensions = malloc(
-		extensionSize * sizeof(const char*));
-
-	if (extensions == NULL)
-	{
-		free(properties);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
-	}
-
-	uint32_t extensionCount = requiredExtensionCount;
-
-	for (uint32_t i = 0; i < requiredExtensionCount; i++)
-		extensions[i] = requiredExtensions[i];
-
-	for (uint32_t i = 0; i < preferredExtensionCount; i++)
-	{
-		bool isExtensionFound = false;
-
-		for (uint32_t j = 0; j < propertyCount; j++)
-		{
-			if (strcmp(preferredExtensions[i],
-				properties[j].extensionName) == 0)
-			{
-				isExtensionFound = true;
-				break;
-			}
-		}
-
-		if (isExtensionFound == true)
-		{
-			supportedExtensions[i] = isExtensionFound;
-			isExtensionFound = false;
-
-			for (uint32_t j = 0; j < extensionCount; j++)
-			{
-				if (strcmp(extensions[j],
-					preferredExtensions[i]) == 0)
-				{
-					isExtensionFound = true;
-					break;
-				}
-			}
-
-			if (isExtensionFound == false)
-				extensions[extensionCount++] = preferredExtensions[i];
-		}
-	}
-
-	free(properties);
-
-	VkDeviceCreateInfo deviceCreateInfo = {
-		VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-		NULL,
-		0,
-		queueCreateInfoCount,
-		queueCreateInfos,
-		0,
-		NULL,
-		extensionCount,
-		extensions,
-		NULL,
-	};
-
-	result = vkCreateDevice(
-		physicalDevice,
-		&deviceCreateInfo,
-		NULL,
-		device);
-
-	free(extensions);
-
-	if (result != VK_SUCCESS)
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
-	return SUCCESS_MPGX_RESULT;
-}
-
-inline static VmaAllocator createVmaAllocator(
-	VkPhysicalDevice physicalDevice,
-	VkDevice device,
-	VkInstance instance)
-{
-	VmaAllocatorCreateInfo createInfo;
-
-	memset(&createInfo,
-		0, sizeof(VmaAllocatorCreateInfo));
-
-	createInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
-	createInfo.physicalDevice = physicalDevice;
-	createInfo.device = device;
-	createInfo.instance = instance;
-	createInfo.vulkanApiVersion = VK_VERSION;
-
-	VmaAllocator allocator;
-
-	VkResult result = vmaCreateAllocator(
-		&createInfo,
-		&allocator);
-
-	if (result != VK_SUCCESS)
+	if (vkResult != VK_SUCCESS)
 		return NULL;
 
-	return allocator;
-}
-
-inline static VkCommandPool createVkCommandPool(
-	VkDevice device,
-	VkCommandPoolCreateFlags flags,
-	uint32_t queueFamilyIndex)
-{
-	VkCommandPoolCreateInfo createInfo = {
-		VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 		NULL,
-		flags,
-		queueFamilyIndex,
+		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+		NULL,
 	};
 
-	VkCommandPool commandPool;
-
-	VkResult result = vkCreateCommandPool(
-		device,
-		&createInfo,
-		NULL,
-		&commandPool);
-
-	if (result != VK_SUCCESS)
-		return NULL;
-
-	return commandPool;
-}
-
-inline static VkFence createVkFence(
-	VkDevice device,
-	VkFenceCreateFlags flags)
-{
-	VkFenceCreateInfo createInfo = {
-		VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-		NULL,
-		flags,
-	};
-
-	VkFence fence;
-
-	VkResult result = vkCreateFence(
-		device,
-		&createInfo,
-		NULL,
-		&fence);
-
-	if (result != VK_SUCCESS)
-		return NULL;
-
-	return fence;
-}
-inline static VkSemaphore createVkSemaphore(VkDevice device)
-{
-	VkSemaphoreCreateInfo createInfo = {
-		VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-		NULL,
-		0,
-	};
-
-	VkSemaphore semaphore;
-
-	VkResult result = vkCreateSemaphore(
-		device,
-		&createInfo,
-		NULL,
-		&semaphore);
-
-	if (result != VK_SUCCESS)
-		return NULL;
-
-	return semaphore;
-}
-
-inline static void destroyVkWindow(
-	VkInstance instance,
-	VkWindow vkWindow)
-{
-	if (vkWindow == NULL)
-		return;
-
-	VmaAllocator allocator = vkWindow->allocator;
-
-	if (vkWindow->stagingBuffer != NULL)
-	{
-		vmaDestroyBuffer(
-			allocator,
-			vkWindow->stagingBuffer,
-			vkWindow->stagingAllocation);
-	}
-
-	VkDevice device = vkWindow->device;
-	VkCommandPool graphicsCommandPool =
-		vkWindow->graphicsCommandPool;
-	VkCommandPool presentCommandPool =
-		vkWindow->presentCommandPool;
-
-	destroyVkSwapchain(
-		device,
-		allocator,
-		graphicsCommandPool,
-		presentCommandPool,
-		vkWindow->swapchain);
-
-	vkDestroyFence(
-		device,
-		vkWindow->stagingFence,
-		NULL);
-
-	VkFence* fences = vkWindow->fences;
-	VkSemaphore* imageAcquiredSemaphores =
-		vkWindow->imageAcquiredSemaphores;
-	VkSemaphore* drawCompleteSemaphores =
-		vkWindow->drawCompleteSemaphores;
-	VkSemaphore* imageOwnershipSemaphores =
-		vkWindow->imageOwnershipSemaphores;
-
-	for (uint8_t i = 0; i < VK_FRAME_LAG; i++)
-	{
-		vkDestroySemaphore(
-			device,
-			imageOwnershipSemaphores[i],
-			NULL);
-		vkDestroySemaphore(
-			device,
-			drawCompleteSemaphores[i],
-			NULL);
-		vkDestroySemaphore(
-			device,
-			imageAcquiredSemaphores[i],
-			NULL);
-
-		VkFence fence = fences[i];
-
-		if (fence != NULL)
-		{
-			VkResult result = vkWaitForFences(
-				device,
-				1,
-				&fence,
-				VK_TRUE,
-				UINT64_MAX);
-
-			if (result != VK_SUCCESS)
-				abort();
-
-			vkDestroyFence(
-				device,
-				fences[i],
-				NULL);
-		}
-	}
-
-	vkDestroyCommandPool(
-		device,
-		vkWindow->transferCommandPool,
-		NULL);
-
-	if (vkWindow->graphicsQueueFamilyIndex ==
-		vkWindow->presentQueueFamilyIndex)
-	{
-		vkDestroyCommandPool(
-			device,
-			graphicsCommandPool,
-			NULL);
-	}
-	else
-	{
-		vkDestroyCommandPool(
-			device,
-			presentCommandPool,
-			NULL);
-		vkDestroyCommandPool(
-			device,
-			graphicsCommandPool,
-			NULL);
-	}
-
-	vmaDestroyAllocator(allocator);
-
-	vkDestroyDevice(
-		device,
-		NULL);
-	vkDestroySurfaceKHR(
-		instance,
-		vkWindow->surface,
-		NULL);
-	free(vkWindow);
-}
-inline static MpgxResult createVkWindow(
-	VkInstance instance,
-	GLFWwindow* handle,
-	bool useStencilBuffer,
-	bool useRayTracing,
-	Vec2U framebufferSize,
-	VkWindow* vkWindow)
-{
-	VkWindow window = calloc(1, sizeof(VkWindow_T));
-
-	if (window == NULL)
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
-
-	VkSurfaceKHR surface;
-
-	VkResult vkResult = glfwCreateWindowSurface(
-		instance,
-		handle,
-		NULL,
-		&surface);
+	vkResult = vkBeginCommandBuffer(
+		commandBuffer,
+		&commandBufferBeginInfo);
 
 	if (vkResult != VK_SUCCESS)
 	{
-		destroyVkWindow(
-			instance,
-			window);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		vkFreeCommandBuffers(
+			device,
+			commandPool,
+			1,
+			&commandBuffer);
+		return NULL;
 	}
 
-	window->surface = surface;
+	return commandBuffer;
+}
+inline static bool endSubmitWaitFreeVkCommandBuffer(
+	VkDevice device,
+	VkQueue queue,
+	VkCommandPool commandPool,
+	VkFence fence,
+	VkCommandBuffer commandBuffer)
+{
+	VkResult vkResult = vkEndCommandBuffer(commandBuffer);
 
-	bool isGpuIntegrated;
-
-	VkPhysicalDevice physicalDevice = getBestVkPhysicalDevice(
-		instance,
-		&isGpuIntegrated);
-
-	if (physicalDevice == NULL)
+	if (vkResult != VK_SUCCESS)
 	{
-		destroyVkWindow(
-			instance,
-			window);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		vkFreeCommandBuffers(
+			device,
+			commandPool,
+			1,
+			&commandBuffer);
+		return false;
 	}
 
-	window->physicalDevice = physicalDevice;
-	window->isGpuIntegrated = isGpuIntegrated;
+	vkResult = vkResetFences(
+		device,
+		1,
+		&fence);
 
-	uint32_t graphicsQueueFamilyIndex,
-		presentQueueFamilyIndex;
-
-	bool result = getVkQueueFamilyIndices(
-		physicalDevice,
-		surface,
-		&graphicsQueueFamilyIndex,
-		&presentQueueFamilyIndex);
-
-	if (result == false)
+	if (vkResult != VK_SUCCESS)
 	{
-		destroyVkWindow(
-			instance,
-			window);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		vkFreeCommandBuffers(
+			device,
+			commandPool,
+			1,
+			&commandBuffer);
+		return false;
 	}
 
-	window->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
-	window->presentQueueFamilyIndex = presentQueueFamilyIndex;
-
-	size_t requiredExtensionCount = 1;
-
-	const char* requiredExtensions[2] = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VkSubmitInfo submitInfo = {
+		VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		NULL,
+		0,
+		NULL,
+		NULL,
+		1,
+		&commandBuffer,
+		0,
+		NULL,
 	};
 
-#if __APPLE__
-	requiredExtensions[requiredExtensionCount++] =
-		"VK_KHR_portability_subset";
-#endif
+	vkResult = vkQueueSubmit(
+		queue,
+		1,
+		&submitInfo,
+		fence);
 
-	const char* preferredExtensions[2];
-	uint32_t preferredExtensionCount = 0;
-
-	uint32_t accelerationStructureExtIndex;
-	uint32_t rayTracingPipelineExtIndex;
-
-	if (useRayTracing == true)
+	if (vkResult != VK_SUCCESS)
 	{
-		accelerationStructureExtIndex = preferredExtensionCount;
-		preferredExtensions[preferredExtensionCount++] =
-			VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME;
-
-		rayTracingPipelineExtIndex = preferredExtensionCount;
-		preferredExtensions[preferredExtensionCount++] =
-			VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME;
-	}
-
-	bool supportedExtensions[2];
-
-	VkDevice device;
-
-	MpgxResult mpgxResult = createVkDevice(
-		physicalDevice,
-		graphicsQueueFamilyIndex,
-		presentQueueFamilyIndex,
-		requiredExtensions,
-		requiredExtensionCount,
-		preferredExtensions,
-		preferredExtensionCount,
-		supportedExtensions,
-		&device);
-
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-	{
-		destroyVkWindow(
-			instance,
-			window);
-		return mpgxResult;
-	}
-
-	window->device = device;
-
-	if (useRayTracing == true)
-	{
-		if (supportedExtensions[accelerationStructureExtIndex] == false ||
-			supportedExtensions[rayTracingPipelineExtIndex] == false)
-		{
-			destroyVkWindow(
-				instance,
-				window);
-			return RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT;
-		}
-	}
-
-	VmaAllocator allocator = createVmaAllocator(
-		physicalDevice,
-		device,
-		instance);
-
-	if (allocator == NULL)
-	{
-		destroyVkWindow(
-			instance,
-			window);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
-	}
-
-	window->allocator = allocator;
-
-	VkQueue graphicsQueue, presentQueue;
-
-	vkGetDeviceQueue(
-		device,
-		graphicsQueueFamilyIndex,
-		0,
-		&graphicsQueue);
-
-	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-	{
-		presentQueue = graphicsQueue;
-	}
-	else
-	{
-		vkGetDeviceQueue(
+		vkFreeCommandBuffers(
 			device,
-			presentQueueFamilyIndex,
-			0,
-			&presentQueue);
+			commandPool,
+			1,
+			&commandBuffer);
+		return false;
 	}
 
-	window->graphicsQueue = graphicsQueue;
-	window->presentQueue = presentQueue;
-
-	VkCommandPool graphicsCommandPool = createVkCommandPool(
+	vkResult = vkWaitForFences(
 		device,
-		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		graphicsQueueFamilyIndex);
+		1,
+		&fence,
+		VK_TRUE,
+		UINT64_MAX);
 
-	if (graphicsCommandPool == NULL)
-	{
-		destroyVkWindow(
-			instance,
-			window);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
-	}
-
-	window->graphicsCommandPool = graphicsCommandPool;
-
-	VkCommandPool presentCommandPool;
-
-	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-	{
-		presentCommandPool = graphicsCommandPool;
-	}
-	else
-	{
-		presentCommandPool = createVkCommandPool(
-			device,
-			VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			presentQueueFamilyIndex);
-
-		if (presentCommandPool == NULL)
-		{
-			destroyVkWindow(
-				instance,
-				window);
-			return FAILED_TO_ALLOCATE_MPGX_RESULT;
-		}
-	}
-
-	window->presentCommandPool = presentCommandPool;
-
-	VkCommandPool transferCommandPool = createVkCommandPool(
+	vkFreeCommandBuffers(
 		device,
-		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-		graphicsQueueFamilyIndex);
+		commandPool,
+		1,
+		&commandBuffer);
 
-	if (transferCommandPool == NULL)
-	{
-		destroyVkWindow(
-			instance,
-			window);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
-	}
+	if (vkResult != VK_SUCCESS)
+		return false;
 
-	window->transferCommandPool = transferCommandPool;
-
-	VkFence* fences = window->fences;
-	VkSemaphore* imageAcquiredSemaphores =
-		window->imageAcquiredSemaphores;
-	VkSemaphore* drawCompleteSemaphores =
-		window->drawCompleteSemaphores;
-	VkSemaphore* imageOwnershipSemaphores =
-		window->imageOwnershipSemaphores;
-
-	for (uint8_t i = 0; i < VK_FRAME_LAG; i++)
-	{
-		fences[i] = createVkFence(device,
-			VK_FENCE_CREATE_SIGNALED_BIT);
-
-		imageAcquiredSemaphores[i] = createVkSemaphore(device);
-		drawCompleteSemaphores[i] = createVkSemaphore(device);
-		imageOwnershipSemaphores[i] = createVkSemaphore(device);
-
-		if (fences[i] == NULL ||
-			imageAcquiredSemaphores[i] == NULL ||
-			drawCompleteSemaphores[i] == NULL ||
-			imageOwnershipSemaphores[i] == NULL)
-		{
-			destroyVkWindow(
-				instance,
-				window);
-			return FAILED_TO_ALLOCATE_MPGX_RESULT;
-		}
-	}
-
-	VkFence stagingFence = createVkFence(
-		device,
-		0);
-
-	if (stagingFence == NULL)
-	{
-		destroyVkWindow(
-			instance,
-			window);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
-	}
-
-	window->stagingFence = stagingFence;
-
-	VkSwapchain swapchain;
-
-	mpgxResult = createVkSwapchain(
-		surface,
-		physicalDevice,
-		graphicsQueueFamilyIndex,
-		presentQueueFamilyIndex,
-		device,
-		allocator,
-		graphicsCommandPool,
-		presentCommandPool,
-		useStencilBuffer,
-		framebufferSize,
-		&swapchain);
-
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-	{
-		destroyVkWindow(
-			instance,
-			window);
-		return mpgxResult;
-	}
-
-	window->swapchain = swapchain;
-	window->frameIndex = 0;
-	window->bufferIndex = 0;
-	window->currenCommandBuffer = NULL;
-	window->stagingBuffer = NULL;
-	window->stagingAllocation = NULL;
-	window->stagingSize = 0;
-
-	*vkWindow = window;
-	return SUCCESS_MPGX_RESULT;
-}
-
-static VkPhysicalDeviceProperties properties;
-
-inline static const char* getVkWindowGpuName(
-	VkPhysicalDevice physicalDevice)
-{
-	vkGetPhysicalDeviceProperties(
-		physicalDevice,
-		&properties);
-	return properties.deviceName;
+	return true;
 }
 
 inline static bool getVkCompareOperator(
@@ -1330,5 +180,14 @@ inline static bool getVkCompareOperator(
 	}
 }
 
-// TODO: implement DemoUpdateTargetIPD (VK_GOOGLE) from cube.c
-// TODO: investigate if we should use (demo_flush_init_cmd) from cube.c
+static VkPhysicalDeviceProperties properties;
+
+inline static const char* getVkWindowGpuName(
+	VkPhysicalDevice physicalDevice)
+{
+	vkGetPhysicalDeviceProperties(
+		physicalDevice,
+		&properties);
+	return properties.deviceName;
+}
+#endif

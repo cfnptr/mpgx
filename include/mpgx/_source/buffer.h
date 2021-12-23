@@ -13,18 +13,20 @@
 // limitations under the License.
 
 #pragma once
+#include "mpgx/_source/vulkan.h"
 #include "mpgx/_source/opengl.h"
+
 #include <string.h>
 
-typedef struct _BaseBuffer
+typedef struct BaseBuffer_T
 {
 	Window window;
 	BufferType type;
 	size_t size;
 	bool isConstant;
 	bool isMapped;
-} _BaseBuffer;
-typedef struct _VkBuffer
+} BaseBuffer_T;
+typedef struct VkBuffer_T
 {
 	Window window;
 	BufferType type;
@@ -36,8 +38,8 @@ typedef struct _VkBuffer
 	VkBuffer handle;
 	VmaAllocation allocation;
 #endif
-} _VkBuffer;
-typedef struct _GlBuffer
+} VkBuffer_T;
+typedef struct GlBuffer_T
 {
 	Window window;
 	BufferType type;
@@ -46,12 +48,12 @@ typedef struct _GlBuffer
 	bool isMapped;
 	GLenum glType;
 	GLuint handle;
-} _GlBuffer;
+} GlBuffer_T;
 union Buffer_T
 {
-	_BaseBuffer base;
-	_VkBuffer vk;
-	_GlBuffer gl;
+	BaseBuffer_T base;
+	VkBuffer_T vk;
+	GlBuffer_T gl;
 };
 
 #if MPGX_SUPPORT_VULKAN
@@ -129,9 +131,7 @@ inline static void setVkBufferData(
 		abort();
 
 	uint8_t* _mappedData = mappedData;
-
-	memcpy(_mappedData + offset,
-		data, size);
+	memcpy(_mappedData + offset, data, size);
 
 	result = vmaFlushAllocation(
 		allocator,
@@ -162,10 +162,10 @@ inline static Buffer createVkBuffer(
 	VmaAllocator allocator,
 	VkQueue transferQueue,
 	VkCommandPool transferCommandPool,
+	VkFence transferFence,
 	VkBuffer* _stagingBuffer,
 	VmaAllocation* _stagingAllocation,
 	size_t* _stagingSize,
-	VkFence stagingFence,
 	VkBufferUsageFlags _vkUsage,
 	Window window,
 	BufferType type,
@@ -190,10 +190,7 @@ inline static Buffer createVkBuffer(
 	switch (type)
 	{
 	default:
-		destroyVkBuffer(
-			allocator,
-			buffer);
-		return NULL;
+		abort();
 	case VERTEX_BUFFER_TYPE:
 		vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		break;
@@ -202,6 +199,9 @@ inline static Buffer createVkBuffer(
 		break;
 	case UNIFORM_BUFFER_TYPE:
 		vkUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		break;
+	case STORAGE_BUFFER_TYPE:
+		vkUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		break;
 	}
 
@@ -220,9 +220,7 @@ inline static Buffer createVkBuffer(
 	};
 
 	VmaAllocationCreateInfo allocationCreateInfo;
-
-	memset(&allocationCreateInfo, 0,
-		sizeof(VmaAllocationCreateInfo));
+	memset(&allocationCreateInfo, 0, sizeof(VmaAllocationCreateInfo));
 
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
@@ -301,47 +299,11 @@ inline static Buffer createVkBuffer(
 				size,
 				0);
 
-			VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-				VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-				NULL,
-				transferCommandPool,
-				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				1,
-			};
+			VkCommandBuffer commandBuffer = allocateBeginVkOneTimeCommandBuffer(
+				device, transferCommandPool);
 
-			VkCommandBuffer commandBuffer;
-
-			vkResult = vkAllocateCommandBuffers(
-				device,
-				&commandBufferAllocateInfo,
-				&commandBuffer);
-
-			if (vkResult != VK_SUCCESS)
+			if (commandBuffer == NULL)
 			{
-				destroyVkBuffer(
-					allocator,
-					buffer);
-				return NULL;
-			}
-
-			VkCommandBufferBeginInfo commandBufferBeginInfo = {
-				VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-				NULL,
-				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-				NULL,
-			};
-
-			vkResult = vkBeginCommandBuffer(
-				commandBuffer,
-				&commandBufferBeginInfo);
-
-			if (vkResult != VK_SUCCESS)
-			{
-				vkFreeCommandBuffers(
-					device,
-					transferCommandPool,
-					1,
-					&commandBuffer);
 				destroyVkBuffer(
 					allocator,
 					buffer);
@@ -361,84 +323,14 @@ inline static Buffer createVkBuffer(
 				1,
 				&bufferCopy);
 
-			vkResult = vkEndCommandBuffer(commandBuffer);
-
-			if (vkResult != VK_SUCCESS)
-			{
-				vkFreeCommandBuffers(
-					device,
-					transferCommandPool,
-					1,
-					&commandBuffer);
-				destroyVkBuffer(
-					allocator,
-					buffer);
-				return NULL;
-			}
-
-			vkResult = vkResetFences(
+			bool result = endSubmitWaitFreeVkCommandBuffer(
 				device,
-				1,
-				&stagingFence);
-
-			if (vkResult != VK_SUCCESS)
-			{
-				vkFreeCommandBuffers(
-					device,
-					transferCommandPool,
-					1,
-					&commandBuffer);
-				destroyVkBuffer(
-					allocator,
-					buffer);
-				return false;
-			}
-
-			VkSubmitInfo submitInfo = {
-				VK_STRUCTURE_TYPE_SUBMIT_INFO,
-				NULL,
-				0,
-				NULL,
-				NULL,
-				1,
-				&commandBuffer,
-				0,
-				NULL,
-			};
-
-			vkResult = vkQueueSubmit(
 				transferQueue,
-				1,
-				&submitInfo,
-				stagingFence);
-
-			if (vkResult != VK_SUCCESS)
-			{
-				vkFreeCommandBuffers(
-					device,
-					transferCommandPool,
-					1,
-					&commandBuffer);
-				destroyVkBuffer(
-					allocator,
-					buffer);
-				return NULL;
-			}
-
-			vkResult = vkWaitForFences(
-				device,
-				1,
-				&stagingFence,
-				VK_TRUE,
-				UINT64_MAX);
-
-			vkFreeCommandBuffers(
-				device,
 				transferCommandPool,
-				1,
-				&commandBuffer);
+				transferFence,
+				commandBuffer);
 
-			if (vkResult != VK_SUCCESS)
+			if (result == false)
 			{
 				destroyVkBuffer(
 					allocator,

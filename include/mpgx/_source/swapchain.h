@@ -13,9 +13,12 @@
 // limitations under the License.
 
 #pragma once
+#include "mpgx/_source/vulkan.h"
 #include "cmmt/common.h"
+
 #include <string.h>
 
+#if MPGX_SUPPORT_VULKAN
 typedef struct VkSwapchainBuffer
 {
 	VkImage image;
@@ -24,7 +27,6 @@ typedef struct VkSwapchainBuffer
 	VkCommandBuffer graphicsCommandBuffer;
 	VkCommandBuffer presentCommandBuffer;
 } VkSwapchainBuffer;
-
 typedef struct VkSwapchain_T
 {
 	VkSwapchainKHR handle;
@@ -403,11 +405,7 @@ inline static bool createVkDepthImage(
 	};
 
 	VmaAllocationCreateInfo allocationCreateInfo;
-
-	memset(
-		&allocationCreateInfo,
-		0,
-		sizeof(VmaAllocationCreateInfo));
+	memset(&allocationCreateInfo, 0, sizeof(VmaAllocationCreateInfo));
 
 	allocationCreateInfo.flags =
 		VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT |
@@ -1437,3 +1435,4 @@ inline static bool resizeVkSwapchain(
 	swapchain->bufferCount = bufferCount;
 	return true;
 }
+#endif

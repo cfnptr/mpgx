@@ -13,9 +13,10 @@
 // limitations under the License.
 
 #pragma once
+#include "mpgx/_source/vulkan.h"
 #include "mpgx/_source/opengl.h"
 
-typedef struct _BaseSampler
+typedef struct BaseSampler_T
 {
 	Window window;
 	ImageFilter minImageFilter;
@@ -29,8 +30,8 @@ typedef struct _BaseSampler
 	bool useCompare;
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
-} _BaseSampler;
-typedef struct _VkSampler
+} BaseSampler_T;
+typedef struct VkSampler_T
 {
 	Window window;
 	ImageFilter minImageFilter;
@@ -47,8 +48,8 @@ typedef struct _VkSampler
 #if MPGX_SUPPORT_VULKAN
 	VkSampler handle;
 #endif
-} _VkSampler;
-typedef struct _GlSampler
+} VkSampler_T;
+typedef struct GlSampler_T
 {
 	Window window;
 	ImageFilter minImageFilter;
@@ -63,12 +64,12 @@ typedef struct _GlSampler
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
 	GLuint handle;
-} _GlSampler;
+} GlSampler_T;
 union Sampler_T
 {
-	_BaseSampler base;
-	_VkSampler vk;
-	_GlSampler gl;
+	BaseSampler_T base;
+	VkSampler_T vk;
+	GlSampler_T gl;
 };
 
 #if MPGX_SUPPORT_VULKAN

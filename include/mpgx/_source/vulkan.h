@@ -180,14 +180,14 @@ inline static bool getVkCompareOperator(
 	}
 }
 
-static VkPhysicalDeviceProperties properties;
+static VkPhysicalDeviceProperties physicalDeviceProperties;
 
 inline static const char* getVkWindowGpuName(
 	VkPhysicalDevice physicalDevice)
 {
 	vkGetPhysicalDeviceProperties(
 		physicalDevice,
-		&properties);
-	return properties.deviceName;
+		&physicalDeviceProperties);
+	return physicalDeviceProperties.deviceName;
 }
 #endif

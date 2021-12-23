@@ -29,6 +29,7 @@
 #define VK_VERSION VK_API_VERSION_1_2
 #define VK_FRAME_LAG 2
 
+#if MPGX_SUPPORT_VULKAN
 typedef struct VkWindow_T
 {
 	VkSurfaceKHR surface;
@@ -383,17 +384,17 @@ inline static VkPhysicalDevice getBestVkPhysicalDevice(
 			score += 1000;
 		}
 		else if (properties.deviceType ==
-				 VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
+			VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
 		{
 			score += 750;
 		}
 		else if (properties.deviceType ==
-				 VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+			VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 		{
 			score += 500;
 		}
 		else if (properties.deviceType ==
-				 VK_PHYSICAL_DEVICE_TYPE_CPU)
+			VK_PHYSICAL_DEVICE_TYPE_CPU)
 		{
 			score += 250;
 		}
@@ -406,7 +407,7 @@ inline static VkPhysicalDevice getBestVkPhysicalDevice(
 			targetScore = score;
 
 			isGpuIntegrated = properties.deviceType ==
-							  VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
+				VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
 		}
 	}
 
@@ -1200,6 +1201,7 @@ inline static MpgxResult createVkWindow(
 	*vkWindow = window;
 	return SUCCESS_MPGX_RESULT;
 }
+#endif
 
 // TODO: implement DemoUpdateTargetIPD (VK_GOOGLE) from cube.c
 // TODO: investigate if we should use (demo_flush_init_cmd) from cube.c

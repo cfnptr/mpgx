@@ -71,6 +71,7 @@ union RayPipeline_T
 	VkRayPipeline_T vk;
 };
 
+#if MPGX_SUPPORT_VULKAN
 typedef struct VkRayPipelineCreateInfo
 {
 	uint32_t setLayoutCount;
@@ -78,6 +79,7 @@ typedef struct VkRayPipelineCreateInfo
 	uint32_t pushConstantRangeCount;
 	const VkPushConstantRange* pushConstantRanges;
 } VkRayPipelineCreateInfo;
+#endif
 
 typedef struct BaseRayMesh_T
 {

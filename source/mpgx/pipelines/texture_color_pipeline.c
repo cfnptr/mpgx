@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mpgx/pipelines/texspr_pipeline.h"
+#include "mpgx/pipelines/texture_color_pipeline.h"
 #include "mpgx/_source/window.h"
 #include "mpgx/_source/pipeline.h"
 #include "mpgx/_source/sampler.h"
@@ -78,7 +78,7 @@ typedef PipelineHandle_T* PipelineHandle;
 static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
 	{
 		0,
-		sizeof(Vec2F) * 2,
+		sizeof(Vec3F) + sizeof(Vec2F),
 		VK_VERTEX_INPUT_RATE_VERTEX,
 	},
 };
@@ -86,14 +86,14 @@ static const VkVertexInputAttributeDescription vertexInputAttributeDescriptions[
 	{
 		0,
 		0,
-		VK_FORMAT_R32G32_SFLOAT,
+		VK_FORMAT_R32G32B32_SFLOAT,
 		0,
 	},
 	{
 		1,
 		0,
 		VK_FORMAT_R32G32_SFLOAT,
-		sizeof(Vec2F),
+		sizeof(Vec3F),
 	},
 };
 static const VkPushConstantRange pushConstantRanges[2] = {
@@ -256,7 +256,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 	return descriptorSets;
 }
 
-static void onVkHandleBind(Pipeline pipeline)
+static void onVkBind(Pipeline pipeline)
 {
 	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
@@ -294,7 +294,7 @@ static void onVkUniformsSet(Pipeline pipeline)
 		sizeof(FragmentPushConstants),
 		&pipelineHandle->vk.fpc);
 }
-static bool onVkHandleResize(
+static bool onVkResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
@@ -370,7 +370,7 @@ static bool onVkHandleResize(
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
 	return true;
 }
-static void onVkHandleDestroy(void* handle)
+static void onVkDestroy(void* handle)
 {
 	PipelineHandle pipelineHandle = handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
@@ -389,12 +389,12 @@ static void onVkHandleDestroy(void* handle)
 }
 inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	VkSampler sampler,
 	VkImageView imageView,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
@@ -464,20 +464,20 @@ inline static Pipeline createVkHandle(
 
 	return createPipeline(
 		framebuffer,
-		TEXSPR_PIPELINE_NAME,
-		shaders,
-		shaderCount,
+		TEXTURE_COLOR_PIPELINE_NAME,
 		state,
-		onVkHandleBind,
+		onVkBind,
 		onVkUniformsSet,
-		onVkHandleResize,
-		onVkHandleDestroy,
+		onVkResize,
+		onVkDestroy,
 		pipelineHandle,
-		&createInfo);
+		&createInfo,
+		shaders,
+		shaderCount);
 }
 #endif
 
-static void onGlHandleBind(Pipeline pipeline)
+static void onGlBind(Pipeline pipeline)
 {
 	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
@@ -523,22 +523,22 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	glVertexAttribPointer(
 		0,
-		2,
+		3,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(Vec2F) * 2,
+		sizeof(Vec3F) + sizeof(Vec2F),
 		0);
 	glVertexAttribPointer(
 		1,
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(Vec2F) * 2,
-		(const void*)sizeof(Vec2F));
+		sizeof(Vec3F) + sizeof(Vec2F),
+		(const void*)sizeof(Vec3F));
 
 	assertOpenGL();
 }
-static bool onGlHandleResize(
+static bool onGlResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
@@ -557,29 +557,29 @@ static bool onGlHandleResize(
 		pipeline->vk.state.scissor = size;
 	return true;
 }
-static void onGlHandleDestroy(void* handle)
+static void onGlDestroy(void* handle)
 {
 	free((PipelineHandle)handle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
-		TEXSPR_PIPELINE_NAME,
-		shaders,
-		shaderCount,
+		TEXTURE_COLOR_PIPELINE_NAME,
 		state,
-		onGlHandleBind,
+		onGlBind,
 		onGlUniformsSet,
-		onGlHandleResize,
-		onGlHandleDestroy,
+		onGlResize,
+		onGlDestroy,
 		pipelineHandle,
-		NULL);
+		NULL,
+		shaders,
+		shaderCount);
 
 	if (pipeline == NULL)
 		return NULL;
@@ -626,7 +626,7 @@ inline static Pipeline createGlHandle(
 	return pipeline;
 }
 
-Pipeline createExtTexSprPipeline(
+Pipeline createTextureColorPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -673,12 +673,12 @@ Pipeline createExtTexSprPipeline(
 #if MPGX_SUPPORT_VULKAN
 		return createVkHandle(
 			framebuffer,
-			shaders,
-			2,
 			sampler->vk.handle,
 			texture->vk.imageView,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 #else
 		abort();
 #endif
@@ -688,17 +688,17 @@ Pipeline createExtTexSprPipeline(
 	{
 		return createGlHandle(
 			framebuffer,
-			shaders,
-			2,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 	}
 	else
 	{
 		abort();
-	}
+	};
 }
-Pipeline createTexSprPipeline(
+Pipeline createTextureColorPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -719,9 +719,9 @@ Pipeline createTexSprPipeline(
 		BACK_CULL_MODE,
 		LESS_COMPARE_OPERATOR,
 		ALL_COLOR_COMPONENT,
-		SRC_ALPHA_BLEND_FACTOR,
-		ONE_MINUS_SRC_ALPHA_BLEND_FACTOR,
-		ONE_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
+		ZERO_BLEND_FACTOR,
 		ZERO_BLEND_FACTOR,
 		ADD_BLEND_OPERATOR,
 		ADD_BLEND_OPERATOR,
@@ -731,7 +731,7 @@ Pipeline createTexSprPipeline(
 		true,
 		false,
 		false,
-		true,
+		false,
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
@@ -742,7 +742,7 @@ Pipeline createTexSprPipeline(
 		defaultBlendColor,
 	};
 
-	return createExtTexSprPipeline(
+	return createTextureColorPipelineExt(
 		framebuffer,
 		vertexShader,
 		fragmentShader,
@@ -751,120 +751,120 @@ Pipeline createTexSprPipeline(
 		&state);
 }
 
-Image getTexSprPipelineTexture(
+Image getTextureColorPipelineTexture(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.texture;
 }
-Sampler getTexSprPipelineSampler(
+Sampler getTextureColorPipelineSampler(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.sampler;
 }
 
-Mat4F getTexSprPipelineMvp(
+Mat4F getTextureColorPipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.mvp;
 }
-void setTexSprPipelineMvp(
+void setTextureColorPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.mvp = mvp;
 }
 
-Vec2F getTexSprPipelineSize(
+Vec2F getTextureColorPipelineSize(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.size;
 }
-void setTexSprPipelineSize(
+void setTextureColorPipelineSize(
 	Pipeline pipeline,
 	Vec2F size)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.size = size;
 }
 
-Vec2F getTexSprPipelineOffset(
+Vec2F getTextureColorPipelineOffset(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.offset;
 }
-void setTexSprPipelineOffset(
+void setTextureColorPipelineOffset(
 	Pipeline pipeline,
 	Vec2F offset)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.offset = offset;
 }
 
-LinearColor getTexSprPipelineColor(
+LinearColor getTextureColorPipelineColor(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.fpc.color;
 }
-void setTexSprPipelineColor(
+void setTextureColorPipelineColor(
 	Pipeline pipeline,
 	LinearColor color)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		TEXSPR_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.fpc.color = color;

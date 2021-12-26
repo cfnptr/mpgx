@@ -1201,13 +1201,13 @@ Text createText32(
 
 	Image texture = createImage(
 		window,
-		IMAGE_2D_TYPE,
+		GENERAL_IMAGE_TYPE,
+		IMAGE_2D,
 		R8_UNORM_IMAGE_FORMAT,
 		(const void**)&pixels,
 		vec3U(pixelLength, pixelLength, 1),
 		1,
-		isConstant,
-		false);
+		isConstant);
 
 	free(pixels);
 
@@ -1911,12 +1911,12 @@ bool bakeText(
 		{
 			texture = createImage(
 				window,
-				IMAGE_2D_TYPE,
+				GENERAL_IMAGE_TYPE,
+				IMAGE_2D,
 				R8_UNORM_IMAGE_FORMAT,
 				(const void**)&pixels,
 				vec3U(pixelLength, pixelLength, 1),
 				1,
-				false,
 				false);
 
 			free(pixels);
@@ -2164,12 +2164,12 @@ bool bakeText(
 
 		Image texture = createImage(
 			window,
-			IMAGE_2D_TYPE,
+			GENERAL_IMAGE_TYPE,
+			IMAGE_2D,
 			R8_UNORM_IMAGE_FORMAT,
 			(const void**)&pixels,
 			vec3U(pixelLength, pixelLength, 1),
 			1,
-			false,
 			false);
 
 		free(pixels);
@@ -2618,10 +2618,10 @@ static void onVkHandleDestroy(void* handle)
 }
 inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
@@ -2652,15 +2652,15 @@ inline static Pipeline createVkHandle(
 	return createPipeline(
 		framebuffer,
 		TEXT_PIPELINE_NAME,
-		shaders,
-		shaderCount,
 		state,
 		NULL,
 		onVkUniformsSet,
 		onVkHandleResize,
 		onVkHandleDestroy,
 		pipelineHandle,
-		&createInfo);
+		&createInfo,
+		shaders,
+		shaderCount);
 }
 #endif
 
@@ -2741,23 +2741,23 @@ static void onGlHandleDestroy(void* handle)
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
 		TEXT_PIPELINE_NAME,
-		shaders,
-		shaderCount,
 		state,
 		NULL,
 		onGlUniformsSet,
 		onGlHandleResize,
 		onGlHandleDestroy,
 		pipelineHandle,
-		NULL);
+		NULL,
+		shaders,
+		shaderCount);
 
 	if (pipeline == NULL)
 		return NULL;
@@ -2850,10 +2850,10 @@ Pipeline createExtTextPipeline(
 #if MPGX_SUPPORT_VULKAN
 		return createVkHandle(
 			framebuffer,
-			shaders,
-			2,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 #else
 		abort();
 #endif
@@ -2863,10 +2863,10 @@ Pipeline createExtTextPipeline(
 	{
 		return createGlHandle(
 			framebuffer,
-			shaders,
-			2,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 	}
 	else
 	{

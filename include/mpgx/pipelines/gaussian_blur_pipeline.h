@@ -15,29 +15,29 @@
 #pragma once
 #include "mpgx/window.h"
 
-#define GAUSSBLUR_PIPELINE_NAME "GaussBlur"
+#define GAUSSIAN_BLUR_PIPELINE_NAME "GaussianBlur"
 
-Pipeline createExtGaussBlurPipeline(
+Pipeline createGaussianBlurPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image buffer,
 	Sampler sampler,
 	const PipelineState* state);
-Pipeline createGaussBlurPipeline(
+Pipeline createGaussianBlurPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image buffer,
 	Sampler sampler);
 
-Image getGaussBlurPipelineBuffer(
+Image getGaussianBlurPipelineBuffer(
 	Pipeline pipeline);
-Sampler getGaussBlurPipelineSampler(
+Sampler getGaussianBlurPipelineSampler(
 	Pipeline pipeline);
 
-int getGaussBlurPipelineRadius(
+int getGaussianBlurPipelineRadius(
 	Pipeline pipeline);
-void setGaussBlurPipelineRadius(
+void setGaussianBlurPipelineRadius(
 	Pipeline pipeline,
 	int radius);

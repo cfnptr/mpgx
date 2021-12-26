@@ -14,14 +14,14 @@
 
 #pragma once
 #include "mpgx/renderer.h"
-#include "mpgx/pipelines/texcol_pipeline.h"
+#include "mpgx/pipelines/texture_sprite_pipeline.h"
 
-Renderer createTexColRenderer(
+Renderer createTextureSpriteRenderer(
 	Pipeline pipeline,
 	RenderSorting sortingType,
 	bool useCulling,
 	size_t capacity);
-Render createTexColRender(
+Render createTextureSpriteRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
@@ -30,26 +30,26 @@ Render createTexColRender(
 	Vec2F offset,
 	Mesh mesh);
 
-LinearColor getTexColRenderColor(
+LinearColor getTextureSpriteRenderColor(
 	Render render);
-void setTexColRenderColor(
+void setTextureSpriteRenderColor(
 	Render render,
 	LinearColor color);
 
-Vec2F getTexColRenderSize(
+Vec2F getTextureSpriteRenderSize(
 	Render render);
-void setTexColRenderSize(
+void setTextureSpriteRenderSize(
 	Render render,
 	Vec2F size);
 
-Vec2F getTexColRenderOffset(
+Vec2F getTextureSpriteRenderOffset(
 	Render render);
-void setTexColRenderOffset(
+void setTextureSpriteRenderOffset(
 	Render render,
 	Vec2F offset);
 
-Mesh getTexColRenderMesh(
+Mesh getTextureSpriteRenderMesh(
 	Render render);
-void setTexColRenderMesh(
+void setTextureSpriteRenderMesh(
 	Render render,
 	Mesh mesh);

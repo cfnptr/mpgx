@@ -12,30 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mpgx/pipelines/gaussblur_pipeline.h"
+#include "mpgx/pipelines/gradient_sky_pipeline.h"
 #include "mpgx/_source/window.h"
 #include "mpgx/_source/pipeline.h"
 #include "mpgx/_source/sampler.h"
 
 #include <string.h>
 
+struct GradientSkyAmbient_T
+{
+	LinearColor* colors;
+	size_t count;
+};
+
+typedef struct VertexPushConstants
+{
+	Mat4F mvp;
+} VertexPushConstants;
 typedef struct FragmentPushConstants
 {
-	int radius;
-	int offset;
+	Vec4F sunDir;
+	LinearColor sunColor;
 } FragmentPushConstants;
 typedef struct BasePipelineHandle
 {
 	Window window;
-	Image buffer;
+	Image texture;
 	Sampler sampler;
+	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
 } BasePipelineHandle;
 typedef struct VkPipelineHandle
 {
 	Window window;
-	Image buffer;
+	Image texture;
 	Sampler sampler;
+	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorSetLayout descriptorSetLayout;
@@ -47,12 +59,14 @@ typedef struct VkPipelineHandle
 typedef struct GlPipelineHandle
 {
 	Window window;
-	Image buffer;
+	Image texture;
 	Sampler sampler;
+	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
-	GLint radiusLocation;
-	GLint offsetLocation;
-	GLint bufferLocation;
+	GLint mvpLocation;
+	GLint sunDirLocation;
+	GLint sunColorLocation;
+	GLint textureLocation;
 } GlPipelineHandle;
 union PipelineHandle_T
 {
@@ -64,32 +78,131 @@ union PipelineHandle_T
 typedef union PipelineHandle_T PipelineHandle_T;
 typedef PipelineHandle_T* PipelineHandle;
 
+GradientSkyAmbient createGradientSkyAmbient(
+	ImageData gradient)
+{
+	assert(gradient != NULL);
+	assert(getImageDataChannelCount(gradient) == 4);
+
+	Vec2U size = getImageDataSize(gradient);
+
+	LinearColor* colors = malloc(
+		sizeof(Vec4F) * size.x);
+
+	if (colors == NULL)
+		return NULL;
+
+	const uint8_t* pixels = getImageDataPixels(gradient);
+
+	for (uint32_t x = 0; x < size.x; x++)
+	{
+		LinearColor color = zeroLinearColor;
+
+		for (uint32_t y = 0; y < size.y; y++)
+		{
+			size_t index = (y * size.x + x) * 4;
+			
+			LinearColor addition = srgbToLinearColor(srgbColor(
+				pixels[index],
+				pixels[index + 1],
+				pixels[index + 2],
+				pixels[index + 3]));
+			color = addLinearColor(color, addition);
+		}
+
+		colors[x] = divValLinearColor(color, (float)size.y);
+	}
+
+	GradientSkyAmbient gradientSkyAmbient = malloc(
+		sizeof(GradientSkyAmbient_T));
+
+	if (gradientSkyAmbient == NULL)
+	{
+		free(colors);
+		return NULL;
+	}
+
+	gradientSkyAmbient->colors = colors;
+	gradientSkyAmbient->count = size.x;
+	return gradientSkyAmbient;
+}
+void destroyGradientSkyAmbient(
+	GradientSkyAmbient gradientSkyAmbient)
+{
+	if (gradientSkyAmbient == NULL)
+		return;
+
+	free(gradientSkyAmbient->colors);
+	free(gradientSkyAmbient);
+}
+LinearColor getGradientSkyAmbientColor(
+	GradientSkyAmbient gradientSkyAmbient,
+	float dayTime)
+{
+	assert(gradientSkyAmbient != NULL);
+	assert(dayTime >= 0.0f);
+	assert(dayTime <= 1.0f);
+
+	LinearColor* colors = gradientSkyAmbient->colors;
+	size_t colorCount = gradientSkyAmbient->count;
+
+	dayTime = (float)(colorCount - 1) * dayTime;
+
+	float secondValue = dayTime - (float)((int)dayTime);
+	float firstValue = 1.0f - secondValue;
+
+	LinearColor firstColor = colors[(size_t)dayTime];
+	LinearColor secondColor = colors[(size_t)dayTime + 1];
+
+	return linearColor(
+		firstColor.r * firstValue + secondColor.r * secondValue,
+		firstColor.g * firstValue + secondColor.g * secondValue,
+		firstColor.b * firstValue + secondColor.b * secondValue,
+		firstColor.a * firstValue + secondColor.a * secondValue);
+}
+
+Sampler createGradientSkySampler(Window window)
+{
+	return createSampler(
+		window,
+		LINEAR_IMAGE_FILTER,
+		LINEAR_IMAGE_FILTER,
+		NEAREST_IMAGE_FILTER,
+		false,
+		CLAMP_TO_EDGE_IMAGE_WRAP,
+		CLAMP_TO_EDGE_IMAGE_WRAP,
+		REPEAT_IMAGE_WRAP,
+		NEVER_COMPARE_OPERATOR,
+		false,
+		defaultMipmapLodRange,
+		DEFAULT_MIPMAP_LOD_BIAS);
+}
+
 #if MPGX_SUPPORT_VULKAN
 static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
 	{
 		0,
-		sizeof(Vec2F) * 2,
+		sizeof(Vec3F),
 		VK_VERTEX_INPUT_RATE_VERTEX,
 	},
 };
-static const VkVertexInputAttributeDescription vertexInputAttributeDescriptions[2] = {
+static const VkVertexInputAttributeDescription vertexInputAttributeDescriptions[1] = {
 	{
 		0,
 		0,
-		VK_FORMAT_R32G32_SFLOAT,
+		VK_FORMAT_R32G32B32_SFLOAT,
 		0,
-	},
-	{
-		1,
-		0,
-		VK_FORMAT_R32G32_SFLOAT,
-		sizeof(Vec2F),
 	},
 };
-static const VkPushConstantRange pushConstantRanges[1] = {
+static const VkPushConstantRange pushConstantRanges[2] = {
+	{
+		VK_SHADER_STAGE_VERTEX_BIT,
+		0,
+		sizeof(VertexPushConstants),
+	},
 	{
 		VK_SHADER_STAGE_FRAGMENT_BIT,
-		0,
+		sizeof(VertexPushConstants),
 		sizeof(FragmentPushConstants),
 	},
 };
@@ -164,8 +277,8 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 	VkDescriptorSetLayout descriptorSetLayout,
 	VkDescriptorPool descriptorPool,
 	uint32_t bufferCount,
-	VkImageView bufferImageView,
-	VkSampler sampler)
+	VkSampler sampler,
+	VkImageView imageView)
 {
 	VkDescriptorSetLayout* descriptorSetLayouts = malloc(
 		bufferCount * sizeof(VkDescriptorSetLayout));
@@ -208,14 +321,14 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 
 	for (uint32_t i = 0; i < bufferCount; i++)
 	{
-		VkDescriptorImageInfo bufferDescriptorImageInfos[1] = {
+		VkDescriptorImageInfo descriptorImageInfos[1] =
+		{
 			{
 				sampler,
-				bufferImageView,
+				imageView,
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			},
 		};
-
 		VkWriteDescriptorSet writeDescriptorSets[1] = {
 			{
 				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -225,7 +338,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 				0,
 				1,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				bufferDescriptorImageInfos,
+				descriptorImageInfos,
 				NULL,
 				NULL,
 			},
@@ -242,7 +355,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 	return descriptorSets;
 }
 
-static void onVkHandleBind(Pipeline pipeline)
+static void onVkBind(Pipeline pipeline)
 {
 	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
@@ -262,16 +375,25 @@ static void onVkUniformsSet(Pipeline pipeline)
 {
 	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
+	VkPipelineLayout layout = pipeline->vk.layout;
 
 	vkCmdPushConstants(
-		vkWindow->currenCommandBuffer,
-		pipeline->vk.layout,
-		VK_SHADER_STAGE_FRAGMENT_BIT,
+		commandBuffer,
+		layout,
+		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
+		sizeof(VertexPushConstants),
+		&pipelineHandle->vk.vpc);
+	vkCmdPushConstants(
+		commandBuffer,
+		layout,
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		sizeof(VertexPushConstants),
 		sizeof(FragmentPushConstants),
 		&pipelineHandle->vk.fpc);
 }
-static bool onVkHandleResize(
+static bool onVkResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
@@ -296,8 +418,8 @@ static bool onVkHandleResize(
 			pipelineHandle->vk.descriptorSetLayout,
 			descriptorPool,
 			bufferCount,
-			pipelineHandle->vk.buffer->vk.imageView,
-			pipelineHandle->vk.sampler->vk.handle);
+			pipelineHandle->vk.sampler->vk.handle,
+			pipelineHandle->vk.texture->vk.imageView);
 
 		if (descriptorSets == NULL)
 		{
@@ -336,18 +458,18 @@ static bool onVkHandleResize(
 	VkPipelineCreateInfo _createInfo = {
 		1,
 		vertexInputBindingDescriptions,
-		2,
+		1,
 		vertexInputAttributeDescriptions,
 		1,
 		&pipelineHandle->vk.descriptorSetLayout,
-		1,
+		2,
 		pushConstantRanges,
 	};
 
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
 	return true;
 }
-static void onVkHandleDestroy(void* handle)
+static void onVkDestroy(void* handle)
 {
 	PipelineHandle pipelineHandle = handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
@@ -366,14 +488,15 @@ static void onVkHandleDestroy(void* handle)
 }
 inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
-	VkImageView imageView,
 	VkSampler sampler,
+	VkImageView imageView,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
-	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
+	Window window = framebuffer->vk.window;
+	VkWindow vkWindow = getVkWindow(window);
 	VkDevice device = vkWindow->device;
 
 	VkDescriptorSetLayout descriptorSetLayout =
@@ -388,11 +511,11 @@ inline static Pipeline createVkHandle(
 	VkPipelineCreateInfo createInfo = {
 		1,
 		vertexInputBindingDescriptions,
-		2,
+		1,
 		vertexInputAttributeDescriptions,
 		1,
 		&descriptorSetLayout,
-		1,
+		2,
 		pushConstantRanges,
 	};
 
@@ -417,8 +540,8 @@ inline static Pipeline createVkHandle(
 		descriptorSetLayout,
 		descriptorPool,
 		bufferCount,
-		imageView,
-		sampler);
+		sampler,
+		imageView);
 
 	if (descriptorSets == NULL)
 	{
@@ -441,32 +564,32 @@ inline static Pipeline createVkHandle(
 
 	return createPipeline(
 		framebuffer,
-		GAUSSBLUR_PIPELINE_NAME,
-		shaders,
-		shaderCount,
+		GRADIENT_SKY_PIPELINE_NAME,
 		state,
-		onVkHandleBind,
+		onVkBind,
 		onVkUniformsSet,
-		onVkHandleResize,
-		onVkHandleDestroy,
+		onVkResize,
+		onVkDestroy,
 		pipelineHandle,
-		&createInfo);
+		&createInfo,
+		shaders,
+		shaderCount);
 }
 #endif
 
-static void onGlHandleBind(Pipeline pipeline)
+static void onGlBind(Pipeline pipeline)
 {
 	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
 	glUniform1i(
-		pipelineHandle->gl.bufferLocation,
+		pipelineHandle->gl.textureLocation,
 		0);
 
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
-		pipelineHandle->gl.buffer->gl.handle);
+		pipelineHandle->gl.texture->gl.handle);
 	glBindSampler(
 		0,
 		pipelineHandle->gl.sampler->gl.handle);
@@ -477,36 +600,33 @@ static void onGlUniformsSet(Pipeline pipeline)
 {
 	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
-	glUniform1iv(
-		pipelineHandle->gl.radiusLocation,
+	glUniformMatrix4fv(
+		pipelineHandle->gl.mvpLocation,
 		1,
-		(const GLint*)&pipelineHandle->gl.fpc.radius);
-	glUniform1iv(
-		pipelineHandle->gl.radiusLocation,
+		GL_FALSE,
+		(const GLfloat*)&pipelineHandle->gl.vpc.mvp);
+	glUniform4fv(
+		pipelineHandle->gl.sunDirLocation,
 		1,
-		(const GLint*)&pipelineHandle->gl.fpc.offset);
+		(const GLfloat*)&pipelineHandle->gl.fpc.sunDir);
+	glUniform4fv(
+		pipelineHandle->gl.sunColorLocation,
+		1,
+		(const GLfloat*)&pipelineHandle->gl.fpc.sunColor);
 
 	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
 
 	glVertexAttribPointer(
 		0,
-		2,
+		3,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(Vec2F) * 2,
+		sizeof(Vec3F),
 		0);
-	glVertexAttribPointer(
-		1,
-		2,
-		GL_FLOAT,
-		GL_FALSE,
-		sizeof(Vec2F) * 2,
-		(const void*)sizeof(Vec2F));
 
 	assertOpenGL();
 }
-static bool onGlHandleResize(
+static bool onGlResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
@@ -525,51 +645,54 @@ static bool onGlHandleResize(
 		pipeline->vk.state.scissor = size;
 	return true;
 }
-static void onGlHandleDestroy(void* handle)
+static void onGlDestroy(void* handle)
 {
 	free((PipelineHandle)handle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
-		GAUSSBLUR_PIPELINE_NAME,
-		shaders,
-		shaderCount,
+		GRADIENT_SKY_PIPELINE_NAME,
 		state,
-		NULL,
+		onGlBind,
 		onGlUniformsSet,
-		onGlHandleResize,
-		onGlHandleDestroy,
+		onGlResize,
+		onGlDestroy,
 		pipelineHandle,
-		NULL);
+		NULL,
+		shaders,
+		shaderCount);
 
 	if (pipeline == NULL)
 		return NULL;
 
 	GLuint glHandle = pipeline->gl.glHandle;
 
-	GLint radiusLocation,
-		offsetLocation,
-		bufferLocation;
+	GLint mvpLocation, sunDirLocation,
+		sunColorLocation, textureLocation;
 
 	bool result = getGlUniformLocation(
 		glHandle,
-		"u_Radius",
-		&radiusLocation);
+		"u_MVP",
+		&mvpLocation);
 	result &= getGlUniformLocation(
 		glHandle,
-		"u_Offset",
-		&offsetLocation);
+		"u_SunDir",
+		&sunDirLocation);
 	result &= getGlUniformLocation(
 		glHandle,
-		"u_Buffer",
-		&bufferLocation);
+		"u_SunColor",
+		&sunColorLocation);
+	result &= getGlUniformLocation(
+		glHandle,
+		"u_Texture",
+		&textureLocation);
 
 	if (result == false)
 	{
@@ -579,38 +702,31 @@ inline static Pipeline createGlHandle(
 
 	assertOpenGL();
 
-	pipelineHandle->gl.radiusLocation = radiusLocation;
-	pipelineHandle->gl.offsetLocation = offsetLocation;
-	pipelineHandle->gl.bufferLocation = bufferLocation;
+	pipelineHandle->gl.mvpLocation = mvpLocation;
+	pipelineHandle->gl.sunDirLocation = sunDirLocation;
+	pipelineHandle->gl.sunColorLocation = sunColorLocation;
+	pipelineHandle->gl.textureLocation = textureLocation;
 	return pipeline;
 }
 
-inline static int calcGaussOffset(int radius)
-{
-	int offset = 0;
-	for (int i = 0; i < radius; i++)
-		offset += i + 1;
-	return offset;
-}
-
-Pipeline createExtGaussBlurPipeline(
+Pipeline createGradientSkyPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Image buffer,
+	Image texture,
 	Sampler sampler,
 	const PipelineState* state)
 {
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
-	assert(buffer != NULL);
+	assert(texture != NULL);
 	assert(sampler != NULL);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
 	assert(fragmentShader->base.window == framebuffer->base.window);
-	assert(buffer->base.window == framebuffer->base.window);
+	assert(texture->base.window == framebuffer->base.window);
 	assert(sampler->base.window == framebuffer->base.window);
 
 	PipelineHandle pipelineHandle = malloc(
@@ -621,10 +737,11 @@ Pipeline createExtGaussBlurPipeline(
 
 	Window window = framebuffer->base.window;
 	pipelineHandle->base.window = window;
-	pipelineHandle->base.buffer = buffer;
+	pipelineHandle->base.texture = texture;
 	pipelineHandle->base.sampler = sampler;
-	pipelineHandle->base.fpc.radius = 8;
-	pipelineHandle->base.fpc.offset = calcGaussOffset(8);
+	pipelineHandle->base.vpc.mvp = identMat4F;
+	pipelineHandle->base.fpc.sunDir = zeroVec4F;
+	pipelineHandle->base.fpc.sunColor = whiteLinearColor;
 
 	Shader shaders[2] = {
 		vertexShader,
@@ -638,12 +755,12 @@ Pipeline createExtGaussBlurPipeline(
 #if MPGX_SUPPORT_VULKAN
 		return createVkHandle(
 			framebuffer,
-			shaders,
-			2,
-			buffer->vk.imageView,
 			sampler->vk.handle,
+			texture->vk.imageView,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 #else
 		abort();
 #endif
@@ -653,21 +770,21 @@ Pipeline createExtGaussBlurPipeline(
 	{
 		return createGlHandle(
 			framebuffer,
-			shaders,
-			2,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 	}
 	else
 	{
 		abort();
 	}
 }
-Pipeline createGaussBlurPipeline(
+Pipeline createGradientSkyPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Image buffer,
+	Image texture,
 	Sampler sampler)
 {
 	assert(framebuffer != NULL);
@@ -684,19 +801,19 @@ Pipeline createGaussBlurPipeline(
 		BACK_CULL_MODE,
 		LESS_COMPARE_OPERATOR,
 		ALL_COLOR_COMPONENT,
-		ZERO_BLEND_FACTOR,
-		ZERO_BLEND_FACTOR,
-		ZERO_BLEND_FACTOR,
+		SRC_ALPHA_BLEND_FACTOR,
+		ONE_MINUS_SRC_ALPHA_BLEND_FACTOR,
+		ONE_BLEND_FACTOR,
 		ZERO_BLEND_FACTOR,
 		ADD_BLEND_OPERATOR,
 		ADD_BLEND_OPERATOR,
+		true,
+		true,
+		true,
+		true,
 		false,
 		false,
-		false,
-		false,
-		false,
-		false,
-		false,
+		true,
 		false,
 		false,
 		DEFAULT_LINE_WIDTH,
@@ -707,62 +824,115 @@ Pipeline createGaussBlurPipeline(
 		defaultBlendColor,
 	};
 
-	return createExtGaussBlurPipeline(
+	return createGradientSkyPipelineExt(
 		framebuffer,
 		vertexShader,
 		fragmentShader,
-		buffer,
+		texture,
 		sampler,
 		&state);
 }
 
-
-Image getGaussBlurPipelineBuffer(
+Image getGradientSkyPipelineTexture(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		GAUSSBLUR_PIPELINE_NAME) == 0);
+		GRADIENT_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
-	return pipelineHandle->base.buffer;
+	return pipelineHandle->base.texture;
 }
-Sampler getGaussBlurPipelineSampler(
+Sampler getGradientSkyPipelineSampler(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
-		pipeline->base.name,
-		GAUSSBLUR_PIPELINE_NAME) == 0);
+		getPipelineName(pipeline),
+		GRADIENT_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.sampler;
 }
 
-int getGaussBlurPipelineRadius(
+Mat4F getGradientSkyPipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		GAUSSBLUR_PIPELINE_NAME) == 0);
+		GRADIENT_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
-	return pipelineHandle->base.fpc.radius;
+	return pipelineHandle->base.vpc.mvp;
 }
-void setGaussBlurPipelineRadius(
+void setGradientSkyPipelineMvp(
 	Pipeline pipeline,
-	int radius)
+	Mat4F mvp)
 {
 	assert(pipeline != NULL);
-	assert(radius >= 0);
-	assert(radius <= 16);
 	assert(strcmp(
 		pipeline->base.name,
-		GAUSSBLUR_PIPELINE_NAME) == 0);
+		GRADIENT_SKY_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
-	pipelineHandle->base.fpc.radius = radius;
-	pipelineHandle->base.fpc.offset = calcGaussOffset(radius);
+	pipelineHandle->base.vpc.mvp = mvp;
+}
+
+Vec3F getGradientSkyPipelineSunDir(
+	Pipeline pipeline)
+{
+	assert(pipeline != NULL);
+	assert(strcmp(
+		pipeline->base.name,
+		GRADIENT_SKY_PIPELINE_NAME) == 0);
+	PipelineHandle pipelineHandle =
+		pipeline->base.handle;
+	Vec4F sunDir =
+		pipelineHandle->base.fpc.sunDir;
+	return vec3F(
+		sunDir.x,
+		sunDir.y,
+		sunDir.z);
+}
+void setGradientSkyPipelineSunDir(
+	Pipeline pipeline,
+	Vec3F sunDir)
+{
+	assert(pipeline != NULL);
+	assert(strcmp(
+		pipeline->base.name,
+		GRADIENT_SKY_PIPELINE_NAME) == 0);
+	PipelineHandle pipelineHandle =
+		pipeline->base.handle;
+	pipelineHandle->base.fpc.sunDir = vec4F(
+		sunDir.x,
+		sunDir.y,
+		sunDir.z,
+		0.0f);
+}
+
+LinearColor getGradientSkyPipelineSunColor(
+	Pipeline pipeline)
+{
+	assert(pipeline != NULL);
+	assert(strcmp(
+		pipeline->base.name,
+		GRADIENT_SKY_PIPELINE_NAME) == 0);
+	PipelineHandle pipelineHandle =
+		pipeline->base.handle;
+	return pipelineHandle->base.fpc.sunColor;
+}
+void setGradientSkyPipelineSunColor(
+	Pipeline pipeline,
+	LinearColor sunColor)
+{
+	assert(pipeline != NULL);
+	assert(strcmp(
+		pipeline->base.name,
+		GRADIENT_SKY_PIPELINE_NAME) == 0);
+	PipelineHandle pipelineHandle =
+		pipeline->base.handle;
+	pipelineHandle->base.fpc.sunColor = sunColor;
 }

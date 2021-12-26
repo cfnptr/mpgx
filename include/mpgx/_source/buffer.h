@@ -171,7 +171,8 @@ inline static Buffer createVkBuffer(
 	BufferType type,
 	const void* data,
 	size_t size,
-	bool isConstant)
+	bool isConstant,
+	bool useRayTracing)
 {
 	Buffer buffer = calloc(1, sizeof(Buffer_T));
 
@@ -208,6 +209,13 @@ inline static Buffer createVkBuffer(
 	if (data != NULL)
 		vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
+	// TODO: should we move this option to constructor?
+	if (useRayTracing == true)
+	{
+		vkUsage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+			VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+	}
+
 	VkBufferCreateInfo bufferCreateInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 		NULL,
@@ -228,9 +236,13 @@ inline static Buffer createVkBuffer(
 	bool isGpuIntegrated = isVkGpuIntegrated(window);
 
 	if (isConstant == true && isGpuIntegrated == false)
+	{
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	}
 	else
+	{
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+	}
 
 	VkBuffer handle;
 	VmaAllocation allocation;

@@ -660,6 +660,7 @@ inline static bool createVkSwapchainBuffers(
 
 	for (uint32_t i = 0; i < imageCount; i++)
 	{
+		// TODO: Move structures outside for scope
 		VkImageViewCreateInfo imageViewCreateInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			NULL,
@@ -857,8 +858,8 @@ inline static bool createVkSwapchainBuffers(
 			VkImageMemoryBarrier imageMemoryBarrier = {
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 				NULL,
-				0,
-				0,
+				VK_ACCESS_NONE_KHR,
+				VK_ACCESS_NONE_KHR,
 				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 				graphicsQueueFamilyIndex,

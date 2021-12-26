@@ -16,47 +16,55 @@
 #include "mpgx/window.h"
 #include "cmmt/color.h"
 
-#define TEXSPR_PIPELINE_NAME "TexSpr"
+#define GRADIENT_SKY_PIPELINE_NAME "GradientSky"
 
-Pipeline createExtTexSprPipeline(
+typedef struct GradientSkyAmbient_T GradientSkyAmbient_T;
+typedef GradientSkyAmbient_T* GradientSkyAmbient;
+
+GradientSkyAmbient createGradientSkyAmbient(
+	ImageData gradient);
+void destroyGradientSkyAmbient(
+	GradientSkyAmbient gradientSkyAmbient);
+
+LinearColor getGradientSkyAmbientColor(
+	GradientSkyAmbient gradientSkyAmbient,
+	float dayTime);
+
+Sampler createGradientSkySampler(Window window);
+
+Pipeline createGradientSkyPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
 	const PipelineState* state);
-Pipeline createTexSprPipeline(
+Pipeline createGradientSkyPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler);
 
-Image getTexSprPipelineTexture(
+Image getGradientSkyPipelineTexture(
 	Pipeline pipeline);
-Sampler getTexSprPipelineSampler(
+Sampler getGradientSkyPipelineSampler(
 	Pipeline pipeline);
 
-Mat4F getTexSprPipelineMvp(
+Mat4F getGradientSkyPipelineMvp(
 	Pipeline pipeline);
-void setTexSprPipelineMvp(
+void setGradientSkyPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 
-Vec2F getTexSprPipelineSize(
+Vec3F getGradientSkyPipelineSunDir(
 	Pipeline pipeline);
-void setTexSprPipelineSize(
+void setGradientSkyPipelineSunDir(
 	Pipeline pipeline,
-	Vec2F size);
+	Vec3F sunDir);
 
-Vec2F getTexSprPipelineOffset(
+LinearColor getGradientSkyPipelineSunColor(
 	Pipeline pipeline);
-void setTexSprPipelineOffset(
+void setGradientSkyPipelineSunColor(
 	Pipeline pipeline,
-	Vec2F offset);
-
-LinearColor getTexSprPipelineColor(
-	Pipeline pipeline);
-void setTexSprPipelineColor(
-	Pipeline pipeline,
-	LinearColor color);
+	LinearColor sunColor);

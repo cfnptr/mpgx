@@ -16,52 +16,47 @@
 #include "mpgx/window.h"
 #include "cmmt/color.h"
 
-#define GRADSKY_PIPELINE_NAME "GradSky"
+#define TEXTURE_COLOR_PIPELINE_NAME "TextureColor"
 
-typedef struct GradSkyAmbient* GradSkyAmbient;
-
-GradSkyAmbient createGradSkyAmbient(ImageData gradient);
-void destroyGradSkyAmbient(GradSkyAmbient gradSkyAmbient);
-
-LinearColor getGradSkyAmbientColor(
-	GradSkyAmbient gradSkyAmbient,
-	float dayTime);
-
-Sampler createGradSkySampler(Window window);
-
-Pipeline createExtGradSkyPipeline(
+Pipeline createTextureColorPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
 	const PipelineState* state);
-Pipeline createGradSkyPipeline(
+Pipeline createTextureColorPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler);
 
-Image getGradSkyPipelineTexture(
+Image getTextureColorPipelineTexture(
 	Pipeline pipeline);
-Sampler getGradSkyPipelineSampler(
+Sampler getTextureColorPipelineSampler(
 	Pipeline pipeline);
 
-Mat4F getGradSkyPipelineMvp(
+Mat4F getTextureColorPipelineMvp(
 	Pipeline pipeline);
-void setGradSkyPipelineMvp(
+void setTextureColorPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 
-Vec3F getGradSkyPipelineSunDir(
+Vec2F getTextureColorPipelineSize(
 	Pipeline pipeline);
-void setGradSkyPipelineSunDir(
+void setTextureColorPipelineSize(
 	Pipeline pipeline,
-	Vec3F sunDir);
+	Vec2F size);
 
-LinearColor getGradSkyPipelineSunColor(
+Vec2F getTextureColorPipelineOffset(
 	Pipeline pipeline);
-void setGradSkyPipelineSunColor(
+void setTextureColorPipelineOffset(
 	Pipeline pipeline,
-	LinearColor sunColor);
+	Vec2F offset);
+
+LinearColor getTextureColorPipelineColor(
+	Pipeline pipeline);
+void setTextureColorPipelineColor(
+	Pipeline pipeline,
+	LinearColor color);

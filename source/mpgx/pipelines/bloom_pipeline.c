@@ -240,7 +240,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 	return descriptorSets;
 }
 
-static void onVkHandleBind(Pipeline pipeline)
+static void onVkBind(Pipeline pipeline)
 {
 	PipelineHandle pipelineHandle = pipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
@@ -269,7 +269,7 @@ static void onVkUniformsSet(Pipeline pipeline)
 		sizeof(FragmentPushConstants),
 		&pipelineHandle->vk.fpc);
 }
-static bool onVkHandleResize(
+static bool onVkResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
@@ -345,7 +345,7 @@ static bool onVkHandleResize(
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
 	return true;
 }
-static void onVkHandleDestroy(void* handle)
+static void onVkDestroy(void* handle)
 {
 	PipelineHandle pipelineHandle = handle;
 	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
@@ -364,12 +364,12 @@ static void onVkHandleDestroy(void* handle)
 }
 inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	VkImageView imageView,
 	VkSampler sampler,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
@@ -441,19 +441,19 @@ inline static Pipeline createVkHandle(
 	return createPipeline(
 		framebuffer,
 		BLOOM_PIPELINE_NAME,
-		shaders,
-		shaderCount,
 		state,
-		onVkHandleBind,
+		onVkBind,
 		onVkUniformsSet,
-		onVkHandleResize,
-		onVkHandleDestroy,
+		onVkResize,
+		onVkDestroy,
 		pipelineHandle,
-		&createInfo);
+		&createInfo,
+		shaders,
+		shaderCount);
 }
 #endif
 
-static void onGlHandleBind(Pipeline pipeline)
+static void onGlBind(Pipeline pipeline)
 {
 	PipelineHandle pipelineHandle = pipeline->gl.handle;
 
@@ -501,7 +501,7 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
-static bool onGlHandleResize(
+static bool onGlResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
@@ -520,29 +520,29 @@ static bool onGlHandleResize(
 		pipeline->vk.state.scissor = size;
 	return true;
 }
-static void onGlHandleDestroy(void* handle)
+static void onGlDestroy(void* handle)
 {
 	free((PipelineHandle)handle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
 		BLOOM_PIPELINE_NAME,
-		shaders,
-		shaderCount,
 		state,
 		NULL,
 		onGlUniformsSet,
-		onGlHandleResize,
-		onGlHandleDestroy,
+		onGlResize,
+		onGlDestroy,
 		pipelineHandle,
-		NULL);
+		NULL,
+		shaders,
+		shaderCount);
 
 	if (pipeline == NULL)
 		return NULL;
@@ -574,7 +574,7 @@ inline static Pipeline createGlHandle(
 	return pipeline;
 }
 
-Pipeline createExtBloomPipeline(
+Pipeline createBloomPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -618,12 +618,12 @@ Pipeline createExtBloomPipeline(
 #if MPGX_SUPPORT_VULKAN
 		return createVkHandle(
 			framebuffer,
-			shaders,
-			2,
 			buffer->vk.imageView,
 			sampler->vk.handle,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 #else
 		abort();
 #endif
@@ -633,10 +633,10 @@ Pipeline createExtBloomPipeline(
 	{
 		return createGlHandle(
 			framebuffer,
-			shaders,
-			2,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 	}
 	else
 	{
@@ -687,7 +687,7 @@ Pipeline createBloomPipeline(
 		defaultBlendColor,
 	};
 
-	return createExtBloomPipeline(
+	return createBloomPipelineExt(
 		framebuffer,
 		vertexShader,
 		fragmentShader,

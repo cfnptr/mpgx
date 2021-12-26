@@ -61,22 +61,20 @@ set(MPGX_SOURCES
 	source/mpgx/pipelines/bloom_pipeline.c
 	source/mpgx/pipelines/color_pipeline.c
 	source/mpgx/pipelines/diffuse_pipeline.c
-	source/mpgx/pipelines/gaussblur_pipeline.c
-	source/mpgx/pipelines/gradsky_pipeline.c
-	source/mpgx/pipelines/raytrace_pipeline.c
-	source/mpgx/pipelines/simpshad_pipeline.c
+    source/mpgx/pipelines/gaussian_blur_pipeline.c
+	source/mpgx/pipelines/gradient_sky_pipeline.c
+	source/mpgx/pipelines/ray_color_pipeline.c
+	source/mpgx/pipelines/simple_shadow_pipeline.c
 	source/mpgx/pipelines/sprite_pipeline.c
-	source/mpgx/pipelines/texcol_pipeline.c
-	source/mpgx/pipelines/texspr_pipeline.c
+	source/mpgx/pipelines/texture_color_pipeline.c
+	source/mpgx/pipelines/texture_sprite_pipeline.c
 
 	source/mpgx/renderers/color_renderer.c
 	source/mpgx/renderers/diffuse_renderer.c
-	source/mpgx/renderers/gradsky_renderer.c
-	source/mpgx/renderers/raytrace_renderer.c
-	source/mpgx/renderers/simpshad_renderer.c
+	source/mpgx/renderers/simple_shadow_renderer.c
 	source/mpgx/renderers/sprite_renderer.c
-	source/mpgx/renderers/texcol_renderer.c
-	source/mpgx/renderers/texspr_renderer.c
+	source/mpgx/renderers/texture_color_renderer.c
+	source/mpgx/renderers/texture_sprite_renderer.c
 	source/mpgx/renderers/text_renderer.c
 
 	source/mpgx/free_camera.c
@@ -136,13 +134,25 @@ if (MPGX_BUILD_EXAMPLES)
 		${PROJECT_BINARY_DIR}
 		${PROJECT_SOURCE_DIR}/include)
 
-	set(WINDOW_EXAMPLE_RESOURCES
+	add_executable(mpgx-ray-tracing-example
+		examples/ray_tracing_example.c)
+	target_link_libraries(mpgx-ray-tracing-example PRIVATE
+		mpgx-static)
+	target_include_directories(mpgx-ray-tracing-example PRIVATE
+		${PROJECT_BINARY_DIR}
+		${PROJECT_SOURCE_DIR}/include)
+
+	set(EXAMPLE_RESOURCES
 		shaders/vulkan/diffuse.frag.spv
 		shaders/vulkan/diffuse.vert.spv
 		shaders/opengl/diffuse.frag
-		shaders/opengl/diffuse.vert)
+		shaders/opengl/diffuse.vert
 
-	foreach (FILE ${WINDOW_EXAMPLE_RESOURCES})
+		shaders/vulkan/color.rchit.spv
+		shaders/vulkan/color.rgen.spv
+		shaders/vulkan/color.rmiss.spv)
+
+	foreach (FILE ${EXAMPLE_RESOURCES})
 		configure_file(
 			resources/${FILE}
 			resources/${FILE} COPYONLY)

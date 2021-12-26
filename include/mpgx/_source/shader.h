@@ -43,6 +43,7 @@ typedef struct VkShader_T
 #endif
 #if MPGX_SUPPORT_VULKAN
 	VkShaderModule handle;
+	VkShaderStageFlags stage;
 #endif
 } VkShader_T;
 typedef struct GlShader_T
@@ -100,13 +101,13 @@ inline static Shader createVkShader(
 
 	VkShaderModule handle;
 
-	VkResult result = vkCreateShaderModule(
+	VkResult vkResult = vkCreateShaderModule(
 		device,
 		&createInfo,
 		NULL,
 		&handle);
 
-	if (result != VK_SUCCESS)
+	if (vkResult != VK_SUCCESS)
 	{
 		destroyVkShader(
 			device,
@@ -115,6 +116,43 @@ inline static Shader createVkShader(
 	}
 
 	shader->vk.handle = handle;
+
+	VkShaderStageFlags stage;
+
+	switch (type)
+	{
+	default:
+		abort();
+	case VERTEX_SHADER_TYPE:
+		stage = VK_SHADER_STAGE_VERTEX_BIT;
+		break;
+	case FRAGMENT_SHADER_TYPE:
+		stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		break;
+	case COMPUTE_SHADER_TYPE:
+		stage = VK_SHADER_STAGE_COMPUTE_BIT;
+		break;
+	case TESSELLATION_CONTROL_SHADER_TYPE:
+		stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+		break;
+	case TESSELLATION_EVALUATION_SHADER_TYPE:
+		stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+		break;
+	case GEOMETRY_SHADER_TYPE:
+		stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+		break;
+	case RAY_GENERATION_SHADER_TYPE:
+		stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+		break;
+	case RAY_MISS_SHADER_TYPE:
+		stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+		break;
+	case RAY_CLOSEST_HIT_SHADER_TYPE:
+		stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+		break;
+	}
+
+	shader->vk.stage = stage;
 	return shader;
 }
 #endif

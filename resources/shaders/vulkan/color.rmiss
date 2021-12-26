@@ -12,26 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#include "mpgx/window.h"
+#version 460
+#extension GL_EXT_ray_tracing : require
 
-#define SIMPSHAD_PIPELINE_NAME "SimpShad"
+layout(location = 0) rayPayloadInEXT vec3 hitValue;
 
-Sampler createSimpShadSampler(Window window);
-
-Pipeline createExtSimpShadPipeline(
-	Framebuffer framebuffer,
-	Shader vertexShader,
-	Shader fragmentShader,
-	const PipelineState* state);
-Pipeline createSimpShadPipeline(
-	Framebuffer framebuffer,
-	Shader vertexShader,
-	Shader fragmentShader,
-	uint32_t shadowMapLength);
-
-Mat4F getSimpShadPipelineMvp(
-	Pipeline pipeline);
-void setSimpShadPipelineMvp(
-	Pipeline pipeline,
-	Mat4F mvp);
+void main()
+{
+	hitValue = vec3(0.0, 0.0, 0.2);
+}

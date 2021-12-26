@@ -18,7 +18,7 @@
 
 #define BLOOM_PIPELINE_NAME "Bloom"
 
-Pipeline createExtBloomPipeline(
+Pipeline createBloomPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,

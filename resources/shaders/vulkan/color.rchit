@@ -12,23 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#include "mpgx/renderer.h"
-#include "mpgx/pipelines/simpshad_pipeline.h"
+#version 460
+#extension GL_EXT_ray_tracing : require
 
-Renderer createSimpShadRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
-	bool useCulling,
-	size_t capacity);
-Render createSimpShadRender(
-	Renderer renderer,
-	Transform transform,
-	Box3F bounding,
-	Mesh mesh);
+layout(location = 0) rayPayloadInEXT vec3 hitValue;
+hitAttributeEXT vec2 attribs;
 
-Mesh getSimpShadRenderMesh(
-	Render render);
-void setSimpShadRenderMesh(
-	Render render,
-	Mesh mesh);
+void main()
+{
+	const vec3 barycentricCoords = vec3(
+  		1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
+	hitValue = barycentricCoords;
+}

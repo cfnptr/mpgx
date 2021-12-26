@@ -26,11 +26,11 @@ struct RenderHandle_T
 typedef struct RenderHandle_T RenderHandle_T;
 typedef RenderHandle_T* RenderHandle;
 
-static void onRenderHandleDestroy(void* handle)
+static void onDestroy(void* handle)
 {
 	free((RenderHandle)handle);
 }
-static size_t onRenderHandleDraw(
+static size_t onDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -69,8 +69,8 @@ Renderer createSpriteRenderer(
 		pipeline,
 		sorting,
 		useCulling,
-		onRenderHandleDestroy,
-		onRenderHandleDraw,
+		onDestroy,
+		onDraw,
 		capacity);
 }
 Render createSpriteRender(

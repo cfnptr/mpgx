@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mpgx/renderers/texcol_renderer.h"
+#include "mpgx/renderers/texture_color_renderer.h"
 
 #include <string.h>
 #include <assert.h>
@@ -28,11 +28,11 @@ struct RenderHandle_T
 typedef struct RenderHandle_T RenderHandle_T;
 typedef RenderHandle_T* RenderHandle;
 
-static void onRenderHandleDestroy(void* handle)
+static void onDestroy(void* handle)
 {
 	free((RenderHandle)handle);
 }
-static size_t onRenderHandleDraw(
+static size_t onDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -43,23 +43,23 @@ static size_t onRenderHandleDraw(
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
-	setTexColPipelineMvp(
+	setTextureColorPipelineMvp(
 		pipeline,
 		mvp);
-	setTexColPipelineColor(
+	setTextureColorPipelineColor(
 		pipeline,
 		renderHandle->color);
-	setTexColPipelineSize(
+	setTextureColorPipelineSize(
 		pipeline,
 		renderHandle->size);
-	setTexColPipelineOffset(
+	setTextureColorPipelineOffset(
 		pipeline,
 		renderHandle->offset);
 	return drawMesh(
 		renderHandle->mesh,
 		pipeline);
 }
-Renderer createTexColRenderer(
+Renderer createTextureSpriteRenderer(
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,
@@ -71,17 +71,17 @@ Renderer createTexColRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		TEXCOL_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		pipeline,
 		sorting,
 		useCulling,
-		onRenderHandleDestroy,
-		onRenderHandleDraw,
+		onDestroy,
+		onDraw,
 		capacity);
 }
-Render createTexColRender(
+Render createTextureColorRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
@@ -101,7 +101,7 @@ Render createTexColRender(
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		TEXCOL_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 
 	RenderHandle renderHandle = malloc(
 		sizeof(RenderHandle_T));
@@ -137,7 +137,7 @@ LinearColor getTexColRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	RenderHandle renderHandle =
 		getRenderHandle(render);
 	return renderHandle->color;
@@ -151,7 +151,7 @@ void setTexColRenderColor(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	RenderHandle renderHandle =
 		getRenderHandle(render);
 	renderHandle->color = color;
@@ -165,7 +165,7 @@ Vec2F getTexColRenderSize(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	RenderHandle renderHandle =
 		getRenderHandle(render);
 	return renderHandle->size;
@@ -179,7 +179,7 @@ void setTexColRenderSize(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	RenderHandle renderHandle =
 		getRenderHandle(render);
 	renderHandle->size = size;
@@ -193,7 +193,7 @@ Vec2F getTexColRenderOffset(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	RenderHandle renderHandle =
 		getRenderHandle(render);
 	return renderHandle->offset;
@@ -207,7 +207,7 @@ void setTexColRenderOffset(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	RenderHandle renderHandle =
 		getRenderHandle(render);
 	renderHandle->offset = offset;
@@ -221,7 +221,7 @@ Mesh getTexColRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	RenderHandle renderHandle =
 		getRenderHandle(render);
 	return renderHandle->mesh;
@@ -236,7 +236,7 @@ void setTexColRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		TEXCOL_PIPELINE_NAME) == 0);
+		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 	RenderHandle renderHandle =
 		getRenderHandle(render);
 	renderHandle->mesh = mesh;

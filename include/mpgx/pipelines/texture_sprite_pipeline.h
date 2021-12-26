@@ -16,50 +16,47 @@
 #include "mpgx/window.h"
 #include "cmmt/color.h"
 
-#define DIFFUSE_PIPELINE_NAME "Diffuse"
+#define TEXTURE_SPRITE_PIPELINE_NAME "TextureSprite"
 
-Pipeline createDiffusePipelineExt(
+Pipeline createTextureSpritePipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
+	Image texture,
+	Sampler sampler,
 	const PipelineState* state);
-Pipeline createDiffusePipeline(
+Pipeline createTextureSpritePipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
-	Shader fragmentShader);
+	Shader fragmentShader,
+	Image texture,
+	Sampler sampler);
 
-Mat4F getDiffusePipelineMvp(
+Image getTextureSpritePipelineTexture(
 	Pipeline pipeline);
-void setDiffusePipelineMvp(
+Sampler getTextureSpritePipelineSampler(
+	Pipeline pipeline);
+
+Mat4F getTextureSpritePipelineMvp(
+	Pipeline pipeline);
+void setTextureSpritePipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
 
-Mat4F getDiffusePipelineNormal(
+Vec2F getTextureSpritePipelineSize(
 	Pipeline pipeline);
-void setDiffusePipelineNormal(
+void setTextureSpritePipelineSize(
 	Pipeline pipeline,
-	Mat4F normal);
+	Vec2F size);
 
-LinearColor getDiffusePipelineObjectColor(
+Vec2F getTextureSpritePipelineOffset(
 	Pipeline pipeline);
-void setDiffusePipelineObjectColor(
+void setTextureSpritePipelineOffset(
 	Pipeline pipeline,
-	LinearColor objectColor);
+	Vec2F offset);
 
-LinearColor getDiffusePipelineAmbientColor(
+LinearColor getTextureSpritePipelineColor(
 	Pipeline pipeline);
-void setDiffusePipelineAmbientColor(
+void setTextureSpritePipelineColor(
 	Pipeline pipeline,
-	LinearColor ambientColor);
-
-LinearColor getDiffusePipelineLightColor(
-	Pipeline pipeline);
-void setDiffusePipelineLightColor(
-	Pipeline pipeline,
-	LinearColor lightColor);
-
-Vec3F getDiffusePipelineLightDirection(
-	Pipeline pipeline);
-void setDiffusePipelineLightDirection(
-	Pipeline pipeline,
-	Vec3F lightDirection);
+	LinearColor color);

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mpgx/pipelines/simpshad_pipeline.h"
+#include "mpgx/pipelines/simple_shadow_pipeline.h"
 #include "mpgx/_source/window.h"
 #include "mpgx/_source/pipeline.h"
 
@@ -102,7 +102,7 @@ static void onVkUniformsSet(Pipeline pipeline)
 		sizeof(VertexPushConstants),
 		&pipelineHandle->vk.vpc);
 }
-static bool onVkHandleResize(
+static bool onVkResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
@@ -121,16 +121,16 @@ static bool onVkHandleResize(
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
 	return true;
 }
-static void onVkHandleDestroy(void* handle)
+static void onVkDestroy(void* handle)
 {
 	free((PipelineHandle)handle);
 }
 inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	VkPipelineCreateInfo createInfo = {
 		1,
@@ -145,16 +145,16 @@ inline static Pipeline createVkHandle(
 
 	return createPipeline(
 		framebuffer,
-		SIMPSHAD_PIPELINE_NAME,
-		shaders,
-		shaderCount,
+		SIMPLE_SHADOW_PIPELINE_NAME,
 		state,
 		NULL,
 		onVkUniformsSet,
-		onVkHandleResize,
-		onVkHandleDestroy,
+		onVkResize,
+		onVkDestroy,
 		pipelineHandle,
-		&createInfo);
+		&createInfo,
+		shaders,
+		shaderCount);
 }
 #endif
 
@@ -180,36 +180,36 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
-static bool onGlHandleResize(
+static bool onGlResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
 {
 	return true;
 }
-static void onGlHandleDestroy(void* handle)
+static void onGlDestroy(void* handle)
 {
 	free((PipelineHandle)handle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
-		SIMPSHAD_PIPELINE_NAME,
-		shaders,
-		shaderCount,
+		SIMPLE_SHADOW_PIPELINE_NAME,
 		state,
 		NULL,
 		onGlUniformsSet,
-		onGlHandleResize,
-		onGlHandleDestroy,
+		onGlResize,
+		onGlDestroy,
 		pipelineHandle,
-		NULL);
+		NULL,
+		shaders,
+		shaderCount);
 
 	if (pipeline == NULL)
 		return NULL;
@@ -235,7 +235,7 @@ inline static Pipeline createGlHandle(
 	return pipeline;
 }
 
-Pipeline createExtSimpShadPipeline(
+Pipeline createSimpleShadowPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -271,10 +271,10 @@ Pipeline createExtSimpShadPipeline(
 #if MPGX_SUPPORT_VULKAN
 		return createVkHandle(
 			framebuffer,
-			shaders,
-			2,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 #else
 		abort();
 #endif
@@ -284,17 +284,17 @@ Pipeline createExtSimpShadPipeline(
 	{
 		return createGlHandle(
 			framebuffer,
-			shaders,
-			2,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 	}
 	else
 	{
 		abort();
 	}
 }
-Pipeline createSimpShadPipeline(
+Pipeline createSimpleShadowPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -338,32 +338,32 @@ Pipeline createSimpShadPipeline(
 		defaultBlendColor,
 	};
 
-	return createExtSimpShadPipeline(
+	return createSimpleShadowPipelineExt(
 		framebuffer,
 		vertexShader,
 		fragmentShader,
 		&state);
 }
 
-Mat4F getSimpShadPipelineMvp(
+Mat4F getSimpleShadowPipelineMvp(
 	Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		SIMPSHAD_PIPELINE_NAME) == 0);
+		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	return pipelineHandle->base.vpc.mvp;
 }
-void setSimpShadPipelineMvp(
+void setSimpleShadowPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp)
 {
 	assert(pipeline != NULL);
 	assert(strcmp(
 		pipeline->base.name,
-		SIMPSHAD_PIPELINE_NAME) == 0);
+		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 	PipelineHandle pipelineHandle =
 		pipeline->base.handle;
 	pipelineHandle->base.vpc.mvp = mvp;

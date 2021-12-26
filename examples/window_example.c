@@ -19,14 +19,14 @@
 
 #include "cmmt/angle.h"
 
+#include <stdio.h>
 #include <string.h>
-#include <assert.h>
 
 #define APPLICATION_NAME "MPGX - Window Example"
 
 // Camera fly: WASD + RMB
 
-typedef struct Client
+typedef struct Client_T
 {
 	Window window;
 	Transformer transformer;
@@ -34,7 +34,9 @@ typedef struct Client
 	RenderData renderData;
 	Renderer diffuseRenderer;
 	Render diffuseRender;
-} Client;
+} Client_T;
+
+typedef Client_T* Client;
 
 inline static void rotateRender(
 	double time,
@@ -50,7 +52,7 @@ inline static void rotateRender(
 }
 static void onWindowUpdate(void* handle)
 {
-	Client* client = (Client*)handle;
+	Client client = (Client)handle;
 	Window window = client->window;
 	FreeCamera freeCamera = client->freeCamera;
 
@@ -61,9 +63,7 @@ static void onWindowUpdate(void* handle)
 	updateFreeCamera(freeCamera);
 	updateTransformer(client->transformer);
 
-	bool result = beginWindowRecord(window);
-
-	if (result == false)
+	if (beginWindowRecord(window) == false)
 		return;
 
 	Transform cameraTransform =
@@ -201,8 +201,8 @@ inline static Render createDiffuseRenderInstance(
 	Buffer vertexBuffer = createBuffer(
 		window,
 		VERTEX_BUFFER_TYPE,
-		cubeTriVertNorm,
-		sizeof(cubeTriVertNorm),
+		cubeTriangleVerticesNormals,
+		sizeof(cubeTriangleVerticesNormals),
 		true);
 
 	if (vertexBuffer == NULL)
@@ -214,8 +214,8 @@ inline static Render createDiffuseRenderInstance(
 	Buffer indexBuffer = createBuffer(
 		window,
 		INDEX_BUFFER_TYPE,
-		cubeTriInd,
-		sizeof(cubeTriInd),
+		cubeTriangleIndices,
+		sizeof(cubeTriangleIndices),
 		true);
 
 	if (indexBuffer == NULL)
@@ -227,8 +227,8 @@ inline static Render createDiffuseRenderInstance(
 
 	Mesh mesh = createMesh(
 		window,
-		UINT16_DRAW_INDEX,
-		sizeof(cubeTriInd) / sizeof(uint16_t),
+		UINT16_INDEX_TYPE,
+		sizeof(cubeTriangleIndices) / sizeof(uint16_t),
 		0,
 		vertexBuffer,
 		indexBuffer);
@@ -272,10 +272,10 @@ inline static void destroyDiffuseRenderInstance(
 	destroyMesh(mesh, true);
 }
 
-inline static Client* createClient()
+inline static Client createClient()
 {
-	Client* client = malloc(
-		sizeof(Client));
+	Client client = malloc(
+		sizeof(Client_T));
 
 	if (client == NULL)
 		return NULL;
@@ -294,6 +294,8 @@ inline static Client* createClient()
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
+		printf("MPGX Error: %s.",
+			mpgxResultToString(mpgxResult));
 		free(client);
 		return NULL;
 	}
@@ -357,15 +359,13 @@ inline static Client* createClient()
 	client->diffuseRenderer = diffuseRenderer;
 	client->diffuseRender = diffuseRender;
 
-	memset(
-		&client->renderData,
-		0,
-		sizeof(RenderData));
+	memset(&client->renderData,
+		0, sizeof(RenderData));
 
 	showWindow(window);
 	return client;
 }
-inline static void destroyClient(Client* client)
+inline static void destroyClient(Client client)
 {
 	if (client == NULL)
 		return;
@@ -378,7 +378,7 @@ inline static void destroyClient(Client* client)
 	free(client);
 }
 
-inline static void updateClient(Client* client)
+inline static void updateClient(Client client)
 {
 	updateWindow(client->window);
 }
@@ -394,7 +394,7 @@ int main()
 	if (result == false)
 		return EXIT_FAILURE;
 
-	Client* client = createClient();
+	Client client = createClient();
 
 	if (client == NULL)
 		return EXIT_FAILURE;

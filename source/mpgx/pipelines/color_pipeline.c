@@ -107,7 +107,7 @@ static void onVkUniformsSet(Pipeline pipeline)
 		sizeof(FragmentPushConstants),
 		&pipelineHandle->vk.fpc);
 }
-static bool onVkHandleResize(
+static bool onVkResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
@@ -139,16 +139,16 @@ static bool onVkHandleResize(
 	*(VkPipelineCreateInfo*)createInfo = _createInfo;
 	return true;
 }
-static void onVkHandleDestroy(void* handle)
+static void onVkDestroy(void* handle)
 {
 	free((PipelineHandle)handle);
 }
 inline static Pipeline createVkHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	VkPipelineCreateInfo createInfo = {
 		1,
@@ -164,15 +164,15 @@ inline static Pipeline createVkHandle(
 	return createPipeline(
 		framebuffer,
 		COLOR_PIPELINE_NAME,
-		shaders,
-		shaderCount,
 		state,
 		NULL,
 		onVkUniformsSet,
-		onVkHandleResize,
-		onVkHandleDestroy,
+		onVkResize,
+		onVkDestroy,
 		pipelineHandle,
-		&createInfo);
+		&createInfo,
+		shaders,
+		shaderCount);
 }
 #endif
 
@@ -202,7 +202,7 @@ static void onGlUniformsSet(Pipeline pipeline)
 
 	assertOpenGL();
 }
-static bool onGlHandleResize(
+static bool onGlResize(
 	Pipeline pipeline,
 	Vec2U newSize,
 	void* createInfo)
@@ -221,29 +221,29 @@ static bool onGlHandleResize(
 		pipeline->vk.state.scissor = size;
 	return true;
 }
-static void onGlHandleDestroy(void* handle)
+static void onGlDestroy(void* handle)
 {
 	free((PipelineHandle)handle);
 }
 inline static Pipeline createGlHandle(
 	Framebuffer framebuffer,
-	Shader* shaders,
-	uint8_t shaderCount,
 	const PipelineState* state,
-	PipelineHandle pipelineHandle)
+	PipelineHandle pipelineHandle,
+	Shader* shaders,
+	uint8_t shaderCount)
 {
 	Pipeline pipeline = createPipeline(
 		framebuffer,
 		COLOR_PIPELINE_NAME,
-		shaders,
-		shaderCount,
 		state,
 		NULL,
 		onGlUniformsSet,
-		onGlHandleResize,
-		onGlHandleDestroy,
+		onGlResize,
+		onGlDestroy,
 		pipelineHandle,
-		NULL);
+		NULL,
+		shaders,
+		shaderCount);
 
 	if (pipeline == NULL)
 		return NULL;
@@ -274,7 +274,7 @@ inline static Pipeline createGlHandle(
 	return pipeline;
 }
 
-Pipeline createExtColorPipeline(
+Pipeline createColorPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -311,10 +311,10 @@ Pipeline createExtColorPipeline(
 #if MPGX_SUPPORT_VULKAN
 		return createVkHandle(
 			framebuffer,
-			shaders,
-			2,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 #else
 		abort();
 #endif
@@ -324,10 +324,10 @@ Pipeline createExtColorPipeline(
 	{
 		return createGlHandle(
 			framebuffer,
-			shaders,
-			2,
 			state,
-			pipelineHandle);
+			pipelineHandle,
+			shaders,
+			2);
 	}
 	else
 	{
@@ -376,7 +376,7 @@ Pipeline createColorPipeline(
 		defaultBlendColor,
 	};
 
-	return createExtColorPipeline(
+	return createColorPipelineExt(
 		framebuffer,
 		vertexShader,
 		fragmentShader,

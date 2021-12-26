@@ -15,7 +15,7 @@
 #pragma once
 #include <stdint.h>
 
-static const float skyIcoVert[] = {
+static const float skyIcosphereVertices[] = {
 	-0.276388f, 0.447220f, -0.850649f,
 	-0.257937f, 0.550685f, -0.793860f,
 	-0.377183f, 0.476988f, -0.793861f,
@@ -359,7 +359,7 @@ static const float skyIcoVert[] = {
 	-0.987059f, 0.000000f, 0.160355f,
 	0.000000f, -1.000000f, -0.000000f,
 };
-static const uint16_t skyIcoInd[] = {
+static const uint16_t skyIcosphereIndices[] = {
 	0, 1, 2,
 	3, 4, 5,
 	6, 7, 8,

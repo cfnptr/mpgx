@@ -14,21 +14,21 @@
 
 #pragma once
 #include "mpgx/renderer.h"
-#include "mpgx/pipelines/gradsky_pipeline.h"
+#include "mpgx/pipelines/simple_shadow_pipeline.h"
 
-Renderer createGradSkyRenderer(
+Renderer createSimpleShadowRenderer(
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,
 	size_t capacity);
-Render createGradSkyRender(
+Render createSimpleShadowRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
 	Mesh mesh);
 
-Mesh getGradSkyRenderMesh(
+Mesh getSimpleShadowRenderMesh(
 	Render render);
-void setGradSkyRenderMesh(
+void setSimpleShadowRenderMesh(
 	Render render,
 	Mesh mesh);

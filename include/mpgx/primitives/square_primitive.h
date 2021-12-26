@@ -15,45 +15,45 @@
 #pragma once
 #include <stdint.h>
 
-static const float quadVert2D[] = {
+static const float squareVertices2D[] = {
 	-1.0f, -1.0f,
 	-1.0f, 1.0f,
 	1.0f, 1.0f,
 	1.0f, -1.0f,
 };
-static const float quadVertTex2D[] = {
+static const float squareVerticesCoords2D[] = {
 	-1.0f, -1.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, 0.0f, 1.0f,
 	1.0f, 1.0f, 1.0f, 1.0f,
 	1.0f, -1.0f, 1.0f, 0.0f,
 };
-static const float quadVert3D[] = {
+static const float squareVertices3D[] = {
 	-1.0f, -1.0f, 0.0f,
 	-1.0f, 1.0f, 0.0f,
 	1.0f, 1.0f, 0.0f,
 	1.0f, -1.0f, 0.0f,
 };
-static const float quadVertNorm3D[] = {
+static const float squareVerticesNormals3D[] = {
 	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f,
 	-1.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f,
 	1.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f,
 	1.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f,
 };
-static const float quadVertTex3D[] = {
+static const float squareVerticesCoords3D[] = {
 	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
 	1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
 	1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
 };
-static const float quadVertNormTex3D[] = {
+static const float squareVerticesNormalsCoords3D[] = {
 	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
 	1.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
 	1.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
 };
-static const uint16_t quadTriInd[] = {
+static const uint16_t squareTriangleIndices[] = {
 	0, 1, 2, 0, 2, 3,
 };
-static const uint16_t quadLineInd[] = {
+static const uint16_t quadLineIndices[] = {
 	0, 1, 1, 2, 2, 3, 3, 0,
 };

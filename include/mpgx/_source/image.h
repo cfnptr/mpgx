@@ -24,6 +24,7 @@ typedef struct BaseImage_T
 {
 	Window window;
 	ImageType type;
+	ImageDimension dimension;
 	ImageFormat format;
 	Vec3U size;
 	bool isConstant;
@@ -32,6 +33,7 @@ typedef struct VkImage_T
 {
 	Window window;
 	ImageType type;
+	ImageDimension dimension;
 	ImageFormat format;
 	Vec3U size;
 	bool isConstant;
@@ -50,6 +52,7 @@ typedef struct GlImage_T
 {
 	Window window;
 	ImageType type;
+	ImageDimension dimension;
 	ImageFormat format;
 	Vec3U size;
 	bool isConstant;
@@ -99,12 +102,12 @@ inline static Image createVkImage(
 	size_t* _stagingSize,
 	Window window,
 	ImageType type,
+	ImageDimension dimension,
 	ImageFormat format,
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant,
-	bool isAttachment)
+	bool isConstant)
 {
 	// TODO: mipmap generation, multisampling
 
@@ -115,6 +118,7 @@ inline static Image createVkImage(
 
 	image->vk.window = window;
 	image->vk.type = type;
+	image->vk.dimension = dimension;
 	image->vk.format = format;
 	image->vk.size = size;
 	image->vk.isConstant = isConstant;
@@ -122,17 +126,17 @@ inline static Image createVkImage(
 	VkImageType vkType;
 	VkImageViewType vkViewType;
 
-	if (type == IMAGE_1D_TYPE)
+	if (dimension == IMAGE_1D)
 	{
 		vkType = VK_IMAGE_TYPE_1D;
 		vkViewType = VK_IMAGE_VIEW_TYPE_1D;
 	}
-	else if (type == IMAGE_2D_TYPE)
+	else if (dimension == IMAGE_2D)
 	{
 		vkType = VK_IMAGE_TYPE_2D;
 		vkViewType = VK_IMAGE_VIEW_TYPE_2D;
 	}
-	else if (type == IMAGE_3D_TYPE)
+	else if (dimension == IMAGE_3D)
 	{
 		vkType = VK_IMAGE_TYPE_3D;
 		vkViewType = VK_IMAGE_VIEW_TYPE_3D;
@@ -148,6 +152,12 @@ inline static Image createVkImage(
 
 	VkImageUsageFlagBits vkUsage = VK_IMAGE_USAGE_SAMPLED_BIT;
 
+	if (type == STORAGE_IMAGE_TYPE)
+	{
+		vkUsage |= VK_IMAGE_USAGE_STORAGE_BIT |
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	}
+
 	switch (format)
 	{
 	default:
@@ -161,7 +171,7 @@ inline static Image createVkImage(
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 1;
 
-		if (isAttachment == true)
+		if (type == true)
 			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		break;
 	case R8G8B8A8_UNORM_IMAGE_FORMAT:
@@ -169,7 +179,7 @@ inline static Image createVkImage(
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 4;
 
-		if (isAttachment == true)
+		if (type == ATTACHMENT_IMAGE_TYPE)
 			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		break;
 	case R8G8B8A8_SRGB_IMAGE_FORMAT:
@@ -177,7 +187,7 @@ inline static Image createVkImage(
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 4;
 
-		if (isAttachment == true)
+		if (type == ATTACHMENT_IMAGE_TYPE)
 			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		break;
 	case R16G16B16A16_SFLOAT_IMAGE_FORMAT:
@@ -185,7 +195,7 @@ inline static Image createVkImage(
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 8;
 
-		if (isAttachment == true)
+		if (type == ATTACHMENT_IMAGE_TYPE)
 			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		break;
 	case D16_UNORM_IMAGE_FORMAT:
@@ -193,7 +203,7 @@ inline static Image createVkImage(
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 2;
 
-		if (isAttachment == true)
+		if (type == ATTACHMENT_IMAGE_TYPE)
 			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D32_SFLOAT_IMAGE_FORMAT:
@@ -201,7 +211,7 @@ inline static Image createVkImage(
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 4;
 
-		if (isAttachment == true)
+		if (type == ATTACHMENT_IMAGE_TYPE)
 			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D16_UNORM_S8_UINT_IMAGE_FORMAT:
@@ -209,7 +219,7 @@ inline static Image createVkImage(
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 3; // TODO: correct?
 
-		if (isAttachment == true)
+		if (type == ATTACHMENT_IMAGE_TYPE)
 			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D24_UNORM_S8_UINT_IMAGE_FORMAT:
@@ -217,7 +227,7 @@ inline static Image createVkImage(
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 4;
 
-		if (isAttachment == true)
+		if (type == ATTACHMENT_IMAGE_TYPE)
 			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
@@ -225,7 +235,7 @@ inline static Image createVkImage(
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 5; // TODO: correct?
 
-		if (isAttachment == true)
+		if (type == ATTACHMENT_IMAGE_TYPE)
 			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	}
@@ -262,7 +272,7 @@ inline static Image createVkImage(
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 
-	if (isAttachment == true)
+	if (type == ATTACHMENT_IMAGE_TYPE)
 		allocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
 	VkImage handle;
@@ -435,7 +445,7 @@ inline static Image createVkImage(
 		VkImageMemoryBarrier imageMemoryBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 			NULL,
-			0,
+			VK_ACCESS_NONE_KHR,
 			VK_ACCESS_TRANSFER_WRITE_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -539,7 +549,7 @@ inline static Image createVkImage(
 		VkImageMemoryBarrier imageMemoryBarrier = {
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 			NULL,
-			0,
+			VK_ACCESS_NONE_KHR,
 			VK_ACCESS_SHADER_READ_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -633,7 +643,7 @@ inline static bool setVkImageData(
 	VkImageMemoryBarrier imageMemoryBarrier = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 		NULL,
-		0,
+		VK_ACCESS_NONE_KHR,
 		VK_ACCESS_TRANSFER_WRITE_BIT,
 		VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -739,12 +749,12 @@ inline static void destroyGlImage(
 inline static Image createGlImage(
 	Window window,
 	ImageType type,
+	ImageDimension dimension,
 	ImageFormat format,
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant,
-	bool isAttachment)
+	bool isConstant)
 {
 	// TODO: use isAttachment for renderbuffer optimization
 
@@ -755,18 +765,18 @@ inline static Image createGlImage(
 
 	image->gl.window = window;
 	image->gl.type = type;
+	image->gl.dimension = dimension;
 	image->gl.format = format;
 	image->gl.size = size;
 	image->gl.isConstant = isConstant;
 
 	GLenum glType;
 
-
-	if (type == IMAGE_2D_TYPE)
+	if (dimension == IMAGE_2D)
 	{
 		glType = GL_TEXTURE_2D;
 	}
-	else if (type == IMAGE_3D_TYPE)
+	else if (dimension == IMAGE_3D)
 	{
 		glType = GL_TEXTURE_3D;
 	}
@@ -846,7 +856,7 @@ inline static Image createGlImage(
 		glType,
 		handle);
 
-	if (type == IMAGE_2D_TYPE)
+	if (dimension == IMAGE_2D)
 	{
 		if (levelCount == 0)
 		{
@@ -970,9 +980,9 @@ inline static void setGlImageData(
 		image->gl.glType,
 		image->gl.handle);
 
-	ImageType type = image->gl.type;
+	ImageDimension dimension = image->gl.dimension;
 
-	if (type == IMAGE_2D_TYPE)
+	if (dimension == IMAGE_2D)
 	{
 		glTexSubImage2D(
 			image->gl.glType,
@@ -985,7 +995,7 @@ inline static void setGlImageData(
 			image->gl.dataType,
 			data);
 	}
-	else if (type == IMAGE_3D_TYPE)
+	else if (dimension == IMAGE_3D)
 	{
 		glTexSubImage3D(
 			image->gl.glType,

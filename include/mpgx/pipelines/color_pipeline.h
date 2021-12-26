@@ -18,7 +18,7 @@
 
 #define COLOR_PIPELINE_NAME "Color"
 
-Pipeline createExtColorPipeline(
+Pipeline createColorPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,

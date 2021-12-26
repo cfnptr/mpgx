@@ -14,49 +14,24 @@
 
 #pragma once
 #include "mpgx/window.h"
-#include "cmmt/color.h"
 
-#define TEXCOL_PIPELINE_NAME "TexCol"
+#define SIMPLE_SHADOW_PIPELINE_NAME "SimpleShadow"
 
-Pipeline createExtTexColPipeline(
+Sampler createSimpleShadowSampler(Window window);
+
+Pipeline createSimpleShadowPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Image texture,
-	Sampler sampler,
 	const PipelineState* state);
-Pipeline createTexColPipeline(
+Pipeline createSimpleShadowPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	Image texture,
-	Sampler sampler);
+	uint32_t shadowMapLength);
 
-Image getTexColPipelineTexture(
+Mat4F getSimpleShadowPipelineMvp(
 	Pipeline pipeline);
-Sampler getTexColPipelineSampler(
-	Pipeline pipeline);
-
-Mat4F getTexColPipelineMvp(
-	Pipeline pipeline);
-void setTexColPipelineMvp(
+void setSimpleShadowPipelineMvp(
 	Pipeline pipeline,
 	Mat4F mvp);
-
-Vec2F getTexColPipelineSize(
-	Pipeline pipeline);
-void setTexColPipelineSize(
-	Pipeline pipeline,
-	Vec2F size);
-
-Vec2F getTexColPipelineOffset(
-	Pipeline pipeline);
-void setTexColPipelineOffset(
-	Pipeline pipeline,
-	Vec2F offset);
-
-LinearColor getTexColPipelineColor(
-	Pipeline pipeline);
-void setTexColPipelineColor(
-	Pipeline pipeline,
-	LinearColor color);

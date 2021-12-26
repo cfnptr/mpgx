@@ -12,7 +12,7 @@ ECHO(
 ECHO Compiling shaders...
 
 FOR %%f IN (*.vert *.tesc *.tese *.geom *.frag *.comp *.rgen *.rahit *.rchit *.rmiss *.rint *.rcall *.task *.mesh) DO (
-    glslc --target-env=vulkan1.2 -c -O %%f
+    glslc --target-env=vulkan1.2 -c -O %%f -o %%f.spv
 
     IF %ERRORLEVEL% == 0 (
         ECHO Compiled "%%f" shader.

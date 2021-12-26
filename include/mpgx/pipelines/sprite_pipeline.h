@@ -18,7 +18,7 @@
 
 #define SPRITE_PIPELINE_NAME "Sprite"
 
-Pipeline createExtSpritePipeline(
+Pipeline createSpritePipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,

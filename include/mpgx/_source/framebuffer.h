@@ -110,29 +110,30 @@ inline static VkRenderPass createVkGeneralRenderPass(
 			return NULL;
 		}
 
+		VkAttachmentDescription attachmentDescription = {
+			0,
+			0,
+			VK_SAMPLE_COUNT_1_BIT,
+			useBeginClear == true ?
+			VK_ATTACHMENT_LOAD_OP_CLEAR :
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			VK_ATTACHMENT_STORE_OP_STORE,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		};
+		VkAttachmentReference attachmentReference = {
+			0,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		};
+
 		for (size_t i = 0; i < colorAttachmentCount; i++)
 		{
 			Image colorAttachment = colorAttachments[i];
-
-			VkAttachmentDescription attachmentDescription = {
-				0,
-				colorAttachment->vk.vkFormat,
-				VK_SAMPLE_COUNT_1_BIT,
-				useBeginClear == true ?
-					VK_ATTACHMENT_LOAD_OP_CLEAR :
-					VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-				VK_ATTACHMENT_STORE_OP_STORE,
-				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-				VK_ATTACHMENT_STORE_OP_DONT_CARE,
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			};
-			VkAttachmentReference attachmentReference = {
-				(uint32_t)i,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			};
-
+			attachmentDescription.format = colorAttachment->vk.vkFormat;
 			attachmentDescriptions[i] = attachmentDescription;
+			attachmentReference.attachment = (uint32_t)i;
 			colorReferences[i] = attachmentReference;
 		}
 	}
@@ -344,7 +345,8 @@ inline static VkFramebuffer createVkFramebufferHandle(
 
 inline static void destroyVkFramebuffer(
 	VkDevice device,
-	Framebuffer framebuffer)
+	Framebuffer framebuffer,
+	bool destroyAttachments)
 {
 	if (framebuffer == NULL)
 		return;
@@ -359,6 +361,18 @@ inline static void destroyVkFramebuffer(
 			device,
 			framebuffer->vk.renderPass,
 			NULL);
+
+		if (destroyAttachments == true)
+		{
+			Image* colorAttachments = framebuffer->vk.colorAttachments;
+			size_t colorAttachmentCount = framebuffer->vk.colorAttachmentCount;
+
+			for (size_t i = 0; i < colorAttachmentCount; i++)
+				destroyImage(colorAttachments[i]);
+
+			destroyImage(framebuffer->vk.depthStencilAttachment);
+		}
+
 		free(framebuffer->vk.colorAttachments);
 	}
 
@@ -368,7 +382,7 @@ inline static void destroyVkFramebuffer(
 	free(framebuffer);
 }
 
-inline static Framebuffer createDefaultVkFramebuffer(
+inline static Framebuffer createVkDefaultFramebuffer(
 	VkDevice device,
 	VkRenderPass renderPass,
 	VkFramebuffer handle,
@@ -396,7 +410,8 @@ inline static Framebuffer createDefaultVkFramebuffer(
 	{
 		destroyVkFramebuffer(
 			device,
-			framebuffer);
+			framebuffer,
+			false);
 		return NULL;
 	}
 
@@ -439,7 +454,8 @@ inline static Framebuffer createVkFramebuffer(
 	{
 		destroyVkFramebuffer(
 			device,
-			framebuffer);
+			framebuffer,
+			false);
 		return NULL;
 	}
 
@@ -455,20 +471,14 @@ inline static Framebuffer createVkFramebuffer(
 			free(imageViews);
 			destroyVkFramebuffer(
 				device,
-				framebuffer);
+				framebuffer,
+				false);
 			return NULL;
 		}
 
 		for (size_t i = 0; i < colorAttachmentCount; i++)
 		{
 			Image colorAttachment = _colorAttachments[i];
-
-			assert(colorAttachment != NULL);
-			assert(
-				colorAttachment->vk.size.x == size.x &&
-				colorAttachment->vk.size.y == size.y);
-			assert(colorAttachment->vk.window == window);
-
 			colorAttachments[i] = colorAttachment;
 			imageViews[i] = colorAttachment->vk.imageView;
 		}
@@ -496,7 +506,8 @@ inline static Framebuffer createVkFramebuffer(
 	{
 		destroyVkFramebuffer(
 			device,
-			framebuffer);
+			framebuffer,
+			false);
 		return NULL;
 	}
 
@@ -517,7 +528,8 @@ inline static Framebuffer createVkFramebuffer(
 	{
 		destroyVkFramebuffer(
 			device,
-			framebuffer);
+			framebuffer,
+			false);
 		return NULL;
 	}
 
@@ -531,7 +543,7 @@ inline static bool recreateVkPipelineHandle(
 	VkRenderPass renderPass,
 	Pipeline pipeline,
 	size_t colorAttachmentCount,
-	VkPipelineCreateInfo* createInfo);
+	const VkPipelineCreateInfo* createInfo);
 
 inline static bool setVkFramebufferAttachments(
 	VkDevice device,
@@ -565,17 +577,9 @@ inline static bool setVkFramebufferAttachments(
 			return false;
 		}
 
-		Window window = framebuffer->vk.window;
-
 		for (size_t i = 0; i < colorAttachmentCount; i++)
 		{
 			Image colorAttachment = _colorAttachments[i];
-
-			assert(colorAttachment != NULL);
-			assert(colorAttachment->vk.size.x == size.x &&
-				colorAttachment->vk.size.y == size.y);
-			assert(colorAttachment->vk.window == window);
-
 			colorAttachments[i] = colorAttachment;
 			imageViews[i] = colorAttachment->vk.imageView;
 		}
@@ -613,8 +617,8 @@ inline static bool setVkFramebufferAttachments(
 	{
 		Pipeline pipeline = pipelines[i];
 
-		OnPipelineHandleResize onResize =
-			getPipelineOnHandleResize(pipeline);
+		OnPipelineResize onResize =
+			getPipelineOnResize(pipeline);
 
 		VkPipelineCreateInfo createInfo;
 
@@ -782,21 +786,33 @@ inline static void clearVkFramebuffer(
 #endif
 
 inline static void destroyGlFramebuffer(
-	Framebuffer framebuffer)
+	Framebuffer framebuffer,
+	bool destroyAttachments)
 {
 	if (framebuffer == NULL)
 		return;
 
 	if (framebuffer->gl.isDefault == false)
 	{
-		free(framebuffer->gl.colorAttachments);
-
 		makeWindowContextCurrent(
 			framebuffer->gl.window);
 		glDeleteFramebuffers(
 			GL_ONE,
 			&framebuffer->gl.handle);
 		assertOpenGL();
+
+		if (destroyAttachments == true)
+		{
+			Image* colorAttachments = framebuffer->gl.colorAttachments;
+			size_t colorAttachmentCount = framebuffer->gl.colorAttachmentCount;
+
+			for (size_t i = 0; i < colorAttachmentCount; i++)
+				destroyImage(colorAttachments[i]);
+
+			destroyImage(framebuffer->gl.depthStencilAttachment);
+		}
+
+		free(framebuffer->gl.colorAttachments);
 	}
 
 	assert(framebuffer->gl.pipelineCount == 0);
@@ -805,7 +821,7 @@ inline static void destroyGlFramebuffer(
 	free(framebuffer);
 }
 
-inline static Framebuffer createDefaultGlFramebuffer(
+inline static Framebuffer createGlDefaultFramebuffer(
 	Window window,
 	Vec2U size)
 {
@@ -880,7 +896,9 @@ inline static Framebuffer createGlFramebuffer(
 
 		if (colorAttachments == NULL)
 		{
-			destroyGlFramebuffer(framebuffer);
+			destroyGlFramebuffer(
+				framebuffer,
+				false);
 			return NULL;
 		}
 
@@ -889,18 +907,15 @@ inline static Framebuffer createGlFramebuffer(
 
 		if (drawBuffers == NULL)
 		{
-			destroyGlFramebuffer(framebuffer);
+			destroyGlFramebuffer(
+				framebuffer,
+				false);
 			return NULL;
 		}
 
 		for (size_t i = 0; i < colorAttachmentCount; i++)
 		{
 			Image colorAttachment = _colorAttachments[i];
-
-			assert(colorAttachment != NULL);
-			assert(colorAttachment->gl.size.x == size.x &&
-				colorAttachment->gl.size.y == size.y);
-			assert(colorAttachment->gl.window == window);
 
 			ImageFormat format = colorAttachment->gl.format;
 			GLenum glAttachment = GL_COLOR_ATTACHMENT0 + (GLenum)i;
@@ -909,7 +924,9 @@ inline static Framebuffer createGlFramebuffer(
 			{
 			default:
 				free(drawBuffers);
-				destroyGlFramebuffer(framebuffer);
+				destroyGlFramebuffer(
+					framebuffer,
+					false);
 				return NULL;
 			case R8_UNORM_IMAGE_FORMAT:
 			case R8G8B8A8_UNORM_IMAGE_FORMAT:
@@ -951,7 +968,9 @@ inline static Framebuffer createGlFramebuffer(
 		switch (format)
 		{
 		default:
-			destroyGlFramebuffer(framebuffer);
+			destroyGlFramebuffer(
+				framebuffer,
+				false);
 			return NULL;
 		case D16_UNORM_IMAGE_FORMAT:
 		case D32_SFLOAT_IMAGE_FORMAT:
@@ -1012,7 +1031,9 @@ inline static Framebuffer createGlFramebuffer(
 
 		assertOpenGL();
 
-		destroyGlFramebuffer(framebuffer);
+		destroyGlFramebuffer(
+			framebuffer,
+			false);
 		return NULL;
 	}
 
@@ -1020,7 +1041,9 @@ inline static Framebuffer createGlFramebuffer(
 
 	if (error != GL_NO_ERROR)
 	{
-		destroyGlFramebuffer(framebuffer);
+		destroyGlFramebuffer(
+			framebuffer,
+			false);
 		return NULL;
 	}
 
@@ -1029,7 +1052,9 @@ inline static Framebuffer createGlFramebuffer(
 
 	if (pipelines == NULL)
 	{
-		destroyGlFramebuffer(framebuffer);
+		destroyGlFramebuffer(
+			framebuffer,
+			false);
 		return NULL;
 	}
 
@@ -1060,17 +1085,7 @@ inline static bool setGlFramebufferAttachments(
 		Window window = framebuffer->gl.window;
 
 		for (size_t i = 0; i < colorAttachmentCount; i++)
-		{
-			Image colorAttachment = _colorAttachments[i];
-
-			assert(colorAttachment != NULL);
-			assert(
-				colorAttachment->gl.size.x == size.x &&
-				colorAttachment->gl.size.y == size.y);
-			assert(colorAttachment->gl.window == window);
-
-			colorAttachments[i] = colorAttachment;
-		}
+			colorAttachments[i] = _colorAttachments[i];
 	}
 	else
 	{
@@ -1084,8 +1099,8 @@ inline static bool setGlFramebufferAttachments(
 	{
 		Pipeline pipeline = pipelines[i];
 
-		OnPipelineHandleResize onResize =
-			getPipelineOnHandleResize(pipeline);
+		OnPipelineResize onResize =
+			getPipelineOnResize(pipeline);
 
 		bool result = onResize(
 			pipeline,

@@ -352,7 +352,8 @@ void destroyWindow(Window window)
 
 			destroyVkFramebuffer(
 				device,
-				window->framebuffer);
+				window->framebuffer,
+				false);
 			destroyVkRayTracing(
 				window->rayTracing);
 			destroyVkWindow(
@@ -364,7 +365,9 @@ void destroyWindow(Window window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		destroyGlFramebuffer(window->framebuffer);
+		destroyGlFramebuffer(
+			window->framebuffer,
+			false);
 	}
 	else
 	{
@@ -682,7 +685,9 @@ MpgxResult createWindow(
 
 		if (useRayTracing == true)
 		{
-			RayTracing rayTracing = createVkRayTracing(vkInstance);
+			RayTracing rayTracing = createVkRayTracing(
+				vkInstance,
+				vkWindow->physicalDevice);
 
 			if (rayTracing == NULL)
 			{
@@ -700,7 +705,7 @@ MpgxResult createWindow(
 		VkSwapchain swapchain = vkWindow->swapchain;
 		VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
 
-		Framebuffer framebuffer = createDefaultVkFramebuffer(
+		Framebuffer framebuffer = createVkDefaultFramebuffer(
 			vkWindow->device,
 			swapchain->renderPass,
 			firstBuffer.framebuffer,
@@ -731,7 +736,7 @@ MpgxResult createWindow(
 
 		glEnable(GL_FRAMEBUFFER_SRGB);
 
-		Framebuffer framebuffer = createDefaultGlFramebuffer(
+		Framebuffer framebuffer = createGlDefaultFramebuffer(
 			windowInstance,
 			framebufferSize);
 
@@ -1357,7 +1362,7 @@ static bool onVkResize(
 		Pipeline pipeline = pipelines[i];
 		VkPipelineCreateInfo createInfo;
 
-		bool result = pipeline->vk.onHandleResize(
+		bool result = pipeline->vk.onResize(
 			pipeline,
 			newSize,
 			&createInfo);
@@ -1566,7 +1571,7 @@ bool beginWindowRecord(Window window)
 			{
 				Pipeline pipeline = pipelines[i];
 
-				pipeline->gl.onHandleResize(
+				pipeline->gl.onResize(
 					pipeline,
 					newSize,
 					NULL);
@@ -1613,8 +1618,8 @@ void endWindowRecord(Window window)
 			VkImageMemoryBarrier imageMemoryBarrier = {
 				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 				NULL,
-				0,
-				0,
+				VK_ACCESS_NONE_KHR,
+				VK_ACCESS_NONE_KHR,
 				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 				graphicsQueueFamilyIndex,
@@ -1820,7 +1825,8 @@ Buffer createBuffer(
 			type,
 			data,
 			size,
-			isConstant);
+			isConstant,
+			window->useRayTracing);
 #else
 	abort();
 #endif
@@ -2204,15 +2210,16 @@ uint8_t getImageDataChannelCount(ImageData imageData)
 Image createImage(
 	Window window,
 	ImageType type,
+	ImageDimension dimension,
 	ImageFormat format,
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant,
-	bool isAttachment)
+	bool isConstant)
 {
 	assert(window != NULL);
 	assert(type < IMAGE_TYPE_COUNT);
+	assert(dimension < IMAGE_DIMENSION_COUNT);
 	assert(format < IMAGE_FORMAT_COUNT);
 	assert(data != NULL);
 	assert(size.x > 0);
@@ -2241,12 +2248,12 @@ Image createImage(
 			&vkWindow->stagingSize,
 			window,
 			type,
+			dimension,
 			format,
 			data,
 			size,
 			levelCount,
-			isConstant,
-			isAttachment);
+			isConstant);
 #else
 		abort();
 #endif
@@ -2254,15 +2261,17 @@ Image createImage(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+		assert(type != STORAGE_IMAGE_TYPE);
+
 		image = createGlImage(
 			window,
 			type,
+			dimension,
 			format,
 			data,
 			size,
 			levelCount,
-			isConstant,
-			isAttachment);
+			isConstant);
 	}
 	else
 	{
@@ -2351,13 +2360,13 @@ Image createImageFromFile(
 
 	Image image = createImage(
 		window,
-		IMAGE_2D_TYPE,
+		GENERAL_IMAGE_TYPE,
+		IMAGE_2D,
 		format,
 		(const void**)&pixels,
 		vec3U(width, height, 1),
 		generateMipmap ? 0 : 1,
-		isConstant,
-		false);
+		isConstant);
 
 	stbi_image_free(pixels);
 	return image;
@@ -2401,13 +2410,13 @@ Image createImageFromData(
 
 	Image image = createImage(
 		window,
-		IMAGE_2D_TYPE,
+		GENERAL_IMAGE_TYPE,
+		IMAGE_2D,
 		format,
 		(const void**)&pixels,
 		vec3U(width, height, 1),
 		generateMipmap ? 0 : 1,
-		isConstant,
-		false);
+		isConstant);
 
 	stbi_image_free(pixels);
 	return image;
@@ -2535,6 +2544,11 @@ ImageType getImageType(Image image)
 {
 	assert(image != NULL);
 	return image->base.type;
+}
+ImageDimension getImageDimension(Image image)
+{
+	assert(image != NULL);
+	return image->base.dimension;
 }
 ImageFormat getImageFormat(Image image)
 {
@@ -3124,9 +3138,21 @@ Framebuffer createFramebuffer(
 	}
 	if (depthStencilAttachment != NULL)
 	{
+		assert(depthStencilAttachment->base.type == ATTACHMENT_IMAGE_TYPE);
 		assert(depthStencilAttachment->base.size.x == size.x &&
 			depthStencilAttachment->base.size.y == size.y);
 		assert(depthStencilAttachment->base.window == window);
+
+		for (size_t i = 0; i < colorAttachmentCount; i++)
+		{
+			Image image = colorAttachments[i];
+
+			assert(image->base.type == ATTACHMENT_IMAGE_TYPE);
+			assert(image->base.size.x  == size.x &&
+				image->base.size.y == size.y);
+			assert(image->base.window == window);
+		}
+
 		hasSomeAttachments = true;
 	}
 
@@ -3197,7 +3223,8 @@ Framebuffer createFramebuffer(
 #if MPGX_SUPPORT_VULKAN
 			destroyVkFramebuffer(
 				window->vkWindow->device,
-				framebuffer);
+				framebuffer,
+				false);
 #else
 			abort();
 #endif
@@ -3205,7 +3232,9 @@ Framebuffer createFramebuffer(
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
-			destroyGlFramebuffer(framebuffer);
+			destroyGlFramebuffer(
+				framebuffer,
+				false);
 		}
 		else
 		{
@@ -3294,7 +3323,8 @@ Framebuffer createShadowFramebuffer(
 #if MPGX_SUPPORT_VULKAN
 			destroyVkFramebuffer(
 				window->vkWindow->device,
-				framebuffer);
+				framebuffer,
+				false);
 #else
 			abort();
 #endif
@@ -3302,7 +3332,9 @@ Framebuffer createShadowFramebuffer(
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
-			destroyGlFramebuffer(framebuffer);
+			destroyGlFramebuffer(
+				framebuffer,
+				false);
 		}
 		else
 		{
@@ -3332,17 +3364,6 @@ void destroyFramebuffer(
 		if (framebuffer != framebuffers[i])
 			continue;
 
-		if (destroyAttachments == true)
-		{
-			Image* colorAttachments = framebuffer->base.colorAttachments;
-			size_t colorAttachmentCount = framebuffer->base.colorAttachmentCount;
-
-			for (size_t j = 0; j < colorAttachmentCount; j++)
-				destroyImage(colorAttachments[j]);
-
-			destroyImage(framebuffer->base.depthStencilAttachment);
-		}
-
 		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
@@ -3358,7 +3379,8 @@ void destroyFramebuffer(
 
 			destroyVkFramebuffer(
 				vkWindow->device,
-				framebuffer);
+				framebuffer,
+				destroyAttachments);
 #else
 			abort();
 #endif
@@ -3366,7 +3388,9 @@ void destroyFramebuffer(
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
-			destroyGlFramebuffer(framebuffer);
+			destroyGlFramebuffer(
+				framebuffer,
+				destroyAttachments);
 		}
 		else
 		{
@@ -3788,24 +3812,24 @@ void clearFramebuffer(
 Pipeline createPipeline(
 	Framebuffer framebuffer,
 	const char* name,
-	Shader* shaders,
-	size_t shaderCount,
 	const PipelineState* state,
-	OnPipelineHandleBind onHandleBind,
+	OnPipelineBind onBind,
 	OnPipelineUniformsSet onUniformsSet,
-	OnPipelineHandleResize onHandleResize,
-	OnPipelineHandleDestroy onHandleDestroy,
+	OnPipelineResize onResize,
+	OnPipelineDestroy onDestroy,
 	void* handle,
-	void* createInfo)
+	const void* createInfo,
+	Shader* shaders,
+	size_t shaderCount)
 {
 	assert(framebuffer != NULL);
 	assert(name != NULL);
+	assert(state != NULL);
+	assert(onResize != NULL);
+	assert(onDestroy != NULL);
+	assert(handle != NULL);
 	assert(shaders != NULL);
 	assert(shaderCount != 0);
-	assert(state != NULL);
-	assert(onHandleResize != NULL);
-	assert(onHandleDestroy != NULL);
-	assert(handle != NULL);
 	assert(state->drawMode < DRAW_MODE_COUNT);
 	assert(state->polygonMode < POLYGON_MODE_COUNT);
 	assert(state->cullMode < CULL_MODE_COUNT);
@@ -3822,6 +3846,21 @@ Pipeline createPipeline(
 	assert(state->scissor.z >= 0 && state->scissor.w >= 0);
 	assert(framebuffer->base.window->isRecording == false);
 
+#ifndef NDEBUG
+	for (size_t i = 0; i < shaderCount; i++)
+	{
+		Shader shader = shaders[i];
+
+		assert(shader->base.type == VERTEX_SHADER_TYPE ||
+			shader->base.type == FRAGMENT_SHADER_TYPE ||
+			shader->base.type == COMPUTE_SHADER_TYPE ||
+			shader->base.type == TESSELLATION_CONTROL_SHADER_TYPE ||
+			shader->base.type == TESSELLATION_EVALUATION_SHADER_TYPE ||
+			shader->base.type == GEOMETRY_SHADER_TYPE);
+		assert(shader->base.window == framebuffer->base.window);
+	}
+#endif
+
 	Window window = framebuffer->base.window;
 	GraphicsAPI api = window->api;
 
@@ -3837,14 +3876,14 @@ Pipeline createPipeline(
 			createInfo,
 			framebuffer,
 			name,
-			shaders,
-			shaderCount,
 			*state,
-			onHandleBind,
+			onBind,
 			onUniformsSet,
-			onHandleResize,
-			onHandleDestroy,
-			handle);
+			onResize,
+			onDestroy,
+			handle,
+			shaders,
+			shaderCount);
 #else
 		abort();
 #endif
@@ -3858,14 +3897,14 @@ Pipeline createPipeline(
 		pipeline = createGlPipeline(
 			framebuffer,
 			name,
-			shaders,
-			shaderCount,
 			*state,
-			onHandleBind,
+			onBind,
 			onUniformsSet,
-			onHandleResize,
-			onHandleDestroy,
-			handle);
+			onResize,
+			onDestroy,
+			handle,
+			shaders,
+			shaderCount);
 	}
 	else
 	{
@@ -3874,7 +3913,7 @@ Pipeline createPipeline(
 
 	if (pipeline == NULL)
 	{
-		onHandleDestroy(handle);
+		onDestroy(handle);
 		return NULL;
 	}
 
@@ -3890,7 +3929,31 @@ Pipeline createPipeline(
 
 		if (pipelines == NULL)
 		{
-			free(pipeline);
+			onDestroy(handle);
+
+			if (api == VULKAN_GRAPHICS_API)
+			{
+#if MPGX_SUPPORT_VULKAN
+				destroyVkPipeline(
+					window->vkWindow->device,
+					pipeline,
+					false);
+#else
+				abort();
+#endif
+			}
+			else if (api == OPENGL_GRAPHICS_API ||
+				api == OPENGL_ES_GRAPHICS_API)
+			{
+				destroyGlPipeline(
+					pipeline,
+					false);
+			}
+			else
+			{
+				abort();
+			}
+
 			return NULL;
 		}
 
@@ -3922,17 +3985,8 @@ void destroyPipeline(
 		if (pipeline != pipelines[i])
 			continue;
 
-		pipeline->base.onHandleDestroy(
+		pipeline->base.onDestroy(
 			pipeline->base.handle);
-
-		if (destroyShaders == true)
-		{
-			Shader* shaders = pipeline->base.shaders;
-			size_t shaderCount = pipeline->base.shaderCount;
-
-			for (size_t j = 0; j < shaderCount; j++)
-				destroyShader(shaders[j]);
-		}
 
 		GraphicsAPI api = window->api;
 
@@ -3949,7 +4003,8 @@ void destroyPipeline(
 
 			destroyVkPipeline(
 				vkWindow->device,
-				pipeline);
+				pipeline,
+				destroyShaders);
 #else
 			abort();
 #endif
@@ -3957,7 +4012,9 @@ void destroyPipeline(
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
-			destroyGlPipeline(pipeline);
+			destroyGlPipeline(
+				pipeline,
+				destroyShaders);
 		}
 		else
 		{
@@ -4003,25 +4060,25 @@ const PipelineState* getPipelineState(Pipeline pipeline)
 	assert(pipeline != NULL);
 	return &pipeline->base.state;
 }
-OnPipelineHandleBind getPipelineOnHandleBind(Pipeline pipeline)
+OnPipelineBind getPipelineOnBind(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->base.onHandleBind;
+	return pipeline->base.onBind;
 }
 OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
 	return pipeline->base.onUniformsSet;
 }
-OnPipelineHandleResize getPipelineOnHandleResize(Pipeline pipeline)
+OnPipelineResize getPipelineOnResize(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->base.onHandleResize;
+	return pipeline->base.onResize;
 }
-OnPipelineHandleDestroy getPipelineOnHandleDestroy(Pipeline pipeline)
+OnPipelineDestroy getPipelineOnDestroy(Pipeline pipeline)
 {
 	assert(pipeline != NULL);
-	return pipeline->base.onHandleDestroy;
+	return pipeline->base.onDestroy;
 }
 void* getPipelineHandle(Pipeline pipeline)
 {
@@ -4157,7 +4214,9 @@ Mesh createMesh(
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
-				destroyVkMesh(mesh);
+				destroyVkMesh(
+					mesh,
+					false);
 #else
 				abort();
 #endif
@@ -4165,7 +4224,9 @@ Mesh createMesh(
 			else if (api == OPENGL_GRAPHICS_API ||
 					 api == OPENGL_ES_GRAPHICS_API)
 			{
-				destroyGlMesh(mesh);
+				destroyGlMesh(
+					mesh,
+					false);
 			}
 			else
 			{
@@ -4201,18 +4262,14 @@ void destroyMesh(
 		if (mesh != meshes[i])
 			continue;
 
-		if (destroyBuffers == true)
-		{
-			destroyBuffer(mesh->base.vertexBuffer);
-			destroyBuffer(mesh->base.indexBuffer);
-		}
-
 		GraphicsAPI api = window->api;
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
-			destroyVkMesh(mesh);
+			destroyVkMesh(
+				mesh,
+				destroyBuffers);
 #else
 			abort();
 #endif
@@ -4220,7 +4277,9 @@ void destroyMesh(
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
-			destroyGlMesh(mesh);
+			destroyGlMesh(
+				mesh,
+				destroyBuffers);
 		}
 		else
 		{
@@ -4445,20 +4504,334 @@ size_t drawMesh(
 	return mesh->base.indexCount;
 }
 
-RayMesh createRayMesh(
+RayPipeline createRayPipeline(
 	Window window,
-	IndexType indexType,
-	const void* vertexData,
-	size_t vertexDataSize,
-	const void* indexData,
-	size_t indexDataSize)
+	const char* name,
+	OnRayPipelineBind onBind,
+	OnRayPipelineResize onResize,
+	OnRayPipelineDestroy onDestroy,
+	void* handle,
+	const void* createInfo,
+	Shader* generationShaders,
+	size_t generationShaderCount,
+	Shader* missShaders,
+	size_t missShaderCount,
+	Shader* closestHitShaders,
+	size_t closestHitShaderCount)
 {
 	assert(window != NULL);
+	assert(name != NULL);
+	assert(onResize != NULL);
+	assert(onDestroy != NULL);
+	assert(handle != NULL);
+	assert(createInfo != NULL);
+	assert(generationShaders != NULL);
+	assert(generationShaderCount != 0);
+	assert(missShaders != NULL);
+	assert(missShaderCount != 0);
+	assert(closestHitShaders != NULL);
+	assert(closestHitShaderCount != 0);
+	assert(window->useRayTracing == true);
+	assert(window->isRecording == false);
+
+#ifndef NDEBUG
+	for (size_t i = 0; i < generationShaderCount; i++)
+	{
+		Shader shader = generationShaders[i];
+		assert(shader->base.type == RAY_GENERATION_SHADER_TYPE);
+		assert(shader->base.window == window);
+	}
+	for (size_t i = 0; i < missShaderCount; i++)
+	{
+		Shader shader = missShaders[i];
+		assert(shader->base.type == RAY_MISS_SHADER_TYPE);
+		assert(shader->base.window == window);
+	}
+	for (size_t i = 0; i < closestHitShaderCount; i++)
+	{
+		Shader shader = closestHitShaders[i];
+		assert(shader->base.type == RAY_CLOSEST_HIT_SHADER_TYPE);
+		assert(shader->base.window == window);
+	}
+#endif
+
+	GraphicsAPI api = window->api;
+	RayTracing rayTracing = window->rayTracing;
+
+	RayPipeline rayPipeline;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+
+		rayPipeline = createVkRayPipeline(
+			vkWindow->device,
+			vkWindow->allocator,
+			createInfo,
+			rayTracing,
+			name,
+			window,
+			onBind,
+			onResize,
+			onDestroy,
+			handle,
+			generationShaders,
+			generationShaderCount,
+			missShaders,
+			missShaderCount,
+			closestHitShaders,
+			closestHitShaderCount);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+
+	if (rayPipeline == NULL)
+	{
+		onDestroy(handle);
+		return NULL;
+	}
+
+	size_t count = rayTracing->base.pipelineCount;
+
+	if (count == rayTracing->base.pipelineCapacity)
+	{
+		size_t capacity = rayTracing->base.pipelineCapacity * 2;
+
+		RayPipeline* pipelines = realloc(
+			rayTracing->base.pipelines,
+			sizeof(RayPipeline) * capacity);
+
+		if (pipelines == NULL)
+		{
+			onDestroy(handle);
+
+			if (api == VULKAN_GRAPHICS_API)
+			{
+#if MPGX_SUPPORT_VULKAN
+				VkWindow vkWindow = window->vkWindow;
+
+				destroyVkRayPipeline(
+					vkWindow->device,
+					vkWindow->allocator,
+					rayPipeline,
+					false);
+#else
+				abort();
+#endif
+			}
+			else
+			{
+				abort();
+			}
+
+			return NULL;
+		}
+
+		rayTracing->base.pipelines = pipelines;
+		rayTracing->base.pipelineCapacity = capacity;
+	}
+
+	rayTracing->base.pipelines[count] = rayPipeline;
+	rayTracing->base.pipelineCount = count + 1;
+	return rayPipeline;
+}
+void destroyRayPipeline(
+	RayPipeline rayPipeline,
+	bool destroyShaders)
+{
+	if (rayPipeline == NULL)
+		return;
+
+	assert(rayPipeline->base.window->isRecording == false);
+
+	Window window = rayPipeline->base.window;
+	RayTracing rayTracing = window->rayTracing;
+	size_t pipelineCount = rayTracing->base.pipelineCount;
+	RayPipeline* pipelines = rayTracing->base.pipelines;
+
+	for (size_t i = 0; i < pipelineCount; i++)
+	{
+		if (rayPipeline != pipelines[i])
+			continue;
+
+		rayPipeline->base.onDestroy(
+			rayPipeline->base.handle);
+
+		GraphicsAPI api = window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
+		{
+#if MPGX_SUPPORT_VULKAN
+			VkWindow vkWindow = window->vkWindow;
+
+			VkResult result = vkQueueWaitIdle(
+				vkWindow->graphicsQueue);
+
+			if (result != VK_SUCCESS)
+				abort();
+
+			destroyVkRayPipeline(
+				vkWindow->device,
+				vkWindow->allocator,
+				rayPipeline,
+				destroyShaders);
+#else
+			abort();
+#endif
+		}
+		else
+		{
+			abort();
+		}
+
+		for (size_t j = i + 1; j < pipelineCount; j++)
+			pipelines[j - 1] = pipelines[j];
+
+		rayTracing->base.pipelineCount--;
+		return;
+	}
+
+	abort();
+}
+
+Window getRayPipelineWindow(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.window;
+}
+const char* getRayPipelineName(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+#ifndef NDEBUG
+	return rayPipeline->base.name;
+#else
+	abort();
+#endif
+}
+Shader* getRayPipelineGenerationShaders(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.generationShaders;
+}
+size_t getRayPipelineGenerationShaderCount(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.generationShaderCount;
+}
+Shader* getRayPipelineMissShaders(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.missShaders;
+}
+size_t getRayPipelineMissShaderCount(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.missShaderCount;
+}
+Shader* getRayPipelineClosestHitShaders(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.closestHitShaders;
+}
+size_t getRayPipelineClosestHitShaderCount(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.closestHitShaderCount;
+}
+OnRayPipelineBind getRayPipelineOnBind(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.onBind;
+}
+OnRayPipelineResize getRayPipelineOnResize(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.onResize;
+}
+OnRayPipelineDestroy getRayPipelineOnDestroy(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.onDestroy;
+}
+void* getRayPipelineHandle(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	return rayPipeline->base.handle;
+}
+
+void bindRayPipeline(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	assert(rayPipeline->base.window->isRecording == true);
+
+	Window window = rayPipeline->base.window;
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		bindVkRayPipeline(
+			window->vkWindow->currenCommandBuffer,
+			rayPipeline);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+}
+
+void tracePipelineRays(RayPipeline rayPipeline)
+{
+	assert(rayPipeline != NULL);
+	assert(rayPipeline->base.window->isRecording == true);
+
+	Window window = rayPipeline->base.window;
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		traceVkPipelineRays(
+			window->vkWindow->currenCommandBuffer,
+			window->rayTracing,
+			rayPipeline);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+}
+
+RayMesh createRayMesh(
+	Window window,
+	size_t vertexStride,
+	IndexType indexType,
+	Buffer vertexBuffer,
+	Buffer indexBuffer)
+{
+	assert(window != NULL);
+	assert(vertexStride != 0);
 	assert(indexType < INDEX_TYPE_COUNT);
-	assert(vertexData != NULL);
-	assert(vertexDataSize != 0);
-	assert(indexData != NULL);
-	assert(indexDataSize != 0);
+	assert(vertexBuffer != NULL);
+	assert(indexBuffer != NULL);
+	assert(vertexBuffer->base.type == VERTEX_BUFFER_TYPE);
+	assert(indexBuffer->base.type == INDEX_BUFFER_TYPE);
+	assert(vertexBuffer->base.window == window);
+	assert(indexBuffer->base.window == window);
+	assert(vertexBuffer->base.isMapped == false);
+	assert(indexBuffer->base.isMapped == false);
 	assert(window->useRayTracing == true);
 	assert(window->isRecording == false);
 
@@ -4480,11 +4853,10 @@ RayMesh createRayMesh(
 			vkWindow->transferFence,
 			rayTracing,
 			window,
+			vertexStride,
 			indexType,
-			vertexData,
-			vertexDataSize,
-			indexData,
-			indexDataSize);
+			vertexBuffer,
+			indexBuffer);
 #else
 		abort();
 #endif
@@ -4497,17 +4869,17 @@ RayMesh createRayMesh(
 	if (rayMesh == NULL)
 		return NULL;
 
-	size_t count = rayTracing->base.rayMeshCount;
+	size_t count = rayTracing->base.meshCount;
 
-	if (count == rayTracing->base.rayMeshCapacity)
+	if (count == rayTracing->base.meshCapacity)
 	{
-		size_t capacity = rayTracing->base.rayMeshCapacity * 2;
+		size_t capacity = rayTracing->base.meshCapacity * 2;
 
-		RayMesh* rayMeshes = realloc(
-			rayTracing->base.rayMeshes,
+		RayMesh* meshes = realloc(
+			rayTracing->base.meshes,
 			sizeof(RayMesh) * capacity);
 
-		if (rayMeshes == NULL)
+		if (meshes == NULL)
 		{
 			if (api == VULKAN_GRAPHICS_API)
 			{
@@ -4518,7 +4890,8 @@ RayMesh createRayMesh(
 					vkWindow->device,
 					vkWindow->allocator,
 					window->rayTracing,
-					rayMesh);
+					rayMesh,
+					false);
 #else
 				abort();
 #endif
@@ -4531,15 +4904,17 @@ RayMesh createRayMesh(
 			return NULL;
 		}
 
-		rayTracing->base.rayMeshes = rayMeshes;
-		rayTracing->base.rayMeshCapacity = capacity;
+		rayTracing->base.meshes = meshes;
+		rayTracing->base.meshCapacity = capacity;
 	}
 
-	rayTracing->base.rayMeshes[count] = rayMesh;
-	rayTracing->base.rayMeshCount = count + 1;
+	rayTracing->base.meshes[count] = rayMesh;
+	rayTracing->base.meshCount = count + 1;
 	return rayMesh;
 }
-void destroyRayMesh(RayMesh rayMesh)
+void destroyRayMesh(
+	RayMesh rayMesh,
+	bool destroyBuffers)
 {
 	if (rayMesh == NULL)
 		return;
@@ -4548,12 +4923,12 @@ void destroyRayMesh(RayMesh rayMesh)
 
 	Window window = rayMesh->base.window;
 	RayTracing rayTracing = window->rayTracing;
-	RayMesh* rayMeshes = rayTracing->base.rayMeshes;
-	size_t rayMeshCount = rayTracing->base.rayMeshCount;
+	RayMesh* meshes = rayTracing->base.meshes;
+	size_t meshCount = rayTracing->base.meshCount;
 
-	for (size_t i = 0; i < rayMeshCount; i++)
+	for (size_t i = 0; i < meshCount; i++)
 	{
-		if (rayMesh != rayMeshes[i])
+		if (rayMesh != meshes[i])
 			continue;
 
 		GraphicsAPI api = window->api;
@@ -4563,11 +4938,18 @@ void destroyRayMesh(RayMesh rayMesh)
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
 
+			VkResult result = vkQueueWaitIdle(
+				vkWindow->graphicsQueue);
+
+			if (result != VK_SUCCESS)
+				abort();
+
 			destroyVkRayMesh(
 				vkWindow->device,
 				vkWindow->allocator,
 				window->rayTracing,
-				rayMesh);
+				rayMesh,
+				destroyBuffers);
 #else
 			abort();
 #endif
@@ -4577,17 +4959,43 @@ void destroyRayMesh(RayMesh rayMesh)
 			abort();
 		}
 
-		for (size_t j = i + 1; j < rayMeshCount; j++)
-			rayMeshes[j - 1] = rayMeshes[j];
+		for (size_t j = i + 1; j < meshCount; j++)
+			meshes[j - 1] = meshes[j];
 
-		rayTracing->base.rayMeshCount--;
+		rayTracing->base.meshCount--;
 		return;
 	}
 
 	abort();
 }
 
-RayRender createRayRender(
+Window getRayMeshWindow(RayMesh rayMesh)
+{
+	assert(rayMesh != NULL);
+	return rayMesh->base.window;
+}
+size_t getRayMeshVertexStride(RayMesh rayMesh)
+{
+	assert(rayMesh != NULL);
+	return rayMesh->base.vertexStride;
+}
+IndexType getRayMeshIndexType(RayMesh rayMesh)
+{
+	assert(rayMesh != NULL);
+	return rayMesh->base.indexType;
+}
+Buffer getRayMeshVertexBuffer(RayMesh rayMesh)
+{
+	assert(rayMesh != NULL);
+	return rayMesh->base.vertexBuffer;
+}
+Buffer getRayMeshIndexBuffer(RayMesh rayMesh)
+{
+	assert(rayMesh != NULL);
+	return rayMesh->base.indexBuffer;
+}
+
+RayScene createRayScene(
 	Window window,
 	RayMesh* rayMeshes,
 	size_t rayMeshCount)
@@ -4601,14 +5009,14 @@ RayRender createRayRender(
 	GraphicsAPI api = window->api;
 	RayTracing rayTracing = window->rayTracing;
 
-	RayRender rayRender;
+	RayScene rayScene;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
 
-		rayRender = createVkRayRender(
+		rayScene = createVkRayScene(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
@@ -4627,31 +5035,31 @@ RayRender createRayRender(
 		abort();
 	}
 
-	if (rayRender == NULL)
+	if (rayScene == NULL)
 		return NULL;
 
-	size_t count = rayTracing->base.rayRenderCount;
+	size_t count = rayTracing->base.sceneCount;
 
-	if (count == rayTracing->base.rayRenderCapacity)
+	if (count == rayTracing->base.sceneCapacity)
 	{
-		size_t capacity = rayTracing->base.rayRenderCapacity * 2;
+		size_t capacity = rayTracing->base.sceneCapacity * 2;
 
-		RayRender* rayRenders = realloc(
-			rayTracing->base.rayRenders,
-			sizeof(RayRender) * capacity);
+		RayScene* scenes = realloc(
+			rayTracing->base.scenes,
+			sizeof(RayScene) * capacity);
 
-		if (rayRenders == NULL)
+		if (scenes == NULL)
 		{
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				VkWindow vkWindow = window->vkWindow;
 
-				destroyVkRayRender(
+				destroyVkRayScene(
 					vkWindow->device,
 					vkWindow->allocator,
 					window->rayTracing,
-					rayRender);
+					rayScene);
 #else
 				abort();
 #endif
@@ -4664,29 +5072,29 @@ RayRender createRayRender(
 			return NULL;
 		}
 
-		rayTracing->base.rayRenders = rayRenders;
-		rayTracing->base.rayRenderCapacity = capacity;
+		rayTracing->base.scenes = scenes;
+		rayTracing->base.sceneCapacity = capacity;
 	}
 
-	rayTracing->base.rayRenders[count] = rayRender;
-	rayTracing->base.rayRenderCount = count + 1;
-	return rayRender;
+	rayTracing->base.scenes[count] = rayScene;
+	rayTracing->base.sceneCount = count + 1;
+	return rayScene;
 }
-void destroyRayRender(RayRender rayRender)
+void destroyRayScene(RayScene rayScene)
 {
-	if (rayRender == NULL)
+	if (rayScene == NULL)
 		return;
 
-	assert(rayRender->base.window->isRecording == false);
+	assert(rayScene->base.window->isRecording == false);
 
-	Window window = rayRender->base.window;
+	Window window = rayScene->base.window;
 	RayTracing rayTracing = window->rayTracing;
-	RayRender* rayRenders = rayTracing->base.rayRenders;
-	size_t rayRenderCount = rayTracing->base.rayRenderCount;
+	RayScene* scenes = rayTracing->base.scenes;
+	size_t sceneCount = rayTracing->base.sceneCount;
 
-	for (size_t i = 0; i < rayRenderCount; i++)
+	for (size_t i = 0; i < sceneCount; i++)
 	{
-		if (rayRender != rayRenders[i])
+		if (rayScene != scenes[i])
 			continue;
 
 		GraphicsAPI api = window->api;
@@ -4696,11 +5104,17 @@ void destroyRayRender(RayRender rayRender)
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
 
-			destroyVkRayRender(
+			VkResult result = vkQueueWaitIdle(
+				vkWindow->graphicsQueue);
+
+			if (result != VK_SUCCESS)
+				abort();
+
+			destroyVkRayScene(
 				vkWindow->device,
 				vkWindow->allocator,
 				window->rayTracing,
-				rayRender);
+				rayScene);
 #else
 			abort();
 #endif
@@ -4710,12 +5124,28 @@ void destroyRayRender(RayRender rayRender)
 			abort();
 		}
 
-		for (size_t j = i + 1; j < rayRenderCount; j++)
-			rayRenders[j - 1] = rayRenders[j];
+		for (size_t j = i + 1; j < sceneCount; j++)
+			scenes[j - 1] = scenes[j];
 
-		rayTracing->base.rayRenderCount--;
+		rayTracing->base.sceneCount--;
 		return;
 	}
 
 	abort();
+}
+
+Window getRaySceneWindow(RayScene rayMesh)
+{
+	assert(rayMesh != NULL);
+	return rayMesh->base.window;
+}
+RayMesh* getRaySceneMeshes(RayScene rayMesh)
+{
+	assert(rayMesh != NULL);
+	return rayMesh->base.meshes;
+}
+size_t getRaySceneMeshCount(RayScene rayMesh)
+{
+	assert(rayMesh != NULL);
+	return rayMesh->base.meshCount;
 }

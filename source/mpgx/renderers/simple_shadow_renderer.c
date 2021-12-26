@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mpgx/renderers/simpshad_renderer.h"
+#include "mpgx/renderers/simple_shadow_renderer.h"
 
 #include <string.h>
 #include <assert.h>
@@ -25,11 +25,11 @@ struct RenderHandle_T
 typedef struct RenderHandle_T RenderHandle_T;
 typedef RenderHandle_T* RenderHandle;
 
-static void onRenderHandleDestroy(void* handle)
+static void onDestroy(void* handle)
 {
 	free((RenderHandle)handle);
 }
-static size_t onRenderHandleDraw(
+static size_t onDraw(
 	Render render,
 	Pipeline pipeline,
 	const Mat4F* model,
@@ -40,14 +40,14 @@ static size_t onRenderHandleDraw(
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
-	setSimpShadPipelineMvp(
+	setSimpleShadowPipelineMvp(
 		pipeline,
 		mvp);
 	return drawMesh(
 		renderHandle->mesh,
 		pipeline);
 }
-Renderer createSimpShadRenderer(
+Renderer createSimpleShadowRenderer(
 	Pipeline pipeline,
 	RenderSorting sorting,
 	bool useCulling,
@@ -59,17 +59,17 @@ Renderer createSimpShadRenderer(
 
 	assert(strcmp(
 		getPipelineName(pipeline),
-		SIMPSHAD_PIPELINE_NAME) == 0);
+		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 
 	return createRenderer(
 		pipeline,
 		sorting,
 		useCulling,
-		onRenderHandleDestroy,
-		onRenderHandleDraw,
+		onDestroy,
+		onDraw,
 		capacity);
 }
-Render createSimpShadRender(
+Render createSimpleShadowRender(
 	Renderer renderer,
 	Transform transform,
 	Box3F bounding,
@@ -86,7 +86,7 @@ Render createSimpShadRender(
 	assert(strcmp(
 		getPipelineName(
 		getRendererPipeline(renderer)),
-		SIMPSHAD_PIPELINE_NAME) == 0);
+		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 
 	RenderHandle renderHandle = malloc(
 		sizeof(RenderHandle_T));
@@ -111,7 +111,7 @@ Render createSimpShadRender(
 	return render;
 }
 
-Mesh getSimpShadRenderMesh(
+Mesh getSimpleShadowRenderMesh(
 	Render render)
 {
 	assert(render != NULL);
@@ -119,12 +119,12 @@ Mesh getSimpShadRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		SIMPSHAD_PIPELINE_NAME) == 0);
+		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 	RenderHandle renderHandle =
 		getRenderHandle(render);
 	return renderHandle->mesh;
 }
-void setSimpShadRenderMesh(
+void setSimpleShadowRenderMesh(
 	Render render,
 	Mesh mesh)
 {
@@ -134,7 +134,7 @@ void setSimpShadRenderMesh(
 		getPipelineName(
 		getRendererPipeline(
 		getRenderRenderer(render))),
-		SIMPSHAD_PIPELINE_NAME) == 0);
+		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 	RenderHandle renderHandle =
 		getRenderHandle(render);
 	renderHandle->mesh = mesh;

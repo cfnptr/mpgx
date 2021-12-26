@@ -74,8 +74,18 @@ inline static Mesh createVkMesh(
 	return mesh;
 }
 inline static void destroyVkMesh(
-	Mesh mesh)
+	Mesh mesh,
+	bool destroyBuffers)
 {
+	if (mesh == NULL)
+		return;
+
+	if (destroyBuffers == true)
+	{
+		destroyBuffer(mesh->vk.vertexBuffer);
+		destroyBuffer(mesh->vk.indexBuffer);
+	}
+
 	free(mesh);
 }
 inline static void drawVkMesh(
@@ -127,7 +137,8 @@ inline static void drawVkMesh(
 #endif
 
 inline static void destroyGlMesh(
-	Mesh mesh)
+	Mesh mesh,
+	bool destroyBuffers)
 {
 	if (mesh == NULL)
 		return;
@@ -139,6 +150,12 @@ inline static void destroyGlMesh(
 		GL_ONE,
 		&mesh->gl.handle);
 	assertOpenGL();
+
+	if (destroyBuffers == true)
+	{
+		destroyBuffer(mesh->gl.vertexBuffer);
+		destroyBuffer(mesh->gl.indexBuffer);
+	}
 
 	free(mesh);
 }
@@ -176,7 +193,9 @@ inline static Mesh createGlMesh(
 
 	if (error != GL_NO_ERROR)
 	{
-		destroyGlMesh(mesh);
+		destroyGlMesh(
+			mesh,
+			false);
 		return NULL;
 	}
 

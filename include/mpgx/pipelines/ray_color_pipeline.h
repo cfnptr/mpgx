@@ -13,20 +13,28 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/renderer.h"
-#include "mpgx/pipelines/raytrace_pipeline.h"
+#include "mpgx/window.h"
 
-Renderer createRayTraceRenderer(
-	Pipeline pipeline,
-	size_t capacity);
-Render createRayTraceRender(
-	Renderer renderer,
-	Transform transform,
-	Box3F bounding,
-	Mesh mesh);
+#define RAY_COLOR_PIPELINE_NAME "RayColor"
 
-Mesh getRayTraceRenderMesh(
-	Render render);
-void setRayTraceRenderMesh(
-	Render render,
-	Mesh mesh);
+RayPipeline createRayColorPipeline(
+	Window window,
+	Shader generationShader,
+	Shader missShader,
+	Shader closestHitShader,
+	RayScene rayScene);
+
+RayScene getRayColorPipelineScene(
+	RayPipeline rayPipeline);
+
+Mat4F getColorRayPipelineInvView(
+	RayPipeline rayPipeline);
+void setColorRayPipelineInvView(
+	RayPipeline rayPipeline,
+	Mat4F invView);
+
+Mat4F getColorRayPipelineInvProj(
+	RayPipeline rayPipeline);
+void setColorRayPipelineInvProj(
+	RayPipeline rayPipeline,
+	Mat4F invProj);

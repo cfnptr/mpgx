@@ -15,7 +15,7 @@
 #pragma once
 #include <stdint.h>
 
-static const float cubeTriVert[] = {
+static const float cubeTriangleVertices[] = {
 	-1.0f, -1.0f, 1.0f,
 	-1.0f, 1.0f, 1.0f,
 	-1.0f, 1.0f, -1.0f,
@@ -41,7 +41,7 @@ static const float cubeTriVert[] = {
 	-1.0f, 1.0f, 1.0f,
 	-1.0f, -1.0f, 1.0f,
 };
-static const float cubeLineVert[] = {
+static const float cubeLineVertices[] = {
 	-1.0f, -1.0f, 1.0f,
 	-1.0f, 1.0f, 1.0f,
 	-1.0f, 1.0f, -1.0f,
@@ -51,7 +51,7 @@ static const float cubeLineVert[] = {
 	1.0f, 1.0f, 1.0f,
 	1.0f, -1.0f, 1.0f,
 };
-static const float cubeTriVertNorm[] = {
+static const float cubeTriangleVerticesNormals[] = {
 	-1.0f, -1.0f, 1.0f, -1.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f,
@@ -77,7 +77,7 @@ static const float cubeTriVertNorm[] = {
 	-1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
 	-1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
 };
-static const float cubeTriVertTex[] = {
+static const float cubeTriangleVerticesCoords[] = {
 	-1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
 	-1.0f, 1.0f, -1.0f, 1.0f, 1.0f,
@@ -103,7 +103,7 @@ static const float cubeTriVertTex[] = {
 	-1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 	-1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
 };
-static const float cubeTriVertNormTex[] = {
+static const float cubeTriangleVerticesNormalsCoords[] = {
 	-1.0f, -1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
 	-1.0f, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
 	-1.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
@@ -129,7 +129,7 @@ static const float cubeTriVertNormTex[] = {
 	-1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
 	-1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
 };
-static const uint16_t cubeTriInd[] = {
+static const uint16_t cubeTriangleIndices[] = {
 	0, 1, 2, 0, 2, 3,
 	4, 5, 6, 4, 6, 7,
 	8, 9, 10, 8, 10, 11,
@@ -137,7 +137,7 @@ static const uint16_t cubeTriInd[] = {
 	16, 17, 18, 16, 18, 19,
 	20, 21, 22, 20, 22, 23,
 };
-static const uint16_t cubeLineInd[] = {
+static const uint16_t cubeLineIndices[] = {
 	0, 1, 1, 2, 2, 3, 3, 0,
 	4, 5, 5, 6, 6, 7, 7, 4,
 	3, 4, 7, 0,

@@ -24,6 +24,7 @@ endif ()
 
 option(MPGX_BUILD_EXAMPLES "Build MPGX usage examples" ON)
 option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
+option(MPGX_USE_OPENGL "Use legacy OpenGL library" ON)
 
 set(MPGX_LANGUAGES C)
 
@@ -37,7 +38,7 @@ if (MPGX_USE_VULKAN)
 endif ()
 
 project(mpgx 
-	VERSION 1.0.0
+	VERSION 0.0.1
 	DESCRIPTION "Multi-platform graphics library"
 	HOMEPAGE_URL "https://github.com/cfnptr/mpgx"
 	LANGUAGES ${MPGX_LANGUAGES})
@@ -63,7 +64,7 @@ set(MPGX_SOURCES
 	source/mpgx/pipelines/diffuse_pipeline.c
     source/mpgx/pipelines/gaussian_blur_pipeline.c
 	source/mpgx/pipelines/gradient_sky_pipeline.c
-	source/mpgx/pipelines/ray_color_pipeline.c
+	source/mpgx/pipelines/ray_tracing_color_pipeline.c
 	source/mpgx/pipelines/simple_shadow_pipeline.c
 	source/mpgx/pipelines/sprite_pipeline.c
 	source/mpgx/pipelines/texture_color_pipeline.c
@@ -78,20 +79,15 @@ set(MPGX_SOURCES
 	source/mpgx/renderers/text_renderer.c
 
 	source/mpgx/free_camera.c
+	source/mpgx/graphics_renderer.c
 	source/mpgx/interface.c
 	source/mpgx/md5.c
-	source/mpgx/renderer.c
 	source/mpgx/text.c
 	source/mpgx/transformer.c
 	source/mpgx/window.c)
 
 set(MPGX_LINK_LIBRARIES
-	cmmt
-	freetype
-	glad
-	glfw
-	mpio
-	mpmt)
+	cmmt freetype glfw mpio mpmt)
 
 if (MPGX_USE_VULKAN)
 	find_package(Vulkan)
@@ -108,6 +104,13 @@ if (MPGX_USE_VULKAN)
 	endif ()
 else ()
 	set(MPGX_SUPPORT_VULKAN 0)
+endif ()
+
+if (MPGX_USE_OPENGL)
+	set(MPGX_SUPPORT_OPENGL 1)
+	list(APPEND MPGX_LINK_LIBRARIES glad)
+else ()
+	set(MPGX_SUPPORT_OPENGL 0)
 endif ()
 
 configure_file(

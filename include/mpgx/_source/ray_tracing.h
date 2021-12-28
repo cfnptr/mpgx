@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TODO: separate pipeline/mesh/scene into different headers
+
 #pragma once
 #include "mpgx/_source/shader.h"
 
-typedef struct BaseRayPipeline_T
+typedef struct BaseRayTracingPipeline_T
 {
 	Window window;
-	OnRayPipelineBind onBind;
-	OnRayPipelineResize onResize;
-	OnRayPipelineDestroy onDestroy;
+	OnRayTracingPipelineBind onBind;
+	OnRayTracingPipelineDestroy onDestroy;
 	void* handle;
 	Shader* generationShaders;
 	size_t generationShaderCount;
@@ -32,25 +33,24 @@ typedef struct BaseRayPipeline_T
 #ifndef NDEBUG
 	const char* name;
 #endif
-} BaseRayPipeline_T;
-typedef struct VkRayPipeline_T
-{
-	Window window;
-	OnRayPipelineBind onBind;
-	OnRayPipelineResize onResize;
-	OnRayPipelineDestroy onDestroy;
-	void* handle;
-	Shader* generationShaders;
-	size_t generationShaderCount;
-	Shader* missShaders;
-	size_t missShaderCount;
-	Shader* closestHitShaders;
-	size_t closestHitShaderCount;
-	Image storageImage;
-#ifndef NDEBUG
-	const char* name;
-#endif
+} BaseRayTracingPipeline_T;
 #if MPGX_SUPPORT_VULKAN
+typedef struct VkRayTracingPipeline_T
+{
+	Window window;
+	OnRayTracingPipelineBind onBind;
+	OnRayTracingPipelineDestroy onDestroy;
+	void* handle;
+	Shader* generationShaders;
+	size_t generationShaderCount;
+	Shader* missShaders;
+	size_t missShaderCount;
+	Shader* closestHitShaders;
+	size_t closestHitShaderCount;
+	Image storageImage;
+#ifndef NDEBUG
+	const char* name;
+#endif
 	VkPipelineCache cache;
 	VkPipelineLayout layout;
 	VkPipeline vkHandle;
@@ -63,33 +63,36 @@ typedef struct VkRayPipeline_T
 	VkBuffer closestHitSbtBuffer;
 	VmaAllocation closestHitSbtAllocation;
 	VkDeviceAddress closestHitSbtAddress;
+
+} VkRayTracingPipeline_T;
 #endif
-} VkRayPipeline_T;
-union RayPipeline_T
+union RayTracingPipeline_T
 {
-	BaseRayPipeline_T base;
-	VkRayPipeline_T vk;
+	BaseRayTracingPipeline_T base;
+#if MPGX_SUPPORT_VULKAN
+	VkRayTracingPipeline_T vk;
+#endif
 };
 
 #if MPGX_SUPPORT_VULKAN
-typedef struct VkRayPipelineCreateInfo
+typedef struct VkRayTracingPipelineCreateData
 {
 	uint32_t setLayoutCount;
 	const VkDescriptorSetLayout* setLayouts;
 	uint32_t pushConstantRangeCount;
 	const VkPushConstantRange* pushConstantRanges;
-} VkRayPipelineCreateInfo;
+} VkRayTracingPipelineCreateData;
 #endif
 
-typedef struct BaseRayMesh_T
+typedef struct BaseRayTracingMesh_T
 {
 	Window window;
 	size_t vertexStride;
 	IndexType indexType;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
-} BaseRayMesh_T;
-typedef struct VkRayMesh_T
+} BaseRayTracingMesh_T;
+typedef struct VkRayTracingMesh_T
 {
 	Window window;
 	size_t vertexStride;
@@ -102,57 +105,57 @@ typedef struct VkRayMesh_T
 	VkAccelerationStructureKHR accelerationStructure;
 	VkDeviceAddress deviceAddress;
 #endif
-} VkRayMesh_T;
-union RayMesh_T
+} VkRayTracingMesh_T;
+union RayTracingMesh_T
 {
-	BaseRayMesh_T base;
-	VkRayMesh_T vk;
+	BaseRayTracingMesh_T base;
+	VkRayTracingMesh_T vk;
 };
 
-typedef struct BaseRayScene_T
+typedef struct BaseRayTracingScene_T
 {
 	Window window;
-	RayMesh* meshes;
+	RayTracingMesh* meshes;
 	size_t meshCount;
-} BaseRayScene_T;
-typedef struct VkRayScene_T
+} BaseRayTracingScene_T;
+typedef struct VkRayTracingScene_T
 {
 	Window window;
-	RayMesh* meshes;
+	RayTracingMesh* meshes;
 	size_t meshCount;
 #if MPGX_SUPPORT_VULKAN
 	VkBuffer buffer;
 	VmaAllocation allocation;
 	VkAccelerationStructureKHR accelerationStructure;
 #endif
-} VkRayScene_T;
-union RayScene_T
+} VkRayTracingScene_T;
+union RayTracingScene_T
 {
-	BaseRayScene_T base;
-	VkRayScene_T vk;
+	BaseRayTracingScene_T base;
+	VkRayTracingScene_T vk;
 };
 
 typedef struct BaseRayTracing_T
 {
-	RayPipeline* pipelines;
+	RayTracingPipeline* pipelines;
 	size_t pipelineCapacity;
 	size_t pipelineCount;
-	RayMesh* meshes;
+	RayTracingMesh* meshes;
 	size_t meshCapacity;
 	size_t meshCount;
-	RayScene* scenes;
+	RayTracingScene* scenes;
 	size_t sceneCapacity;
 	size_t sceneCount;
 } BaseRayTracing_T;
 typedef struct VkRayTracing_T
 {
-	RayPipeline* pipelines;
+	RayTracingPipeline* pipelines;
 	size_t pipelineCapacity;
 	size_t pipelineCount;
-	RayMesh* meshes;
+	RayTracingMesh* meshes;
 	size_t meshCapacity;
 	size_t meshCount;
-	RayScene* scenes;
+	RayTracingScene* scenes;
 	size_t sceneCapacity;
 	size_t sceneCount;
 #if MPGX_SUPPORT_VULKAN
@@ -184,7 +187,7 @@ typedef union RayTracing_T
 typedef RayTracing_T* RayTracing;
 
 #if MPGX_SUPPORT_VULKAN
-inline static VkPipeline createVkRayPipelineHandle(
+inline static VkPipeline createVkRayTracingPipelineHandle(
 	VkDevice device,
 	VkPipelineCache cache,
 	VkPipelineLayout layout,
@@ -311,7 +314,7 @@ inline static VkPipeline createVkRayPipelineHandle(
 	return handle;
 }
 
-inline static bool createVkRayBuffer(
+inline static bool createVkRayTracingBuffer(
 	VkDevice device,
 	VmaAllocator allocator,
 	size_t size,
@@ -468,7 +471,7 @@ inline static bool createVkRayBuffer(
 		*address = bufferAddress;
 	return true;
 }
-inline static bool unmapVkRayBuffer(
+inline static bool unmapVkRayTracingBuffer(
 	VmaAllocator allocator,
 	VmaAllocation allocation,
 	size_t size)
@@ -555,7 +558,7 @@ inline static bool createVkSbt(
 	VmaAllocation rayGenerationSbtAllocation;
 	VkDeviceAddress rayGenerationSbtAddress;
 
-	bool result = createVkRayBuffer(
+	bool result = createVkRayTracingBuffer(
 		device,
 		allocator,
 		bufferSize,
@@ -583,7 +586,7 @@ inline static bool createVkSbt(
 		shaderHandleIndex++;
 	}
 
-	result = unmapVkRayBuffer(
+	result = unmapVkRayTracingBuffer(
 		allocator,
 		rayGenerationSbtAllocation,
 		bufferSize);
@@ -606,7 +609,7 @@ inline static bool createVkSbt(
 	VmaAllocation rayMissSbtAllocation;
 	VkDeviceAddress rayMissSbtAddress;
 
-	result = createVkRayBuffer(
+	result = createVkRayTracingBuffer(
 		device,
 		allocator,
 		bufferSize,
@@ -636,7 +639,7 @@ inline static bool createVkSbt(
 		shaderHandleIndex++;
 	}
 
-	result = unmapVkRayBuffer(
+	result = unmapVkRayTracingBuffer(
 		allocator,
 		rayMissSbtAllocation,
 		bufferSize);
@@ -663,7 +666,7 @@ inline static bool createVkSbt(
 	VmaAllocation rayClosestHitSbtAllocation;
 	VkDeviceAddress rayClosestHitSbtAddress;
 
-	result = createVkRayBuffer(
+	result = createVkRayTracingBuffer(
 		device,
 		allocator,
 		bufferSize,
@@ -697,7 +700,7 @@ inline static bool createVkSbt(
 		shaderHandleIndex++;
 	}
 
-	result = unmapVkRayBuffer(
+	result = unmapVkRayTracingBuffer(
 		allocator,
 		rayClosestHitSbtAllocation,
 		bufferSize);
@@ -734,76 +737,75 @@ inline static bool createVkSbt(
 	return true;
 }
 
-inline static void destroyVkRayPipeline(
+inline static void destroyVkRayTracingPipeline(
 	VkDevice device,
 	VmaAllocator allocator,
-	RayPipeline rayPipeline,
+	RayTracingPipeline rayTracingPipeline,
 	bool destroyShaders)
 {
-	if (rayPipeline == NULL)
+	if (rayTracingPipeline == NULL)
 		return;
 
 	vmaDestroyBuffer(
 		allocator,
-		rayPipeline->vk.closestHitSbtBuffer,
-		rayPipeline->vk.closestHitSbtAllocation);
+		rayTracingPipeline->vk.closestHitSbtBuffer,
+		rayTracingPipeline->vk.closestHitSbtAllocation);
 	vmaDestroyBuffer(
 		allocator,
-		rayPipeline->vk.missSbtBuffer,
-		rayPipeline->vk.missSbtAllocation);
+		rayTracingPipeline->vk.missSbtBuffer,
+		rayTracingPipeline->vk.missSbtAllocation);
 	vmaDestroyBuffer(
 		allocator,
-		rayPipeline->vk.generationSbtBuffer,
-		rayPipeline->vk.generationSbtAllocation);
+		rayTracingPipeline->vk.generationSbtBuffer,
+		rayTracingPipeline->vk.generationSbtAllocation);
 	vkDestroyPipeline(
 		device,
-		rayPipeline->vk.vkHandle,
+		rayTracingPipeline->vk.vkHandle,
 		NULL);
 	vkDestroyPipelineLayout(
 		device,
-		rayPipeline->vk.layout,
+		rayTracingPipeline->vk.layout,
 		NULL);
 	vkDestroyPipelineCache(
 		device,
-		rayPipeline->vk.cache,
+		rayTracingPipeline->vk.cache,
 		NULL);
 
 	if (destroyShaders == true)
 	{
-		Shader* shaders = rayPipeline->vk.closestHitShaders;
-		size_t shaderCount = rayPipeline->vk.closestHitShaderCount;
+		Shader* shaders = rayTracingPipeline->vk.closestHitShaders;
+		size_t shaderCount = rayTracingPipeline->vk.closestHitShaderCount;
 
 		for (size_t i = 0; i < shaderCount; i++)
 			destroyShader(shaders[i]);
 
-		shaders = rayPipeline->vk.missShaders;
-		shaderCount = rayPipeline->vk.missShaderCount;
+		shaders = rayTracingPipeline->vk.missShaders;
+		shaderCount = rayTracingPipeline->vk.missShaderCount;
 
 		for (size_t i = 0; i < shaderCount; i++)
 			destroyShader(shaders[i]);
 
-		shaders = rayPipeline->vk.generationShaders;
-		shaderCount = rayPipeline->vk.generationShaderCount;
+		shaders = rayTracingPipeline->vk.generationShaders;
+		shaderCount = rayTracingPipeline->vk.generationShaderCount;
 
 		for (size_t i = 0; i < shaderCount; i++)
 			destroyShader(shaders[i]);
 	}
 
-	free(rayPipeline->vk.closestHitShaders);
-	free(rayPipeline->vk.missShaders);
-	free(rayPipeline->vk.generationShaders);
-	free(rayPipeline);
+	free(rayTracingPipeline->vk.closestHitShaders);
+	free(rayTracingPipeline->vk.missShaders);
+	free(rayTracingPipeline->vk.generationShaders);
+	free(rayTracingPipeline);
 }
-inline static RayPipeline createVkRayPipeline(
+inline static RayTracingPipeline createVkRayTracingPipeline(
 	VkDevice device,
 	VmaAllocator allocator,
-	const VkRayPipelineCreateInfo* createInfo,
+	const VkRayTracingPipelineCreateData* createData,
 	RayTracing rayTracing,
 	const char* name,
 	Window window,
-	OnRayPipelineBind onBind,
-	OnRayPipelineResize onResize,
-	OnRayPipelineDestroy onDestroy,
+	OnRayTracingPipelineBind onBind,
+	OnRayTracingPipelineDestroy onDestroy,
 	void* handle,
 	Shader* generationShaders,
 	size_t generationShaderCount,
@@ -812,36 +814,35 @@ inline static RayPipeline createVkRayPipeline(
 	Shader* closestHitShaders,
 	size_t closestHitShaderCount)
 {
-	RayPipeline rayPipeline = calloc(1,
-		sizeof(RayPipeline_T));
+	RayTracingPipeline rayTracingPipeline = calloc(1,
+		sizeof(RayTracingPipeline_T));
 
-	if (rayPipeline == NULL)
+	if (rayTracingPipeline == NULL)
 		return NULL;
 
 #ifndef NDEBUG
-	rayPipeline->vk.name = name;
+	rayTracingPipeline->vk.name = name;
 #endif
-	rayPipeline->vk.window = window;
-	rayPipeline->vk.onBind = onBind;
-	rayPipeline->vk.onResize = onResize;
-	rayPipeline->vk.onDestroy = onDestroy;
-	rayPipeline->vk.handle = handle;
+	rayTracingPipeline->vk.window = window;
+	rayTracingPipeline->vk.onBind = onBind;
+	rayTracingPipeline->vk.onDestroy = onDestroy;
+	rayTracingPipeline->vk.handle = handle;
 
 	Shader* rayGenerationShaders = malloc(
 		generationShaderCount * sizeof(Shader));
 
 	if (rayGenerationShaders == NULL)
 	{
-		destroyVkRayPipeline(
+		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayPipeline,
+			rayTracingPipeline,
 			false);
 		return NULL;
 	}
 
-	rayPipeline->vk.generationShaders = rayGenerationShaders;
-	rayPipeline->vk.generationShaderCount = generationShaderCount;
+	rayTracingPipeline->vk.generationShaders = rayGenerationShaders;
+	rayTracingPipeline->vk.generationShaderCount = generationShaderCount;
 
 	for (size_t i = 0; i < generationShaderCount; i++)
 		rayGenerationShaders[i] = generationShaders[i];
@@ -851,16 +852,16 @@ inline static RayPipeline createVkRayPipeline(
 
 	if (rayMissShaders == NULL)
 	{
-		destroyVkRayPipeline(
+		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayPipeline,
+			rayTracingPipeline,
 			false);
 		return NULL;
 	}
 
-	rayPipeline->vk.missShaders = rayMissShaders;
-	rayPipeline->vk.missShaderCount = missShaderCount;
+	rayTracingPipeline->vk.missShaders = rayMissShaders;
+	rayTracingPipeline->vk.missShaderCount = missShaderCount;
 
 	for (size_t i = 0; i < missShaderCount; i++)
 		rayMissShaders[i] = missShaders[i];
@@ -870,16 +871,16 @@ inline static RayPipeline createVkRayPipeline(
 
 	if (rayClosestHitShaders == NULL)
 	{
-		destroyVkRayPipeline(
+		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayPipeline,
+			rayTracingPipeline,
 			false);
 		return NULL;
 	}
 
-	rayPipeline->vk.closestHitShaders = rayClosestHitShaders;
-	rayPipeline->vk.closestHitShaderCount = closestHitShaderCount;
+	rayTracingPipeline->vk.closestHitShaders = rayClosestHitShaders;
+	rayTracingPipeline->vk.closestHitShaderCount = closestHitShaderCount;
 
 	for (size_t i = 0; i < closestHitShaderCount; i++)
 		rayClosestHitShaders[i] = closestHitShaders[i];
@@ -902,24 +903,24 @@ inline static RayPipeline createVkRayPipeline(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		destroyVkRayPipeline(
+		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayPipeline,
+			rayTracingPipeline,
 			false);
 		return NULL;
 	}
 
-	rayPipeline->vk.cache = cache;
+	rayTracingPipeline->vk.cache = cache;
 
 	VkPipelineLayoutCreateInfo layoutCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		NULL,
 		0,
-		createInfo->setLayoutCount,
-		createInfo->setLayouts,
-		createInfo->pushConstantRangeCount,
-		createInfo->pushConstantRanges,
+		createData->setLayoutCount,
+		createData->setLayouts,
+		createData->pushConstantRangeCount,
+		createData->pushConstantRanges,
 	};
 
 	VkPipelineLayout layout;
@@ -932,17 +933,17 @@ inline static RayPipeline createVkRayPipeline(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		destroyVkRayPipeline(
+		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayPipeline,
+			rayTracingPipeline,
 			false);
 		return NULL;
 	}
 
-	rayPipeline->vk.layout = layout;
+	rayTracingPipeline->vk.layout = layout;
 
-	VkPipeline vkHandle = createVkRayPipelineHandle(
+	VkPipeline vkHandle = createVkRayTracingPipelineHandle(
 		device,
 		cache,
 		layout,
@@ -956,15 +957,15 @@ inline static RayPipeline createVkRayPipeline(
 
 	if (vkHandle == NULL)
 	{
-		destroyVkRayPipeline(
+		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayPipeline,
+			rayTracingPipeline,
 			false);
 		return NULL;
 	}
 
-	rayPipeline->vk.vkHandle = vkHandle;
+	rayTracingPipeline->vk.vkHandle = vkHandle;
 
 	VkBuffer generationSbtBuffer;
 	VmaAllocation generationSbtAllocation;
@@ -996,42 +997,42 @@ inline static RayPipeline createVkRayPipeline(
 
 	if (result == false)
 	{
-		destroyVkRayPipeline(
+		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayPipeline,
+			rayTracingPipeline,
 			false);
 		return NULL;
 	}
 
-	rayPipeline->vk.generationSbtBuffer = generationSbtBuffer;
-	rayPipeline->vk.generationSbtAllocation = generationSbtAllocation;
-	rayPipeline->vk.generationSbtAddress = generationSbtAddress;
-	rayPipeline->vk.missSbtBuffer = missSbtBuffer;
-	rayPipeline->vk.missSbtAllocation = missSbtAllocation;
-	rayPipeline->vk.missSbtAddress = missSbtAddress;
-	rayPipeline->vk.closestHitSbtBuffer = closestHitSbtBuffer;
-	rayPipeline->vk.closestHitSbtAllocation = closestHitSbtAllocation;
-	rayPipeline->vk.closestHitSbtAddress = closestHitSbtAddress;
-	return rayPipeline;
+	rayTracingPipeline->vk.generationSbtBuffer = generationSbtBuffer;
+	rayTracingPipeline->vk.generationSbtAllocation = generationSbtAllocation;
+	rayTracingPipeline->vk.generationSbtAddress = generationSbtAddress;
+	rayTracingPipeline->vk.missSbtBuffer = missSbtBuffer;
+	rayTracingPipeline->vk.missSbtAllocation = missSbtAllocation;
+	rayTracingPipeline->vk.missSbtAddress = missSbtAddress;
+	rayTracingPipeline->vk.closestHitSbtBuffer = closestHitSbtBuffer;
+	rayTracingPipeline->vk.closestHitSbtAllocation = closestHitSbtAllocation;
+	rayTracingPipeline->vk.closestHitSbtAddress = closestHitSbtAddress;
+	return rayTracingPipeline;
 }
 
-inline static void bindVkRayPipeline(
+inline static void bindVkRayTracingPipeline(
 	VkCommandBuffer commandBuffer,
-	RayPipeline rayPipeline)
+	RayTracingPipeline rayTracingPipeline)
 {
 	vkCmdBindPipeline(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-		rayPipeline->vk.vkHandle);
+		rayTracingPipeline->vk.vkHandle);
 
-	if (rayPipeline->vk.onBind != NULL)
-		rayPipeline->vk.onBind(rayPipeline);
+	if (rayTracingPipeline->vk.onBind != NULL)
+		rayTracingPipeline->vk.onBind(rayTracingPipeline);
 }
 inline static void traceVkPipelineRays(
 	VkCommandBuffer commandBuffer,
 	RayTracing rayTracing,
-	RayPipeline rayPipeline)
+	RayTracingPipeline rayTracingPipeline)
 {
 	uint32_t handleSize = rayTracing->vk.
 		rayTracingPipelineProperties.shaderGroupHandleSize;
@@ -1042,22 +1043,23 @@ inline static void traceVkPipelineRays(
 	uint32_t handleSizeAligned = alignVkSbt(handleSize, handleAlignment);
 
 	VkDeviceSize size = alignVkSbt(
-		rayPipeline->vk.generationShaderCount * handleSizeAligned, baseAlignment);
+		rayTracingPipeline->vk.generationShaderCount * handleSizeAligned,
+		baseAlignment);
 	VkStridedDeviceAddressRegionKHR generationSbt = {
-		rayPipeline->vk.generationSbtAddress,
+		rayTracingPipeline->vk.generationSbtAddress,
 		size,
 		size,
 	};
 
 	VkStridedDeviceAddressRegionKHR missSbt = {
-		rayPipeline->vk.missSbtAddress,
-		alignVkSbt(rayPipeline->vk.missShaderCount *
+		rayTracingPipeline->vk.missSbtAddress,
+		alignVkSbt(rayTracingPipeline->vk.missShaderCount *
 			handleSizeAligned, baseAlignment),
 		handleSizeAligned,
 	};
 	VkStridedDeviceAddressRegionKHR closestHitSbt = {
-		rayPipeline->vk.closestHitSbtAddress,
-		alignVkSbt(rayPipeline->vk.closestHitShaderCount *
+		rayTracingPipeline->vk.closestHitSbtAddress,
+		alignVkSbt(rayTracingPipeline->vk.closestHitShaderCount *
 			handleSizeAligned, baseAlignment),
 		handleSizeAligned,
 	};
@@ -1107,7 +1109,7 @@ inline static bool createBuildVkAccelerationStructure(
 	VkBuffer bufferInstance;
 	VmaAllocation allocationInstance;
 
-	bool result = createVkRayBuffer(
+	bool result = createVkRayTracingBuffer(
 		device,
 		allocator,
 		buildSizeInfo.accelerationStructureSize,
@@ -1154,7 +1156,7 @@ inline static bool createBuildVkAccelerationStructure(
 	VmaAllocation scratchAllocation;
 	VkDeviceAddress scratchBufferAddress;
 
-	result = createVkRayBuffer(
+	result = createVkRayTracingBuffer(
 		device,
 		allocator,
 		buildSizeInfo.buildScratchSize,
@@ -1279,34 +1281,34 @@ inline static bool createBuildVkAccelerationStructure(
 	return true;
 }
 
-inline static void destroyVkRayMesh(
+inline static void destroyVkRayTracingMesh(
 	VkDevice device,
 	VmaAllocator allocator,
 	RayTracing rayTracing,
-	RayMesh rayMesh,
+	RayTracingMesh rayTracingMesh,
 	bool destroyBuffers)
 {
-	if (rayMesh == NULL)
+	if (rayTracingMesh == NULL)
 		return;
 
 	rayTracing->vk.destroyAccelerationStructure(
 		device,
-		rayMesh->vk.accelerationStructure,
+		rayTracingMesh->vk.accelerationStructure,
 		NULL);
 	vmaDestroyBuffer(
 		allocator,
-		rayMesh->vk.buffer,
-		rayMesh->vk.allocation);
+		rayTracingMesh->vk.buffer,
+		rayTracingMesh->vk.allocation);
 
 	if (destroyBuffers == true)
 	{
-		destroyBuffer(rayMesh->vk.indexBuffer);
-		destroyBuffer(rayMesh->vk.vertexBuffer);
+		destroyBuffer(rayTracingMesh->vk.indexBuffer);
+		destroyBuffer(rayTracingMesh->vk.vertexBuffer);
 	}
 
-	free(rayMesh);
+	free(rayTracingMesh);
 }
-inline static RayMesh createVkRayMesh(
+inline static RayTracingMesh createVkRayTracingMesh(
 	VkDevice device,
 	VmaAllocator allocator,
 	VkQueue transferQueue,
@@ -1319,13 +1321,13 @@ inline static RayMesh createVkRayMesh(
 	Buffer vertexBuffer,
 	Buffer indexBuffer)
 {
-	RayMesh rayMesh = calloc(1,
-		sizeof(RayMesh_T));
+	RayTracingMesh rayTracingMesh = calloc(1,
+		sizeof(RayTracingMesh_T));
 
-	if (rayMesh == NULL)
+	if (rayTracingMesh == NULL)
 		return NULL;
 
-	rayMesh->vk.window = window;
+	rayTracingMesh->vk.window = window;
 
 	VkIndexType vkIndexType;
 	size_t indexSize;
@@ -1356,11 +1358,11 @@ inline static RayMesh createVkRayMesh(
 
 	if (vertexBufferAddress == 0)
 	{
-		destroyVkRayMesh(
+		destroyVkRayTracingMesh(
 			device,
 			allocator,
 			rayTracing,
-			rayMesh,
+			rayTracingMesh,
 			false);
 		return NULL;
 	}
@@ -1372,11 +1374,11 @@ inline static RayMesh createVkRayMesh(
 
 	if (indexBufferAddress == 0)
 	{
-		destroyVkRayMesh(
+		destroyVkRayTracingMesh(
 			device,
 			allocator,
 			rayTracing,
-			rayMesh,
+			rayTracingMesh,
 			false);
 		return NULL;
 	}
@@ -1451,43 +1453,43 @@ inline static RayMesh createVkRayMesh(
 
 	if (result == false)
 	{
-		destroyVkRayMesh(
+		destroyVkRayTracingMesh(
 			device,
 			allocator,
 			rayTracing,
-			rayMesh,
+			rayTracingMesh,
 			false);
 		return NULL;
 	}
 
-	rayMesh->vk.buffer = buffer;
-	rayMesh->vk.allocation = allocation;
-	rayMesh->vk.accelerationStructure = accelerationStructure;
-	rayMesh->vk.deviceAddress = deviceAddress;
-	return rayMesh;
+	rayTracingMesh->vk.buffer = buffer;
+	rayTracingMesh->vk.allocation = allocation;
+	rayTracingMesh->vk.accelerationStructure = accelerationStructure;
+	rayTracingMesh->vk.deviceAddress = deviceAddress;
+	return rayTracingMesh;
 }
 
-inline static void destroyVkRayScene(
+inline static void destroyVkRayTracingScene(
 	VkDevice device,
 	VmaAllocator allocator,
 	RayTracing rayTracing,
-	RayScene rayScene)
+	RayTracingScene rayTracingScene)
 {
-	if (rayScene == NULL)
+	if (rayTracingScene == NULL)
 		return;
 
 	rayTracing->vk.destroyAccelerationStructure(
 		device,
-		rayScene->vk.accelerationStructure,
+		rayTracingScene->vk.accelerationStructure,
 		NULL);
 	vmaDestroyBuffer(
 		allocator,
-		rayScene->vk.buffer,
-		rayScene->vk.allocation);
-	free(rayScene->vk.meshes);
-	free(rayScene);
+		rayTracingScene->vk.buffer,
+		rayTracingScene->vk.allocation);
+	free(rayTracingScene->vk.meshes);
+	free(rayTracingScene);
 }
-inline static RayScene createVkRayScene(
+inline static RayTracingScene createVkRayTracingScene(
 	VkDevice device,
 	VmaAllocator allocator,
 	VkQueue transferQueue,
@@ -1495,48 +1497,48 @@ inline static RayScene createVkRayScene(
 	VkFence transferFence,
 	RayTracing rayTracing,
 	Window window,
-	RayMesh* rayMeshes,
-	size_t rayMeshCount)
+	RayTracingMesh* meshes,
+	size_t meshCount)
 {
-	RayScene rayScene = calloc(1,
-		sizeof(RayScene_T));
+	RayTracingScene rayTracingScene = calloc(1,
+		sizeof(RayTracingScene_T));
 
-	if (rayScene == NULL)
+	if (rayTracingScene == NULL)
 		return NULL;
 
-	rayScene->vk.window = window;
+	rayTracingScene->vk.window = window;
 
-	RayMesh* meshes = malloc(
-		rayMeshCount * sizeof(RayMesh));
+	RayTracingMesh* rayTracingMeshes = malloc(
+		meshCount * sizeof(RayTracingMesh));
 
 	if (meshes == NULL)
 	{
-		destroyVkRayScene(
+		destroyVkRayTracingScene(
 			device,
 			allocator,
 			rayTracing,
-			rayScene);
+			rayTracingScene);
 		return NULL;
 	}
 
-	rayScene->vk.meshes = meshes;
-	rayScene->vk.meshCount = rayMeshCount;
+	rayTracingScene->vk.meshes = rayTracingMeshes;
+	rayTracingScene->vk.meshCount = meshCount;
 
-	for (size_t i = 0; i < rayMeshCount; i++)
-		meshes[i] = rayMeshes[i];
+	for (size_t i = 0; i < meshCount; i++)
+		rayTracingMeshes[i] = meshes[i];
 
-	size_t instanceBufferSize = rayMeshCount *
+	size_t instanceBufferSize = meshCount *
 		sizeof(VkAccelerationStructureInstanceKHR);
 	VkAccelerationStructureInstanceKHR* instances =
 		malloc(instanceBufferSize);
 
 	if (instances == NULL)
 	{
-		destroyVkRayScene(
+		destroyVkRayTracingScene(
 			device,
 			allocator,
 			rayTracing,
-			rayScene);
+			rayTracingScene);
 		return NULL;
 	}
 
@@ -1546,7 +1548,7 @@ inline static RayScene createVkRayScene(
 		0.0f, 0.0f, 1.0f, 0.0f
 	};
 
-	for (size_t i = 0; i < rayMeshCount; i++)
+	for (size_t i = 0; i < meshCount; i++)
 	{
 		VkAccelerationStructureInstanceKHR instance = {
 			transformMatrix,
@@ -1554,7 +1556,7 @@ inline static RayScene createVkRayScene(
 			0xFF, // TODO: set mask from argument
 			0,
 			VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
-			rayMeshes[i]->vk.deviceAddress,
+			meshes[i]->vk.deviceAddress,
 		};
 
 		instances[i] = instance;
@@ -1564,7 +1566,7 @@ inline static RayScene createVkRayScene(
 	VmaAllocation instanceAllocation;
 	VkDeviceAddress instanceBufferAddress;
 
-	bool result = createVkRayBuffer(
+	bool result = createVkRayTracingBuffer(
 		device,
 		allocator,
 		instanceBufferSize,
@@ -1580,11 +1582,11 @@ inline static RayScene createVkRayScene(
 
 	if (result == false)
 	{
-		destroyVkRayScene(
+		destroyVkRayTracingScene(
 			device,
 			allocator,
 			rayTracing,
-			rayScene);
+			rayTracingScene);
 		return NULL;
 	}
 
@@ -1622,7 +1624,7 @@ inline static RayScene createVkRayScene(
 		0,
 	};
 
-	uint32_t primitiveCount = (uint32_t)rayMeshCount;
+	uint32_t primitiveCount = (uint32_t)meshCount;
 
 	VkBuffer buffer;
 	VmaAllocation allocation;
@@ -1650,18 +1652,18 @@ inline static RayScene createVkRayScene(
 
 	if (result == false)
 	{
-		destroyVkRayScene(
+		destroyVkRayTracingScene(
 			device,
 			allocator,
 			rayTracing,
-			rayScene);
+			rayTracingScene);
 		return NULL;
 	}
 
-	rayScene->vk.buffer = buffer;
-	rayScene->vk.allocation = allocation;
-	rayScene->vk.accelerationStructure = accelerationStructure;
-	return rayScene;
+	rayTracingScene->vk.buffer = buffer;
+	rayTracingScene->vk.allocation = allocation;
+	rayTracingScene->vk.accelerationStructure = accelerationStructure;
+	return rayTracingScene;
 }
 
 inline static void destroyVkRayTracing(
@@ -1704,8 +1706,8 @@ inline static RayTracing createVkRayTracing(
 
 	rayTracing->vk.rayTracingPipelineProperties = rayTracingPipelineProperties;
 
-	RayPipeline* pipelines = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(RayPipeline));
+	RayTracingPipeline* pipelines = malloc(
+		MPGX_DEFAULT_CAPACITY * sizeof(RayTracingPipeline));
 
 	if (pipelines == NULL)
 	{
@@ -1717,8 +1719,8 @@ inline static RayTracing createVkRayTracing(
 	rayTracing->vk.pipelineCount = MPGX_DEFAULT_CAPACITY;
 	rayTracing->vk.pipelineCapacity = 0;
 
-	RayMesh* meshes = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(RayMesh));
+	RayTracingMesh* meshes = malloc(
+		MPGX_DEFAULT_CAPACITY * sizeof(RayTracingMesh));
 
 	if (meshes == NULL)
 	{
@@ -1730,8 +1732,8 @@ inline static RayTracing createVkRayTracing(
 	rayTracing->vk.meshCount = MPGX_DEFAULT_CAPACITY;
 	rayTracing->vk.meshCapacity = 0;
 
-	RayScene* scenes = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(RayScene));
+	RayTracingScene* scenes = malloc(
+		MPGX_DEFAULT_CAPACITY * sizeof(RayTracingScene));
 
 	if (scenes == NULL)
 	{

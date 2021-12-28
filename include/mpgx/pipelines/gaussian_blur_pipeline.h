@@ -17,14 +17,14 @@
 
 #define GAUSSIAN_BLUR_PIPELINE_NAME "GaussianBlur"
 
-Pipeline createGaussianBlurPipelineExt(
+GraphicsPipeline createGaussianBlurPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image buffer,
 	Sampler sampler,
-	const PipelineState* state);
-Pipeline createGaussianBlurPipeline(
+	const GraphicsPipelineState* state);
+GraphicsPipeline createGaussianBlurPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -32,12 +32,12 @@ Pipeline createGaussianBlurPipeline(
 	Sampler sampler);
 
 Image getGaussianBlurPipelineBuffer(
-	Pipeline pipeline);
+	GraphicsPipeline gaussianBlurPipeline);
 Sampler getGaussianBlurPipelineSampler(
-	Pipeline pipeline);
+	GraphicsPipeline gaussianBlurPipeline);
 
 int getGaussianBlurPipelineRadius(
-	Pipeline pipeline);
+	GraphicsPipeline gaussianBlurPipeline);
 void setGaussianBlurPipelineRadius(
-	Pipeline pipeline,
+	GraphicsPipeline gaussianBlurPipeline,
 	int radius);

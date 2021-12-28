@@ -14,7 +14,7 @@
 
 #include "mpgx/pipelines/sprite_pipeline.h"
 #include "mpgx/_source/window.h"
-#include "mpgx/_source/pipeline.h"
+#include "mpgx/_source/graphics_pipeline.h"
 
 #include <string.h>
 
@@ -26,35 +26,42 @@ typedef struct FragmentPushConstants
 {
 	LinearColor color;
 } FragmentPushConstants;
-typedef struct BasePipelineHandle
+typedef struct BaseHandle
 {
 	Window window;
 	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
-} BasePipelineHandle;
-typedef struct VkPipelineHandle
+} BaseHandle;
+#if MPGX_SUPPORT_VULKAN
+typedef struct VkHandle
 {
 	Window window;
 	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
-} VkPipelineHandle;
-typedef struct GlPipelineHandle
+} VkHandle;
+#endif
+#if MPGX_SUPPORT_OPENGL
+typedef struct GlHandle
 {
 	Window window;
 	VertexPushConstants vpc;
 	FragmentPushConstants fpc;
 	GLint mvpLocation;
 	GLint colorLocation;
-} GlPipelineHandle;
-union PipelineHandle_T
+} GlHandle;
+#endif
+typedef union Handle_T
 {
-	BasePipelineHandle base;
-	VkPipelineHandle vk;
-	GlPipelineHandle gl;
-};
+	BaseHandle base;
+#if MPGX_SUPPORT_VULKAN
+	VkHandle vk;
+#endif
+#if MPGX_SUPPORT_OPENGL
+	GlHandle gl;
+#endif
+} Handle_T;
 
-typedef union PipelineHandle_T PipelineHandle_T;
-typedef PipelineHandle_T* PipelineHandle;
+typedef Handle_T* Handle;
 
 #if MPGX_SUPPORT_VULKAN
 static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
@@ -85,12 +92,12 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 	},
 };
 
-static void onVkUniformsSet(Pipeline pipeline)
+static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	PipelineHandle pipelineHandle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	Handle handle = graphicsPipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
-	VkPipelineLayout layout = pipeline->vk.layout;
+	VkPipelineLayout layout = graphicsPipeline->vk.layout;
 
 	vkCmdPushConstants(
 		commandBuffer,
@@ -98,34 +105,34 @@ static void onVkUniformsSet(Pipeline pipeline)
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(VertexPushConstants),
-		&pipelineHandle->vk.vpc);
+		&handle->vk.vpc);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
 		sizeof(VertexPushConstants),
 		sizeof(FragmentPushConstants),
-		&pipelineHandle->vk.fpc);
+		&handle->vk.fpc);
 }
 static bool onVkResize(
-	Pipeline pipeline,
+	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
-	void* createInfo)
+	void* createData)
 {
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = pipeline->vk.state.viewport.z +
-		pipeline->vk.state.viewport.w == 0;
+	bool dynamic = graphicsPipeline->vk.state.viewport.z +
+		graphicsPipeline->vk.state.viewport.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.viewport = size;
+		graphicsPipeline->vk.state.viewport = size;
 
-	dynamic = pipeline->vk.state.scissor.z +
-		pipeline->vk.state.scissor.w == 0;
+	dynamic = graphicsPipeline->vk.state.scissor.z +
+		graphicsPipeline->vk.state.scissor.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.scissor = size;
+		graphicsPipeline->vk.state.scissor = size;
 
-	VkPipelineCreateInfo _createInfo = {
+	VkGraphicsPipelineCreateData _createData = {
 		1,
 		vertexInputBindingDescriptions,
 		1,
@@ -136,21 +143,21 @@ static bool onVkResize(
 		pushConstantRanges,
 	};
 
-	*(VkPipelineCreateInfo*)createInfo = _createInfo;
+	*(VkGraphicsPipelineCreateData*)createData = _createData;
 	return true;
 }
 static void onVkDestroy(void* handle)
 {
-	free((PipelineHandle)handle);
+	free((Handle)handle);
 }
-inline static Pipeline createVkHandle(
+inline static GraphicsPipeline createVkPipeline(
 	Framebuffer framebuffer,
-	const PipelineState* state,
-	PipelineHandle pipelineHandle,
+	const GraphicsPipelineState* state,
+	Handle handle,
 	Shader* shaders,
 	uint8_t shaderCount)
 {
-	VkPipelineCreateInfo createInfo = {
+	VkGraphicsPipelineCreateData createData = {
 		1,
 		vertexInputBindingDescriptions,
 		1,
@@ -161,7 +168,7 @@ inline static Pipeline createVkHandle(
 		pushConstantRanges,
 	};
 
-	return createPipeline(
+	return createGraphicsPipeline(
 		framebuffer,
 		SPRITE_PIPELINE_NAME,
 		state,
@@ -169,26 +176,27 @@ inline static Pipeline createVkHandle(
 		onVkUniformsSet,
 		onVkResize,
 		onVkDestroy,
-		pipelineHandle,
-		&createInfo,
+		handle,
+		&createData,
 		shaders,
 		shaderCount);
 }
 #endif
 
-static void onGlUniformsSet(Pipeline pipeline)
+#if MPGX_SUPPORT_OPENGL
+static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	PipelineHandle pipelineHandle = pipeline->gl.handle;
+	Handle handle = graphicsPipeline->gl.handle;
 
 	glUniformMatrix4fv(
-		pipelineHandle->gl.mvpLocation,
+		handle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const GLfloat*)&pipelineHandle->gl.vpc.mvp);
+		(const GLfloat*)&handle->gl.vpc.mvp);
 	glUniform4fv(
-		pipelineHandle->gl.colorLocation,
+		handle->gl.colorLocation,
 		1,
-		(const GLfloat*)&pipelineHandle->gl.fpc.color);
+		(const GLfloat*)&handle->gl.fpc.color);
 
 	glEnableVertexAttribArray(0);
 
@@ -203,36 +211,36 @@ static void onGlUniformsSet(Pipeline pipeline)
 	assertOpenGL();
 }
 static bool onGlResize(
-	Pipeline pipeline,
+	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
-	void* createInfo)
+	void* createData)
 {
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = pipeline->vk.state.viewport.z +
-		pipeline->vk.state.viewport.w == 0;
+	bool dynamic = graphicsPipeline->vk.state.viewport.z +
+		graphicsPipeline->vk.state.viewport.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.viewport = size;
+		graphicsPipeline->vk.state.viewport = size;
 
-	dynamic = pipeline->vk.state.scissor.z +
-		pipeline->vk.state.scissor.w == 0;
+	dynamic = graphicsPipeline->vk.state.scissor.z +
+		graphicsPipeline->vk.state.scissor.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.scissor = size;
+		graphicsPipeline->vk.state.scissor = size;
 	return true;
 }
 static void onGlDestroy(void* handle)
 {
-	free((PipelineHandle)handle);
+	free((Handle)handle);
 }
-inline static Pipeline createGlHandle(
+inline static GraphicsPipeline createGlPipeline(
 	Framebuffer framebuffer,
-	const PipelineState* state,
-	PipelineHandle pipelineHandle,
+	const GraphicsPipelineState* state,
+	Handle handle,
 	Shader* shaders,
 	uint8_t shaderCount)
 {
-	Pipeline pipeline = createPipeline(
+	GraphicsPipeline pipeline = createGraphicsPipeline(
 		framebuffer,
 		SPRITE_PIPELINE_NAME,
 		state,
@@ -240,7 +248,7 @@ inline static Pipeline createGlHandle(
 		onGlUniformsSet,
 		onGlResize,
 		onGlDestroy,
-		pipelineHandle,
+		handle,
 		NULL,
 		shaders,
 		shaderCount);
@@ -263,22 +271,23 @@ inline static Pipeline createGlHandle(
 
 	if (result == false)
 	{
-		destroyPipeline(pipeline, false);
+		destroyGraphicsPipeline(pipeline, false);
 		return NULL;
 	}
 
 	assertOpenGL();
 
-	pipelineHandle->gl.mvpLocation = mvpLocation;
-	pipelineHandle->gl.colorLocation = colorLocation;
+	handle->gl.mvpLocation = mvpLocation;
+	handle->gl.colorLocation = colorLocation;
 	return pipeline;
 }
+#endif
 
-Pipeline createExtSpritePipeline(
+GraphicsPipeline createSpritePipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const PipelineState* state)
+	const GraphicsPipelineState* state)
 {
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
@@ -288,16 +297,15 @@ Pipeline createExtSpritePipeline(
 	assert(vertexShader->base.window == framebuffer->base.window);
 	assert(fragmentShader->base.window == framebuffer->base.window);
 
-	PipelineHandle pipelineHandle = malloc(
-		sizeof(PipelineHandle_T));
+	Handle handle = malloc(sizeof(Handle_T));
 
-	if (pipelineHandle == NULL)
+	if (handle == NULL)
 		return NULL;
 
 	Window window = framebuffer->base.window;
-	pipelineHandle->base.window = window;
-	pipelineHandle->base.vpc.mvp = identMat4F;
-	pipelineHandle->base.fpc.color = whiteLinearColor;
+	handle->base.window = window;
+	handle->base.vpc.mvp = identMat4F;
+	handle->base.fpc.color = whiteLinearColor;
 
 	Shader shaders[2] = {
 		vertexShader,
@@ -309,10 +317,10 @@ Pipeline createExtSpritePipeline(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		return createVkHandle(
+		return createVkPipeline(
 			framebuffer,
 			state,
-			pipelineHandle,
+			handle,
 			shaders,
 			2);
 #else
@@ -322,19 +330,23 @@ Pipeline createExtSpritePipeline(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		return createGlHandle(
+#if MPGX_SUPPORT_OPENGL
+		return createGlPipeline(
 			framebuffer,
 			state,
-			pipelineHandle,
+			handle,
 			shaders,
 			2);
+#else
+		abort();
+#endif
 	}
 	else
 	{
 		abort();
 	}
 }
-Pipeline createSpritePipeline(
+GraphicsPipeline createSpritePipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader)
@@ -347,7 +359,7 @@ Pipeline createSpritePipeline(
 		framebufferSize.x,
 		framebufferSize.y);
 
-	PipelineState state = {
+	GraphicsPipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
@@ -376,7 +388,7 @@ Pipeline createSpritePipeline(
 		defaultBlendColor,
 	};
 
-	return createExtSpritePipeline(
+	return createSpritePipelineExt(
 		framebuffer,
 		vertexShader,
 		fragmentShader,
@@ -384,49 +396,41 @@ Pipeline createSpritePipeline(
 }
 
 Mat4F getSpritePipelineMvp(
-	Pipeline pipeline)
+	GraphicsPipeline spritePipeline)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(spritePipeline != NULL);
+	assert(strcmp(spritePipeline->base.name,
 		SPRITE_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.vpc.mvp;
+	Handle handle = spritePipeline->base.handle;
+	return handle->base.vpc.mvp;
 }
 void setSpritePipelineMvp(
-	Pipeline pipeline,
+	GraphicsPipeline spritePipeline,
 	Mat4F mvp)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(spritePipeline != NULL);
+	assert(strcmp(spritePipeline->base.name,
 		SPRITE_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	pipelineHandle->base.vpc.mvp = mvp;
+	Handle handle = spritePipeline->base.handle;
+	handle->base.vpc.mvp = mvp;
 }
 
 LinearColor getSpritePipelineColor(
-	Pipeline pipeline)
+	GraphicsPipeline spritePipeline)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(spritePipeline != NULL);
+	assert(strcmp(spritePipeline->base.name,
 		SPRITE_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.fpc.color;
+	Handle handle = spritePipeline->base.handle;
+	return handle->base.fpc.color;
 }
 void setSpritePipelineColor(
-	Pipeline pipeline,
+	GraphicsPipeline spritePipeline,
 	LinearColor color)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(spritePipeline != NULL);
+	assert(strcmp(spritePipeline->base.name,
 		SPRITE_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	pipelineHandle->base.fpc.color = color;
+	Handle handle = spritePipeline->base.handle;
+	handle->base.fpc.color = color;
 }

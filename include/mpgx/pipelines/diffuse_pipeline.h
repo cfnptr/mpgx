@@ -18,48 +18,48 @@
 
 #define DIFFUSE_PIPELINE_NAME "Diffuse"
 
-Pipeline createDiffusePipelineExt(
+GraphicsPipeline createDiffusePipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const PipelineState* state);
-Pipeline createDiffusePipeline(
+	const GraphicsPipelineState* state);
+GraphicsPipeline createDiffusePipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader);
 
 Mat4F getDiffusePipelineMvp(
-	Pipeline pipeline);
+	GraphicsPipeline diffusePipeline);
 void setDiffusePipelineMvp(
-	Pipeline pipeline,
+	GraphicsPipeline diffusePipeline,
 	Mat4F mvp);
 
 Mat4F getDiffusePipelineNormal(
-	Pipeline pipeline);
+	GraphicsPipeline diffusePipeline);
 void setDiffusePipelineNormal(
-	Pipeline pipeline,
+	GraphicsPipeline diffusePipeline,
 	Mat4F normal);
 
 LinearColor getDiffusePipelineObjectColor(
-	Pipeline pipeline);
+	GraphicsPipeline diffusePipeline);
 void setDiffusePipelineObjectColor(
-	Pipeline pipeline,
+	GraphicsPipeline diffusePipeline,
 	LinearColor objectColor);
 
 LinearColor getDiffusePipelineAmbientColor(
-	Pipeline pipeline);
+	GraphicsPipeline diffusePipeline);
 void setDiffusePipelineAmbientColor(
-	Pipeline pipeline,
+	GraphicsPipeline diffusePipeline,
 	LinearColor ambientColor);
 
 LinearColor getDiffusePipelineLightColor(
-	Pipeline pipeline);
+	GraphicsPipeline diffusePipeline);
 void setDiffusePipelineLightColor(
-	Pipeline pipeline,
+	GraphicsPipeline diffusePipeline,
 	LinearColor lightColor);
 
 Vec3F getDiffusePipelineLightDirection(
-	Pipeline pipeline);
+	GraphicsPipeline diffusePipeline);
 void setDiffusePipelineLightDirection(
-	Pipeline pipeline,
+	GraphicsPipeline diffusePipeline,
 	Vec3F lightDirection);

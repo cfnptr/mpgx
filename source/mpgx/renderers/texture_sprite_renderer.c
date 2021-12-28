@@ -17,112 +17,111 @@
 #include <string.h>
 #include <assert.h>
 
-struct RenderHandle_T
+typedef struct Handle_T
 {
 	LinearColor color;
 	Vec2F size;
 	Vec2F offset;
-	Mesh mesh;
-};
+	GraphicsMesh mesh;
+} Handle_T;
 
-typedef struct RenderHandle_T RenderHandle_T;
-typedef RenderHandle_T* RenderHandle;
+typedef Handle_T* Handle;
 
 static void onDestroy(void* handle)
 {
-	free((RenderHandle)handle);
+	free((Handle)handle);
 }
 static size_t onDraw(
-	Render render,
-	Pipeline pipeline,
+	GraphicsRender graphicsRender,
+	GraphicsPipeline graphicsPipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	RenderHandle renderHandle =
-		getRenderHandle(render);
+	Handle handle = getGraphicsRenderHandle(
+		graphicsRender);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
 	setTextureSpritePipelineMvp(
-		pipeline,
+		graphicsPipeline,
 		mvp);
 	setTextureSpritePipelineColor(
-		pipeline,
-		renderHandle->color);
+		graphicsPipeline,
+		handle->color);
 	setTextureSpritePipelineSize(
-		pipeline,
-		renderHandle->size);
+		graphicsPipeline,
+		handle->size);
 	setTextureSpritePipelineOffset(
-		pipeline,
-		renderHandle->offset);
-	return drawMesh(
-		renderHandle->mesh,
-		pipeline);
+		graphicsPipeline,
+		handle->offset);
+	return drawGraphicsMesh(
+		graphicsPipeline,
+		handle->mesh);
 }
-Renderer createTextureSpriteRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createTextureSpriteRenderer(
+	GraphicsPipeline textureSpritePipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity)
 {
-	assert(pipeline != NULL);
-	assert(sorting < RENDER_SORTING_COUNT);
+	assert(textureSpritePipeline != NULL);
+	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
 	assert(capacity != 0);
 
-	assert(strcmp(
-		getPipelineName(pipeline),
+	assert(strcmp(getGraphicsPipelineName(
+		textureSpritePipeline),
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 
-	return createRenderer(
-		pipeline,
+	return createGraphicsRenderer(
+		textureSpritePipeline,
 		sorting,
 		useCulling,
 		onDestroy,
 		onDraw,
 		capacity);
 }
-Render createTextureSpriteRender(
-	Renderer renderer,
+GraphicsRender createTextureSpriteRender(
+	GraphicsRenderer textureSpriteRenderer,
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
 	Vec2F size,
 	Vec2F offset,
-	Mesh mesh)
+	GraphicsMesh mesh)
 {
-	assert(renderer != NULL);
+	assert(textureSpriteRenderer != NULL);
 	assert(transform != NULL);
 	assert(mesh != NULL);
 
 	assert(getFramebufferWindow(
-		getPipelineFramebuffer(
-		getRendererPipeline(renderer))) ==
-		getMeshWindow(mesh));
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(renderer)),
+		getGraphicsPipelineFramebuffer(
+		getGraphicsRendererPipeline(
+		textureSpriteRenderer))) ==
+		getGraphicsMeshWindow(mesh));
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		textureSpriteRenderer)),
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 
-	RenderHandle renderHandle = malloc(
-		sizeof(RenderHandle_T));
+	Handle handle = malloc(sizeof(Handle_T));
 
-	if (renderHandle == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	renderHandle->color = color;
-	renderHandle->size = size;
-	renderHandle->offset = offset;
-	renderHandle->mesh = mesh;
+	handle->color = color;
+	handle->size = size;
+	handle->offset = offset;
+	handle->mesh = mesh;
 
-	Render render = createRender(
-		renderer,
+	GraphicsRender render = createGraphicsRender(
+		textureSpriteRenderer,
 		transform,
 		bounding,
-		renderHandle);
+		handle);
 
 	if (render == NULL)
 	{
-		free(renderHandle);
+		free(handle);
 		return NULL;
 	}
 
@@ -130,114 +129,114 @@ Render createTextureSpriteRender(
 }
 
 LinearColor getTextureSpriteRenderColor(
-	Render render)
+	GraphicsRender textureSpriteRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(textureSpriteRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textureSpriteRender))),
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->color;
+	Handle handle = getGraphicsRenderHandle(
+		textureSpriteRender);
+	return handle->color;
 }
 void setTextureSpriteRenderColor(
-	Render render,
+	GraphicsRender textureSpriteRender,
 	LinearColor color)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(textureSpriteRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textureSpriteRender))),
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->color = color;
+	Handle handle = getGraphicsRenderHandle(
+		textureSpriteRender);
+	handle->color = color;
 }
 
 Vec2F getTextureSpriteRenderSize(
-	Render render)
+	GraphicsRender textureSpriteRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(textureSpriteRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textureSpriteRender))),
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->size;
+	Handle handle = getGraphicsRenderHandle(
+		textureSpriteRender);
+	return handle->size;
 }
 void setTextureSpriteRenderSize(
-	Render render,
+	GraphicsRender textureSpriteRender,
 	Vec2F size)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(textureSpriteRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textureSpriteRender))),
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->size = size;
+	Handle handle = getGraphicsRenderHandle(
+		textureSpriteRender);
+	handle->size = size;
 }
 
 Vec2F getTextureSpriteRenderOffset(
-	Render render)
+	GraphicsRender textureSpriteRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(textureSpriteRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textureSpriteRender))),
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->offset;
+	Handle handle = getGraphicsRenderHandle(
+		textureSpriteRender);
+	return handle->offset;
 }
 void setTextureSpriteRenderOffset(
-	Render render,
+	GraphicsRender textureSpriteRender,
 	Vec2F offset)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(textureSpriteRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textureSpriteRender))),
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->offset = offset;
+	Handle handle = getGraphicsRenderHandle(
+		textureSpriteRender);
+	handle->offset = offset;
 }
 
-Mesh getTextureSpriteRenderMesh(
-	Render render)
+GraphicsMesh getTextureSpriteRenderMesh(
+	GraphicsRender textureSpriteRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(textureSpriteRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textureSpriteRender))),
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->mesh;
+	Handle handle = getGraphicsRenderHandle(
+		textureSpriteRender);
+	return handle->mesh;
 }
 void setTextureSpriteRenderMesh(
-	Render render,
-	Mesh mesh)
+	GraphicsRender textureSpriteRender,
+	GraphicsMesh mesh)
 {
-	assert(render != NULL);
+	assert(textureSpriteRender != NULL);
 	assert(mesh != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textureSpriteRender))),
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->mesh = mesh;
+	Handle handle = getGraphicsRenderHandle(
+		textureSpriteRender);
+	handle->mesh = mesh;
 }

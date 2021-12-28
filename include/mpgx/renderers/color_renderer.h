@@ -13,29 +13,29 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/renderer.h"
+#include "mpgx/graphics_renderer.h"
 #include "mpgx/pipelines/color_pipeline.h"
 
-Renderer createColorRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createColorRenderer(
+	GraphicsPipeline colorPipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity);
-Render createColorRender(
-	Renderer renderer,
+GraphicsRender createColorRender(
+	GraphicsRenderer colorRenderer,
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
-	Mesh mesh);
+	GraphicsMesh mesh);
 
 LinearColor getColorRenderColor(
-	Render render);
+	GraphicsRender colorRender);
 void setColorRenderColor(
-	Render render,
+	GraphicsRender colorRender,
 	LinearColor color);
 
-Mesh getColorRenderMesh(
-	Render render);
+GraphicsMesh getColorRenderMesh(
+	GraphicsRender colorRender);
 void setColorRenderMesh(
-	Render render,
-	Mesh mesh);
+	GraphicsRender colorRender,
+	GraphicsMesh mesh);

@@ -31,6 +31,7 @@ typedef struct BaseSampler_T
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
 } BaseSampler_T;
+#if MPGX_SUPPORT_VULKAN
 typedef struct VkSampler_T
 {
 	Window window;
@@ -45,10 +46,10 @@ typedef struct VkSampler_T
 	bool useCompare;
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
-#if MPGX_SUPPORT_VULKAN
 	VkSampler handle;
-#endif
 } VkSampler_T;
+#endif
+#if MPGX_SUPPORT_OPENGL
 typedef struct GlSampler_T
 {
 	Window window;
@@ -65,11 +66,16 @@ typedef struct GlSampler_T
 	float mipmapLodBias;
 	GLuint handle;
 } GlSampler_T;
+#endif
 union Sampler_T
 {
 	BaseSampler_T base;
+#if MPGX_SUPPORT_VULKAN
 	VkSampler_T vk;
+#endif
+#if MPGX_SUPPORT_OPENGL
 	GlSampler_T gl;
+#endif
 };
 
 #if MPGX_SUPPORT_VULKAN
@@ -270,6 +276,7 @@ inline static Sampler createVkSampler(
 }
 #endif
 
+#if MPGX_SUPPORT_OPENGL
 inline static bool getGlImageFilter(
 	ImageFilter imageFilter,
 	ImageFilter mipmapFilter,
@@ -496,3 +503,4 @@ inline static Sampler createGlSampler(
 
 	return sampler;
 }
+#endif

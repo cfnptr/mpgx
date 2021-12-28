@@ -18,24 +18,24 @@
 
 #define SPRITE_PIPELINE_NAME "Sprite"
 
-Pipeline createSpritePipelineExt(
+GraphicsPipeline createSpritePipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const PipelineState* state);
-Pipeline createSpritePipeline(
+	const GraphicsPipelineState* state);
+GraphicsPipeline createSpritePipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader);
 
 Mat4F getSpritePipelineMvp(
-	Pipeline pipeline);
+	GraphicsPipeline spritePipeline);
 void setSpritePipelineMvp(
-	Pipeline pipeline,
+	GraphicsPipeline spritePipeline,
 	Mat4F mvp);
 
 LinearColor getSpritePipelineColor(
-	Pipeline pipeline);
+	GraphicsPipeline spritePipeline);
 void setSpritePipelineColor(
-	Pipeline pipeline,
+	GraphicsPipeline spritePipeline,
 	LinearColor color);

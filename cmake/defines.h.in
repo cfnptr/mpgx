@@ -25,6 +25,10 @@
  * Supported Vulkan API functionality.
  */
 #define MPGX_SUPPORT_VULKAN @MPGX_SUPPORT_VULKAN@
+/*
+ * Supported OpenGL functionality.
+ */
+#define MPGX_SUPPORT_OPENGL @MPGX_SUPPORT_OPENGL@
 
 /*
  * Default MPGX array capacity in bytes.
@@ -45,8 +49,9 @@ typedef enum MpgxResult_T
 	FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT = 6,
 	FAILED_TO_INITIALIZE_OPENGL_MPGX_RESULT = 7,
 	VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT = 8,
-	RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT = 9,
-	MPGX_RESULT_COUNT = 10,
+	OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT = 9,
+	RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT = 10,
+	MPGX_RESULT_COUNT = 11,
 } MpgxResult_T;
 /*
  * Returns MPGX result as string.
@@ -67,6 +72,7 @@ static const char* const mpgxResultStrings[MPGX_RESULT_COUNT] = {
 	"Failed to initialize Vulkan",
 	"Failed to initialize OpenGL",
 	"Vulkan is not supported",
+	"OpenGL is not supported",
 	"Ray tracing is not supported",
 };
 

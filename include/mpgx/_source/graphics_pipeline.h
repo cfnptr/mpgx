@@ -16,49 +16,50 @@
 #include "mpgx/_source/shader.h"
 #include "mpgx/_source/framebuffer.h"
 
-typedef struct BasePipeline_T
+typedef struct BaseGraphicsPipeline_T
 {
 	Framebuffer framebuffer;
-	PipelineState state;
-	OnPipelineBind onBind;
-	OnPipelineUniformsSet onUniformsSet;
-	OnPipelineResize onResize;
-	OnPipelineDestroy onDestroy;
+	GraphicsPipelineState state;
+	OnGraphicsPipelineBind onBind;
+	OnGraphicsPipelineUniformsSet onUniformsSet;
+	OnGraphicsPipelineResize onResize;
+	OnGraphicsPipelineDestroy onDestroy;
 	void* handle;
 	Shader* shaders;
 	size_t shaderCount;
 #ifndef NDEBUG
 	const char* name;
 #endif
-} BasePipeline_T;
-typedef struct VkPipeline_T
-{
-	Framebuffer framebuffer;
-	PipelineState state;
-	OnPipelineBind onBind;
-	OnPipelineUniformsSet onUniformsSet;
-	OnPipelineResize onResize;
-	OnPipelineDestroy onDestroy;
-	void* handle;
-	Shader* shaders;
-	size_t shaderCount;
-#ifndef NDEBUG
-	const char* name;
-#endif
+} BaseGraphicsPipeline_T;
 #if MPGX_SUPPORT_VULKAN
+typedef struct VkGraphicsPipeline_T
+{
+	Framebuffer framebuffer;
+	GraphicsPipelineState state;
+	OnGraphicsPipelineBind onBind;
+	OnGraphicsPipelineUniformsSet onUniformsSet;
+	OnGraphicsPipelineResize onResize;
+	OnGraphicsPipelineDestroy onDestroy;
+	void* handle;
+	Shader* shaders;
+	size_t shaderCount;
+#ifndef NDEBUG
+	const char* name;
+#endif
 	VkPipelineCache cache;
 	VkPipelineLayout layout;
 	VkPipeline vkHandle;
+} VkGraphicsPipeline_T;
 #endif
-} VkPipeline_T;
-typedef struct GlPipeline_T
+#if MPGX_SUPPORT_OPENGL
+typedef struct GlGraphicsPipeline_T
 {
 	Framebuffer framebuffer;
-	PipelineState state;
-	OnPipelineBind onBind;
-	OnPipelineUniformsSet onUniformsSet;
-	OnPipelineResize onResize;
-	OnPipelineDestroy onDestroy;
+	GraphicsPipelineState state;
+	OnGraphicsPipelineBind onBind;
+	OnGraphicsPipelineUniformsSet onUniformsSet;
+	OnGraphicsPipelineResize onResize;
+	OnGraphicsPipelineDestroy onDestroy;
 	void* handle;
 	Shader* shaders;
 	size_t shaderCount;
@@ -77,12 +78,17 @@ typedef struct GlPipeline_T
 	GLenum colorBlendOperator;
 	GLenum alphaBlendOperator;
 	GLenum frontFace;
-} GlPipeline_T;
-union Pipeline_T
+} GlGraphicsPipeline_T;
+#endif
+union GraphicsPipeline_T
 {
-	BasePipeline_T base;
-	VkPipeline_T vk;
-	GlPipeline_T gl;
+	BaseGraphicsPipeline_T base;
+#if MPGX_SUPPORT_VULKAN
+	VkGraphicsPipeline_T vk;
+#endif
+#if MPGX_SUPPORT_OPENGL
+	GlGraphicsPipeline_T gl;
+#endif
 };
 
 #if MPGX_SUPPORT_VULKAN
@@ -277,16 +283,16 @@ inline static bool getVkBlendOperator(
 	}
 }
 
-inline static VkPipeline createVkPipelineHandle(
+inline static VkPipeline createVkGraphicsPipelineHandle(
 	VkDevice device,
 	VkRenderPass renderPass,
 	VkPipelineCache cache,
 	VkPipelineLayout layout,
 	Shader* shaders,
 	size_t shaderCount,
-	PipelineState state,
+	GraphicsPipelineState state,
 	size_t colorAttachmentCount,
-	const VkPipelineCreateInfo* createInfo)
+	const VkGraphicsPipelineCreateData* createData)
 {
 	VkPipelineShaderStageCreateInfo* shaderStageCreateInfos =
 		malloc(shaderCount * sizeof(VkPipelineShaderStageCreateInfo));
@@ -367,10 +373,10 @@ inline static VkPipeline createVkPipelineHandle(
 		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		NULL,
 		0,
-		createInfo->vertexBindingDescriptionCount,
-		createInfo->vertexBindingDescriptions,
-		createInfo->vertexAttributeDescriptionCount,
-		createInfo->vertexAttributeDescriptions,
+		createData->vertexBindingDescriptionCount,
+		createData->vertexBindingDescriptions,
+		createData->vertexAttributeDescriptionCount,
+		createData->vertexAttributeDescriptions,
 	};
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {
@@ -592,107 +598,108 @@ inline static VkPipeline createVkPipelineHandle(
 
 	return handle;
 }
-inline static bool recreateVkPipelineHandle(
+inline static bool recreateVkGraphicsPipelineHandle(
 	VkDevice device,
 	VkRenderPass renderPass,
-	Pipeline pipeline,
+	GraphicsPipeline graphicsPipeline,
 	size_t colorAttachmentCount,
-	const VkPipelineCreateInfo* createInfo)
+	const VkGraphicsPipelineCreateData* createData)
 {
-	VkPipeline handle = createVkPipelineHandle(
+	VkPipeline handle = createVkGraphicsPipelineHandle(
 		device,
 		renderPass,
-		pipeline->vk.cache,
-		pipeline->vk.layout,
-		pipeline->vk.shaders,
-		pipeline->vk.shaderCount,
-		pipeline->vk.state,
+		graphicsPipeline->vk.cache,
+		graphicsPipeline->vk.layout,
+		graphicsPipeline->vk.shaders,
+		graphicsPipeline->vk.shaderCount,
+		graphicsPipeline->vk.state,
 		colorAttachmentCount,
-		createInfo);
+		createData);
 
 	if (handle == NULL)
 		return false;
 
 	vkDestroyPipeline(
 		device,
-		pipeline->vk.vkHandle,
+		graphicsPipeline->vk.vkHandle,
 		NULL);
 
-	pipeline->vk.vkHandle = handle;
+	graphicsPipeline->vk.vkHandle = handle;
 	return true;
 }
 
-inline static void destroyVkPipeline(
+inline static void destroyVkGraphicsPipeline(
 	VkDevice device,
-	Pipeline pipeline,
+	GraphicsPipeline graphicsPipeline,
 	bool destroyShaders)
 {
-	if (pipeline == NULL)
+	if (graphicsPipeline == NULL)
 		return;
 
 	vkDestroyPipeline(
 		device,
-		pipeline->vk.vkHandle,
+		graphicsPipeline->vk.vkHandle,
 		NULL);
 	vkDestroyPipelineLayout(
 		device,
-		pipeline->vk.layout,
+		graphicsPipeline->vk.layout,
 		NULL);
 	vkDestroyPipelineCache(
 		device,
-		pipeline->vk.cache,
+		graphicsPipeline->vk.cache,
 		NULL);
 
 	if (destroyShaders == true)
 	{
-		Shader* shaders = pipeline->vk.shaders;
-		size_t shaderCount = pipeline->vk.shaderCount;
+		Shader* shaders = graphicsPipeline->vk.shaders;
+		size_t shaderCount = graphicsPipeline->vk.shaderCount;
 
 		for (size_t i = 0; i < shaderCount; i++)
 			destroyShader(shaders[i]);
 	}
 
-	free(pipeline->vk.shaders);
-	free(pipeline);
+	free(graphicsPipeline->vk.shaders);
+	free(graphicsPipeline);
 }
-inline static Pipeline createVkPipeline(
+inline static GraphicsPipeline createVkGraphicsPipeline(
 	VkDevice device,
-	const VkPipelineCreateInfo* createInfo,
+	const VkGraphicsPipelineCreateData* createData,
 	Framebuffer framebuffer,
 	const char* name,
-	PipelineState state,
-	OnPipelineBind onBind,
-	OnPipelineUniformsSet onUniformsSet,
-	OnPipelineResize onResize,
-	OnPipelineDestroy onDestroy,
+	GraphicsPipelineState state,
+	OnGraphicsPipelineBind onBind,
+	OnGraphicsPipelineUniformsSet onUniformsSet,
+	OnGraphicsPipelineResize onResize,
+	OnGraphicsPipelineDestroy onDestroy,
 	void* handle,
 	Shader* shaders,
 	size_t shaderCount)
 {
-	Pipeline pipeline = calloc(1, sizeof(Pipeline_T));
+	GraphicsPipeline graphicsPipeline = calloc(1,
+		sizeof(GraphicsPipeline_T));
 
-	if (pipeline == NULL)
+	if (graphicsPipeline == NULL)
 		return NULL;
 
 #ifndef NDEBUG
-	pipeline->vk.name = name;
+	graphicsPipeline->vk.name = name;
 #endif
-	pipeline->vk.framebuffer = framebuffer;
-	pipeline->vk.state = state;
-	pipeline->vk.onBind = onBind;
-	pipeline->vk.onUniformsSet = onUniformsSet;
-	pipeline->vk.onResize = onResize;
-	pipeline->vk.onDestroy = onDestroy;
-	pipeline->vk.handle = handle;
+	graphicsPipeline->vk.framebuffer = framebuffer;
+	graphicsPipeline->vk.state = state;
+	graphicsPipeline->vk.onBind = onBind;
+	graphicsPipeline->vk.onUniformsSet = onUniformsSet;
+	graphicsPipeline->vk.onResize = onResize;
+	graphicsPipeline->vk.onDestroy = onDestroy;
+	graphicsPipeline->vk.handle = handle;
 
 	Shader* pipelineShaders = malloc(
 		shaderCount * sizeof(Shader));
 
 	if (pipelineShaders == NULL)
 	{
-		destroyVkPipeline(
+		destroyVkGraphicsPipeline(
 			device,
-			pipeline,
+			graphicsPipeline,
 			false);
 		return NULL;
 	}
@@ -700,8 +707,8 @@ inline static Pipeline createVkPipeline(
 	for (size_t i = 0; i < shaderCount; i++)
 		pipelineShaders[i] = shaders[i];
 
-	pipeline->vk.shaders = pipelineShaders;
-	pipeline->vk.shaderCount = shaderCount;
+	graphicsPipeline->vk.shaders = pipelineShaders;
+	graphicsPipeline->vk.shaderCount = shaderCount;
 
 	VkPipelineCacheCreateInfo cacheCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
@@ -721,23 +728,23 @@ inline static Pipeline createVkPipeline(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		destroyVkPipeline(
+		destroyVkGraphicsPipeline(
 			device,
-			pipeline,
+			graphicsPipeline,
 			false);
 		return NULL;
 	}
 
-	pipeline->vk.cache = cache;
+	graphicsPipeline->vk.cache = cache;
 
 	VkPipelineLayoutCreateInfo layoutCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		NULL,
 		0,
-		createInfo->setLayoutCount,
-		createInfo->setLayouts,
-		createInfo->pushConstantRangeCount,
-		createInfo->pushConstantRanges,
+		createData->setLayoutCount,
+		createData->setLayouts,
+		createData->pushConstantRangeCount,
+		createData->pushConstantRanges,
 	};
 
 	VkPipelineLayout layout;
@@ -750,16 +757,16 @@ inline static Pipeline createVkPipeline(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		destroyVkPipeline(
+		destroyVkGraphicsPipeline(
 			device,
-			pipeline,
+			graphicsPipeline,
 			false);
 		return NULL;
 	}
 
-	pipeline->vk.layout = layout;
+	graphicsPipeline->vk.layout = layout;
 
-	VkPipeline vkHandle = createVkPipelineHandle(
+	VkPipeline vkHandle = createVkGraphicsPipelineHandle(
 		device,
 		framebuffer->vk.renderPass,
 		cache,
@@ -768,35 +775,36 @@ inline static Pipeline createVkPipeline(
 		shaderCount,
 		state,
 		framebuffer->vk.colorAttachmentCount,
-		createInfo);
+		createData);
 
 	if (vkHandle == NULL)
 	{
-		destroyVkPipeline(
+		destroyVkGraphicsPipeline(
 			device,
-			pipeline,
+			graphicsPipeline,
 			false);
 		return NULL;
 	}
 
-	pipeline->vk.vkHandle = vkHandle;
-	return pipeline;
+	graphicsPipeline->vk.vkHandle = vkHandle;
+	return graphicsPipeline;
 }
 
-inline static void bindVkPipeline(
+inline static void bindVkGraphicsPipeline(
 	VkCommandBuffer commandBuffer,
-	Pipeline pipeline)
+	GraphicsPipeline graphicsPipeline)
 {
 	vkCmdBindPipeline(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		pipeline->vk.vkHandle);
+		graphicsPipeline->vk.vkHandle);
 
-	if (pipeline->vk.onBind != NULL)
-		pipeline->vk.onBind(pipeline);
+	if (graphicsPipeline->vk.onBind != NULL)
+		graphicsPipeline->vk.onBind(graphicsPipeline);
 }
 #endif
 
+#if MPGX_SUPPORT_OPENGL
 inline static bool getGlDrawMode(
 	DrawMode drawMode,
 	GLenum* glDrawMode)
@@ -957,73 +965,74 @@ inline static bool getGlBlendOperator(
 	}
 }
 
-inline static void destroyGlPipeline(
-	Pipeline pipeline,
+inline static void destroyGlGraphicsPipeline(
+	GraphicsPipeline graphicsPipeline,
 	bool destroyShaders)
 {
-	if (pipeline == NULL)
+	if (graphicsPipeline == NULL)
 		return;
 
 	makeWindowContextCurrent(
-		pipeline->gl.framebuffer->gl.window);
+		graphicsPipeline->gl.framebuffer->gl.window);
 
 	glDeleteProgram(
-		pipeline->gl.glHandle);
+		graphicsPipeline->gl.glHandle);
 	assertOpenGL();
 
 	if (destroyShaders == true)
 	{
-		Shader* shaders = pipeline->gl.shaders;
-		size_t shaderCount = pipeline->gl.shaderCount;
+		Shader* shaders = graphicsPipeline->gl.shaders;
+		size_t shaderCount = graphicsPipeline->gl.shaderCount;
 
 		for (size_t i = 0; i < shaderCount; i++)
 			destroyShader(shaders[i]);
 	}
 
-	free(pipeline->gl.shaders);
-	free(pipeline);
+	free(graphicsPipeline->gl.shaders);
+	free(graphicsPipeline);
 }
-inline static Pipeline createGlPipeline(
+inline static GraphicsPipeline createGlGraphicsPipeline(
 	Framebuffer framebuffer,
 	const char* name,
-	PipelineState state,
-	OnPipelineBind onBind,
-	OnPipelineUniformsSet onUniformsSet,
-	OnPipelineResize onResize,
-	OnPipelineDestroy onDestroy,
+	GraphicsPipelineState state,
+	OnGraphicsPipelineBind onBind,
+	OnGraphicsPipelineUniformsSet onUniformsSet,
+	OnGraphicsPipelineResize onResize,
+	OnGraphicsPipelineDestroy onDestroy,
 	void* handle,
 	Shader* shaders,
 	size_t shaderCount)
 {
-	Pipeline pipeline = calloc(1, sizeof(Pipeline_T));
+	GraphicsPipeline graphicsPipeline = calloc(1,
+		sizeof(GraphicsPipeline_T));
 
-	if (pipeline == NULL)
+	if (graphicsPipeline == NULL)
 		return NULL;
 
 #ifndef NDEBUG
-	pipeline->gl.name = name;
+	graphicsPipeline->gl.name = name;
 #endif
-	pipeline->gl.framebuffer = framebuffer;
-	pipeline->gl.state = state;
-	pipeline->gl.onBind = onBind;
-	pipeline->gl.onUniformsSet = onUniformsSet;
-	pipeline->gl.onResize = onResize;
-	pipeline->gl.onDestroy = onDestroy;
-	pipeline->gl.handle = handle;
+	graphicsPipeline->gl.framebuffer = framebuffer;
+	graphicsPipeline->gl.state = state;
+	graphicsPipeline->gl.onBind = onBind;
+	graphicsPipeline->gl.onUniformsSet = onUniformsSet;
+	graphicsPipeline->gl.onResize = onResize;
+	graphicsPipeline->gl.onDestroy = onDestroy;
+	graphicsPipeline->gl.handle = handle;
 
 	Shader* pipelineShaders = malloc(
 		shaderCount * sizeof(Shader));
 
 	if (pipelineShaders == NULL)
 	{
-		destroyGlPipeline(
-			pipeline,
+		destroyGlGraphicsPipeline(
+			graphicsPipeline,
 			false);
 		return NULL;
 	}
 
-	pipeline->gl.shaders = pipelineShaders;
-	pipeline->gl.shaderCount = shaderCount;
+	graphicsPipeline->gl.shaders = pipelineShaders;
+	graphicsPipeline->gl.shaderCount = shaderCount;
 
 	GLenum drawMode, polygonMode,
 		cullMode, depthCompareOperator,
@@ -1073,34 +1082,34 @@ inline static Pipeline createGlPipeline(
 
 	if (result == false)
 	{
-		destroyGlPipeline(
-			pipeline,
+		destroyGlGraphicsPipeline(
+			graphicsPipeline,
 			false);
 		return NULL;
 	}
 
-	pipeline->gl.drawMode = drawMode;
-	pipeline->gl.polygonMode = polygonMode;
-	pipeline->gl.cullMode = cullMode;
-	pipeline->gl.depthCompareOperator = depthCompareOperator;
-	pipeline->gl.srcColorBlendFactor = srcColorBlendFactor;
-	pipeline->gl.dstColorBlendFactor = dstColorBlendFactor;
-	pipeline->gl.srcAlphaBlendFactor = srcAlphaBlendFactor;
-	pipeline->gl.dstAlphaBlendFactor = dstAlphaBlendFactor;
-	pipeline->gl.colorBlendOperator = colorBlendOperator;
-	pipeline->gl.alphaBlendOperator = alphaBlendOperator;
+	graphicsPipeline->gl.drawMode = drawMode;
+	graphicsPipeline->gl.polygonMode = polygonMode;
+	graphicsPipeline->gl.cullMode = cullMode;
+	graphicsPipeline->gl.depthCompareOperator = depthCompareOperator;
+	graphicsPipeline->gl.srcColorBlendFactor = srcColorBlendFactor;
+	graphicsPipeline->gl.dstColorBlendFactor = dstColorBlendFactor;
+	graphicsPipeline->gl.srcAlphaBlendFactor = srcAlphaBlendFactor;
+	graphicsPipeline->gl.dstAlphaBlendFactor = dstAlphaBlendFactor;
+	graphicsPipeline->gl.colorBlendOperator = colorBlendOperator;
+	graphicsPipeline->gl.alphaBlendOperator = alphaBlendOperator;
 
 	GLenum frontFace =
 		state.clockwiseFrontFace == true ?
 		GL_CW : GL_CCW;
 
-	pipeline->gl.frontFace = frontFace;
+	graphicsPipeline->gl.frontFace = frontFace;
 
 	Window window = framebuffer->gl.window;
 	makeWindowContextCurrent(window);
 
 	GLuint glHandle = glCreateProgram();
-	pipeline->gl.glHandle = glHandle;
+	graphicsPipeline->gl.glHandle = glHandle;
 
 	for (size_t i = 0; i < shaderCount; i++)
 	{
@@ -1143,8 +1152,8 @@ inline static Pipeline createGlPipeline(
 
 			if (infoLog == NULL)
 			{
-				destroyGlPipeline(
-					pipeline,
+				destroyGlGraphicsPipeline(
+					graphicsPipeline,
 					false);
 				return NULL;
 			}
@@ -1162,8 +1171,8 @@ inline static Pipeline createGlPipeline(
 
 		assertOpenGL();
 
-		destroyGlPipeline(
-			pipeline,
+		destroyGlGraphicsPipeline(
+			graphicsPipeline,
 			false);
 		return NULL;
 	}
@@ -1172,23 +1181,24 @@ inline static Pipeline createGlPipeline(
 
 	if (error != GL_NO_ERROR)
 	{
-		destroyGlPipeline(
-			pipeline,
+		destroyGlGraphicsPipeline(
+			graphicsPipeline,
 			false);
 		return NULL;
 	}
 
-	return pipeline;
+	return graphicsPipeline;
 }
 
-inline static void bindGlPipeline(
-	Pipeline pipeline)
+inline static void bindGlGraphicsPipeline(
+	GraphicsPipeline graphicsPipeline)
 {
-	Vec4U viewport = pipeline->gl.state.viewport;
+	Vec4U viewport = graphicsPipeline->gl.state.viewport;
 
 	if (viewport.z + viewport.w > 0)
 	{
-		Vec2F depthRange = pipeline->gl.state.depthRange;
+		Vec2F depthRange =
+			graphicsPipeline->gl.state.depthRange;
 
 		glViewport(
 			(GLint)viewport.x,
@@ -1200,7 +1210,7 @@ inline static void bindGlPipeline(
 			depthRange.y);
 	}
 
-	Vec4U scissor = pipeline->gl.state.scissor;
+	Vec4U scissor = graphicsPipeline->gl.state.scissor;
 
 	if (scissor.z + scissor.w > 0)
 	{
@@ -1218,12 +1228,12 @@ inline static void bindGlPipeline(
 
 	glPolygonMode(
 		GL_FRONT_AND_BACK,
-		pipeline->gl.polygonMode);
+		graphicsPipeline->gl.polygonMode);
 
-	if (pipeline->gl.state.cullFace == true)
+	if (graphicsPipeline->gl.state.cullFace == true)
 	{
-		glFrontFace(pipeline->gl.frontFace);
-		glCullFace(pipeline->gl.cullMode);
+		glFrontFace(graphicsPipeline->gl.frontFace);
+		glCullFace(graphicsPipeline->gl.cullMode);
 		glEnable(GL_CULL_FACE);
 	}
 	else
@@ -1232,7 +1242,7 @@ inline static void bindGlPipeline(
 	}
 
 	ColorComponent colorMask =
-		pipeline->gl.state.colorComponentWriteMask;
+		graphicsPipeline->gl.state.colorComponentWriteMask;
 
 	glColorMask(
 		colorMask & RED_COLOR_COMPONENT ?
@@ -1244,17 +1254,17 @@ inline static void bindGlPipeline(
 		colorMask & ALPHA_COLOR_COMPONENT ?
 			GL_TRUE : GL_FALSE);
 
-	if (pipeline->gl.state.testDepth == true)
+	if (graphicsPipeline->gl.state.testDepth == true)
 	{
-		if (pipeline->gl.state.clampDepth == true)
+		if (graphicsPipeline->gl.state.clampDepth == true)
 			glEnable(GL_DEPTH_CLAMP);
 		else
 			glDisable(GL_DEPTH_CLAMP);
 
 		glDepthMask(
-			pipeline->gl.state.writeDepth == true ?
+			graphicsPipeline->gl.state.writeDepth == true ?
 			GL_TRUE : GL_FALSE);
-		glDepthFunc(pipeline->gl.depthCompareOperator);
+		glDepthFunc(graphicsPipeline->gl.depthCompareOperator);
 		glEnable(GL_DEPTH_TEST);
 	}
 	else
@@ -1262,9 +1272,11 @@ inline static void bindGlPipeline(
 		glDisable(GL_DEPTH_TEST);
 	}
 
-	if (pipeline->gl.state.enableDepthBias == true)
+	if (graphicsPipeline->gl.state.enableDepthBias == true)
 	{
-		Vec2F depthBias = pipeline->gl.state.depthBias;
+		Vec2F depthBias =
+			graphicsPipeline->gl.state.depthBias;
+
 		glPolygonOffset(
 			depthBias.y,
 			depthBias.x);
@@ -1275,19 +1287,19 @@ inline static void bindGlPipeline(
 		glDisable(GL_POLYGON_OFFSET_FILL);
 	}
 
-	if (pipeline->gl.state.enableBlend == true)
+	if (graphicsPipeline->gl.state.enableBlend == true)
 	{
 		Vec4F blendColor =
-			pipeline->gl.state.blendColor;
+			graphicsPipeline->gl.state.blendColor;
 
 		glBlendFuncSeparate(
-			pipeline->gl.srcColorBlendFactor,
-			pipeline->gl.dstColorBlendFactor,
-			pipeline->gl.srcAlphaBlendFactor,
-			pipeline->gl.dstAlphaBlendFactor);
+			graphicsPipeline->gl.srcColorBlendFactor,
+			graphicsPipeline->gl.dstColorBlendFactor,
+			graphicsPipeline->gl.srcAlphaBlendFactor,
+			graphicsPipeline->gl.dstAlphaBlendFactor);
 		glBlendEquationSeparate(
-			pipeline->gl.colorBlendOperator,
-			pipeline->gl.alphaBlendOperator);
+			graphicsPipeline->gl.colorBlendOperator,
+			graphicsPipeline->gl.alphaBlendOperator);
 		glBlendColor(
 			blendColor.x,
 			blendColor.y,
@@ -1300,7 +1312,7 @@ inline static void bindGlPipeline(
 		glDisable(GL_BLEND);
 	}
 
-	if (pipeline->gl.state.restartPrimitive == true)
+	if (graphicsPipeline->gl.state.restartPrimitive == true)
 		glEnable(GL_PRIMITIVE_RESTART);
 	else
 		glDisable(GL_PRIMITIVE_RESTART);
@@ -1308,11 +1320,11 @@ inline static void bindGlPipeline(
 	// TODO:
 	glDisable(GL_STENCIL_TEST);
 
-	glUseProgram(pipeline->gl.glHandle);
+	glUseProgram(graphicsPipeline->gl.glHandle);
 	assertOpenGL();
 
-	if (pipeline->gl.onBind != NULL)
-		pipeline->gl.onBind(pipeline);
+	if (graphicsPipeline->gl.onBind != NULL)
+		graphicsPipeline->gl.onBind(graphicsPipeline);
 }
 inline static bool getGlUniformLocation(
 	GLuint program,
@@ -1352,3 +1364,4 @@ inline static GLuint getGlUniformBlockIndex(
 	*_blockIndex = blockIndex;
 	return true;
 }
+#endif

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mpgx/pipelines/ray_color_pipeline.h"
+#include "mpgx/pipelines/ray_tracing_color_pipeline.h"
 #include "mpgx/_source/image.h"
 #include "mpgx/_source/window.h"
 #include "mpgx/_source/ray_tracing.h"
@@ -24,33 +24,34 @@ typedef struct RayGenPushConstants
 	Mat4F invView;
 	Mat4F invProj;
 } RayGenPushConstants;
-typedef struct BasePipelineHandle
+typedef struct BaseHandle
 {
 	Window window;
-	RayScene rayScene;
+	RayTracingScene scene;
 	RayGenPushConstants rgpc;
 	Image storageImage;
-} BasePipelineHandle;
-typedef struct VkPipelineHandle
-{
-	Window window;
-	RayScene rayScene;
-	RayGenPushConstants rgpc;
-	Image storageImage;
+} BaseHandle;
 #if MPGX_SUPPORT_VULKAN
+typedef struct VkHandle
+{
+	Window window;
+	RayTracingScene scene;
+	RayGenPushConstants rgpc;
+	Image storageImage;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSet descriptorSet;
+} VkHandle;
 #endif
-} VkPipelineHandle;
-union PipelineHandle_T
+typedef union Handle_T
 {
-	BasePipelineHandle base;
-	VkPipelineHandle vk;
-};
+	BaseHandle base;
+#if MPGX_SUPPORT_VULKAN
+	VkHandle vk;
+#endif
+} Handle_T;
 
-typedef union PipelineHandle_T PipelineHandle_T;
-typedef PipelineHandle_T* PipelineHandle;
+typedef Handle_T* Handle;
 
 #if MPGX_SUPPORT_VULKAN
 static const VkPushConstantRange pushConstantRanges[2] = {
@@ -214,10 +215,10 @@ inline static VkDescriptorSet createVkDescriptorSet(
 	return descriptorSet;
 }
 
-static void onVkBind(RayPipeline rayPipeline)
+static void onVkBind(RayTracingPipeline rayTracingPipeline)
 {
-	PipelineHandle pipelineHandle = rayPipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	Handle handle = rayTracingPipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 
 	// TODO: create storage image in the rayTracing struct or base pipeline
@@ -230,7 +231,7 @@ static void onVkBind(RayPipeline rayPipeline)
 		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 		VK_QUEUE_FAMILY_IGNORED,
 		VK_QUEUE_FAMILY_IGNORED,
-		pipelineHandle->vk.storageImage->vk.handle,
+		handle->vk.storageImage->vk.handle,
 		{
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			0,
@@ -294,7 +295,7 @@ static void onVkBind(RayPipeline rayPipeline)
 
 	vkCmdCopyImage(
 		commandBuffer,
-		pipelineHandle->vk.storageImage->vk.handle,
+		handle->vk.storageImage->vk.handle,
 		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 		vkWindow->swapchain->buffers[
 			vkWindow->bufferIndex].image,
@@ -312,7 +313,7 @@ static void onVkBind(RayPipeline rayPipeline)
 		VK_IMAGE_LAYOUT_GENERAL,
 		VK_QUEUE_FAMILY_IGNORED,
 		VK_QUEUE_FAMILY_IGNORED,
-		pipelineHandle->vk.storageImage->vk.handle,
+		handle->vk.storageImage->vk.handle,
 		{
 			VK_IMAGE_ASPECT_COLOR_BIT,
 			0,
@@ -369,61 +370,42 @@ static void onVkBind(RayPipeline rayPipeline)
 	vkCmdBindDescriptorSets(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-		rayPipeline->vk.layout,
+		rayTracingPipeline->vk.layout,
 		0,
 		1,
-		&pipelineHandle->vk.descriptorSet,
+		&handle->vk.descriptorSet,
 		0,
 		NULL);
 	vkCmdPushConstants(
 		vkWindow->currenCommandBuffer,
-		rayPipeline->vk.layout,
+		rayTracingPipeline->vk.layout,
 		VK_SHADER_STAGE_RAYGEN_BIT_KHR,
 		0,
 		sizeof(RayGenPushConstants),
-		&pipelineHandle->vk.rgpc);
+		&handle->vk.rgpc);
 }
-static bool onVkResize(
-	RayPipeline rayPipeline,
-	Vec2U newSize,
-	void* createInfo)
+static void onVkDestroy(void* _handle)
 {
-	PipelineHandle pipelineHandle = rayPipeline->vk.handle;
-
-	// TODO: resize
-
-	VkRayPipelineCreateInfo _createInfo = {
-		1,
-		&pipelineHandle->vk.descriptorSetLayout,
-		1,
-		pushConstantRanges,
-	};
-
-	*(VkRayPipelineCreateInfo*)createInfo = _createInfo;
-	return true;
-}
-static void onVkDestroy(void* handle)
-{
-	PipelineHandle pipelineHandle = handle;
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	Handle handle = _handle;
+	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkDevice device = vkWindow->device;
 
 	vkDestroyDescriptorPool(
 		device,
-		pipelineHandle->vk.descriptorPool,
+		handle->vk.descriptorPool,
 		NULL);
 	vkDestroyDescriptorSetLayout(
 		device,
-		pipelineHandle->vk.descriptorSetLayout,
+		handle->vk.descriptorSetLayout,
 		NULL);
-	destroyImage(pipelineHandle->vk.storageImage);
-	free(pipelineHandle);
+	destroyImage(handle->vk.storageImage);
+	free(handle);
 }
-inline static RayPipeline createVkHandle(
+inline static RayTracingPipeline createVkPipeline(
 	Window window,
 	VkAccelerationStructureKHR tlas,
 	VkImageView storageImageView,
-	PipelineHandle pipelineHandle,
+	Handle handle,
 	Shader* generationShaders,
 	size_t generationShaderCount,
 	Shader* missShaders,
@@ -439,11 +421,11 @@ inline static RayPipeline createVkHandle(
 
 	if (descriptorSetLayout == NULL)
 	{
-		free(pipelineHandle);
+		free(handle);
 		return NULL;
 	}
 
-	VkRayPipelineCreateInfo createInfo = {
+	VkRayTracingPipelineCreateData createData = {
 		1,
 		&descriptorSetLayout,
 		1,
@@ -458,7 +440,7 @@ inline static RayPipeline createVkHandle(
 			device,
 			descriptorSetLayout,
 			NULL);
-		free(pipelineHandle);
+		free(handle);
 		return NULL;
 	}
 
@@ -479,22 +461,21 @@ inline static RayPipeline createVkHandle(
 			device,
 			descriptorSetLayout,
 			NULL);
-		free(pipelineHandle);
+		free(handle);
 		return NULL;
 	}
 
-	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
-	pipelineHandle->vk.descriptorPool = descriptorPool;
-	pipelineHandle->vk.descriptorSet = descriptorSet;
+	handle->vk.descriptorSetLayout = descriptorSetLayout;
+	handle->vk.descriptorPool = descriptorPool;
+	handle->vk.descriptorSet = descriptorSet;
 
-	return createRayPipeline(
+	return createRayTracingPipeline(
 		window,
-		RAY_COLOR_PIPELINE_NAME,
+		RAY_TRACING_COLOR_PIPELINE_NAME,
 		onVkBind,
-		onVkResize,
 		onVkDestroy,
-		pipelineHandle,
-		&createInfo,
+		handle,
+		&createData,
 		generationShaders,
 		generationShaderCount,
 		missShaders,
@@ -504,36 +485,35 @@ inline static RayPipeline createVkHandle(
 }
 #endif
 
-RayPipeline createRayColorPipeline(
+RayTracingPipeline createRayTracingColorPipeline(
 	Window window,
 	Shader generationShader,
 	Shader missShader,
 	Shader closestHitShader,
-	RayScene rayScene)
+	RayTracingScene scene)
 {
 	assert(window != NULL);
 	assert(generationShader != NULL);
 	assert(missShader != NULL);
 	assert(missShader != NULL);
-	assert(rayScene != NULL);
+	assert(scene != NULL);
 	assert(generationShader->base.type == RAY_GENERATION_SHADER_TYPE);
 	assert(missShader->base.type == RAY_MISS_SHADER_TYPE);
 	assert(closestHitShader->base.type == RAY_CLOSEST_HIT_SHADER_TYPE);
 	assert(generationShader->base.window == window);
 	assert(missShader->base.window == window);
 	assert(closestHitShader->base.window == window);
-	assert(rayScene->base.window == window);
+	assert(scene->base.window == window);
 
-	PipelineHandle pipelineHandle = malloc(
-		sizeof(PipelineHandle_T));
+	Handle handle = malloc(sizeof(Handle_T));
 
-	if (pipelineHandle == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	pipelineHandle->base.window = window;
-	pipelineHandle->base.rayScene = rayScene;
-	pipelineHandle->base.rgpc.invProj = identMat4F;
-	pipelineHandle->base.rgpc.invProj = identMat4F;
+	handle->base.window = window;
+	handle->base.scene = scene;
+	handle->base.rgpc.invProj = identMat4F;
+	handle->base.rgpc.invProj = identMat4F;
 
 	const void* data = NULL;
 
@@ -553,22 +533,22 @@ RayPipeline createRayColorPipeline(
 
 	if (storageImage == NULL)
 	{
-		free(pipelineHandle);
+		free(handle);
 		return NULL;
 	}
 
-	pipelineHandle->base.storageImage = storageImage;
+	handle->base.storageImage = storageImage;
 
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		return createVkHandle(
+		return createVkPipeline(
 			window,
-			rayScene->vk.accelerationStructure,
+			scene->vk.accelerationStructure,
 			storageImage->vk.imageView,
-			pipelineHandle,
+			handle,
 			&generationShader,
 			1,
 			&missShader,
@@ -585,62 +565,52 @@ RayPipeline createRayColorPipeline(
 	}
 }
 
-RayScene getRayColorPipelineScene(
-	RayPipeline rayPipeline)
+RayTracingScene getRayTracingColorPipelineScene(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	assert(strcmp(
-		rayPipeline->base.name,
-		RAY_COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		rayPipeline->base.handle;
-	return pipelineHandle->base.rayScene;
+	assert(rayTracingPipeline != NULL);
+	assert(strcmp(rayTracingPipeline->base.name,
+		RAY_TRACING_COLOR_PIPELINE_NAME) == 0);
+	Handle handle = rayTracingPipeline->base.handle;
+	return handle->base.scene;
 }
 
-Mat4F getColorRayPipelineInvView(
-	RayPipeline rayPipeline)
+Mat4F getRayTracingColorPipelineInvView(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	assert(strcmp(
-		rayPipeline->base.name,
-		RAY_COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		rayPipeline->base.handle;
-	return pipelineHandle->base.rgpc.invView;
+	assert(rayTracingPipeline != NULL);
+	assert(strcmp(rayTracingPipeline->base.name,
+		RAY_TRACING_COLOR_PIPELINE_NAME) == 0);
+	Handle handle = rayTracingPipeline->base.handle;
+	return handle->base.rgpc.invView;
 }
-void setColorRayPipelineInvView(
-	RayPipeline rayPipeline,
+void setRayTracingColorPipelineInvView(
+	RayTracingPipeline rayTracingPipeline,
 	Mat4F invView)
 {
-	assert(rayPipeline != NULL);
-	assert(strcmp(
-		rayPipeline->base.name,
-		RAY_COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		rayPipeline->base.handle;
-	pipelineHandle->base.rgpc.invView = invView;
+	assert(rayTracingPipeline != NULL);
+	assert(strcmp(rayTracingPipeline->base.name,
+		RAY_TRACING_COLOR_PIPELINE_NAME) == 0);
+	Handle handle = rayTracingPipeline->base.handle;
+	handle->base.rgpc.invView = invView;
 }
 
-Mat4F getColorRayPipelineInvProj(
-	RayPipeline rayPipeline)
+Mat4F getRayTracingColorPipelineInvProj(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	assert(strcmp(
-		rayPipeline->base.name,
-		RAY_COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		rayPipeline->base.handle;
-	return pipelineHandle->base.rgpc.invProj;
+	assert(rayTracingPipeline != NULL);
+	assert(strcmp(rayTracingPipeline->base.name,
+		RAY_TRACING_COLOR_PIPELINE_NAME) == 0);
+	Handle handle = rayTracingPipeline->base.handle;
+	return handle->base.rgpc.invProj;
 }
-void setColorRayPipelineInvProj(
-	RayPipeline rayPipeline,
+void setRayTracingColorPipelineInvProj(
+	RayTracingPipeline rayTracingPipeline,
 	Mat4F invProj)
 {
-	assert(rayPipeline != NULL);
-	assert(strcmp(
-		rayPipeline->base.name,
-		RAY_COLOR_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		rayPipeline->base.handle;
-	pipelineHandle->base.rgpc.invProj = invProj;
+	assert(rayTracingPipeline != NULL);
+	assert(strcmp(rayTracingPipeline->base.name,
+		RAY_TRACING_COLOR_PIPELINE_NAME) == 0);
+	Handle handle = rayTracingPipeline->base.handle;
+	handle->base.rgpc.invProj = invProj;
 }

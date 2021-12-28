@@ -13,29 +13,29 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/renderer.h"
+#include "mpgx/graphics_renderer.h"
 #include "mpgx/pipelines/sprite_pipeline.h"
 
-Renderer createSpriteRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createSpriteRenderer(
+	GraphicsPipeline spritePipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity);
-Render createSpriteRender(
-	Renderer renderer,
+GraphicsRender createSpriteRender(
+	GraphicsRenderer spriteRenderer,
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
-	Mesh mesh);
+	GraphicsMesh mesh);
 
 LinearColor getSpriteRenderColor(
-	Render render);
+	GraphicsRender spriteRender);
 void setSpriteRenderColor(
-	Render render,
+	GraphicsRender spriteRender,
 	LinearColor color);
 
-Mesh getSpriteRenderMesh(
-	Render render);
+GraphicsMesh getSpriteRenderMesh(
+	GraphicsRender spriteRender);
 void setSpriteRenderMesh(
-	Render render,
-	Mesh mesh);
+	GraphicsRender spriteRender,
+	GraphicsMesh mesh);

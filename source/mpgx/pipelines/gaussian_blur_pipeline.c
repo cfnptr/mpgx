@@ -14,7 +14,7 @@
 
 #include "mpgx/pipelines/gaussian_blur_pipeline.h"
 #include "mpgx/_source/window.h"
-#include "mpgx/_source/pipeline.h"
+#include "mpgx/_source/graphics_pipeline.h"
 #include "mpgx/_source/sampler.h"
 
 #include <string.h>
@@ -24,27 +24,28 @@ typedef struct FragmentPushConstants
 	int radius;
 	int offset;
 } FragmentPushConstants;
-typedef struct BasePipelineHandle
+typedef struct BaseHandle
 {
 	Window window;
 	Image buffer;
 	Sampler sampler;
 	FragmentPushConstants fpc;
-} BasePipelineHandle;
-typedef struct VkPipelineHandle
-{
-	Window window;
-	Image buffer;
-	Sampler sampler;
-	FragmentPushConstants fpc;
+} BaseHandle;
 #if MPGX_SUPPORT_VULKAN
+typedef struct VkHandle
+{
+	Window window;
+	Image buffer;
+	Sampler sampler;
+	FragmentPushConstants fpc;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSet* descriptorSets;
 	uint32_t bufferCount;
+} VkHandle;
 #endif
-} VkPipelineHandle;
-typedef struct GlPipelineHandle
+#if MPGX_SUPPORT_OPENGL
+typedef struct GlHandle
 {
 	Window window;
 	Image buffer;
@@ -53,16 +54,20 @@ typedef struct GlPipelineHandle
 	GLint radiusLocation;
 	GLint offsetLocation;
 	GLint bufferLocation;
-} GlPipelineHandle;
-union PipelineHandle_T
+} GlHandle;
+#endif
+typedef union Handle_T
 {
-	BasePipelineHandle base;
-	VkPipelineHandle vk;
-	GlPipelineHandle gl;
-};
+	BaseHandle base;
+#if MPGX_SUPPORT_VULKAN
+	VkHandle vk;
+#endif
+#if MPGX_SUPPORT_OPENGL
+	GlHandle gl;
+#endif
+} Handle_T;
 
-typedef union PipelineHandle_T PipelineHandle_T;
-typedef PipelineHandle_T* PipelineHandle;
+typedef Handle_T* Handle;
 
 #if MPGX_SUPPORT_VULKAN
 static const VkVertexInputBindingDescription vertexInputBindingDescriptions[1] = {
@@ -242,45 +247,45 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 	return descriptorSets;
 }
 
-static void onVkBind(Pipeline pipeline)
+static void onVkBind(GraphicsPipeline graphicsPipeline)
 {
-	PipelineHandle pipelineHandle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	Handle handle = graphicsPipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	uint32_t bufferIndex = vkWindow->bufferIndex;
 
 	vkCmdBindDescriptorSets(
 		vkWindow->currenCommandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		pipeline->vk.layout,
+		graphicsPipeline->vk.layout,
 		0,
 		1,
-		&pipelineHandle->vk.descriptorSets[bufferIndex],
+		&handle->vk.descriptorSets[bufferIndex],
 		0,
 		NULL);
 }
-static void onVkUniformsSet(Pipeline pipeline)
+static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	PipelineHandle pipelineHandle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	Handle handle = graphicsPipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(handle->vk.window);
 
 	vkCmdPushConstants(
 		vkWindow->currenCommandBuffer,
-		pipeline->vk.layout,
+		graphicsPipeline->vk.layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
 		0,
 		sizeof(FragmentPushConstants),
-		&pipelineHandle->vk.fpc);
+		&handle->vk.fpc);
 }
 static bool onVkResize(
-	Pipeline pipeline,
+	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
-	void* createInfo)
+	void* createData)
 {
-	PipelineHandle pipelineHandle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	Handle handle = graphicsPipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
-	if (bufferCount != pipelineHandle->vk.bufferCount)
+	if (bufferCount != handle->vk.bufferCount)
 	{
 		VkDevice device = vkWindow->device;
 
@@ -293,11 +298,11 @@ static bool onVkResize(
 
 		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
 			device,
-			pipelineHandle->vk.descriptorSetLayout,
+			handle->vk.descriptorSetLayout,
 			descriptorPool,
 			bufferCount,
-			pipelineHandle->vk.buffer->vk.imageView,
-			pipelineHandle->vk.sampler->vk.handle);
+			handle->vk.buffer->vk.imageView,
+			handle->vk.sampler->vk.handle);
 
 		if (descriptorSets == NULL)
 		{
@@ -308,68 +313,68 @@ static bool onVkResize(
 			return false;
 		}
 
-		free(pipelineHandle->vk.descriptorSets);
+		free(handle->vk.descriptorSets);
 
 		vkDestroyDescriptorPool(
 			device,
-			pipelineHandle->vk.descriptorPool,
+			handle->vk.descriptorPool,
 			NULL);
 
-		pipelineHandle->vk.descriptorPool = descriptorPool;
-		pipelineHandle->vk.descriptorSets = descriptorSets;
-		pipelineHandle->vk.bufferCount = bufferCount;
+		handle->vk.descriptorPool = descriptorPool;
+		handle->vk.descriptorSets = descriptorSets;
+		handle->vk.bufferCount = bufferCount;
 	}
 
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = pipeline->vk.state.viewport.z +
-		pipeline->vk.state.viewport.w == 0;
+	bool dynamic = graphicsPipeline->vk.state.viewport.z +
+		graphicsPipeline->vk.state.viewport.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.viewport = size;
+		graphicsPipeline->vk.state.viewport = size;
 
-	dynamic = pipeline->vk.state.scissor.z +
-		pipeline->vk.state.scissor.w == 0;
+	dynamic = graphicsPipeline->vk.state.scissor.z +
+		graphicsPipeline->vk.state.scissor.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.scissor = size;
+		graphicsPipeline->vk.state.scissor = size;
 
-	VkPipelineCreateInfo _createInfo = {
+	VkGraphicsPipelineCreateData _createData = {
 		1,
 		vertexInputBindingDescriptions,
 		2,
 		vertexInputAttributeDescriptions,
 		1,
-		&pipelineHandle->vk.descriptorSetLayout,
+		&handle->vk.descriptorSetLayout,
 		1,
 		pushConstantRanges,
 	};
 
-	*(VkPipelineCreateInfo*)createInfo = _createInfo;
+	*(VkGraphicsPipelineCreateData*)createData = _createData;
 	return true;
 }
-static void onVkDestroy(void* handle)
+static void onVkDestroy(void* _handle)
 {
-	PipelineHandle pipelineHandle = handle;
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	Handle handle = _handle;
+	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkDevice device = vkWindow->device;
 
-	free(pipelineHandle->vk.descriptorSets);
+	free(handle->vk.descriptorSets);
 	vkDestroyDescriptorPool(
 		device,
-		pipelineHandle->vk.descriptorPool,
+		handle->vk.descriptorPool,
 		NULL);
 	vkDestroyDescriptorSetLayout(
 		device,
-		pipelineHandle->vk.descriptorSetLayout,
+		handle->vk.descriptorSetLayout,
 		NULL);
-	free(pipelineHandle);
+	free(handle);
 }
-inline static Pipeline createVkHandle(
+inline static GraphicsPipeline createVkPipeline(
 	Framebuffer framebuffer,
 	VkImageView imageView,
 	VkSampler sampler,
-	const PipelineState* state,
-	PipelineHandle pipelineHandle,
+	const GraphicsPipelineState* state,
+	Handle handle,
 	Shader* shaders,
 	uint8_t shaderCount)
 {
@@ -381,11 +386,11 @@ inline static Pipeline createVkHandle(
 
 	if (descriptorSetLayout == NULL)
 	{
-		free(pipelineHandle);
+		free(handle);
 		return NULL;
 	}
 
-	VkPipelineCreateInfo createInfo = {
+	VkGraphicsPipelineCreateData createData = {
 		1,
 		vertexInputBindingDescriptions,
 		2,
@@ -408,7 +413,7 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorSetLayout,
 			NULL);
-		free(pipelineHandle);
+		free(handle);
 		return NULL;
 	}
 
@@ -430,16 +435,16 @@ inline static Pipeline createVkHandle(
 			device,
 			descriptorSetLayout,
 			NULL);
-		free(pipelineHandle);
+		free(handle);
 		return NULL;
 	}
 
-	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
-	pipelineHandle->vk.descriptorPool = descriptorPool;
-	pipelineHandle->vk.descriptorSets = descriptorSets;
-	pipelineHandle->vk.bufferCount = bufferCount;
+	handle->vk.descriptorSetLayout = descriptorSetLayout;
+	handle->vk.descriptorPool = descriptorPool;
+	handle->vk.descriptorSets = descriptorSets;
+	handle->vk.bufferCount = bufferCount;
 
-	return createPipeline(
+	return createGraphicsPipeline(
 		framebuffer,
 		GAUSSIAN_BLUR_PIPELINE_NAME,
 		state,
@@ -447,44 +452,45 @@ inline static Pipeline createVkHandle(
 		onVkUniformsSet,
 		onVkResize,
 		onVkDestroy,
-		pipelineHandle,
-		&createInfo,
+		handle,
+		&createData,
 		shaders,
 		shaderCount);
 }
 #endif
 
-static void onGlBind(Pipeline pipeline)
+#if MPGX_SUPPORT_OPENGL
+static void onGlBind(GraphicsPipeline graphicsPipeline)
 {
-	PipelineHandle pipelineHandle = pipeline->gl.handle;
+	Handle handle = graphicsPipeline->gl.handle;
 
 	glUniform1i(
-		pipelineHandle->gl.bufferLocation,
+		handle->gl.bufferLocation,
 		0);
 
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
-		pipelineHandle->gl.buffer->gl.handle);
+		handle->gl.buffer->gl.handle);
 	glBindSampler(
 		0,
-		pipelineHandle->gl.sampler->gl.handle);
+		handle->gl.sampler->gl.handle);
 
 	assertOpenGL();
 }
-static void onGlUniformsSet(Pipeline pipeline)
+static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	PipelineHandle pipelineHandle = pipeline->gl.handle;
+	Handle handle = graphicsPipeline->gl.handle;
 
 	glUniform1iv(
-		pipelineHandle->gl.radiusLocation,
+		handle->gl.radiusLocation,
 		1,
-		(const GLint*)&pipelineHandle->gl.fpc.radius);
+		(const GLint*)&handle->gl.fpc.radius);
 	glUniform1iv(
-		pipelineHandle->gl.radiusLocation,
+		handle->gl.radiusLocation,
 		1,
-		(const GLint*)&pipelineHandle->gl.fpc.offset);
+		(const GLint*)&handle->gl.fpc.offset);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -507,36 +513,36 @@ static void onGlUniformsSet(Pipeline pipeline)
 	assertOpenGL();
 }
 static bool onGlResize(
-	Pipeline pipeline,
+	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createInfo)
 {
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = pipeline->vk.state.viewport.z +
-		pipeline->vk.state.viewport.w == 0;
+	bool dynamic = graphicsPipeline->vk.state.viewport.z +
+		graphicsPipeline->vk.state.viewport.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.viewport = size;
+		graphicsPipeline->vk.state.viewport = size;
 
-	dynamic = pipeline->vk.state.scissor.z +
-		pipeline->vk.state.scissor.w == 0;
+	dynamic = graphicsPipeline->vk.state.scissor.z +
+		graphicsPipeline->vk.state.scissor.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.scissor = size;
+		graphicsPipeline->vk.state.scissor = size;
 	return true;
 }
 static void onGlDestroy(void* handle)
 {
-	free((PipelineHandle)handle);
+	free((Handle)handle);
 }
-inline static Pipeline createGlHandle(
+inline static GraphicsPipeline createGlPipeline(
 	Framebuffer framebuffer,
-	const PipelineState* state,
-	PipelineHandle pipelineHandle,
+	const GraphicsPipelineState* state,
+	Handle handle,
 	Shader* shaders,
 	uint8_t shaderCount)
 {
-	Pipeline pipeline = createPipeline(
+	GraphicsPipeline pipeline = createGraphicsPipeline(
 		framebuffer,
 		GAUSSIAN_BLUR_PIPELINE_NAME,
 		state,
@@ -544,7 +550,7 @@ inline static Pipeline createGlHandle(
 		onGlUniformsSet,
 		onGlResize,
 		onGlDestroy,
-		pipelineHandle,
+		handle,
 		NULL,
 		shaders,
 		shaderCount);
@@ -573,17 +579,18 @@ inline static Pipeline createGlHandle(
 
 	if (result == false)
 	{
-		destroyPipeline(pipeline, false);
+		destroyGraphicsPipeline(pipeline, false);
 		return NULL;
 	}
 
 	assertOpenGL();
 
-	pipelineHandle->gl.radiusLocation = radiusLocation;
-	pipelineHandle->gl.offsetLocation = offsetLocation;
-	pipelineHandle->gl.bufferLocation = bufferLocation;
+	handle->gl.radiusLocation = radiusLocation;
+	handle->gl.offsetLocation = offsetLocation;
+	handle->gl.bufferLocation = bufferLocation;
 	return pipeline;
 }
+#endif
 
 inline static int calcGaussianOffset(int radius)
 {
@@ -593,13 +600,13 @@ inline static int calcGaussianOffset(int radius)
 	return offset;
 }
 
-Pipeline createGaussianBlurPipelineExt(
+GraphicsPipeline createGaussianBlurPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image buffer,
 	Sampler sampler,
-	const PipelineState* state)
+	const GraphicsPipelineState* state)
 {
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
@@ -613,18 +620,17 @@ Pipeline createGaussianBlurPipelineExt(
 	assert(buffer->base.window == framebuffer->base.window);
 	assert(sampler->base.window == framebuffer->base.window);
 
-	PipelineHandle pipelineHandle = malloc(
-		sizeof(PipelineHandle_T));
+	Handle handle = malloc(sizeof(Handle_T));
 
-	if (pipelineHandle == NULL)
+	if (handle == NULL)
 		return NULL;
 
 	Window window = framebuffer->base.window;
-	pipelineHandle->base.window = window;
-	pipelineHandle->base.buffer = buffer;
-	pipelineHandle->base.sampler = sampler;
-	pipelineHandle->base.fpc.radius = 8;
-	pipelineHandle->base.fpc.offset = calcGaussianOffset(8);
+	handle->base.window = window;
+	handle->base.buffer = buffer;
+	handle->base.sampler = sampler;
+	handle->base.fpc.radius = 8;
+	handle->base.fpc.offset = calcGaussianOffset(8);
 
 	Shader shaders[2] = {
 		vertexShader,
@@ -636,12 +642,12 @@ Pipeline createGaussianBlurPipelineExt(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		return createVkHandle(
+		return createVkPipeline(
 			framebuffer,
 			buffer->vk.imageView,
 			sampler->vk.handle,
 			state,
-			pipelineHandle,
+			handle,
 			shaders,
 			2);
 #else
@@ -651,19 +657,23 @@ Pipeline createGaussianBlurPipelineExt(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		return createGlHandle(
+#if MPGX_SUPPORT_OPENGL
+		return createGlPipeline(
 			framebuffer,
 			state,
-			pipelineHandle,
+			handle,
 			shaders,
 			2);
+#else
+		abort();
+#endif
 	}
 	else
 	{
 		abort();
 	}
 }
-Pipeline createGaussianBlurPipeline(
+GraphicsPipeline createGaussianBlurPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -678,7 +688,7 @@ Pipeline createGaussianBlurPipeline(
 		framebufferSize.x,
 		framebufferSize.y);
 
-	PipelineState state = {
+	GraphicsPipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
@@ -717,52 +727,43 @@ Pipeline createGaussianBlurPipeline(
 }
 
 Image getGaussianBlurPipelineBuffer(
-	Pipeline pipeline)
+	GraphicsPipeline gaussianBlurPipeline)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(gaussianBlurPipeline != NULL);
+	assert(strcmp(gaussianBlurPipeline->base.name,
 		GAUSSIAN_BLUR_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.buffer;
+	Handle handle = gaussianBlurPipeline->base.handle;
+	return handle->base.buffer;
 }
 Sampler getGaussianBlurPipelineSampler(
-	Pipeline pipeline)
+	GraphicsPipeline gaussianBlurPipeline)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(gaussianBlurPipeline != NULL);
+	assert(strcmp(gaussianBlurPipeline->base.name,
 		GAUSSIAN_BLUR_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.sampler;
+	Handle handle = gaussianBlurPipeline->base.handle;
+	return handle->base.sampler;
 }
 
 int getGaussianBlurPipelineRadius(
-	Pipeline pipeline)
+	GraphicsPipeline gaussianBlurPipeline)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(gaussianBlurPipeline != NULL);
+	assert(strcmp(gaussianBlurPipeline->base.name,
 		GAUSSIAN_BLUR_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.fpc.radius;
+	Handle handle = gaussianBlurPipeline->base.handle;
+	return handle->base.fpc.radius;
 }
 void setGaussianBlurPipelineRadius(
-	Pipeline pipeline,
+	GraphicsPipeline gaussianBlurPipeline,
 	int radius)
 {
-	assert(pipeline != NULL);
+	assert(gaussianBlurPipeline != NULL);
 	assert(radius >= 0);
 	assert(radius <= 16);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(strcmp(gaussianBlurPipeline->base.name,
 		GAUSSIAN_BLUR_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	pipelineHandle->base.fpc.radius = radius;
-	pipelineHandle->base.fpc.offset =
-		calcGaussianOffset(radius);
+	Handle handle = gaussianBlurPipeline->base.handle;
+	handle->base.fpc.radius = radius;
+	handle->base.fpc.offset = calcGaussianOffset(radius);
 }

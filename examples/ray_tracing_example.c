@@ -19,7 +19,7 @@
 #include "mpgx/defines.h"
 #include "mpgx/free_camera.h"
 #include "mpgx/primitives/cube_primitive.h"
-#include "mpgx/pipelines/ray_color_pipeline.h"
+#include "mpgx/pipelines/ray_tracing_color_pipeline.h"
 
 #include "cmmt/angle.h"
 
@@ -35,8 +35,8 @@ typedef struct Client_T
 	Window window;
 	Transformer transformer;
 	FreeCamera freeCamera;
-	RayScene rayScene;
-	RayPipeline colorPipeline;
+	RayTracingScene rayTracingScene;
+	RayTracingPipeline colorPipeline;
 } Client_T;
 
 typedef Client_T* Client;
@@ -69,18 +69,18 @@ static void onWindowUpdate(void* handle)
 		camera.persp.aspectRatio,
 		camera.persp.nearClipPlane,
 		camera.persp.farClipPlane));
-	setColorRayPipelineInvProj(
+	setRayTracingColorPipelineInvProj(
 		client->colorPipeline,
 		invProj);
 
 	Mat4F invView = invMat4F(getTransformModel(
 		getFreeCameraTransform(freeCamera)));
-	setColorRayPipelineInvView(
+	setRayTracingColorPipelineInvView(
 		client->colorPipeline,
 		invView);
 
-	bindRayPipeline(client->colorPipeline);
-	tracePipelineRays(client->colorPipeline);
+	bindRayTracingPipeline(client->colorPipeline);
+	traceRayTracingPipeline(client->colorPipeline);
 
 	beginFramebufferRender(
 		framebuffer,
@@ -92,7 +92,7 @@ static void onWindowUpdate(void* handle)
 	endWindowRecord(window);
 }
 
-inline static RayScene createRaySceneInstance(
+inline static RayTracingScene createRayTracingSceneInstance(
 	Window window)
 {
 	Buffer vertexBuffer = createBuffer(
@@ -118,47 +118,48 @@ inline static RayScene createRaySceneInstance(
 		return NULL;
 	}
 
-	RayMesh rayMesh = createRayMesh(
+	RayTracingMesh rayTracingMesh = createRayTracingMesh(
 		window,
 		sizeof(Vec3F),
 		UINT16_INDEX_TYPE,
 		vertexBuffer,
 		indexBuffer);
 
-	if (rayMesh == NULL)
+	if (rayTracingMesh == NULL)
 	{
 		destroyBuffer(indexBuffer);
 		destroyBuffer(vertexBuffer);
 		return NULL;
 	}
 
-	RayScene rayScene = createRayScene(
+	RayTracingScene rayTracingScene = createRayTracingScene(
 		window,
-		&rayMesh,
+		&rayTracingMesh,
 		1);
 
-	if (rayScene == NULL)
+	if (rayTracingScene == NULL)
 	{
-		destroyRayMesh(rayMesh, true);
+		destroyRayTracingMesh(rayTracingMesh, true);
 		return NULL;
 	}
 
-	return rayScene;
+	return rayTracingScene;
 }
-inline static void destroyRaySceneInstance(
-	RayScene rayScene)
+inline static void destroyRayTracingSceneInstance(
+	RayTracingScene rayTracingScene)
 {
-	if (rayScene == NULL)
+	if (rayTracingScene == NULL)
 		return;
 
-	RayMesh rayMesh = getRaySceneMeshes(rayScene)[0];
-	destroyRayScene(rayScene);
-	destroyRayMesh(rayMesh, true);
+	RayTracingMesh rayTracingMesh = getRayTracingSceneMeshes(
+		rayTracingScene)[0];
+	destroyRayTracingScene(rayTracingScene);
+	destroyRayTracingMesh(rayTracingMesh, true);
 }
 
-inline static RayPipeline createRayColorPipelineInstance(
+inline static RayTracingPipeline createRayTracingColorPipelineInstance(
 	Window window,
-	RayScene rayScene)
+	RayTracingScene rayTracingScene)
 {
 	const char* generationShaderPath = "resources/shaders/vulkan/color.rgen.spv";
 	const char* missShaderPath = "resources/shaders/vulkan/color.rmiss.spv";
@@ -195,25 +196,25 @@ inline static RayPipeline createRayColorPipelineInstance(
 		return NULL;
 	}
 
-	RayPipeline rayPipeline = createRayColorPipeline(
+	RayTracingPipeline rayTracingPipeline = createRayTracingColorPipeline(
 		window,
 		generationShader,
 		missShader,
 		closestHitShader,
-		rayScene);
+		rayTracingScene);
 
-	if (rayPipeline == NULL)
+	if (rayTracingPipeline == NULL)
 		return NULL;
 
-	return rayPipeline;
+	return rayTracingPipeline;
 }
-inline static void destroyRayColorPipelineInstance(
-	RayPipeline rayPipeline)
+inline static void destroyRayTracingColorPipelineInstance(
+	RayTracingPipeline colorPipeline)
 {
-	if (rayPipeline == NULL)
+	if (colorPipeline == NULL)
 		return;
 
-	destroyRayPipeline(rayPipeline, true);
+	destroyRayTracingPipeline(colorPipeline, true);
 }
 
 inline static Client createClient()
@@ -272,9 +273,10 @@ inline static Client createClient()
 		return NULL;
 	}
 
-	RayScene rayScene = createRaySceneInstance(window);
+	RayTracingScene rayTracingScene =
+		createRayTracingSceneInstance(window);
 
-	if (rayScene == NULL)
+	if (rayTracingScene == NULL)
 	{
 		destroyFreeCamera(freeCamera);
 		destroyTransformer(transformer);
@@ -283,13 +285,13 @@ inline static Client createClient()
 		return NULL;
 	}
 
-	RayPipeline colorPipeline = createRayColorPipelineInstance(
+	RayTracingPipeline colorPipeline = createRayTracingColorPipelineInstance(
 		window,
-		rayScene);
+		rayTracingScene);
 
 	if (colorPipeline == NULL)
 	{
-		destroyRaySceneInstance(rayScene);
+		destroyRayTracingSceneInstance(rayTracingScene);
 		destroyFreeCamera(freeCamera);
 		destroyTransformer(transformer);
 		destroyWindow(window);
@@ -300,7 +302,7 @@ inline static Client createClient()
 	client->window = window;
 	client->transformer = transformer;
 	client->freeCamera = freeCamera;
-	client->rayScene = rayScene;
+	client->rayTracingScene = rayTracingScene;
 	client->colorPipeline = colorPipeline;
 
 	showWindow(window);
@@ -311,8 +313,8 @@ inline static void destroyClient(Client client)
 	if (client == NULL)
 		return;
 
-	destroyRayColorPipelineInstance(client->colorPipeline);
-	destroyRaySceneInstance(client->rayScene);
+	destroyRayTracingColorPipelineInstance(client->colorPipeline);
+	destroyRayTracingSceneInstance(client->rayTracingScene);
 	destroyFreeCamera(client->freeCamera);
 	destroyTransformer(client->transformer);
 	destroyWindow(client->window);
@@ -326,13 +328,13 @@ inline static void updateClient(Client client)
 
 int main()
 {
-	bool result = initializeGraphics(
+	MpgxResult mpgxResult = initializeGraphics(
 		APPLICATION_NAME,
 		MPGX_VERSION_MAJOR,
 		MPGX_VERSION_MINOR,
 		MPGX_VERSION_PATCH);
 
-	if (result == false)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return EXIT_FAILURE;
 
 	Client client = createClient();

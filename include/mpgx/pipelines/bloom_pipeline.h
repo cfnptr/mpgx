@@ -18,14 +18,14 @@
 
 #define BLOOM_PIPELINE_NAME "Bloom"
 
-Pipeline createBloomPipelineExt(
+GraphicsPipeline createBloomPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image buffer,
 	Sampler sampler,
-	const PipelineState* state);
-Pipeline createBloomPipeline(
+	const GraphicsPipelineState* state);
+GraphicsPipeline createBloomPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -33,12 +33,12 @@ Pipeline createBloomPipeline(
 	Sampler sampler);
 
 Image getBloomPipelineBuffer(
-	Pipeline pipeline);
+	GraphicsPipeline bloomPipeline);
 Sampler getBloomPipelineSampler(
-	Pipeline pipeline);
+	GraphicsPipeline bloomPipeline);
 
 LinearColor getBloomPipelineThreshold(
-	Pipeline pipeline);
+	GraphicsPipeline bloomPipeline);
 void setBloomPipelineThreshold(
-	Pipeline pipeline,
+	GraphicsPipeline bloomPipeline,
 	LinearColor threshold);

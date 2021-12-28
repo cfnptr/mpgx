@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #pragma once
+#include "mpgx/defines.h"
+
+#if MPGX_SUPPORT_OPENGL
 #include "glad/glad.h"
 
 #include <stdio.h>
@@ -101,3 +104,11 @@ inline static bool getGlCompareOperator(
 		return true;
 	}
 }
+inline static const char* getGlWindowGpuName()
+{
+	const char* name = (const char*)
+		glGetString(GL_RENDERER);
+	assertOpenGL();
+	return name;
+}
+#endif

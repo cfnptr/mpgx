@@ -14,7 +14,7 @@
 
 #include "mpgx/text.h"
 #include "mpgx/_source/window.h"
-#include "mpgx/_source/pipeline.h"
+#include "mpgx/_source/graphics_pipeline.h"
 #include "mpgx/_source/image.h"
 #include "mpgx/_source/sampler.h"
 
@@ -35,7 +35,7 @@ struct Font_T
 struct Text_T
 {
 	Font font;
-	Pipeline pipeline;
+	GraphicsPipeline pipeline;
 	uint32_t fontSize;
 	AlignmentType alignment;
 	bool isConstant;
@@ -43,7 +43,7 @@ struct Text_T
 	size_t dataCapacity;
 	size_t dataLength;
 	Image texture;
-	Mesh mesh;
+	GraphicsMesh mesh;
 	Vec2F textSize;
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorPool descriptorPool;
@@ -68,7 +68,7 @@ typedef struct FragmentPushConstants
 {
 	LinearColor color;
 } FragmentPushConstants;
-typedef struct BasePipelineHandle
+typedef struct BaseHandle
 {
 	Window window;
 	Image texture;
@@ -78,23 +78,24 @@ typedef struct BasePipelineHandle
 	Text* texts;
 	size_t textCapacity;
 	size_t textCount;
-} BasePipelineHandle;
-typedef struct VkPipelineHandle
-{
-	Window window;
-	Image texture;
-	Sampler sampler;
-	VertexPushConstants vpc;
-	FragmentPushConstants fpc;
-	Text* texts;
-	size_t textCapacity;
-	size_t textCount;
+} BaseHandle;
 #if MPGX_SUPPORT_VULKAN
+typedef struct VkHandle
+{
+	Window window;
+	Image texture;
+	Sampler sampler;
+	VertexPushConstants vpc;
+	FragmentPushConstants fpc;
+	Text* texts;
+	size_t textCapacity;
+	size_t textCount;
 	VkDescriptorSetLayout descriptorSetLayout;
 	uint32_t bufferCount;
+} VkHandle;
 #endif
-} VkPipelineHandle;
-typedef struct GlPipelineHandle
+#if MPGX_SUPPORT_OPENGL
+typedef struct GlHandle
 {
 	Window window;
 	Image texture;
@@ -107,16 +108,20 @@ typedef struct GlPipelineHandle
 	GLint mvpLocation;
 	GLint colorLocation;
 	GLint textureLocation;
-} GlPipelineHandle;
-union PipelineHandle_T
+} GlHandle;
+#endif
+typedef union Handle_T
 {
-	BasePipelineHandle base;
-	VkPipelineHandle vk;
-	GlPipelineHandle gl;
-};
+	BaseHandle base;
+#if MPGX_SUPPORT_VULKAN
+	VkHandle vk;
+#endif
+#if MPGX_SUPPORT_OPENGL
+	GlHandle gl;
+#endif
+} Handle_T;
 
-typedef union PipelineHandle_T PipelineHandle_T;
-typedef PipelineHandle_T* PipelineHandle;
+typedef Handle_T* Handle;
 
 bool createStringUTF8(
 	const uint32_t* data,
@@ -364,10 +369,7 @@ Font createFont(
 	if (data == NULL)
 		return NULL;
 
-	memcpy(
-		data,
-		_data,
-		size);
+	memcpy(data, _data, size);
 
 	FT_Library ftLibrary = getFtLibrary();
 
@@ -1101,7 +1103,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 #endif
 
 Text createText32(
-	Pipeline pipeline,
+	GraphicsPipeline textPipeline,
 	Font font,
 	uint32_t fontSize,
 	AlignmentType alignment,
@@ -1109,7 +1111,7 @@ Text createText32(
 	size_t dataLength,
 	bool isConstant)
 {
-	assert(pipeline != NULL);
+	assert(textPipeline != NULL);
 	assert(font != NULL);
 	assert(fontSize != 0);
 	assert(alignment >= CENTER_ALIGNMENT_TYPE);
@@ -1118,7 +1120,7 @@ Text createText32(
 	assert(dataLength != 0);
 
 	assert(strcmp(
-		pipeline->base.name,
+		textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 
 	Text text = malloc(sizeof(Text_T));
@@ -1135,9 +1137,7 @@ Text createText32(
 		return NULL;
 	}
 
-	memcpy(
-		data,
-		_data,
+	memcpy(data, _data,
 		dataLength * sizeof(uint32_t));
 
 	Glyph* glyphs;
@@ -1197,7 +1197,7 @@ Text createText32(
 		return NULL;
 	}
 
-	Window window = pipeline->base.framebuffer->base.window;
+	Window window = textPipeline->base.framebuffer->base.window;
 
 	Image texture = createImage(
 		window,
@@ -1296,7 +1296,7 @@ Text createText32(
 		return NULL;
 	}
 
-	Mesh mesh = createMesh(
+	GraphicsMesh mesh = createGraphicsMesh(
 		window,
 		UINT32_INDEX_TYPE,
 		indexCount,
@@ -1322,8 +1322,8 @@ Text createText32(
 		VkWindow vkWindow = getVkWindow(window);
 		VkDevice device = vkWindow->device;
 
-		PipelineHandle pipelineHandle = pipeline->vk.handle;
-		uint8_t bufferCount = pipelineHandle->vk.bufferCount;
+		Handle handle = textPipeline->vk.handle;
+		uint8_t bufferCount = handle->vk.bufferCount;
 
 		VkDescriptorPool descriptorPool = createVkDescriptorPool(
 			device,
@@ -1331,7 +1331,7 @@ Text createText32(
 
 		if (descriptorPool == NULL)
 		{
-			destroyMesh(mesh, true);
+			destroyGraphicsMesh(mesh, true);
 			destroyImage(texture);
 			free(data);
 			free(text);
@@ -1340,10 +1340,10 @@ Text createText32(
 
 		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
 			device,
-			pipelineHandle->vk.descriptorSetLayout,
+			handle->vk.descriptorSetLayout,
 			descriptorPool,
 			bufferCount,
-			pipelineHandle->vk.sampler->vk.handle,
+			handle->vk.sampler->vk.handle,
 			texture->vk.imageView);
 
 		if (descriptorSets == NULL)
@@ -1352,7 +1352,7 @@ Text createText32(
 				device,
 				descriptorPool,
 				NULL);
-			destroyMesh(mesh, true);
+			destroyGraphicsMesh(mesh, true);
 			destroyImage(texture);
 			free(data);
 			free(text);
@@ -1370,7 +1370,7 @@ Text createText32(
 #endif
 
 	text->font = font;
-	text->pipeline = pipeline;
+	text->pipeline = textPipeline;
 	text->fontSize = fontSize;
 	text->alignment = alignment;
 	text->isConstant = isConstant;
@@ -1381,15 +1381,15 @@ Text createText32(
 	text->mesh = mesh;
 	text->textSize = textSize;
 
-	PipelineHandle pipelineHandle = pipeline->base.handle;
-	size_t count = pipelineHandle->base.textCount;
+	Handle handle = textPipeline->base.handle;
+	size_t count = handle->base.textCount;
 
-	if (count == pipelineHandle->base.textCapacity)
+	if (count == handle->base.textCapacity)
 	{
-		size_t capacity = pipelineHandle->base.textCapacity * 2;
+		size_t capacity = handle->base.textCapacity * 2;
 
 		Text* texts = realloc(
-			pipelineHandle->base.texts,
+			handle->base.texts,
 			capacity * sizeof(Text));
 
 		if (texts == NULL)
@@ -1407,23 +1407,23 @@ Text createText32(
 					NULL);
 			}
 #endif
-			destroyMesh(text->mesh, true);
+			destroyGraphicsMesh(text->mesh, true);
 			destroyImage(text->texture);
 			free(text->data);
 			free(text);
 			return NULL;
 		}
 
-		pipelineHandle->base.texts = texts;
-		pipelineHandle->base.textCapacity = capacity;
+		handle->base.texts = texts;
+		handle->base.textCapacity = capacity;
 	}
 
-	pipelineHandle->base.texts[count] = text;
-	pipelineHandle->base.textCount = count + 1;
+	handle->base.texts[count] = text;
+	handle->base.textCount = count + 1;
 	return text;
 }
 Text createText8(
-	Pipeline pipeline,
+	GraphicsPipeline textPipeline,
 	Font font,
 	uint32_t fontSize,
 	AlignmentType alignment,
@@ -1447,7 +1447,7 @@ Text createText8(
 		return NULL;
 
 	Text text = createText32(
-		pipeline,
+		textPipeline,
 		font,
 		fontSize,
 		alignment,
@@ -1467,9 +1467,9 @@ void destroyText(Text text)
 	if (text == NULL)
 		return;
 
-	PipelineHandle pipelineHandle = text->pipeline->base.handle;
-	Text* texts = pipelineHandle->base.texts;
-	size_t textCount = pipelineHandle->base.textCount;
+	Handle handle = text->pipeline->base.handle;
+	Text* texts = handle->base.texts;
+	size_t textCount = handle->base.textCount;
 
 	for (size_t i = 0; i < textCount; i++)
 	{
@@ -1480,7 +1480,7 @@ void destroyText(Text text)
 			texts[j - 1] = texts[j];
 
 #if MPGX_SUPPORT_VULKAN
-		Pipeline pipeline = text->pipeline;
+		GraphicsPipeline pipeline = text->pipeline;
 
 		GraphicsAPI api = getWindowGraphicsAPI(
 			pipeline->base.framebuffer->base.window);
@@ -1505,20 +1505,20 @@ void destroyText(Text text)
 				NULL);
 		}
 #endif
-		destroyMesh(text->mesh, true);
+		destroyGraphicsMesh(text->mesh, true);
 		destroyImage(text->texture);
 
 		free(text->data);
 		free(text);
 
-		pipelineHandle->base.textCount--;
+		handle->base.textCount--;
 		return;
 	}
 
 	abort();
 }
 
-Pipeline getTextPipeline(Text text)
+GraphicsPipeline getTextPipeline(Text text)
 {
 	assert(text != NULL);
 	return text->pipeline;
@@ -1839,7 +1839,7 @@ bool bakeText(
 	assert(text != NULL);
 	assert(text->isConstant == false);
 
-	Pipeline pipeline = text->pipeline;
+	GraphicsPipeline pipeline = text->pipeline;
 	Window window = pipeline->base.framebuffer->base.window;
 	GraphicsAPI api = getWindowGraphicsAPI(window);
 
@@ -1933,14 +1933,14 @@ bool bakeText(
 			{
 				VkWindow vkWindow = getVkWindow(window);
 				VkDevice device = vkWindow->device;
-				PipelineHandle pipelineHandle = pipeline->vk.handle;
+				Handle handle = pipeline->vk.handle;
 
 				descriptorSets = createVkDescriptorSets(
 					device,
-					pipelineHandle->vk.descriptorSetLayout,
+					handle->vk.descriptorSetLayout,
 					text->descriptorPool,
-					pipelineHandle->vk.bufferCount,
-					pipelineHandle->vk.sampler->vk.handle,
+					handle->vk.bufferCount,
+					handle->vk.sampler->vk.handle,
 					texture->vk.imageView);
 
 				if (descriptorSets == NULL)
@@ -1985,7 +1985,7 @@ bool bakeText(
 		Buffer indexBuffer = NULL;
 
 		size_t textVertexBufferSize = getBufferSize(
-			getMeshVertexBuffer(text->mesh));
+			getGraphicsMeshVertexBuffer(text->mesh));
 
 		if (vertexCount * sizeof(float) > textVertexBufferSize)
 		{
@@ -2055,12 +2055,12 @@ bool bakeText(
 			{
 				VkWindow vkWindow = getVkWindow(window);
 				VkDevice device = vkWindow->device;
-				PipelineHandle pipelineHandle = pipeline->vk.handle;
+				Handle handle = pipeline->vk.handle;
 
 				vkFreeDescriptorSets(
 					device,
 					text->descriptorPool,
-					pipelineHandle->vk.bufferCount,
+					handle->vk.bufferCount,
 					text->descriptorSets);
 				free(text->descriptorSets);
 
@@ -2074,15 +2074,15 @@ bool bakeText(
 
 		if (vertexBuffer == NULL)
 		{
-			Mesh mesh = text->mesh;
-			Buffer _vertexBuffer = getMeshVertexBuffer(mesh);
+			GraphicsMesh mesh = text->mesh;
+			Buffer _vertexBuffer = getGraphicsMeshVertexBuffer(mesh);
 
 			setBufferData(
 				_vertexBuffer,
 				vertices,
 				vertexCount * sizeof(float),
 				0);
-			setMeshIndexCount(
+			setGraphicsMeshIndexCount(
 				mesh,
 				(vertexCount / 16) * 6);
 
@@ -2090,17 +2090,17 @@ bool bakeText(
 		}
 		else
 		{
-			Mesh mesh = text->mesh;
-			Buffer _vertexBuffer = getMeshVertexBuffer(mesh);
-			Buffer _indexBuffer = getMeshIndexBuffer(mesh);
+			GraphicsMesh mesh = text->mesh;
+			Buffer _vertexBuffer = getGraphicsMeshVertexBuffer(mesh);
+			Buffer _indexBuffer = getGraphicsMeshIndexBuffer(mesh);
 
 			destroyBuffer(_vertexBuffer);
 			destroyBuffer(_indexBuffer);
 
-			setMeshVertexBuffer(
+			setGraphicsMeshVertexBuffer(
 				mesh,
 				vertexBuffer);
-			setMeshIndexBuffer(
+			setGraphicsMeshIndexBuffer(
 				mesh,
 				UINT32_INDEX_TYPE,
 				(vertexCount / 16) * 6,
@@ -2249,7 +2249,7 @@ bool bakeText(
 			return false;
 		}
 
-		Mesh mesh = createMesh(
+		GraphicsMesh mesh = createGraphicsMesh(
 			window,
 			UINT32_INDEX_TYPE,
 			indexCount,
@@ -2270,21 +2270,21 @@ bool bakeText(
 		{
 			VkWindow vkWindow = getVkWindow(window);
 			VkDevice device = vkWindow->device;
-			PipelineHandle pipelineHandle = pipeline->vk.handle;
-			uint8_t bufferCount = pipelineHandle->vk.bufferCount;
+			Handle handle = pipeline->vk.handle;
+			uint8_t bufferCount = handle->vk.bufferCount;
 			VkDescriptorPool descriptorPool = text->descriptorPool;
 
 			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
 				device,
-				pipelineHandle->vk.descriptorSetLayout,
+				handle->vk.descriptorSetLayout,
 				descriptorPool,
 				bufferCount,
-				pipelineHandle->vk.sampler->vk.handle,
+				handle->vk.sampler->vk.handle,
 				texture->vk.imageView);
 
 			if (descriptorSets == NULL)
 			{
-				destroyMesh(mesh, true);
+				destroyGraphicsMesh(mesh, true);
 				destroyImage(texture);
 				return false;
 			}
@@ -2301,7 +2301,7 @@ bool bakeText(
 		}
 #endif
 
-		destroyMesh(
+		destroyGraphicsMesh(
 			text->mesh,
 			true);
 		destroyImage(text->texture);
@@ -2319,8 +2319,8 @@ size_t drawText(
 {
 	assert(text != NULL);
 
-	Pipeline pipeline = text->pipeline;
-	PipelineHandle textPipeline = pipeline->gl.handle;
+	GraphicsPipeline pipeline = text->pipeline;
+	Handle textPipeline = pipeline->base.handle;
 	textPipeline->base.texture = text->texture;
 
 	bool dynamicScissor = scissor.z + scissor.w != 0;
@@ -2365,6 +2365,7 @@ size_t drawText(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		if (dynamicScissor == true)
 		{
 			glScissor(
@@ -2373,27 +2374,31 @@ size_t drawText(
 				(GLsizei)scissor.z,
 				(GLsizei)scissor.w);
 		}
+#else
+		abort();
+#endif
 	}
 	else
 	{
 		abort();
 	}
 
-	return drawMesh(
-		text->mesh,
-		pipeline);
+	return drawGraphicsMesh(
+		pipeline,
+		text->mesh);
 }
 
-float getTextPlatformScale(Pipeline pipeline)
+float getTextPlatformScale(
+	GraphicsPipeline textPipeline)
 {
-	assert(pipeline != NULL);
+	assert(textPipeline != NULL);
 
 	assert(strcmp(
-		pipeline->base.name,
+		textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 
 	Framebuffer framebuffer =
-		getPipelineFramebuffer(pipeline);
+		getGraphicsPipelineFramebuffer(textPipeline);
 	Vec2U framebufferSize =
 		getFramebufferSize(framebuffer);
 	Vec2U windowSize = getWindowSize(
@@ -2492,12 +2497,12 @@ inline static VkDescriptorSetLayout createVkDescriptorSetLayout(
 	return descriptorSetLayout;
 }
 
-static void onVkUniformsSet(Pipeline pipeline)
+static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	PipelineHandle pipelineHandle = pipeline->vk.handle;
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	Handle handle = graphicsPipeline->vk.handle;
+	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
-	VkPipelineLayout layout = pipeline->vk.layout;
+	VkPipelineLayout layout = graphicsPipeline->vk.layout;
 
 	vkCmdPushConstants(
 		commandBuffer,
@@ -2505,29 +2510,29 @@ static void onVkUniformsSet(Pipeline pipeline)
 		VK_SHADER_STAGE_VERTEX_BIT,
 		0,
 		sizeof(VertexPushConstants),
-		&pipelineHandle->vk.vpc);
+		&handle->vk.vpc);
 	vkCmdPushConstants(
 		commandBuffer,
 		layout,
 		VK_SHADER_STAGE_FRAGMENT_BIT,
 		sizeof(VertexPushConstants),
 		sizeof(FragmentPushConstants),
-		&pipelineHandle->vk.fpc);
+		&handle->vk.fpc);
 }
 static bool onVkHandleResize(
-	Pipeline pipeline,
+	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
-	void* createInfo)
+	void* createData)
 {
-	PipelineHandle pipelineHandle = pipeline->vk.handle;
-	Window window = pipelineHandle->vk.window;
+	Handle handle = graphicsPipeline->vk.handle;
+	Window window = handle->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
-	if (bufferCount != pipelineHandle->vk.bufferCount)
+	if (bufferCount != handle->vk.bufferCount)
 	{
-		Text* texts = pipelineHandle->vk.texts;
-		size_t textCount = pipelineHandle->vk.textCount;
+		Text* texts = handle->vk.texts;
+		size_t textCount = handle->vk.textCount;
 		VkDevice device = vkWindow->device;
 
 		for (size_t i = 0; i < textCount; i++)
@@ -2543,10 +2548,10 @@ static bool onVkHandleResize(
 
 			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
 				device,
-				pipelineHandle->vk.descriptorSetLayout,
+				handle->vk.descriptorSetLayout,
 				descriptorPool,
 				bufferCount,
-				pipelineHandle->vk.sampler->vk.handle,
+				handle->vk.sampler->vk.handle,
 				text->texture->vk.imageView);
 
 			if (descriptorSets == NULL)
@@ -2570,56 +2575,56 @@ static bool onVkHandleResize(
 
 		}
 
-		pipelineHandle->vk.bufferCount = bufferCount;
+		handle->vk.bufferCount = bufferCount;
 	}
 
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = pipeline->vk.state.viewport.z +
-		pipeline->vk.state.viewport.w == 0;
+	bool dynamic = graphicsPipeline->vk.state.viewport.z +
+		graphicsPipeline->vk.state.viewport.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.viewport = size;
+		graphicsPipeline->vk.state.viewport = size;
 
-	dynamic = pipeline->vk.state.scissor.z +
-		pipeline->vk.state.scissor.w == 0;
+	dynamic = graphicsPipeline->vk.state.scissor.z +
+		graphicsPipeline->vk.state.scissor.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.scissor = size;
+		graphicsPipeline->vk.state.scissor = size;
 
-	VkPipelineCreateInfo _createInfo = {
+	VkGraphicsPipelineCreateData _createData = {
 		1,
 		vertexInputBindingDescriptions,
 		2,
 		vertexInputAttributeDescriptions,
 		1,
-		&pipelineHandle->vk.descriptorSetLayout,
+		&handle->vk.descriptorSetLayout,
 		2,
 		pushConstantRanges,
 	};
 
-	*(VkPipelineCreateInfo*)createInfo = _createInfo;
+	*(VkGraphicsPipelineCreateData*)createData = _createData;
 	return true;
 }
-static void onVkHandleDestroy(void* handle)
+static void onVkHandleDestroy(void* _handle)
 {
-	PipelineHandle pipelineHandle = handle;
+	Handle handle = _handle;
 
-	assert(pipelineHandle->vk.textCount == 0);
+	assert(handle->vk.textCount == 0);
 
-	VkWindow vkWindow = getVkWindow(pipelineHandle->vk.window);
+	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkDevice device = vkWindow->device;
 
 	vkDestroyDescriptorSetLayout(
 		device,
-		pipelineHandle->vk.descriptorSetLayout,
+		handle->vk.descriptorSetLayout,
 		NULL);
-	free(pipelineHandle->vk.texts);
-	free(pipelineHandle);
+	free(handle->vk.texts);
+	free(handle);
 }
-inline static Pipeline createVkHandle(
+inline static GraphicsPipeline createVkPipeline(
 	Framebuffer framebuffer,
-	const PipelineState* state,
-	PipelineHandle pipelineHandle,
+	const GraphicsPipelineState* state,
+	Handle handle,
 	Shader* shaders,
 	uint8_t shaderCount)
 {
@@ -2631,11 +2636,11 @@ inline static Pipeline createVkHandle(
 
 	if (descriptorSetLayout == NULL)
 	{
-		free(pipelineHandle);
+		free(handle);
 		return NULL;
 	}
 
-	VkPipelineCreateInfo createInfo = {
+	VkGraphicsPipelineCreateData createData = {
 		1,
 		vertexInputBindingDescriptions,
 		2,
@@ -2646,10 +2651,10 @@ inline static Pipeline createVkHandle(
 		pushConstantRanges,
 	};
 
-	pipelineHandle->vk.descriptorSetLayout = descriptorSetLayout;
-	pipelineHandle->vk.bufferCount = vkWindow->swapchain->bufferCount;
+	handle->vk.descriptorSetLayout = descriptorSetLayout;
+	handle->vk.bufferCount = vkWindow->swapchain->bufferCount;
 
-	return createPipeline(
+	return createGraphicsPipeline(
 		framebuffer,
 		TEXT_PIPELINE_NAME,
 		state,
@@ -2657,26 +2662,27 @@ inline static Pipeline createVkHandle(
 		onVkUniformsSet,
 		onVkHandleResize,
 		onVkHandleDestroy,
-		pipelineHandle,
-		&createInfo,
+		handle,
+		&createData,
 		shaders,
 		shaderCount);
 }
 #endif
 
-static void onGlUniformsSet(Pipeline pipeline)
+#if MPGX_SUPPORT_OPENGL
+static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	PipelineHandle pipelineHandle = pipeline->gl.handle;
+	Handle handle = graphicsPipeline->gl.handle;
 
 	glUniformMatrix4fv(
-		pipelineHandle->gl.mvpLocation,
+		handle->gl.mvpLocation,
 		1,
 		GL_FALSE,
-		(const float*)&pipelineHandle->gl.vpc.mvp);
+		(const float*)&handle->gl.vpc.mvp);
 	glUniform4fv(
-		pipelineHandle->gl.colorLocation,
+		handle->gl.colorLocation,
 		1,
-		(const float*)&pipelineHandle->gl.fpc.color);
+		(const float*)&handle->gl.fpc.color);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -2697,56 +2703,56 @@ static void onGlUniformsSet(Pipeline pipeline)
 		(const void*)sizeof(Vec2F));
 
 	glUniform1i(
-		pipelineHandle->gl.textureLocation,
+		handle->gl.textureLocation,
 		0);
 
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(
 		GL_TEXTURE_2D,
-		pipelineHandle->gl.texture->gl.handle);
+		handle->gl.texture->gl.handle);
 	glBindSampler(
 		0,
-		pipelineHandle->gl.sampler->gl.handle);
+		handle->gl.sampler->gl.handle);
 
 	assertOpenGL();
 }
 static bool onGlHandleResize(
-	Pipeline pipeline,
+	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createInfo)
 {
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = pipeline->vk.state.viewport.z +
-		pipeline->vk.state.viewport.w == 0;
+	bool dynamic = graphicsPipeline->vk.state.viewport.z +
+		graphicsPipeline->vk.state.viewport.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.viewport = size;
+		graphicsPipeline->vk.state.viewport = size;
 
-	dynamic = pipeline->vk.state.scissor.z +
-		pipeline->vk.state.scissor.w == 0;
+	dynamic = graphicsPipeline->vk.state.scissor.z +
+		graphicsPipeline->vk.state.scissor.w == 0;
 	if (dynamic == false)
-		pipeline->vk.state.scissor = size;
+		graphicsPipeline->vk.state.scissor = size;
 	return true;
 }
-static void onGlHandleDestroy(void* handle)
+static void onGlHandleDestroy(void* _handle)
 {
-	PipelineHandle pipelineHandle = handle;
+	Handle handle = _handle;
 
-	assert(pipelineHandle->gl.textCount == 0);
+	assert(handle->gl.textCount == 0);
 
-	free(pipelineHandle->gl.texts);
-	free(pipelineHandle);
+	free(handle->gl.texts);
+	free(handle);
 }
-inline static Pipeline createGlHandle(
+inline static GraphicsPipeline createGlPipeline(
 	Framebuffer framebuffer,
-	const PipelineState* state,
-	PipelineHandle pipelineHandle,
+	const GraphicsPipelineState* state,
+	Handle handle,
 	Shader* shaders,
 	uint8_t shaderCount)
 {
-	Pipeline pipeline = createPipeline(
+	GraphicsPipeline graphicsPipeline = createGraphicsPipeline(
 		framebuffer,
 		TEXT_PIPELINE_NAME,
 		state,
@@ -2754,15 +2760,15 @@ inline static Pipeline createGlHandle(
 		onGlUniformsSet,
 		onGlHandleResize,
 		onGlHandleDestroy,
-		pipelineHandle,
+		handle,
 		NULL,
 		shaders,
 		shaderCount);
 
-	if (pipeline == NULL)
+	if (graphicsPipeline == NULL)
 		return NULL;
 
-	GLuint glHandle = pipeline->gl.glHandle;
+	GLuint glHandle = graphicsPipeline->gl.glHandle;
 
 	GLint mvpLocation, colorLocation,
 		textureLocation;
@@ -2782,24 +2788,25 @@ inline static Pipeline createGlHandle(
 
 	if (result == false)
 	{
-		destroyPipeline(pipeline, false);
+		destroyGraphicsPipeline(graphicsPipeline, false);
 		return NULL;
 	}
 
 	assertOpenGL();
 
-	pipelineHandle->gl.mvpLocation = mvpLocation;
-	pipelineHandle->gl.colorLocation = colorLocation;
-	pipelineHandle->gl.textureLocation = textureLocation;
-	return pipeline;
+	handle->gl.mvpLocation = mvpLocation;
+	handle->gl.colorLocation = colorLocation;
+	handle->gl.textureLocation = textureLocation;
+	return graphicsPipeline;
 }
+#endif
 
-Pipeline createExtTextPipeline(
+GraphicsPipeline createExtTextPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler,
-	const PipelineState* state,
+	const GraphicsPipelineState* state,
 	size_t textCapacity)
 {
 	assert(framebuffer != NULL);
@@ -2813,10 +2820,10 @@ Pipeline createExtTextPipeline(
 	assert(fragmentShader->base.window == framebuffer->base.window);
 	assert(sampler->base.window == framebuffer->base.window);
 
-	PipelineHandle pipelineHandle = malloc(
-		sizeof(PipelineHandle_T));
+	Handle handle = malloc(
+		sizeof(Handle_T));
 
-	if (pipelineHandle == NULL)
+	if (handle == NULL)
 		return NULL;
 
 	Text* texts = malloc(
@@ -2824,19 +2831,19 @@ Pipeline createExtTextPipeline(
 
 	if (texts == NULL)
 	{
-		free(pipelineHandle);
+		free(handle);
 		return NULL;
 	}
 
 	Window window = framebuffer->vk.window;
-	pipelineHandle->base.window = window;
-	pipelineHandle->base.texture = NULL;
-	pipelineHandle->base.sampler = sampler;
-	pipelineHandle->base.vpc.mvp = identMat4F;
-	pipelineHandle->base.fpc.color = whiteLinearColor;
-	pipelineHandle->base.texts = texts;
-	pipelineHandle->base.textCapacity = textCapacity;
-	pipelineHandle->base.textCount = 0;
+	handle->base.window = window;
+	handle->base.texture = NULL;
+	handle->base.sampler = sampler;
+	handle->base.vpc.mvp = identMat4F;
+	handle->base.fpc.color = whiteLinearColor;
+	handle->base.texts = texts;
+	handle->base.textCapacity = textCapacity;
+	handle->base.textCount = 0;
 
 	Shader shaders[2] = {
 		vertexShader,
@@ -2848,10 +2855,10 @@ Pipeline createExtTextPipeline(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		return createVkHandle(
+		return createVkPipeline(
 			framebuffer,
 			state,
-			pipelineHandle,
+			handle,
 			shaders,
 			2);
 #else
@@ -2861,19 +2868,23 @@ Pipeline createExtTextPipeline(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		return createGlHandle(
+#if MPGX_SUPPORT_OPENGL
+		return createGlPipeline(
 			framebuffer,
 			state,
-			pipelineHandle,
+			handle,
 			shaders,
 			2);
+#else
+		abort();
+#endif
 	}
 	else
 	{
 		abort();
 	}
 }
-Pipeline createTextPipeline(
+GraphicsPipeline createTextPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -2889,7 +2900,7 @@ Pipeline createTextPipeline(
 		framebufferSize.x,
 		framebufferSize.y);
 
-	PipelineState state = {
+	GraphicsPipelineState state = {
 		TRIANGLE_LIST_DRAW_MODE,
 		FILL_POLYGON_MODE,
 		BACK_CULL_MODE,
@@ -2927,61 +2938,52 @@ Pipeline createTextPipeline(
 		textCapacity);
 }
 
-Sampler getTextPipelineSampler(Pipeline pipeline)
+Sampler getTextPipelineSampler(
+	GraphicsPipeline textPipeline)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(textPipeline != NULL);
+	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.sampler;
+	Handle handle = textPipeline->base.handle;
+	return handle->base.sampler;
 }
 
 Mat4F getTextPipelineMVP(
-	Pipeline pipeline)
+	GraphicsPipeline textPipeline)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(textPipeline != NULL);
+	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.vpc.mvp;
+	Handle handle = textPipeline->base.handle;
+	return handle->base.vpc.mvp;
 }
 void setTextPipelineMVP(
-	Pipeline pipeline,
+	GraphicsPipeline textPipeline,
 	Mat4F mvp)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(textPipeline != NULL);
+	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	pipelineHandle->base.vpc.mvp = mvp;
+	Handle handle = textPipeline->base.handle;
+	handle->base.vpc.mvp = mvp;
 }
 
 LinearColor getTextPipelineColor(
-	Pipeline pipeline)
+	GraphicsPipeline textPipeline)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(textPipeline != NULL);
+	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	return pipelineHandle->base.fpc.color;
+	Handle handle = textPipeline->base.handle;
+	return handle->base.fpc.color;
 }
 void setTextPipelineColor(
-	Pipeline pipeline,
+	GraphicsPipeline textPipeline,
 	LinearColor color)
 {
-	assert(pipeline != NULL);
-	assert(strcmp(
-		pipeline->base.name,
+	assert(textPipeline != NULL);
+	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
-	PipelineHandle pipelineHandle =
-		pipeline->base.handle;
-	pipelineHandle->base.fpc.color = color;
+	Handle handle = textPipeline->base.handle;
+	handle->base.fpc.color = color;
 }

@@ -17,130 +17,129 @@
 #include <string.h>
 #include <assert.h>
 
-struct RenderHandle_T
+typedef struct Handle_T
 {
-	Mesh mesh;
-};
+	GraphicsMesh mesh;
+} Handle_T;
 
-typedef struct RenderHandle_T RenderHandle_T;
-typedef RenderHandle_T* RenderHandle;
+typedef Handle_T* Handle;
 
 static void onDestroy(void* handle)
 {
-	free((RenderHandle)handle);
+	free((Handle)handle);
 }
 static size_t onDraw(
-	Render render,
-	Pipeline pipeline,
+	GraphicsRender graphicsRender,
+	GraphicsPipeline graphicsPipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	RenderHandle renderHandle =
-		getRenderHandle(render);
+	Handle handle = getGraphicsRenderHandle(
+		graphicsRender);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
 	Mat4F normal = transposeMat4F(
 		invMat4F(*model));
 	setDiffusePipelineMvp(
-		pipeline,
+		graphicsPipeline,
 		mvp);
 	setDiffusePipelineNormal(
-		pipeline,
+		graphicsPipeline,
 		normal);
-	return drawMesh(
-		renderHandle->mesh,
-		pipeline);
+	return drawGraphicsMesh(
+		graphicsPipeline,
+		handle->mesh);
 }
-Renderer createDiffuseRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createDiffuseRenderer(
+	GraphicsPipeline diffusePipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity)
 {
-	assert(pipeline != NULL);
-	assert(sorting < RENDER_SORTING_COUNT);
+	assert(diffusePipeline != NULL);
+	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
 	assert(capacity != 0);
 
-	assert(strcmp(
-		getPipelineName(pipeline),
+	assert(strcmp(getGraphicsPipelineName(
+		diffusePipeline),
 		DIFFUSE_PIPELINE_NAME) == 0);
 
-	return createRenderer(
-		pipeline,
+	return createGraphicsRenderer(
+		diffusePipeline,
 		sorting,
 		useCulling,
 		onDestroy,
 		onDraw,
 		capacity);
 }
-Render createDiffuseRender(
-	Renderer renderer,
+GraphicsRender createDiffuseRender(
+	GraphicsRenderer diffuseRenderer,
 	Transform transform,
 	Box3F bounding,
-	Mesh mesh)
+	GraphicsMesh mesh)
 {
-	assert(renderer != NULL);
+	assert(diffuseRenderer != NULL);
 	assert(transform != NULL);
 	assert(mesh != NULL);
 
 	assert(getFramebufferWindow(
-		getPipelineFramebuffer(
-		getRendererPipeline(renderer))) ==
-		getMeshWindow(mesh));
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(renderer)),
+		getGraphicsPipelineFramebuffer(
+		getGraphicsRendererPipeline(
+		diffuseRenderer))) ==
+		getGraphicsMeshWindow(mesh));
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		diffuseRenderer)),
 		DIFFUSE_PIPELINE_NAME) == 0);
 
-	RenderHandle renderHandle = malloc(
-		sizeof(RenderHandle_T));
+	Handle handle = malloc(sizeof(Handle_T));
 
-	if (renderHandle == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	renderHandle->mesh = mesh;
+	handle->mesh = mesh;
 
-	Render render = createRender(
-		renderer,
+	GraphicsRender render = createGraphicsRender(
+		diffuseRenderer,
 		transform,
 		bounding,
-		renderHandle);
+		handle);
 
 	if (render == NULL)
 	{
-		free(renderHandle);
+		free(handle);
 		return NULL;
 	}
 
 	return render;
 }
 
-Mesh getDiffuseRenderMesh(
-	Render render)
+GraphicsMesh getDiffuseRenderMesh(
+	GraphicsRender diffuseRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(diffuseRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		diffuseRender))),
 		DIFFUSE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->mesh;
+	Handle handle = getGraphicsRenderHandle(
+		diffuseRender);
+	return handle->mesh;
 }
 void setDiffuseRenderMesh(
-	Render render,
-	Mesh mesh)
+	GraphicsRender diffuseRender,
+	GraphicsMesh mesh)
 {
-	assert(render != NULL);
+	assert(diffuseRender != NULL);
 	assert(mesh != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		diffuseRender))),
 		DIFFUSE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->mesh = mesh;
+	Handle handle = getGraphicsRenderHandle(
+		diffuseRender);
+	handle->mesh = mesh;
 }

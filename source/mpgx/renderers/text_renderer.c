@@ -17,105 +17,104 @@
 #include <string.h>
 #include <assert.h>
 
-struct RenderHandle_T
+typedef struct Handle_T
 {
 	LinearColor color;
 	Text text;
 	Vec4U scissor;
-};
+} Handle_T;
 
-typedef struct RenderHandle_T RenderHandle_T;
-typedef RenderHandle_T* RenderHandle;
+typedef Handle_T* Handle;
 
 static void onDestroy(void* handle)
 {
-	free((RenderHandle)handle);
+	free((Handle)handle);
 }
 static size_t onDraw(
-	Render render,
-	Pipeline pipeline,
+	GraphicsRender graphicsRender,
+	GraphicsPipeline graphicsPipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	RenderHandle renderHandle =
-		getRenderHandle(render);
+	Handle handle = getGraphicsRenderHandle(
+		graphicsRender);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
 	setTextPipelineMVP(
-		pipeline,
+		graphicsPipeline,
 		mvp);
 	setTextPipelineColor(
-		pipeline,
-		renderHandle->color);
+		graphicsPipeline,
+		handle->color);
 	return drawText(
-		renderHandle->text,
-		renderHandle->scissor);
+		handle->text,
+		handle->scissor);
 }
-Renderer createTextRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createTextRenderer(
+	GraphicsPipeline textPipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity)
 {
-	assert(pipeline != NULL);
-	assert(sorting < RENDER_SORTING_COUNT);
+	assert(textPipeline != NULL);
+	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
 	assert(capacity != 0);
 
-	assert(strcmp(
-		getPipelineName(pipeline),
+	assert(strcmp(getGraphicsPipelineName(
+		textPipeline),
 		TEXT_PIPELINE_NAME) == 0);
 
-	return createRenderer(
-		pipeline,
+	return createGraphicsRenderer(
+		textPipeline,
 		sorting,
 		useCulling,
 		onDestroy,
 		onDraw,
 		capacity);
 }
-Render createTextRender(
-	Renderer renderer,
+GraphicsRender createTextRender(
+	GraphicsRenderer textRenderer,
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
 	Text text,
 	Vec4U scissor)
 {
-	assert(renderer != NULL);
+	assert(textRenderer != NULL);
 	assert(transform != NULL);
 	assert(text != NULL);
 
 	assert(getFramebufferWindow(
-		getPipelineFramebuffer(
-		getRendererPipeline(renderer))) ==
+		getGraphicsPipelineFramebuffer(
+		getGraphicsRendererPipeline(
+		textRenderer))) ==
 		getFramebufferWindow(
-		getPipelineFramebuffer(
+		getGraphicsPipelineFramebuffer(
 		getTextPipeline(text))));
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(renderer)),
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		textRenderer)),
 		TEXT_PIPELINE_NAME) == 0);
 
-	RenderHandle renderHandle = malloc(
-		sizeof(RenderHandle_T));
+	Handle handle = malloc(sizeof(Handle_T));
 
-	if (renderHandle == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	renderHandle->color = color;
-	renderHandle->text = text;
-	renderHandle->scissor = scissor;
+	handle->color = color;
+	handle->text = text;
+	handle->scissor = scissor;
 
-	Render render = createRender(
-		renderer,
+	GraphicsRender render = createGraphicsRender(
+		textRenderer,
 		transform,
 		bounding,
-		renderHandle);
+		handle);
 
 	if (render == NULL)
 	{
-		free(renderHandle);
+		free(handle);
 		return NULL;
 	}
 
@@ -123,58 +122,58 @@ Render createTextRender(
 }
 
 LinearColor getTextRenderColor(
-	Render render)
+	GraphicsRender textRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(textRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textRender))),
 		TEXT_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->color;
+	Handle handle = getGraphicsRenderHandle(
+		textRender);
+	return handle->color;
 }
 void setTextRenderColor(
-	Render render,
+	GraphicsRender textRender,
 	LinearColor color)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(textRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textRender))),
 		TEXT_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->color = color;
+	Handle handle = getGraphicsRenderHandle(
+		textRender);
+	handle->color = color;
 }
 
 Text getTextRenderText(
-	Render render)
+	GraphicsRender textRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(textRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textRender))),
 		TEXT_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->text;
+	Handle handle = getGraphicsRenderHandle(
+		textRender);
+	return handle->text;
 }
 void setTextRenderText(
-	Render render,
+	GraphicsRender textRender,
 	Text text)
 {
-	assert(render != NULL);
+	assert(textRender != NULL);
 	assert(text != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		textRender))),
 		TEXT_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->text = text;
+	Handle handle = getGraphicsRenderHandle(
+		textRender);
+	handle->text = text;
 }

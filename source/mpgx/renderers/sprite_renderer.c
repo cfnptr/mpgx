@@ -17,100 +17,99 @@
 #include <string.h>
 #include <assert.h>
 
-struct RenderHandle_T
+typedef struct Handle_T
 {
 	LinearColor color;
-	Mesh mesh;
-};
+	GraphicsMesh mesh;
+} Handle_T;
 
-typedef struct RenderHandle_T RenderHandle_T;
-typedef RenderHandle_T* RenderHandle;
+typedef Handle_T* Handle;
 
 static void onDestroy(void* handle)
 {
-	free((RenderHandle)handle);
+	free((Handle)handle);
 }
 static size_t onDraw(
-	Render render,
-	Pipeline pipeline,
+	GraphicsRender graphicsRender,
+	GraphicsPipeline graphicsPipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	RenderHandle renderHandle =
-		getRenderHandle(render);
+	Handle handle = getGraphicsRenderHandle(
+		graphicsRender);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
 	setSpritePipelineMvp(
-		pipeline,
+		graphicsPipeline,
 		mvp);
 	setSpritePipelineColor(
-		pipeline,
-		renderHandle->color);
-	return drawMesh(
-		renderHandle->mesh,
-		pipeline);
+		graphicsPipeline,
+		handle->color);
+	return drawGraphicsMesh(
+		graphicsPipeline,
+		handle->mesh);
 }
-Renderer createSpriteRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createSpriteRenderer(
+	GraphicsPipeline spritePipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity)
 {
-	assert(pipeline != NULL);
-	assert(sorting < RENDER_SORTING_COUNT);
+	assert(spritePipeline != NULL);
+	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
 	assert(capacity != 0);
 
-	assert(strcmp(
-		getPipelineName(pipeline),
+	assert(strcmp(getGraphicsPipelineName(
+		spritePipeline),
 		SPRITE_PIPELINE_NAME) == 0);
 
-	return createRenderer(
-		pipeline,
+	return createGraphicsRenderer(
+		spritePipeline,
 		sorting,
 		useCulling,
 		onDestroy,
 		onDraw,
 		capacity);
 }
-Render createSpriteRender(
-	Renderer renderer,
+GraphicsRender createSpriteRender(
+	GraphicsRenderer spriteRenderer,
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
-	Mesh mesh)
+	GraphicsMesh mesh)
 {
-	assert(renderer != NULL);
+	assert(spriteRenderer != NULL);
 	assert(transform != NULL);
 	assert(mesh != NULL);
 
 	assert(getFramebufferWindow(
-		getPipelineFramebuffer(
-		getRendererPipeline(renderer))) ==
-		getMeshWindow(mesh));
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(renderer)),
+		getGraphicsPipelineFramebuffer(
+		getGraphicsRendererPipeline(
+		spriteRenderer))) ==
+		getGraphicsMeshWindow(mesh));
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		spriteRenderer)),
 		SPRITE_PIPELINE_NAME) == 0);
 
-	RenderHandle renderHandle = malloc(
-		sizeof(RenderHandle_T));
+	Handle handle = malloc(sizeof(Handle_T));
 
-	if (renderHandle == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	renderHandle->color = color;
-	renderHandle->mesh = mesh;
+	handle->color = color;
+	handle->mesh = mesh;
 
-	Render render = createRender(
-		renderer,
+	GraphicsRender render = createGraphicsRender(
+		spriteRenderer,
 		transform,
 		bounding,
-		renderHandle);
+		handle);
 
 	if (render == NULL)
 	{
-		free(renderHandle);
+		free(handle);
 		return NULL;
 	}
 
@@ -118,58 +117,58 @@ Render createSpriteRender(
 }
 
 LinearColor getSpriteRenderColor(
-	Render render)
+	GraphicsRender spriteRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(spriteRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		spriteRender))),
 		SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->color;
+	Handle handle = getGraphicsRenderHandle(
+		spriteRender);
+	return handle->color;
 }
 void setSpriteRenderColor(
-	Render render,
+	GraphicsRender spriteRender,
 	LinearColor color)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(spriteRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		spriteRender))),
 		SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->color = color;
+	Handle handle = getGraphicsRenderHandle(
+		spriteRender);
+	handle->color = color;
 }
 
-Mesh getSpriteRenderMesh(
-	Render render)
+GraphicsMesh getSpriteRenderMesh(
+	GraphicsRender spriteRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(spriteRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		spriteRender))),
 		SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->mesh;
+	Handle handle = getGraphicsRenderHandle(
+		spriteRender);
+	return handle->mesh;
 }
 void setSpriteRenderMesh(
-	Render render,
-	Mesh mesh)
+	GraphicsRender spriteRender,
+	GraphicsMesh mesh)
 {
-	assert(render != NULL);
+	assert(spriteRender != NULL);
 	assert(mesh != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		spriteRender))),
 		SPRITE_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->mesh = mesh;
+	Handle handle = getGraphicsRenderHandle(
+		spriteRender);
+	handle->mesh = mesh;
 }

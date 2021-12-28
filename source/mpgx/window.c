@@ -14,10 +14,11 @@
 
 #include "mpgx/window.h"
 #include "mpgx/_source/window.h"
-#include "mpgx/_source/mesh.h"
+#include "mpgx/_source/graphics_mesh.h"
 #include "mpgx/_source/sampler.h"
 #include "mpgx/_source/framebuffer.h"
 #include "mpgx/_source/ray_tracing.h"
+#include "mpgx/_source/compute_pipeline.h"
 
 #include "mpio/file.h"
 #include "cmmt/common.h"
@@ -74,9 +75,12 @@ struct Window_T
 	Shader* shaders;
 	size_t shaderCapacity;
 	size_t shaderCount;
-	Mesh* meshes;
-	size_t meshCapacity;
-	size_t meshCount;
+	GraphicsMesh* graphicsMeshes;
+	size_t graphicsMeshCapacity;
+	size_t graphicsMeshCount;
+	ComputePipeline* computePipelines;
+	size_t computePipelineCapacity;
+	size_t computePipelineCount;
 	double targetFPS;
 	double updateTime;
 	double deltaTime;
@@ -261,11 +265,11 @@ MpgxResult initializeGraphics(
 #endif
 
 	graphicsInitialized = true;
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
 void terminateGraphics()
 {
-	if (graphicsInitialized == true)
+	if (graphicsInitialized == false)
 		return;
 
 #if MPGX_SUPPORT_VULKAN
@@ -333,7 +337,8 @@ void destroyWindow(Window window)
 	assert(window->samplerCount == 0);
 	assert(window->framebufferCount == 0);
 	assert(window->shaderCount == 0);
-	assert(window->meshCount == 0);
+	assert(window->graphicsMeshCount == 0);
+	assert(window->computePipelineCount == 0);
 
 	GraphicsAPI api = window->api;
 
@@ -360,21 +365,28 @@ void destroyWindow(Window window)
 				vkInstance,
 				vkWindow);
 		}
+#else
+		abort();
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		destroyGlFramebuffer(
 			window->framebuffer,
 			false);
+#else
+		abort();
+#endif
 	}
 	else
 	{
 		abort();
 	}
 
-	free(window->meshes);
+	free(window->computePipelines);
+	free(window->graphicsMeshes);
 	free(window->shaders);
 	free(window->framebuffers);
 	free(window->samplers);
@@ -426,6 +438,7 @@ MpgxResult createWindow(
 	}
 	else if (api == OPENGL_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		if (useRayTracing == true)
 			return RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT;
 
@@ -476,9 +489,13 @@ MpgxResult createWindow(
 			GLFW_OPENGL_DEBUG_CONTEXT,
 			GLFW_FALSE);
 #endif
+#else
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+#endif
 	}
 	else if (api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		if (useRayTracing == true)
 			return RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT;
 
@@ -522,6 +539,9 @@ MpgxResult createWindow(
 		glfwWindowHint(
 			GLFW_OPENGL_DEBUG_CONTEXT,
 			GLFW_FALSE);
+#endif
+#else
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 #endif
 	}
 	else
@@ -726,6 +746,7 @@ MpgxResult createWindow(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		glfwMakeContextCurrent(handle);
 
 		if (gladLoadGL() == 0)
@@ -747,6 +768,9 @@ MpgxResult createWindow(
 		}
 
 		windowInstance->framebuffer = framebuffer;
+#else
+		abort();
+#endif
 	}
 
 	Buffer* buffers = malloc(
@@ -814,18 +838,31 @@ MpgxResult createWindow(
 	windowInstance->framebufferCapacity = MPGX_DEFAULT_CAPACITY;
 	windowInstance->framebufferCount = 0;
 
-	Mesh* meshes = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(Mesh));
+	GraphicsMesh* graphicsMeshes = malloc(
+		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsMesh));
 
-	if (meshes == NULL)
+	if (graphicsMeshes == NULL)
 	{
 		destroyWindow(windowInstance);
 		return FAILED_TO_ALLOCATE_MPGX_RESULT;
 	}
 
-	windowInstance->meshes = meshes;
-	windowInstance->meshCapacity = MPGX_DEFAULT_CAPACITY;
-	windowInstance->meshCount = 0;
+	windowInstance->graphicsMeshes = graphicsMeshes;
+	windowInstance->graphicsMeshCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->graphicsMeshCount = 0;
+
+	ComputePipeline* computePipelines = malloc(
+		MPGX_DEFAULT_CAPACITY * sizeof(ComputePipeline));
+
+	if (computePipelines == NULL)
+	{
+		destroyWindow(windowInstance);
+		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	}
+
+	windowInstance->computePipelines = computePipelines;
+	windowInstance->computePipelineCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->computePipelineCount = 0;
 
 	windowInstance->targetFPS = 60.0;
 	windowInstance->updateTime = 0.0;
@@ -847,6 +884,7 @@ MpgxResult createAnyWindow(
 	bool visible,
 	Window* window)
 {
+#if MPGX_SUPPORT_VULKAN
 	MpgxResult mpgxResult = createWindow(
 		VULKAN_GRAPHICS_API,
 		size,
@@ -860,7 +898,11 @@ MpgxResult createAnyWindow(
 
 	if (mpgxResult == SUCCESS_MPGX_RESULT)
 		return SUCCESS_MPGX_RESULT;
+#else
+	return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+#endif
 
+#if MPGX_SUPPORT_OPENGL
 	mpgxResult = createWindow(
 		OPENGL_GRAPHICS_API,
 		size,
@@ -885,6 +927,9 @@ MpgxResult createAnyWindow(
 		useRayTracing,
 		visible,
 		window);
+#else
+	return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+#endif
 }
 
 GraphicsAPI getWindowGraphicsAPI(Window window)
@@ -951,13 +996,6 @@ Vec2F getWindowContentScale(Window window)
 	return scale;
 }
 
-inline static const char* getGlWindowGpuName()
-{
-	const char* name = (const char*)
-		glGetString(GL_RENDERER);
-	assertOpenGL();
-	return name;
-}
 const char* getWindowGpuName(Window window)
 {
 	assert(window != NULL);
@@ -976,7 +1014,11 @@ const char* getWindowGpuName(Window window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		return getGlWindowGpuName();
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -1303,11 +1345,15 @@ void makeWindowContextCurrent(Window window)
 		window->api == OPENGL_ES_GRAPHICS_API);
 	assert(window->isRecording == false);
 
+#if MPGX_SUPPORT_OPENGL
 	if (window != currentWindow)
 	{
 		glfwMakeContextCurrent(window->handle);
 		currentWindow = window;
 	}
+#else
+	abort();
+#endif
 }
 void updateWindow(Window window)
 {
@@ -1354,24 +1400,24 @@ static bool onVkResize(
 	framebuffer->vk.renderPass = swapchain->renderPass;
 	framebuffer->vk.handle = firstBuffer.framebuffer;
 
-	Pipeline* pipelines = framebuffer->vk.pipelines;
-	size_t pipelineCount = framebuffer->vk.pipelineCount;
+	GraphicsPipeline* graphicsPipelines = framebuffer->vk.graphicsPipelines;
+	size_t graphicsPipelineCount = framebuffer->vk.graphicsPipelineCount;
 
-	for (size_t i = 0; i < pipelineCount; i++)
+	for (size_t i = 0; i < graphicsPipelineCount; i++)
 	{
-		Pipeline pipeline = pipelines[i];
-		VkPipelineCreateInfo createInfo;
+		GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
+		VkGraphicsPipelineCreateData createData;
 
-		bool result = pipeline->vk.onResize(
-			pipeline,
+		bool result = graphicsPipeline->vk.onResize(
+			graphicsPipeline,
 			newSize,
-			&createInfo);
-		result &= recreateVkPipelineHandle(
+			&createData);
+		result &= recreateVkGraphicsPipelineHandle(
 			device,
 			framebuffer->vk.renderPass,
-			pipeline,
+			graphicsPipeline,
 			framebuffer->vk.colorAttachmentCount,
-			&createInfo);
+			&createData);
 
 		if (result == false)
 			return false;
@@ -1421,7 +1467,7 @@ bool beginWindowRecord(Window window)
 		VkSwapchain swapchain = vkWindow->swapchain;
 		VkDevice device = vkWindow->device;
 
-		if (!compVec2U(newSize, framebuffer->gl.size))
+		if (!compVec2U(newSize, framebuffer->vk.size))
 		{
 			bool result = resizeVkSwapchain(
 				vkWindow->surface,
@@ -1560,23 +1606,27 @@ bool beginWindowRecord(Window window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		if (!compVec2U(newSize, framebuffer->gl.size))
 		{
 			framebuffer->gl.size = newSize;
 
-			Pipeline* pipelines = framebuffer->gl.pipelines;
-			size_t pipelineCount = framebuffer->gl.pipelineCount;
+			GraphicsPipeline* graphicsPipelines = framebuffer->gl.graphicsPipelines;
+			size_t graphicsPipelineCount = framebuffer->gl.graphicsPipelineCount;
 
-			for (size_t i = 0; i < pipelineCount; i++)
+			for (size_t i = 0; i < graphicsPipelineCount; i++)
 			{
-				Pipeline pipeline = pipelines[i];
+				GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
 
-				pipeline->gl.onResize(
-					pipeline,
+				graphicsPipeline->gl.onResize(
+					graphicsPipeline,
 					newSize,
 					NULL);
 			}
 		}
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -1780,7 +1830,11 @@ void endWindowRecord(Window window)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		glfwSwapBuffers(window->handle);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -1834,12 +1888,16 @@ Buffer createBuffer(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		buffer = createGlBuffer(
 			window,
 			type,
 			data,
 			size,
 			isConstant);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -1874,7 +1932,11 @@ Buffer createBuffer(
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
 			{
+#if MPGX_SUPPORT_OPENGL
 				destroyGlBuffer(buffer);
+#else
+				abort();
+#endif
 			}
 			else
 			{
@@ -1931,7 +1993,11 @@ void destroyBuffer(Buffer buffer)
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
+#if MPGX_SUPPORT_OPENGL
 			destroyGlBuffer(buffer);
+#else
+			abort();
+#endif
 		}
 		else
 		{
@@ -2000,12 +2066,16 @@ void* mapBuffer(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		mappedData = mapGlBuffer(
 			buffer->gl.glType,
 			buffer->gl.handle,
 			buffer->gl.size,
 			readAccess,
 			writeAccess);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -2040,9 +2110,13 @@ void unmapBuffer(Buffer buffer)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		unmapGlBuffer(
 			buffer->gl.glType,
 			buffer->gl.handle);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -2084,12 +2158,16 @@ void setBufferData(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		setGlBufferData(
 			buffer->gl.glType,
 			buffer->gl.handle,
 			data,
 			size,
 			offset);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -2261,8 +2339,7 @@ Image createImage(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		assert(type != STORAGE_IMAGE_TYPE);
-
+#if MPGX_SUPPORT_OPENGL
 		image = createGlImage(
 			window,
 			type,
@@ -2272,6 +2349,9 @@ Image createImage(
 			size,
 			levelCount,
 			isConstant);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -2309,7 +2389,11 @@ Image createImage(
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
 			{
+#if MPGX_SUPPORT_OPENGL
 				destroyGlImage(image);
+#else
+				abort();
+#endif
 			}
 			else
 			{
@@ -2461,7 +2545,11 @@ void destroyImage(Image image)
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
+#if MPGX_SUPPORT_OPENGL
 			destroyGlImage(image);
+#else
+			abort();
+#endif
 		}
 		else
 		{
@@ -2523,11 +2611,15 @@ void setImageData(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		setGlImageData(
 			image,
 			data,
 			size,
 			offset);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -2626,7 +2718,9 @@ Sampler createSampler(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		assert(mipmapLodBias == 0.0f);
+#if MPGX_SUPPORT_OPENGL
+		if (mipmapLodBias != 0.0f)
+			return NULL;
 
 		sampler = createGlSampler(
 			window,
@@ -2640,6 +2734,9 @@ Sampler createSampler(
 			compareOperator,
 			useCompare,
 			mipmapLodRange);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -2674,7 +2771,11 @@ Sampler createSampler(
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
 			{
+#if MPGX_SUPPORT_OPENGL
 				destroyGlSampler(sampler);
+#else
+				abort();
+#endif
 			}
 			else
 			{
@@ -2731,7 +2832,11 @@ void destroySampler(Sampler sampler)
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
+#if MPGX_SUPPORT_OPENGL
 			destroyGlSampler(sampler);
+#else
+			abort();
+#endif
 		}
 		else
 		{
@@ -2841,12 +2946,16 @@ Shader createShader(
 	else if (api == OPENGL_GRAPHICS_API ||
 			 api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		shader = createGlShader(
 			window,
 			type,
 			code,
 			size,
 			window->api);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -2910,9 +3019,13 @@ Shader createShader(
 #endif
 			}
 			else if (api == OPENGL_GRAPHICS_API ||
-					 api == OPENGL_ES_GRAPHICS_API)
+				api == OPENGL_ES_GRAPHICS_API)
 			{
+#if MPGX_SUPPORT_OPENGL
 				destroyGlShader(shader);
+#else
+				abort();
+#endif
 			}
 			else
 			{
@@ -2991,7 +3104,7 @@ Shader createShaderFromFile(
 			file);
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 		code = malloc(fileSize + 1);
 
@@ -3061,7 +3174,11 @@ void destroyShader(Shader shader)
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
+#if MPGX_SUPPORT_OPENGL
 			destroyGlShader(shader);
+#else
+			abort();
+#endif
 		}
 		else
 		{
@@ -3195,6 +3312,7 @@ Framebuffer createFramebuffer(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		framebuffer = createGlFramebuffer(
 			window,
 			size,
@@ -3203,6 +3321,9 @@ Framebuffer createFramebuffer(
 			colorAttachmentCount,
 			depthStencilAttachment,
 			pipelineCapacity);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -3232,9 +3353,13 @@ Framebuffer createFramebuffer(
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
+#if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(
 				framebuffer,
 				false);
+#else
+			abort();
+#endif
 		}
 		else
 		{
@@ -3295,6 +3420,7 @@ Framebuffer createShadowFramebuffer(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		framebuffer = createGlFramebuffer(
 			window,
 			size,
@@ -3303,6 +3429,9 @@ Framebuffer createShadowFramebuffer(
 			0,
 			depthAttachment,
 			pipelineCapacity);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -3332,9 +3461,13 @@ Framebuffer createShadowFramebuffer(
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
+#if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(
 				framebuffer,
 				false);
+#else
+			abort();
+#endif
 		}
 		else
 		{
@@ -3388,9 +3521,13 @@ void destroyFramebuffer(
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
+#if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(
 				framebuffer,
 				destroyAttachments);
+#else
+			abort();
+#endif
 		}
 		else
 		{
@@ -3532,6 +3669,7 @@ bool setFramebufferAttachments(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		return setGlFramebufferAttachments(
 			framebuffer,
 			size,
@@ -3539,6 +3677,9 @@ bool setFramebufferAttachments(
 			colorAttachments,
 			colorAttachmentCount,
 			depthStencilAttachment);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -3585,14 +3726,14 @@ void beginFramebufferRender(
 	Window window = framebuffer->base.window;
 	bool hasDepthBuffer, hasStencilBuffer;
 
-	if (framebuffer->gl.isDefault == false)
+	if (framebuffer->base.isDefault == false)
 	{
 		Image depthStencilAttachment =
-			framebuffer->gl.depthStencilAttachment;
+			framebuffer->base.depthStencilAttachment;
 
 		if (depthStencilAttachment != NULL)
 		{
-			ImageFormat format = depthStencilAttachment->gl.format;
+			ImageFormat format = depthStencilAttachment->base.format;
 
 			switch (format)
 			{
@@ -3644,6 +3785,7 @@ void beginFramebufferRender(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		bool hasDepthStencilAttachment =
 			framebuffer->gl.isDefault == true ||
 			framebuffer->gl.depthStencilAttachment != NULL;
@@ -3656,6 +3798,9 @@ void beginFramebufferRender(
 			hasStencilBuffer,
 			clearValues,
 			clearValueCount);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -3687,7 +3832,11 @@ void endFramebufferRender(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		endGlFramebufferRender();
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -3736,14 +3885,14 @@ void clearFramebuffer(
 	Window window = framebuffer->base.window;
 	bool hasDepthBuffer, hasStencilBuffer;
 
-	if (framebuffer->gl.isDefault == false)
+	if (framebuffer->base.isDefault == false)
 	{
 		Image depthStencilAttachment =
-			framebuffer->gl.depthStencilAttachment;
+			framebuffer->base.depthStencilAttachment;
 
 		if (depthStencilAttachment != NULL)
 		{
-			ImageFormat format = depthStencilAttachment->gl.format;
+			ImageFormat format = depthStencilAttachment->base.format;
 
 			switch (format)
 			{
@@ -3794,6 +3943,7 @@ void clearFramebuffer(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		clearGlFramebuffer(
 			framebuffer->vk.size,
 			framebuffer->gl.colorAttachmentCount,
@@ -3802,6 +3952,9 @@ void clearFramebuffer(
 			clearAttachments,
 			clearValues,
 			clearValueCount);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -3809,16 +3962,16 @@ void clearFramebuffer(
 	}
 }
 
-Pipeline createPipeline(
+GraphicsPipeline createGraphicsPipeline(
 	Framebuffer framebuffer,
 	const char* name,
-	const PipelineState* state,
-	OnPipelineBind onBind,
-	OnPipelineUniformsSet onUniformsSet,
-	OnPipelineResize onResize,
-	OnPipelineDestroy onDestroy,
+	const GraphicsPipelineState* state,
+	OnGraphicsPipelineBind onBind,
+	OnGraphicsPipelineUniformsSet onUniformsSet,
+	OnGraphicsPipelineResize onResize,
+	OnGraphicsPipelineDestroy onDestroy,
 	void* handle,
-	const void* createInfo,
+	const void* createData,
 	Shader* shaders,
 	size_t shaderCount)
 {
@@ -3853,7 +4006,6 @@ Pipeline createPipeline(
 
 		assert(shader->base.type == VERTEX_SHADER_TYPE ||
 			shader->base.type == FRAGMENT_SHADER_TYPE ||
-			shader->base.type == COMPUTE_SHADER_TYPE ||
 			shader->base.type == TESSELLATION_CONTROL_SHADER_TYPE ||
 			shader->base.type == TESSELLATION_EVALUATION_SHADER_TYPE ||
 			shader->base.type == GEOMETRY_SHADER_TYPE);
@@ -3864,16 +4016,16 @@ Pipeline createPipeline(
 	Window window = framebuffer->base.window;
 	GraphicsAPI api = window->api;
 
-	Pipeline pipeline;
+	GraphicsPipeline graphicsPipeline;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		assert(createInfo != NULL);
+		assert(createData != NULL);
 
-		pipeline = createVkPipeline(
+		graphicsPipeline = createVkGraphicsPipeline(
 			window->vkWindow->device,
-			createInfo,
+			createData,
 			framebuffer,
 			name,
 			*state,
@@ -3891,10 +4043,13 @@ Pipeline createPipeline(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		assert(createInfo == NULL);
-		assert(state->discardRasterizer == false);
+#if MPGX_SUPPORT_OPENGL
+		assert(createData == NULL);
 
-		pipeline = createGlPipeline(
+		if (state->discardRasterizer == true)
+			return NULL;
+
+		graphicsPipeline = createGlGraphicsPipeline(
 			framebuffer,
 			name,
 			*state,
@@ -3905,38 +4060,41 @@ Pipeline createPipeline(
 			handle,
 			shaders,
 			shaderCount);
+#else
+		abort();
+#endif
 	}
 	else
 	{
 		abort();
 	}
 
-	if (pipeline == NULL)
+	if (graphicsPipeline == NULL)
 	{
 		onDestroy(handle);
 		return NULL;
 	}
 
-	size_t count = framebuffer->base.pipelineCount;
+	size_t count = framebuffer->base.graphicsPipelineCount;
 
-	if (count == framebuffer->base.pipelineCapacity)
+	if (count == framebuffer->base.graphicsPipelineCapacity)
 	{
-		size_t capacity = framebuffer->base.pipelineCapacity * 2;
+		size_t capacity = framebuffer->base.graphicsPipelineCapacity * 2;
 
-		Pipeline* pipelines = realloc(
-			framebuffer->base.pipelines,
-			sizeof(Pipeline) * capacity);
+		GraphicsPipeline* graphicsPipelines = realloc(
+			framebuffer->base.graphicsPipelines,
+			sizeof(GraphicsPipeline) * capacity);
 
-		if (pipelines == NULL)
+		if (graphicsPipelines == NULL)
 		{
 			onDestroy(handle);
 
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
-				destroyVkPipeline(
+				destroyVkGraphicsPipeline(
 					window->vkWindow->device,
-					pipeline,
+					graphicsPipeline,
 					false);
 #else
 				abort();
@@ -3945,9 +4103,13 @@ Pipeline createPipeline(
 			else if (api == OPENGL_GRAPHICS_API ||
 				api == OPENGL_ES_GRAPHICS_API)
 			{
-				destroyGlPipeline(
-					pipeline,
+#if MPGX_SUPPORT_OPENGL
+				destroyGlGraphicsPipeline(
+					graphicsPipeline,
 					false);
+#else
+				abort();
+#endif
 			}
 			else
 			{
@@ -3957,36 +4119,36 @@ Pipeline createPipeline(
 			return NULL;
 		}
 
-		framebuffer->base.pipelines = pipelines;
-		framebuffer->base.pipelineCapacity = capacity;
+		framebuffer->base.graphicsPipelines = graphicsPipelines;
+		framebuffer->base.graphicsPipelineCapacity = capacity;
 	}
 
-	framebuffer->base.pipelines[count] = pipeline;
-	framebuffer->base.pipelineCount = count + 1;
-	return pipeline;
+	framebuffer->base.graphicsPipelines[count] = graphicsPipeline;
+	framebuffer->base.graphicsPipelineCount = count + 1;
+	return graphicsPipeline;
 }
-void destroyPipeline(
-	Pipeline pipeline,
+void destroyGraphicsPipeline(
+	GraphicsPipeline graphicsPipeline,
 	bool destroyShaders)
 {
-	if (pipeline == NULL)
+	if (graphicsPipeline == NULL)
 		return;
 
-	assert(pipeline->base.framebuffer->
+	assert(graphicsPipeline->base.framebuffer->
 		base.window->isRecording == false);
 
-	Framebuffer framebuffer = pipeline->base.framebuffer;
+	Framebuffer framebuffer = graphicsPipeline->base.framebuffer;
 	Window window = framebuffer->base.window;
-	size_t pipelineCount = framebuffer->base.pipelineCount;
-	Pipeline* pipelines = framebuffer->base.pipelines;
+	size_t graphicsPipelineCount = framebuffer->base.graphicsPipelineCount;
+	GraphicsPipeline* graphicsPipelines = framebuffer->base.graphicsPipelines;
 
-	for (size_t i = 0; i < pipelineCount; i++)
+	for (size_t i = 0; i < graphicsPipelineCount; i++)
 	{
-		if (pipeline != pipelines[i])
+		if (graphicsPipeline != graphicsPipelines[i])
 			continue;
 
-		pipeline->base.onDestroy(
-			pipeline->base.handle);
+		graphicsPipeline->base.onDestroy(
+			graphicsPipeline->base.handle);
 
 		GraphicsAPI api = window->api;
 
@@ -4001,9 +4163,9 @@ void destroyPipeline(
 			if (result != VK_SUCCESS)
 				abort();
 
-			destroyVkPipeline(
+			destroyVkGraphicsPipeline(
 				vkWindow->device,
-				pipeline,
+				graphicsPipeline,
 				destroyShaders);
 #else
 			abort();
@@ -4012,99 +4174,113 @@ void destroyPipeline(
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
-			destroyGlPipeline(
-				pipeline,
+#if MPGX_SUPPORT_OPENGL
+			destroyGlGraphicsPipeline(
+				graphicsPipeline,
 				destroyShaders);
+#else
+			abort();
+#endif
 		}
 		else
 		{
 			abort();
 		}
 
-		for (size_t j = i + 1; j < pipelineCount; j++)
-			pipelines[j - 1] = pipelines[j];
+		for (size_t j = i + 1; j < graphicsPipelineCount; j++)
+			graphicsPipelines[j - 1] = graphicsPipelines[j];
 
-		framebuffer->base.pipelineCount--;
+		framebuffer->base.graphicsPipelineCount--;
 		return;
 	}
 
 	abort();
 }
 
-Framebuffer getPipelineFramebuffer(Pipeline pipeline)
+Framebuffer getGraphicsPipelineFramebuffer(
+	GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
-	return pipeline->base.framebuffer;
+	assert(graphicsPipeline != NULL);
+	return graphicsPipeline->base.framebuffer;
 }
-const char* getPipelineName(Pipeline pipeline)
+const char* getGraphicsPipelineName(
+	GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
+	assert(graphicsPipeline != NULL);
 #ifndef NDEBUG
-	return pipeline->base.name;
+	return graphicsPipeline->base.name;
 #else
 	abort();
 #endif
 }
-Shader* getPipelineShaders(Pipeline pipeline)
+const GraphicsPipelineState* getGraphicsPipelineState(
+	GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
-	return pipeline->base.shaders;
+	assert(graphicsPipeline != NULL);
+	return &graphicsPipeline->base.state;
 }
-size_t getPipelineShaderCount(Pipeline pipeline)
+OnGraphicsPipelineBind getGraphicsPipelineOnBind(
+	GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
-	return pipeline->base.shaderCount;
+	assert(graphicsPipeline != NULL);
+	return graphicsPipeline->base.onBind;
 }
-const PipelineState* getPipelineState(Pipeline pipeline)
+OnGraphicsPipelineUniformsSet getGraphicsPipelineOnUniformsSet(
+	GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
-	return &pipeline->base.state;
+	assert(graphicsPipeline != NULL);
+	return graphicsPipeline->base.onUniformsSet;
 }
-OnPipelineBind getPipelineOnBind(Pipeline pipeline)
+OnGraphicsPipelineResize getGraphicsPipelineOnResize(
+	GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
-	return pipeline->base.onBind;
+	assert(graphicsPipeline != NULL);
+	return graphicsPipeline->base.onResize;
 }
-OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline)
+OnGraphicsPipelineDestroy getGraphicsPipelineOnDestroy(
+	GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
-	return pipeline->base.onUniformsSet;
+	assert(graphicsPipeline != NULL);
+	return graphicsPipeline->base.onDestroy;
 }
-OnPipelineResize getPipelineOnResize(Pipeline pipeline)
+void* getGraphicsPipelineHandle(
+	GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
-	return pipeline->base.onResize;
+	assert(graphicsPipeline != NULL);
+	return graphicsPipeline->base.handle;
 }
-OnPipelineDestroy getPipelineOnDestroy(Pipeline pipeline)
+Shader* getGraphicsPipelineShaders(
+	GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
-	return pipeline->base.onDestroy;
+	assert(graphicsPipeline != NULL);
+	return graphicsPipeline->base.shaders;
 }
-void* getPipelineHandle(Pipeline pipeline)
+size_t getGraphicsPipelineShaderCount(
+	GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
-	return pipeline->base.handle;
+	assert(graphicsPipeline != NULL);
+	return graphicsPipeline->base.shaderCount;
 }
 
-void bindPipeline(Pipeline pipeline)
+void bindGraphicsPipeline(GraphicsPipeline graphicsPipeline)
 {
-	assert(pipeline != NULL);
+	assert(graphicsPipeline != NULL);
 
-	assert(pipeline->base.framebuffer->
+	assert(graphicsPipeline->base.framebuffer->
 		base.window->isRecording == true);
-	assert(pipeline->base.framebuffer ==
-		pipeline->base.framebuffer->
+	assert(graphicsPipeline->base.framebuffer ==
+		graphicsPipeline->base.framebuffer->
 		base.window->renderFramebuffer);
 
-	Window window = pipeline->base.framebuffer->base.window;
+	Window window = graphicsPipeline->base.framebuffer->base.window;
 	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		bindVkPipeline(
+		bindVkGraphicsPipeline(
 			window->vkWindow->currenCommandBuffer,
-			pipeline);
+			graphicsPipeline);
 #else
 		abort();
 #endif
@@ -4112,7 +4288,11 @@ void bindPipeline(Pipeline pipeline)
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		bindGlPipeline(pipeline);
+#if MPGX_SUPPORT_OPENGL
+		bindGlGraphicsPipeline(graphicsPipeline);
+#else
+		abort();
+#endif
 	}
 	else
 	{
@@ -4120,7 +4300,7 @@ void bindPipeline(Pipeline pipeline)
 	}
 }
 
-Mesh createMesh(
+GraphicsMesh createGraphicsMesh(
 	Window window,
 	IndexType indexType,
 	size_t indexCount,
@@ -4164,12 +4344,12 @@ Mesh createMesh(
 
 	GraphicsAPI api = window->api;
 
-	Mesh mesh;
+	GraphicsMesh graphicsMesh;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		mesh = createVkMesh(
+		graphicsMesh = createVkGraphicsMesh(
 			window,
 			indexType,
 			indexCount,
@@ -4183,50 +4363,58 @@ Mesh createMesh(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		mesh = createGlMesh(
+#if MPGX_SUPPORT_OPENGL
+		graphicsMesh = createGlGraphicsMesh(
 			window,
 			indexType,
 			indexCount,
 			indexOffset,
 			vertexBuffer,
 			indexBuffer);
+#else
+		abort();
+#endif
 	}
 	else
 	{
 		abort();
 	}
 
-	if (mesh == NULL)
+	if (graphicsMesh == NULL)
 		return NULL;
 
-	size_t count = window->meshCount;
+	size_t count = window->graphicsMeshCount;
 
-	if (count == window->meshCapacity)
+	if (count == window->graphicsMeshCapacity)
 	{
-		size_t capacity = window->meshCapacity * 2;
+		size_t capacity = window->graphicsMeshCapacity * 2;
 
-		Mesh* meshes = realloc(
-			window->meshes,
-			sizeof(Mesh) * capacity);
+		GraphicsMesh* graphicsMeshes = realloc(
+			window->graphicsMeshes,
+			sizeof(GraphicsMesh) * capacity);
 
-		if (meshes == NULL)
+		if (graphicsMeshes == NULL)
 		{
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
-				destroyVkMesh(
-					mesh,
+				destroyVkGraphicsMesh(
+					graphicsMesh,
 					false);
 #else
 				abort();
 #endif
 			}
 			else if (api == OPENGL_GRAPHICS_API ||
-					 api == OPENGL_ES_GRAPHICS_API)
+				api == OPENGL_ES_GRAPHICS_API)
 			{
-				destroyGlMesh(
-					mesh,
+#if MPGX_SUPPORT_OPENGL
+				destroyGlGraphicsMesh(
+					graphicsMesh,
 					false);
+#else
+				abort();
+#endif
 			}
 			else
 			{
@@ -4236,30 +4424,30 @@ Mesh createMesh(
 			return NULL;
 		}
 
-		window->meshes = meshes;
-		window->meshCapacity = capacity;
+		window->graphicsMeshes = graphicsMeshes;
+		window->graphicsMeshCapacity = capacity;
 	}
 
-	window->meshes[count] = mesh;
-	window->meshCount = count + 1;
-	return mesh;
+	window->graphicsMeshes[count] = graphicsMesh;
+	window->graphicsMeshCount = count + 1;
+	return graphicsMesh;
 }
-void destroyMesh(
-	Mesh mesh,
+void destroyGraphicsMesh(
+	GraphicsMesh graphicsMesh,
 	bool destroyBuffers)
 {
-	if (mesh == NULL)
+	if (graphicsMesh == NULL)
 		return;
 
-	assert(mesh->base.window->isRecording == false);
+	assert(graphicsMesh->base.window->isRecording == false);
 
-	Window window = mesh->base.window;
-	Mesh* meshes = window->meshes;
-	size_t meshCount = window->meshCount;
+	Window window = graphicsMesh->base.window;
+	GraphicsMesh* graphicsMeshes = window->graphicsMeshes;
+	size_t graphicsMeshCount = window->graphicsMeshCount;
 
-	for (size_t i = 0; i < meshCount; i++)
+	for (size_t i = 0; i < graphicsMeshCount; i++)
 	{
-		if (mesh != meshes[i])
+		if (graphicsMesh != graphicsMeshes[i])
 			continue;
 
 		GraphicsAPI api = window->api;
@@ -4267,8 +4455,8 @@ void destroyMesh(
 		if (api == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
-			destroyVkMesh(
-				mesh,
+			destroyVkGraphicsMesh(
+				graphicsMesh,
 				destroyBuffers);
 #else
 			abort();
@@ -4277,63 +4465,67 @@ void destroyMesh(
 		else if (api == OPENGL_GRAPHICS_API ||
 			api == OPENGL_ES_GRAPHICS_API)
 		{
-			destroyGlMesh(
-				mesh,
+#if MPGX_SUPPORT_OPENGL
+			destroyGlGraphicsMesh(
+				graphicsMesh,
 				destroyBuffers);
+#else
+			abort();
+#endif
 		}
 		else
 		{
 			abort();
 		}
 
-		for (size_t j = i + 1; j < meshCount; j++)
-			meshes[j - 1] = meshes[j];
+		for (size_t j = i + 1; j < graphicsMeshCount; j++)
+			graphicsMeshes[j - 1] = graphicsMeshes[j];
 
-		window->meshCount--;
+		window->graphicsMeshCount--;
 		return;
 	}
 
 	abort();
 }
 
-Window getMeshWindow(Mesh mesh)
+Window getGraphicsMeshWindow(GraphicsMesh graphicsMesh)
 {
-	assert(mesh != NULL);
-	return mesh->base.window;
+	assert(graphicsMesh != NULL);
+	return graphicsMesh->base.window;
 }
-IndexType getMeshIndexType(Mesh mesh)
+IndexType getGraphicsMeshIndexType(GraphicsMesh graphicsMesh)
 {
-	assert(mesh != NULL);
-	return mesh->base.indexType;
+	assert(graphicsMesh != NULL);
+	return graphicsMesh->base.indexType;
 }
 
-size_t getMeshIndexCount(
-	Mesh mesh)
+size_t getGraphicsMeshIndexCount(
+	GraphicsMesh graphicsMesh)
 {
-	assert(mesh != NULL);
-	return mesh->base.indexCount;
+	assert(graphicsMesh != NULL);
+	return graphicsMesh->base.indexCount;
 }
-void setMeshIndexCount(
-	Mesh mesh,
+void setGraphicsMeshIndexCount(
+	GraphicsMesh graphicsMesh,
 	size_t indexCount)
 {
-	assert(mesh != NULL);
-	assert(mesh->base.window->isRecording == false);
+	assert(graphicsMesh != NULL);
+	assert(graphicsMesh->base.window->isRecording == false);
 
 #ifndef NDEBUG
-	if (mesh->base.indexBuffer != NULL)
+	if (graphicsMesh->base.indexBuffer != NULL)
 	{
-		if (mesh->base.indexType == UINT16_INDEX_TYPE)
+		if (graphicsMesh->base.indexType == UINT16_INDEX_TYPE)
 		{
 			assert(indexCount * sizeof(uint16_t) +
-				mesh->base.indexOffset * sizeof(uint16_t) <=
-				mesh->base.indexBuffer->base.size);
+				graphicsMesh->base.indexOffset * sizeof(uint16_t) <=
+				graphicsMesh->base.indexBuffer->base.size);
 		}
-		else if (mesh->base.indexType == UINT32_INDEX_TYPE)
+		else if (graphicsMesh->base.indexType == UINT32_INDEX_TYPE)
 		{
 			assert(indexCount * sizeof(uint32_t) +
-				mesh->base.indexOffset * sizeof(uint32_t) <=
-				mesh->base.indexBuffer->base.size);
+			graphicsMesh->base.indexOffset * sizeof(uint32_t) <=
+			graphicsMesh->base.indexBuffer->base.size);
 		}
 		else
 		{
@@ -4342,36 +4534,36 @@ void setMeshIndexCount(
 	}
 #endif
 
-	mesh->base.indexCount = indexCount;
+	graphicsMesh->base.indexCount = indexCount;
 }
 
-size_t getMeshIndexOffset(
-	Mesh mesh)
+size_t getGraphicsMeshIndexOffset(
+	GraphicsMesh graphicsMesh)
 {
-	assert(mesh != NULL);
-	return mesh->base.indexOffset;
+	assert(graphicsMesh != NULL);
+	return graphicsMesh->base.indexOffset;
 }
-void setMeshIndexOffset(
-	Mesh mesh,
+void setGraphicsMeshIndexOffset(
+	GraphicsMesh graphicsMesh,
 	size_t indexOffset)
 {
-	assert(mesh != NULL);
-	assert(mesh->base.window->isRecording == false);
+	assert(graphicsMesh != NULL);
+	assert(graphicsMesh->base.window->isRecording == false);
 
 #ifndef NDEBUG
-	if (mesh->base.indexBuffer != NULL)
+	if (graphicsMesh->base.indexBuffer != NULL)
 	{
-		if (mesh->base.indexType == UINT16_INDEX_TYPE)
+		if (graphicsMesh->base.indexType == UINT16_INDEX_TYPE)
 		{
-			assert(mesh->base.indexCount * sizeof(uint16_t) +
+			assert(graphicsMesh->base.indexCount * sizeof(uint16_t) +
 				indexOffset * sizeof(uint16_t) <=
-				mesh->base.indexBuffer->base.size);
+				graphicsMesh->base.indexBuffer->base.size);
 		}
-		else if (mesh->base.indexType == UINT32_INDEX_TYPE)
+		else if (graphicsMesh->base.indexType == UINT32_INDEX_TYPE)
 		{
-			assert(mesh->base.indexCount * sizeof(uint32_t) +
+			assert(graphicsMesh->base.indexCount * sizeof(uint32_t) +
 				indexOffset * sizeof(uint32_t) <=
-				mesh->base.indexBuffer->base.size);
+				graphicsMesh->base.indexBuffer->base.size);
 		}
 		else
 		{
@@ -4380,54 +4572,54 @@ void setMeshIndexOffset(
 	}
 #endif
 
-	mesh->base.indexOffset = indexOffset;
+	graphicsMesh->base.indexOffset = indexOffset;
 }
 
-Buffer getMeshVertexBuffer(
-	Mesh mesh)
+Buffer getGraphicsMeshVertexBuffer(
+	GraphicsMesh graphicsMesh)
 {
-	assert(mesh != NULL);
-	return mesh->base.vertexBuffer;
+	assert(graphicsMesh != NULL);
+	return graphicsMesh->base.vertexBuffer;
 }
-void setMeshVertexBuffer(
-	Mesh mesh,
+void setGraphicsMeshVertexBuffer(
+	GraphicsMesh graphicsMesh,
 	Buffer vertexBuffer)
 {
-	assert(mesh != NULL);
-	assert(mesh->base.window->isRecording == false);
+	assert(graphicsMesh != NULL);
+	assert(graphicsMesh->base.window->isRecording == false);
 
 #ifndef NDEBUG
 	if (vertexBuffer != NULL)
 	{
-		assert(mesh->base.window == vertexBuffer->base.window);
+		assert(graphicsMesh->base.window == vertexBuffer->base.window);
 		assert(vertexBuffer->base.type == VERTEX_BUFFER_TYPE);
 	}
 #endif
 
-	mesh->base.vertexBuffer = vertexBuffer;
+	graphicsMesh->base.vertexBuffer = vertexBuffer;
 }
 
-Buffer getMeshIndexBuffer(
-	Mesh mesh)
+Buffer getGraphicsMeshIndexBuffer(
+	GraphicsMesh graphicsMesh)
 {
-	assert(mesh != NULL);
-	return mesh->base.indexBuffer;
+	assert(graphicsMesh != NULL);
+	return graphicsMesh->base.indexBuffer;
 }
-void setMeshIndexBuffer(
-	Mesh mesh,
+void setGraphicsMeshIndexBuffer(
+	GraphicsMesh graphicsMesh,
 	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer indexBuffer)
 {
-	assert(mesh != NULL);
+	assert(graphicsMesh != NULL);
 	assert(indexType < INDEX_TYPE_COUNT);
-	assert(mesh->base.window->isRecording == false);
+	assert(graphicsMesh->base.window->isRecording == false);
 
 #ifndef NDEBUG
 	if (indexBuffer != NULL)
 	{
-		assert(mesh->base.window == indexBuffer->base.window);
+		assert(graphicsMesh->base.window == indexBuffer->base.window);
 		assert(indexBuffer->base.type == INDEX_BUFFER_TYPE);
 
 		if (indexType == UINT16_INDEX_TYPE)
@@ -4449,42 +4641,44 @@ void setMeshIndexBuffer(
 	}
 #endif
 
-	mesh->base.indexType = indexType;
-	mesh->base.indexCount = indexCount;
-	mesh->base.indexOffset = indexOffset;
-	mesh->base.indexBuffer = indexBuffer;
+	graphicsMesh->base.indexType = indexType;
+	graphicsMesh->base.indexCount = indexCount;
+	graphicsMesh->base.indexOffset = indexOffset;
+	graphicsMesh->base.indexBuffer = indexBuffer;
 }
 
-size_t drawMesh(
-	Mesh mesh,
-	Pipeline pipeline)
+size_t drawGraphicsMesh(
+	GraphicsPipeline graphicsPipeline,
+	GraphicsMesh graphicsMesh)
 {
-	assert(mesh != NULL);
-	assert(pipeline != NULL);
-	assert(mesh->base.window == mesh->base.window);
-	assert(mesh->base.vertexBuffer->base.isMapped == false);
-	assert(mesh->base.indexBuffer->base.isMapped == false);
-	assert(mesh->base.window->isRecording == true);
+	assert(graphicsMesh != NULL);
+	assert(graphicsPipeline != NULL);
+	assert(graphicsMesh->base.vertexBuffer->base.isMapped == false);
+	assert(graphicsMesh->base.indexBuffer->base.isMapped == false);
+	assert(graphicsMesh->base.window->isRecording == true);
 
-	if (mesh->base.vertexBuffer == NULL ||
-		mesh->base.indexBuffer == NULL ||
-		mesh->base.indexCount == 0)
+	assert(graphicsMesh->base.window ==
+		   graphicsPipeline->base.framebuffer->base.window);
+
+	if (graphicsMesh->base.vertexBuffer == NULL ||
+		graphicsMesh->base.indexBuffer == NULL ||
+		graphicsMesh->base.indexCount == 0)
 	{
 		return 0;
 	}
 
-	Window window = mesh->base.window;
+	Window window = graphicsMesh->base.window;
 	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		if (pipeline->base.onUniformsSet != NULL)
-			pipeline->base.onUniformsSet(pipeline);
+		if (graphicsPipeline->base.onUniformsSet != NULL)
+			graphicsPipeline->base.onUniformsSet(graphicsPipeline);
 
-		drawVkMesh(
+		drawVkGraphicsMesh(
 			window->vkWindow->currenCommandBuffer,
-			mesh);
+			graphicsMesh);
 #else
 		abort();
 #endif
@@ -4492,26 +4686,274 @@ size_t drawMesh(
 	else if (api == OPENGL_GRAPHICS_API ||
 		api == OPENGL_ES_GRAPHICS_API)
 	{
-		drawGlMesh(
-			mesh,
-			pipeline);
+#if MPGX_SUPPORT_OPENGL
+		drawGlGraphicsMesh(
+			graphicsPipeline,
+			graphicsMesh);
+#else
+		abort();
+#endif
 	}
 	else
 	{
 		abort();
 	}
 
-	return mesh->base.indexCount;
+	return graphicsMesh->base.indexCount;
 }
 
-RayPipeline createRayPipeline(
+ComputePipeline createComputePipeline(
 	Window window,
 	const char* name,
-	OnRayPipelineBind onBind,
-	OnRayPipelineResize onResize,
-	OnRayPipelineDestroy onDestroy,
+	OnComputePipelineBind onBind,
+	OnComputePipelineDestroy onDestroy,
 	void* handle,
-	const void* createInfo,
+	const void* createData,
+	Shader shader)
+{
+	assert(window != NULL);
+	assert(name != NULL);
+	assert(onDestroy != NULL);
+	assert(handle != NULL);
+	assert(shader != NULL);
+	assert(shader->base.type == COMPUTE_SHADER_TYPE);
+	assert(shader->base.window == window);
+	assert(window->isRecording == false);
+
+	GraphicsAPI api = window->api;
+
+	ComputePipeline computePipeline;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		assert(createData != NULL);
+
+		computePipeline = createVkComputePipeline(
+			window->vkWindow->device,
+			createData,
+			window,
+			name,
+			onBind,
+			onDestroy,
+			handle,
+			shader);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		return NULL;
+	}
+
+	if (computePipeline == NULL)
+	{
+		onDestroy(handle);
+		return NULL;
+	}
+
+	size_t count = window->computePipelineCount;
+
+	if (count == window->computePipelineCapacity)
+	{
+		size_t capacity = window->computePipelineCapacity * 2;
+
+		ComputePipeline* computePipelines = realloc(
+			window->computePipelines,
+			sizeof(ComputePipeline) * capacity);
+
+		if (computePipelines == NULL)
+		{
+			onDestroy(handle);
+
+			if (api == VULKAN_GRAPHICS_API)
+			{
+#if MPGX_SUPPORT_VULKAN
+				destroyVkComputePipeline(
+					window->vkWindow->device,
+					computePipeline,
+					false);
+#else
+				abort();
+#endif
+			}
+			else
+			{
+				abort();
+			}
+
+			return NULL;
+		}
+
+		window->computePipelines = computePipelines;
+		window->computePipelineCapacity = capacity;
+	}
+
+	window->computePipelines[count] = computePipeline;
+	window->computePipelineCount = count + 1;
+	return computePipeline;
+}
+void destroyComputePipeline(
+	ComputePipeline computePipeline,
+	bool destroyShader)
+{
+	if (computePipeline == NULL)
+		return;
+
+	assert(computePipeline->base.window->isRecording == false);
+
+	Window window = computePipeline->base.window;
+	size_t computePipelineCount = window->computePipelineCount;
+	ComputePipeline* computePipelines = window->computePipelines;
+
+	for (size_t i = 0; i < computePipelineCount; i++)
+	{
+		if (computePipeline != computePipelines[i])
+			continue;
+
+		computePipeline->base.onDestroy(
+			computePipeline->base.handle);
+
+		GraphicsAPI api = window->api;
+
+		if (api == VULKAN_GRAPHICS_API)
+		{
+#if MPGX_SUPPORT_VULKAN
+			VkWindow vkWindow = window->vkWindow;
+
+			// TODO: is graphics pipeline supports compute?
+			VkResult result = vkQueueWaitIdle(
+				vkWindow->graphicsQueue);
+
+			if (result != VK_SUCCESS)
+				abort();
+
+			destroyVkComputePipeline(
+				vkWindow->device,
+				computePipeline,
+				destroyShader);
+#else
+			abort();
+#endif
+		}
+		else
+		{
+			abort();
+		}
+
+		for (size_t j = i + 1; j < computePipelineCount; j++)
+			computePipelines[j - 1] = computePipelines[j];
+
+		window->computePipelineCount--;
+		return;
+	}
+
+	abort();
+}
+
+Window getComputePipelineWindow(
+	ComputePipeline computePipeline)
+{
+	assert(computePipeline != NULL);
+	return computePipeline->base.window;
+}
+const char* getComputePipelineName(
+	ComputePipeline computePipeline)
+{
+	assert(computePipeline != NULL);
+#ifndef NDEBUG
+	return computePipeline->base.name;
+#else
+	abort();
+#endif
+}
+OnComputePipelineBind getComputePipelineOnBind(
+	ComputePipeline computePipeline)
+{
+	assert(computePipeline != NULL);
+	return computePipeline->base.onBind;
+}
+OnComputePipelineDestroy getComputePipelineOnDestroy(
+	ComputePipeline computePipeline)
+{
+	assert(computePipeline != NULL);
+	return computePipeline->base.onDestroy;
+}
+Shader getComputePipelineShader(
+	ComputePipeline computePipeline)
+{
+	assert(computePipeline != NULL);
+	return computePipeline->base.shader;
+}
+void* getComputePipelineHandle(
+	ComputePipeline computePipeline)
+{
+	assert(computePipeline != NULL);
+	return computePipeline->base.handle;
+}
+
+void bindComputePipeline(
+	ComputePipeline computePipeline)
+{
+	assert(computePipeline != NULL);
+	assert(computePipeline->base.window->isRecording == true);
+
+	Window window = computePipeline->base.window;
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		bindVkComputePipeline(
+			window->vkWindow->currenCommandBuffer,
+			computePipeline);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+}
+void dispatchComputePipeline(
+	ComputePipeline computePipeline,
+	size_t groupCountX,
+	size_t groupCountY,
+	size_t groupCountZ)
+{
+	assert(computePipeline != NULL);
+	assert(computePipeline->base.window->isRecording == true);
+
+	Window window = computePipeline->base.window;
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		dispatchVkComputePipeline(
+			window->vkWindow->currenCommandBuffer,
+			groupCountX,
+			groupCountY,
+			groupCountZ);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+}
+
+RayTracingPipeline createRayTracingPipeline(
+	Window window,
+	const char* name,
+	OnRayTracingPipelineBind onBind,
+	OnRayTracingPipelineDestroy onDestroy,
+	void* handle,
+	const void* createData,
 	Shader* generationShaders,
 	size_t generationShaderCount,
 	Shader* missShaders,
@@ -4521,10 +4963,9 @@ RayPipeline createRayPipeline(
 {
 	assert(window != NULL);
 	assert(name != NULL);
-	assert(onResize != NULL);
 	assert(onDestroy != NULL);
 	assert(handle != NULL);
-	assert(createInfo != NULL);
+	assert(createData != NULL);
 	assert(generationShaders != NULL);
 	assert(generationShaderCount != 0);
 	assert(missShaders != NULL);
@@ -4558,22 +4999,21 @@ RayPipeline createRayPipeline(
 	GraphicsAPI api = window->api;
 	RayTracing rayTracing = window->rayTracing;
 
-	RayPipeline rayPipeline;
+	RayTracingPipeline rayTracingPipeline;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
 
-		rayPipeline = createVkRayPipeline(
+		rayTracingPipeline = createVkRayTracingPipeline(
 			vkWindow->device,
 			vkWindow->allocator,
-			createInfo,
+			createData,
 			rayTracing,
 			name,
 			window,
 			onBind,
-			onResize,
 			onDestroy,
 			handle,
 			generationShaders,
@@ -4588,10 +5028,10 @@ RayPipeline createRayPipeline(
 	}
 	else
 	{
-		abort();
+		return NULL;
 	}
 
-	if (rayPipeline == NULL)
+	if (rayTracingPipeline == NULL)
 	{
 		onDestroy(handle);
 		return NULL;
@@ -4603,9 +5043,9 @@ RayPipeline createRayPipeline(
 	{
 		size_t capacity = rayTracing->base.pipelineCapacity * 2;
 
-		RayPipeline* pipelines = realloc(
+		RayTracingPipeline* pipelines = realloc(
 			rayTracing->base.pipelines,
-			sizeof(RayPipeline) * capacity);
+			sizeof(RayTracingPipeline) * capacity);
 
 		if (pipelines == NULL)
 		{
@@ -4616,10 +5056,10 @@ RayPipeline createRayPipeline(
 #if MPGX_SUPPORT_VULKAN
 				VkWindow vkWindow = window->vkWindow;
 
-				destroyVkRayPipeline(
+				destroyVkRayTracingPipeline(
 					vkWindow->device,
 					vkWindow->allocator,
-					rayPipeline,
+					rayTracingPipeline,
 					false);
 #else
 				abort();
@@ -4637,31 +5077,31 @@ RayPipeline createRayPipeline(
 		rayTracing->base.pipelineCapacity = capacity;
 	}
 
-	rayTracing->base.pipelines[count] = rayPipeline;
+	rayTracing->base.pipelines[count] = rayTracingPipeline;
 	rayTracing->base.pipelineCount = count + 1;
-	return rayPipeline;
+	return rayTracingPipeline;
 }
-void destroyRayPipeline(
-	RayPipeline rayPipeline,
+void destroyRayTracingPipeline(
+	RayTracingPipeline rayTracingPipeline,
 	bool destroyShaders)
 {
-	if (rayPipeline == NULL)
+	if (rayTracingPipeline == NULL)
 		return;
 
-	assert(rayPipeline->base.window->isRecording == false);
+	assert(rayTracingPipeline->base.window->isRecording == false);
 
-	Window window = rayPipeline->base.window;
+	Window window = rayTracingPipeline->base.window;
 	RayTracing rayTracing = window->rayTracing;
 	size_t pipelineCount = rayTracing->base.pipelineCount;
-	RayPipeline* pipelines = rayTracing->base.pipelines;
+	RayTracingPipeline* pipelines = rayTracing->base.pipelines;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
-		if (rayPipeline != pipelines[i])
+		if (rayTracingPipeline != pipelines[i])
 			continue;
 
-		rayPipeline->base.onDestroy(
-			rayPipeline->base.handle);
+		rayTracingPipeline->base.onDestroy(
+			rayTracingPipeline->base.handle);
 
 		GraphicsAPI api = window->api;
 
@@ -4676,10 +5116,10 @@ void destroyRayPipeline(
 			if (result != VK_SUCCESS)
 				abort();
 
-			destroyVkRayPipeline(
+			destroyVkRayTracingPipeline(
 				vkWindow->device,
 				vkWindow->allocator,
-				rayPipeline,
+				rayTracingPipeline,
 				destroyShaders);
 #else
 			abort();
@@ -4700,85 +5140,91 @@ void destroyRayPipeline(
 	abort();
 }
 
-Window getRayPipelineWindow(RayPipeline rayPipeline)
+Window getRayTracingPipelineWindow(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.window;
+	assert(rayTracingPipeline != NULL);
+	return rayTracingPipeline->base.window;
 }
-const char* getRayPipelineName(RayPipeline rayPipeline)
+const char* getRayTracingPipelineName(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
+	assert(rayTracingPipeline != NULL);
 #ifndef NDEBUG
-	return rayPipeline->base.name;
+	return rayTracingPipeline->base.name;
 #else
 	abort();
 #endif
 }
-Shader* getRayPipelineGenerationShaders(RayPipeline rayPipeline)
+OnRayTracingPipelineBind getRayTracingPipelineOnBind(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.generationShaders;
+	assert(rayTracingPipeline != NULL);
+	return rayTracingPipeline->base.onBind;
 }
-size_t getRayPipelineGenerationShaderCount(RayPipeline rayPipeline)
+OnRayTracingPipelineDestroy getRayTracingPipelineOnDestroy(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.generationShaderCount;
+	assert(rayTracingPipeline != NULL);
+	return rayTracingPipeline->base.onDestroy;
 }
-Shader* getRayPipelineMissShaders(RayPipeline rayPipeline)
+void* getRayTracingPipelineHandle(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.missShaders;
+	assert(rayTracingPipeline != NULL);
+	return rayTracingPipeline->base.handle;
 }
-size_t getRayPipelineMissShaderCount(RayPipeline rayPipeline)
+Shader* getRayTracingPipelineGenerationShaders(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.missShaderCount;
+	assert(rayTracingPipeline != NULL);
+	return rayTracingPipeline->base.generationShaders;
 }
-Shader* getRayPipelineClosestHitShaders(RayPipeline rayPipeline)
+size_t getRayTracingPipelineGenerationShaderCount(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.closestHitShaders;
+	assert(rayTracingPipeline != NULL);
+	return rayTracingPipeline->base.generationShaderCount;
 }
-size_t getRayPipelineClosestHitShaderCount(RayPipeline rayPipeline)
+Shader* getRayTracingPipelineMissShaders(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.closestHitShaderCount;
+	assert(rayTracingPipeline != NULL);
+	return rayTracingPipeline->base.missShaders;
 }
-OnRayPipelineBind getRayPipelineOnBind(RayPipeline rayPipeline)
+size_t getRayTracingPipelineMissShaderCount(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.onBind;
+	assert(rayTracingPipeline != NULL);
+	return rayTracingPipeline->base.missShaderCount;
 }
-OnRayPipelineResize getRayPipelineOnResize(RayPipeline rayPipeline)
+Shader* getRayTracingPipelineClosestHitShaders(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.onResize;
+	assert(rayTracingPipeline != NULL);
+	return rayTracingPipeline->base.closestHitShaders;
 }
-OnRayPipelineDestroy getRayPipelineOnDestroy(RayPipeline rayPipeline)
+size_t getRayTracingPipelineClosestHitShaderCount(
+	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.onDestroy;
-}
-void* getRayPipelineHandle(RayPipeline rayPipeline)
-{
-	assert(rayPipeline != NULL);
-	return rayPipeline->base.handle;
+	assert(rayTracingPipeline != NULL);
+	return rayTracingPipeline->base.closestHitShaderCount;
 }
 
-void bindRayPipeline(RayPipeline rayPipeline)
+void bindRayTracingPipeline(RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	assert(rayPipeline->base.window->isRecording == true);
+	assert(rayTracingPipeline != NULL);
+	assert(rayTracingPipeline->base.window->isRecording == true);
 
-	Window window = rayPipeline->base.window;
+	Window window = rayTracingPipeline->base.window;
 	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		bindVkRayPipeline(
+		bindVkRayTracingPipeline(
 			window->vkWindow->currenCommandBuffer,
-			rayPipeline);
+			rayTracingPipeline);
 #else
 		abort();
 #endif
@@ -4789,12 +5235,12 @@ void bindRayPipeline(RayPipeline rayPipeline)
 	}
 }
 
-void tracePipelineRays(RayPipeline rayPipeline)
+void traceRayTracingPipeline(RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayPipeline != NULL);
-	assert(rayPipeline->base.window->isRecording == true);
+	assert(rayTracingPipeline != NULL);
+	assert(rayTracingPipeline->base.window->isRecording == true);
 
-	Window window = rayPipeline->base.window;
+	Window window = rayTracingPipeline->base.window;
 	GraphicsAPI api = window->api;
 
 	if (api == VULKAN_GRAPHICS_API)
@@ -4803,7 +5249,7 @@ void tracePipelineRays(RayPipeline rayPipeline)
 		traceVkPipelineRays(
 			window->vkWindow->currenCommandBuffer,
 			window->rayTracing,
-			rayPipeline);
+			rayTracingPipeline);
 #else
 		abort();
 #endif
@@ -4814,7 +5260,7 @@ void tracePipelineRays(RayPipeline rayPipeline)
 	}
 }
 
-RayMesh createRayMesh(
+RayTracingMesh createRayTracingMesh(
 	Window window,
 	size_t vertexStride,
 	IndexType indexType,
@@ -4838,14 +5284,14 @@ RayMesh createRayMesh(
 	GraphicsAPI api = window->api;
 	RayTracing rayTracing = window->rayTracing;
 
-	RayMesh rayMesh;
+	RayTracingMesh rayTracingMesh;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
 
-		rayMesh = createVkRayMesh(
+		rayTracingMesh = createVkRayTracingMesh(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
@@ -4863,10 +5309,10 @@ RayMesh createRayMesh(
 	}
 	else
 	{
-		abort();
+		return NULL;
 	}
 
-	if (rayMesh == NULL)
+	if (rayTracingMesh == NULL)
 		return NULL;
 
 	size_t count = rayTracing->base.meshCount;
@@ -4875,9 +5321,9 @@ RayMesh createRayMesh(
 	{
 		size_t capacity = rayTracing->base.meshCapacity * 2;
 
-		RayMesh* meshes = realloc(
+		RayTracingMesh* meshes = realloc(
 			rayTracing->base.meshes,
-			sizeof(RayMesh) * capacity);
+			sizeof(RayTracingMesh) * capacity);
 
 		if (meshes == NULL)
 		{
@@ -4886,11 +5332,11 @@ RayMesh createRayMesh(
 #if MPGX_SUPPORT_VULKAN
 				VkWindow vkWindow = window->vkWindow;
 
-				destroyVkRayMesh(
+				destroyVkRayTracingMesh(
 					vkWindow->device,
 					vkWindow->allocator,
 					window->rayTracing,
-					rayMesh,
+					rayTracingMesh,
 					false);
 #else
 				abort();
@@ -4908,27 +5354,27 @@ RayMesh createRayMesh(
 		rayTracing->base.meshCapacity = capacity;
 	}
 
-	rayTracing->base.meshes[count] = rayMesh;
+	rayTracing->base.meshes[count] = rayTracingMesh;
 	rayTracing->base.meshCount = count + 1;
-	return rayMesh;
+	return rayTracingMesh;
 }
-void destroyRayMesh(
-	RayMesh rayMesh,
+void destroyRayTracingMesh(
+	RayTracingMesh rayTracingMesh,
 	bool destroyBuffers)
 {
-	if (rayMesh == NULL)
+	if (rayTracingMesh == NULL)
 		return;
 
-	assert(rayMesh->base.window->isRecording == false);
+	assert(rayTracingMesh->base.window->isRecording == false);
 
-	Window window = rayMesh->base.window;
+	Window window = rayTracingMesh->base.window;
 	RayTracing rayTracing = window->rayTracing;
-	RayMesh* meshes = rayTracing->base.meshes;
+	RayTracingMesh* meshes = rayTracing->base.meshes;
 	size_t meshCount = rayTracing->base.meshCount;
 
 	for (size_t i = 0; i < meshCount; i++)
 	{
-		if (rayMesh != meshes[i])
+		if (rayTracingMesh != meshes[i])
 			continue;
 
 		GraphicsAPI api = window->api;
@@ -4944,11 +5390,11 @@ void destroyRayMesh(
 			if (result != VK_SUCCESS)
 				abort();
 
-			destroyVkRayMesh(
+			destroyVkRayTracingMesh(
 				vkWindow->device,
 				vkWindow->allocator,
 				window->rayTracing,
-				rayMesh,
+				rayTracingMesh,
 				destroyBuffers);
 #else
 			abort();
@@ -4969,54 +5415,54 @@ void destroyRayMesh(
 	abort();
 }
 
-Window getRayMeshWindow(RayMesh rayMesh)
+Window getRayTracingMeshWindow(RayTracingMesh rayTracingMesh)
 {
-	assert(rayMesh != NULL);
-	return rayMesh->base.window;
+	assert(rayTracingMesh != NULL);
+	return rayTracingMesh->base.window;
 }
-size_t getRayMeshVertexStride(RayMesh rayMesh)
+size_t getRayTracingMeshVertexStride(RayTracingMesh rayTracingMesh)
 {
-	assert(rayMesh != NULL);
-	return rayMesh->base.vertexStride;
+	assert(rayTracingMesh != NULL);
+	return rayTracingMesh->base.vertexStride;
 }
-IndexType getRayMeshIndexType(RayMesh rayMesh)
+IndexType getRayTracingMeshIndexType(RayTracingMesh rayTracingMesh)
 {
-	assert(rayMesh != NULL);
-	return rayMesh->base.indexType;
+	assert(rayTracingMesh != NULL);
+	return rayTracingMesh->base.indexType;
 }
-Buffer getRayMeshVertexBuffer(RayMesh rayMesh)
+Buffer getRayTracingMeshVertexBuffer(RayTracingMesh rayTracingMesh)
 {
-	assert(rayMesh != NULL);
-	return rayMesh->base.vertexBuffer;
+	assert(rayTracingMesh != NULL);
+	return rayTracingMesh->base.vertexBuffer;
 }
-Buffer getRayMeshIndexBuffer(RayMesh rayMesh)
+Buffer getRayTracingMeshIndexBuffer(RayTracingMesh rayTracingMesh)
 {
-	assert(rayMesh != NULL);
-	return rayMesh->base.indexBuffer;
+	assert(rayTracingMesh != NULL);
+	return rayTracingMesh->base.indexBuffer;
 }
 
-RayScene createRayScene(
+RayTracingScene createRayTracingScene(
 	Window window,
-	RayMesh* rayMeshes,
-	size_t rayMeshCount)
+	RayTracingMesh* meshes,
+	size_t meshCount)
 {
 	assert(window != NULL);
-	assert(rayMeshes != NULL);
-	assert(rayMeshCount != 0);
+	assert(meshes != NULL);
+	assert(meshCount != 0);
 	assert(window->useRayTracing == true);
 	assert(window->isRecording == false);
 
 	GraphicsAPI api = window->api;
 	RayTracing rayTracing = window->rayTracing;
 
-	RayScene rayScene;
+	RayTracingScene rayTracingScene;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
 
-		rayScene = createVkRayScene(
+		rayTracingScene = createVkRayTracingScene(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
@@ -5024,18 +5470,18 @@ RayScene createRayScene(
 			vkWindow->transferFence,
 			rayTracing,
 			window,
-			rayMeshes,
-			rayMeshCount);
+			meshes,
+			meshCount);
 #else
 		abort();
 #endif
 	}
 	else
 	{
-		abort();
+		return NULL;
 	}
 
-	if (rayScene == NULL)
+	if (rayTracingScene == NULL)
 		return NULL;
 
 	size_t count = rayTracing->base.sceneCount;
@@ -5044,9 +5490,9 @@ RayScene createRayScene(
 	{
 		size_t capacity = rayTracing->base.sceneCapacity * 2;
 
-		RayScene* scenes = realloc(
+		RayTracingScene* scenes = realloc(
 			rayTracing->base.scenes,
-			sizeof(RayScene) * capacity);
+			sizeof(RayTracingScene) * capacity);
 
 		if (scenes == NULL)
 		{
@@ -5055,11 +5501,11 @@ RayScene createRayScene(
 #if MPGX_SUPPORT_VULKAN
 				VkWindow vkWindow = window->vkWindow;
 
-				destroyVkRayScene(
+				destroyVkRayTracingScene(
 					vkWindow->device,
 					vkWindow->allocator,
 					window->rayTracing,
-					rayScene);
+					rayTracingScene);
 #else
 				abort();
 #endif
@@ -5076,25 +5522,25 @@ RayScene createRayScene(
 		rayTracing->base.sceneCapacity = capacity;
 	}
 
-	rayTracing->base.scenes[count] = rayScene;
+	rayTracing->base.scenes[count] = rayTracingScene;
 	rayTracing->base.sceneCount = count + 1;
-	return rayScene;
+	return rayTracingScene;
 }
-void destroyRayScene(RayScene rayScene)
+void destroyRayTracingScene(RayTracingScene rayTracingScene)
 {
-	if (rayScene == NULL)
+	if (rayTracingScene == NULL)
 		return;
 
-	assert(rayScene->base.window->isRecording == false);
+	assert(rayTracingScene->base.window->isRecording == false);
 
-	Window window = rayScene->base.window;
+	Window window = rayTracingScene->base.window;
 	RayTracing rayTracing = window->rayTracing;
-	RayScene* scenes = rayTracing->base.scenes;
+	RayTracingScene* scenes = rayTracing->base.scenes;
 	size_t sceneCount = rayTracing->base.sceneCount;
 
 	for (size_t i = 0; i < sceneCount; i++)
 	{
-		if (rayScene != scenes[i])
+		if (rayTracingScene != scenes[i])
 			continue;
 
 		GraphicsAPI api = window->api;
@@ -5110,11 +5556,11 @@ void destroyRayScene(RayScene rayScene)
 			if (result != VK_SUCCESS)
 				abort();
 
-			destroyVkRayScene(
+			destroyVkRayTracingScene(
 				vkWindow->device,
 				vkWindow->allocator,
 				window->rayTracing,
-				rayScene);
+				rayTracingScene);
 #else
 			abort();
 #endif
@@ -5134,18 +5580,18 @@ void destroyRayScene(RayScene rayScene)
 	abort();
 }
 
-Window getRaySceneWindow(RayScene rayMesh)
+Window getRayTracingSceneWindow(RayTracingScene rayTracingScene)
 {
-	assert(rayMesh != NULL);
-	return rayMesh->base.window;
+	assert(rayTracingScene != NULL);
+	return rayTracingScene->base.window;
 }
-RayMesh* getRaySceneMeshes(RayScene rayMesh)
+RayTracingMesh* getRayTracingSceneMeshes(RayTracingScene rayTracingScene)
 {
-	assert(rayMesh != NULL);
-	return rayMesh->base.meshes;
+	assert(rayTracingScene != NULL);
+	return rayTracingScene->base.meshes;
 }
-size_t getRaySceneMeshCount(RayScene rayMesh)
+size_t getRayTracingSceneMeshCount(RayTracingScene rayTracingScene)
 {
-	assert(rayMesh != NULL);
-	return rayMesh->base.meshCount;
+	assert(rayTracingScene != NULL);
+	return rayTracingScene->base.meshCount;
 }

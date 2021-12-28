@@ -26,10 +26,11 @@ typedef struct BaseFramebuffer_T
 	Image* colorAttachments;
 	size_t colorAttachmentCount;
 	Image depthStencilAttachment;
-	Pipeline* pipelines;
-	size_t pipelineCapacity;
-	size_t pipelineCount;
+	GraphicsPipeline* graphicsPipelines;
+	size_t graphicsPipelineCapacity;
+	size_t graphicsPipelineCount;
 } BaseFramebuffer_T;
+#if MPGX_SUPPORT_VULKAN
 typedef struct VkFramebuffer_T
 {
 	bool isDefault;
@@ -39,14 +40,14 @@ typedef struct VkFramebuffer_T
 	Image* colorAttachments;
 	size_t colorAttachmentCount;
 	Image depthStencilAttachment;
-	Pipeline* pipelines;
-	size_t pipelineCapacity;
-	size_t pipelineCount;
-#if MPGX_SUPPORT_VULKAN
+	GraphicsPipeline* graphicsPipelines;
+	size_t graphicsPipelineCapacity;
+	size_t graphicsPipelineCount;
 	VkRenderPass renderPass;
 	VkFramebuffer handle;
-#endif
 } VkFramebuffer_T;
+#endif
+#if MPGX_SUPPORT_OPENGL
 typedef struct GlFramebuffer_T
 {
 	bool isDefault;
@@ -56,20 +57,25 @@ typedef struct GlFramebuffer_T
 	Image* colorAttachments;
 	size_t colorAttachmentCount;
 	Image depthStencilAttachment;
-	Pipeline* pipelines;
-	size_t pipelineCapacity;
-	size_t pipelineCount;
+	GraphicsPipeline* graphicsPipelines;
+	size_t graphicsPipelineCapacity;
+	size_t graphicsPipelineCount;
 	GLuint handle;
 } GlFramebuffer_T;
+#endif
 union Framebuffer_T
 {
 	BaseFramebuffer_T base;
+#if MPGX_SUPPORT_VULKAN
 	VkFramebuffer_T vk;
+#endif
+#if MPGX_SUPPORT_OPENGL
 	GlFramebuffer_T gl;
+#endif
 };
 
 #if MPGX_SUPPORT_VULKAN
-typedef struct VkPipelineCreateInfo
+typedef struct VkGraphicsPipelineCreateData
 {
 	uint32_t vertexBindingDescriptionCount;
 	const VkVertexInputBindingDescription* vertexBindingDescriptions;
@@ -79,7 +85,7 @@ typedef struct VkPipelineCreateInfo
 	const VkDescriptorSetLayout* setLayouts;
 	uint32_t pushConstantRangeCount;
 	const VkPushConstantRange* pushConstantRanges;
-} VkPipelineCreateInfo;
+} VkGraphicsPipelineCreateData;
 
 inline static VkRenderPass createVkGeneralRenderPass(
 	VkDevice device,
@@ -376,9 +382,9 @@ inline static void destroyVkFramebuffer(
 		free(framebuffer->vk.colorAttachments);
 	}
 
-	assert(framebuffer->vk.pipelineCount == 0);
+	assert(framebuffer->vk.graphicsPipelineCount == 0);
 
-	free(framebuffer->vk.pipelines);
+	free(framebuffer->vk.graphicsPipelines);
 	free(framebuffer);
 }
 
@@ -403,10 +409,10 @@ inline static Framebuffer createVkDefaultFramebuffer(
 	framebuffer->vk.colorAttachmentCount = 1;
 	framebuffer->vk.depthStencilAttachment = NULL;
 
-	Pipeline* pipelines = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(Pipeline));
+	GraphicsPipeline* graphicsPipelines = malloc(
+		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));
 
-	if (pipelines == NULL)
+	if (graphicsPipelines == NULL)
 	{
 		destroyVkFramebuffer(
 			device,
@@ -415,9 +421,9 @@ inline static Framebuffer createVkDefaultFramebuffer(
 		return NULL;
 	}
 
-	framebuffer->vk.pipelines = pipelines;
-	framebuffer->vk.pipelineCapacity = MPGX_DEFAULT_CAPACITY;
-	framebuffer->vk.pipelineCount = 0;
+	framebuffer->vk.graphicsPipelines = graphicsPipelines;
+	framebuffer->vk.graphicsPipelineCapacity = MPGX_DEFAULT_CAPACITY;
+	framebuffer->vk.graphicsPipelineCount = 0;
 	framebuffer->vk.renderPass = renderPass;
 	framebuffer->vk.handle = handle;
 	return framebuffer;
@@ -499,10 +505,10 @@ inline static Framebuffer createVkFramebuffer(
 
 	framebuffer->vk.depthStencilAttachment = depthStencilAttachment;
 
-	Pipeline* pipelines = malloc(
-		pipelineCapacity * sizeof(Pipeline));
+	GraphicsPipeline* graphicsPipelines = malloc(
+		pipelineCapacity * sizeof(GraphicsPipeline));
 
-	if (pipelines == NULL)
+	if (graphicsPipelines == NULL)
 	{
 		destroyVkFramebuffer(
 			device,
@@ -511,9 +517,9 @@ inline static Framebuffer createVkFramebuffer(
 		return NULL;
 	}
 
-	framebuffer->vk.pipelines = pipelines;
-	framebuffer->vk.pipelineCapacity = pipelineCapacity;
-	framebuffer->vk.pipelineCount = 0;
+	framebuffer->vk.graphicsPipelines = graphicsPipelines;
+	framebuffer->vk.graphicsPipelineCapacity = pipelineCapacity;
+	framebuffer->vk.graphicsPipelineCount = 0;
 
 	VkFramebuffer handle = createVkFramebufferHandle(
 		device,
@@ -538,12 +544,12 @@ inline static Framebuffer createVkFramebuffer(
 	return framebuffer;
 }
 
-inline static bool recreateVkPipelineHandle(
+inline static bool recreateVkGraphicsPipelineHandle(
 	VkDevice device,
 	VkRenderPass renderPass,
-	Pipeline pipeline,
+	GraphicsPipeline graphicsPipeline,
 	size_t colorAttachmentCount,
-	const VkPipelineCreateInfo* createInfo);
+	const VkGraphicsPipelineCreateData* createData);
 
 inline static bool setVkFramebufferAttachments(
 	VkDevice device,
@@ -610,28 +616,28 @@ inline static bool setVkFramebufferAttachments(
 		return false;
 	}
 
-	Pipeline* pipelines = framebuffer->vk.pipelines;
-	size_t pipelineCount = framebuffer->vk.pipelineCount;
+	GraphicsPipeline* graphicsPipelines = framebuffer->vk.graphicsPipelines;
+	size_t pipelineCount = framebuffer->vk.graphicsPipelineCount;
 
 	for (size_t i = 0; i < pipelineCount; i++)
 	{
-		Pipeline pipeline = pipelines[i];
+		GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
 
-		OnPipelineResize onResize =
-			getPipelineOnResize(pipeline);
+		OnGraphicsPipelineResize onResize =
+			getGraphicsPipelineOnResize(graphicsPipeline);
 
-		VkPipelineCreateInfo createInfo;
+		VkGraphicsPipelineCreateData createData;
 
 		bool result = onResize(
-			pipeline,
+			graphicsPipeline,
 			size,
-			&createInfo);
-		result &= recreateVkPipelineHandle(
+			&createData);
+		result &= recreateVkGraphicsPipelineHandle(
 			device,
 			renderPass,
-			pipeline,
+			graphicsPipeline,
 			colorAttachmentCount,
-			&createInfo);
+			&createData);
 
 		if (result == false)
 		{
@@ -785,6 +791,7 @@ inline static void clearVkFramebuffer(
 }
 #endif
 
+#if MPGX_SUPPORT_OPENGL
 inline static void destroyGlFramebuffer(
 	Framebuffer framebuffer,
 	bool destroyAttachments)
@@ -815,9 +822,9 @@ inline static void destroyGlFramebuffer(
 		free(framebuffer->gl.colorAttachments);
 	}
 
-	assert(framebuffer->gl.pipelineCount == 0);
+	assert(framebuffer->gl.graphicsPipelineCount == 0);
 
-	free(framebuffer->gl.pipelines);
+	free(framebuffer->gl.graphicsPipelines);
 	free(framebuffer);
 }
 
@@ -838,18 +845,18 @@ inline static Framebuffer createGlDefaultFramebuffer(
 	framebuffer->gl.depthStencilAttachment = NULL;
 	framebuffer->gl.isDefault = true;
 
-	Pipeline* pipelines = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(Pipeline));
+	GraphicsPipeline* graphicsPipelines = malloc(
+		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));
 
-	if (pipelines == NULL)
+	if (graphicsPipelines == NULL)
 	{
 		free(framebuffer);
 		return NULL;
 	}
 
-	framebuffer->gl.pipelines = pipelines;
-	framebuffer->gl.pipelineCapacity = MPGX_DEFAULT_CAPACITY;
-	framebuffer->gl.pipelineCount = 0;
+	framebuffer->gl.graphicsPipelines = graphicsPipelines;
+	framebuffer->gl.graphicsPipelineCapacity = MPGX_DEFAULT_CAPACITY;
+	framebuffer->gl.graphicsPipelineCount = 0;
 	framebuffer->gl.handle = GL_ZERO;
 	return framebuffer;
 }
@@ -1047,10 +1054,10 @@ inline static Framebuffer createGlFramebuffer(
 		return NULL;
 	}
 
-	Pipeline* pipelines = malloc(
-		pipelineCapacity * sizeof(Pipeline));
+	GraphicsPipeline* graphicsPipelines = malloc(
+		pipelineCapacity * sizeof(GraphicsPipeline));
 
-	if (pipelines == NULL)
+	if (graphicsPipelines == NULL)
 	{
 		destroyGlFramebuffer(
 			framebuffer,
@@ -1058,9 +1065,9 @@ inline static Framebuffer createGlFramebuffer(
 		return NULL;
 	}
 
-	framebuffer->gl.pipelines = pipelines;
-	framebuffer->gl.pipelineCapacity = pipelineCapacity;
-	framebuffer->gl.pipelineCount = 0;
+	framebuffer->gl.graphicsPipelines = graphicsPipelines;
+	framebuffer->gl.graphicsPipelineCapacity = pipelineCapacity;
+	framebuffer->gl.graphicsPipelineCount = 0;
 	return framebuffer;
 }
 
@@ -1092,18 +1099,18 @@ inline static bool setGlFramebufferAttachments(
 		colorAttachments = NULL;
 	}
 
-	Pipeline* pipelines = framebuffer->gl.pipelines;
-	size_t pipelineCount = framebuffer->gl.pipelineCount;
+	GraphicsPipeline* graphicsPipelines = framebuffer->gl.graphicsPipelines;
+	size_t graphicsPipelineCount = framebuffer->gl.graphicsPipelineCount;
 
-	for (size_t i = 0; i < pipelineCount; i++)
+	for (size_t i = 0; i < graphicsPipelineCount; i++)
 	{
-		Pipeline pipeline = pipelines[i];
+		GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
 
-		OnPipelineResize onResize =
-			getPipelineOnResize(pipeline);
+		OnGraphicsPipelineResize onResize =
+			getGraphicsPipelineOnResize(graphicsPipeline);
 
 		bool result = onResize(
-			pipeline,
+			graphicsPipeline,
 			size,
 			NULL);
 
@@ -1276,3 +1283,4 @@ inline static void clearGlFramebuffer(
 
 	assertOpenGL();
 }
+#endif

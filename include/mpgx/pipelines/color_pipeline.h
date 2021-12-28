@@ -18,24 +18,24 @@
 
 #define COLOR_PIPELINE_NAME "Color"
 
-Pipeline createColorPipelineExt(
+GraphicsPipeline createColorPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const PipelineState* state);
-Pipeline createColorPipeline(
+	const GraphicsPipelineState* state);
+GraphicsPipeline createColorPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader);
 
 Mat4F getColorPipelineMvp(
-	Pipeline pipeline);
+	GraphicsPipeline colorPipeline);
 void setColorPipelineMvp(
-	Pipeline pipeline,
+	GraphicsPipeline colorPipeline,
 	Mat4F mvp);
 
 LinearColor getColorPipelineColor(
-	Pipeline pipeline);
+	GraphicsPipeline colorPipeline);
 void setColorPipelineColor(
-	Pipeline pipeline,
+	GraphicsPipeline colorPipeline,
 	LinearColor color);

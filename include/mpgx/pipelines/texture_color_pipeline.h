@@ -18,14 +18,14 @@
 
 #define TEXTURE_COLOR_PIPELINE_NAME "TextureColor"
 
-Pipeline createTextureColorPipelineExt(
+GraphicsPipeline createTextureColorPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
-	const PipelineState* state);
-Pipeline createTextureColorPipeline(
+	const GraphicsPipelineState* state);
+GraphicsPipeline createTextureColorPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -33,30 +33,30 @@ Pipeline createTextureColorPipeline(
 	Sampler sampler);
 
 Image getTextureColorPipelineTexture(
-	Pipeline pipeline);
+	GraphicsPipeline textureColorPipeline);
 Sampler getTextureColorPipelineSampler(
-	Pipeline pipeline);
+	GraphicsPipeline textureColorPipeline);
 
 Mat4F getTextureColorPipelineMvp(
-	Pipeline pipeline);
+	GraphicsPipeline textureColorPipeline);
 void setTextureColorPipelineMvp(
-	Pipeline pipeline,
+	GraphicsPipeline textureColorPipeline,
 	Mat4F mvp);
 
 Vec2F getTextureColorPipelineSize(
-	Pipeline pipeline);
+	GraphicsPipeline textureColorPipeline);
 void setTextureColorPipelineSize(
-	Pipeline pipeline,
+	GraphicsPipeline textureColorPipeline,
 	Vec2F size);
 
 Vec2F getTextureColorPipelineOffset(
-	Pipeline pipeline);
+	GraphicsPipeline textureColorPipeline);
 void setTextureColorPipelineOffset(
-	Pipeline pipeline,
+	GraphicsPipeline textureColorPipeline,
 	Vec2F offset);
 
 LinearColor getTextureColorPipelineColor(
-	Pipeline pipeline);
+	GraphicsPipeline textureColorPipeline);
 void setTextureColorPipelineColor(
-	Pipeline pipeline,
+	GraphicsPipeline textureColorPipeline,
 	LinearColor color);

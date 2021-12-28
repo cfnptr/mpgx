@@ -29,6 +29,7 @@ typedef struct BaseImage_T
 	Vec3U size;
 	bool isConstant;
 } BaseImage_T;
+#if MPGX_SUPPORT_VULKAN
 typedef struct VkImage_T
 {
 	Window window;
@@ -37,7 +38,6 @@ typedef struct VkImage_T
 	ImageFormat format;
 	Vec3U size;
 	bool isConstant;
-#if MPGX_SUPPORT_VULKAN
 	VkFormat vkFormat;
 	VkImageAspectFlagBits vkAspect;
 	uint8_t sizeMultiplier;
@@ -46,8 +46,9 @@ typedef struct VkImage_T
 	VkImageView imageView;
 	VkBuffer stagingBuffer;
 	VmaAllocation stagingAllocation;
-#endif
 } VkImage_T;
+#endif
+#if MPGX_SUPPORT_OPENGL
 typedef struct GlImage_T
 {
 	Window window;
@@ -61,11 +62,16 @@ typedef struct GlImage_T
 	GLenum dataFormat;
 	GLuint handle;
 } GlImage_T;
+#endif
 union Image_T
 {
 	BaseImage_T base;
+#if MPGX_SUPPORT_VULKAN
 	VkImage_T vk;
+#endif
+#if MPGX_SUPPORT_OPENGL
 	GlImage_T gl;
+#endif
 };
 
 #if MPGX_SUPPORT_VULKAN
@@ -730,6 +736,7 @@ inline static bool setVkImageData(
 }
 #endif
 
+#if MPGX_SUPPORT_OPENGL
 inline static void destroyGlImage(
 	Image image)
 {
@@ -756,6 +763,12 @@ inline static Image createGlImage(
 	uint8_t levelCount,
 	bool isConstant)
 {
+	if (type != GENERAL_IMAGE_TYPE &&
+		type != ATTACHMENT_IMAGE_TYPE)
+	{
+		return NULL;
+	}
+
 	// TODO: use isAttachment for renderbuffer optimization
 
 	Image image = calloc(1, sizeof(Image_T));
@@ -1017,3 +1030,4 @@ inline static void setGlImageData(
 
 	assertOpenGL();
 }
+#endif

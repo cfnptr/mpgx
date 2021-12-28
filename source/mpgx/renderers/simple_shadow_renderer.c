@@ -17,125 +17,124 @@
 #include <string.h>
 #include <assert.h>
 
-struct RenderHandle_T
+typedef struct Handle_T
 {
-	Mesh mesh;
-};
+	GraphicsMesh mesh;
+} Handle_T;
 
-typedef struct RenderHandle_T RenderHandle_T;
-typedef RenderHandle_T* RenderHandle;
+typedef Handle_T* Handle;
 
 static void onDestroy(void* handle)
 {
-	free((RenderHandle)handle);
+	free((Handle)handle);
 }
 static size_t onDraw(
-	Render render,
-	Pipeline pipeline,
+	GraphicsRender graphicsRender,
+	GraphicsPipeline graphicsPipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	RenderHandle renderHandle =
-		getRenderHandle(render);
+	Handle handle = getGraphicsRenderHandle(
+		graphicsRender);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
 	setSimpleShadowPipelineMvp(
-		pipeline,
+		graphicsPipeline,
 		mvp);
-	return drawMesh(
-		renderHandle->mesh,
-		pipeline);
+	return drawGraphicsMesh(
+		graphicsPipeline,
+		handle->mesh);
 }
-Renderer createSimpleShadowRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createSimpleShadowRenderer(
+	GraphicsPipeline simpleShadowPipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity)
 {
-	assert(pipeline != NULL);
-	assert(sorting < RENDER_SORTING_COUNT);
+	assert(simpleShadowPipeline != NULL);
+	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
 	assert(capacity != 0);
 
-	assert(strcmp(
-		getPipelineName(pipeline),
+	assert(strcmp(getGraphicsPipelineName(
+		simpleShadowPipeline),
 		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 
-	return createRenderer(
-		pipeline,
+	return createGraphicsRenderer(
+		simpleShadowPipeline,
 		sorting,
 		useCulling,
 		onDestroy,
 		onDraw,
 		capacity);
 }
-Render createSimpleShadowRender(
-	Renderer renderer,
+GraphicsRender createSimpleShadowRender(
+	GraphicsRenderer simpleShadowRenderer,
 	Transform transform,
 	Box3F bounding,
-	Mesh mesh)
+	GraphicsMesh mesh)
 {
-	assert(renderer != NULL);
+	assert(simpleShadowRenderer != NULL);
 	assert(transform != NULL);
 	assert(mesh != NULL);
 
 	assert(getFramebufferWindow(
-		getPipelineFramebuffer(
-		getRendererPipeline(renderer))) ==
-		getMeshWindow(mesh));
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(renderer)),
+		getGraphicsPipelineFramebuffer(
+		getGraphicsRendererPipeline(
+		simpleShadowRenderer))) ==
+		getGraphicsMeshWindow(mesh));
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		simpleShadowRenderer)),
 		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 
-	RenderHandle renderHandle = malloc(
-		sizeof(RenderHandle_T));
+	Handle handle = malloc(sizeof(Handle_T));
 
-	if (renderHandle == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	renderHandle->mesh = mesh;
+	handle->mesh = mesh;
 
-	Render render = createRender(
-		renderer,
+	GraphicsRender render = createGraphicsRender(
+		simpleShadowRenderer,
 		transform,
 		bounding,
-		renderHandle);
+		handle);
 
 	if (render == NULL)
 	{
-		free(renderHandle);
+		free(handle);
 		return NULL;
 	}
 
 	return render;
 }
 
-Mesh getSimpleShadowRenderMesh(
-	Render render)
+GraphicsMesh getSimpleShadowRenderMesh(
+	GraphicsRender simpleShadowRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(simpleShadowRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+			simpleShadowRender))),
 		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->mesh;
+	Handle handle = getGraphicsRenderHandle(
+		simpleShadowRender);
+	return handle->mesh;
 }
 void setSimpleShadowRenderMesh(
-	Render render,
-	Mesh mesh)
+	GraphicsRender simpleShadowRender,
+	GraphicsMesh mesh)
 {
-	assert(render != NULL);
+	assert(simpleShadowRender != NULL);
 	assert(mesh != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+			simpleShadowRender))),
 		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->mesh = mesh;
+	Handle handle = getGraphicsRenderHandle(
+		simpleShadowRender);
+	handle->mesh = mesh;
 }

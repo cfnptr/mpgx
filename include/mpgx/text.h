@@ -72,7 +72,7 @@ Font createFontFromFile(
 void destroyFont(Font font);
 
 Text createText32(
-	Pipeline pipeline,
+	GraphicsPipeline textPipeline,
 	Font font,
 	uint32_t fontSize,
 	AlignmentType alignment,
@@ -80,7 +80,7 @@ Text createText32(
 	size_t dataLength,
 	bool isConstant);
 Text createText8(
-	Pipeline pipeline,
+	GraphicsPipeline textPipeline,
 	Font font,
 	uint32_t fontSize,
 	AlignmentType alignment,
@@ -89,7 +89,7 @@ Text createText8(
 	bool isConstant);
 void destroyText(Text text);
 
-Pipeline getTextPipeline(Text text);
+GraphicsPipeline getTextPipeline(Text text);
 bool isTextConstant(Text text);
 
 Vec2F getTextSize(Text text);
@@ -143,18 +143,19 @@ size_t drawText(
 	Text text,
 	Vec4U scissor);
 
-float getTextPlatformScale(Pipeline pipeline);
+float getTextPlatformScale(
+	GraphicsPipeline textPipeline);
 
 Sampler createTextSampler(Window window);
 
-Pipeline createExtTextPipeline(
+GraphicsPipeline createExtTextPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler,
-	const PipelineState* state,
+	const GraphicsPipelineState* state,
 	size_t textCapacity);
-Pipeline createTextPipeline(
+GraphicsPipeline createTextPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -162,18 +163,19 @@ Pipeline createTextPipeline(
 	size_t textCapacity,
 	bool useScissor);
 
-Sampler getTextPipelineSampler(Pipeline pipeline);
+Sampler getTextPipelineSampler(
+	GraphicsPipeline textPipeline);
 
 Mat4F getTextPipelineMVP(
-	Pipeline pipeline);
+	GraphicsPipeline textPipeline);
 void setTextPipelineMVP(
-	Pipeline pipeline,
+	GraphicsPipeline textPipeline,
 	Mat4F mvp);
 
 LinearColor getTextPipelineColor(
-	Pipeline pipeline);
+	GraphicsPipeline textPipeline);
 void setTextPipelineColor(
-	Pipeline pipeline,
+	GraphicsPipeline textPipeline,
 	LinearColor color);
 
 // TODO: add monochrome text support

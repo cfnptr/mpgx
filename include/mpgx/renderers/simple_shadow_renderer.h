@@ -13,22 +13,22 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/renderer.h"
+#include "mpgx/graphics_renderer.h"
 #include "mpgx/pipelines/simple_shadow_pipeline.h"
 
-Renderer createSimpleShadowRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createSimpleShadowRenderer(
+	GraphicsPipeline simpleShadowPipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity);
-Render createSimpleShadowRender(
-	Renderer renderer,
+GraphicsRender createSimpleShadowRender(
+	GraphicsRenderer simpleShadowRenderer,
 	Transform transform,
 	Box3F bounding,
-	Mesh mesh);
+	GraphicsMesh mesh);
 
-Mesh getSimpleShadowRenderMesh(
-	Render render);
+GraphicsMesh getSimpleShadowRenderMesh(
+	GraphicsRender simpleShadowRender);
 void setSimpleShadowRenderMesh(
-	Render render,
-	Mesh mesh);
+	GraphicsRender simpleShadowRender,
+	GraphicsMesh mesh);

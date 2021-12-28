@@ -20,10 +20,16 @@
 #define GLFW_INCLUDE_VULKAN
 #endif
 
+#if MPGX_SUPPORT_OPENGL
 #include "mpgx/_source/opengl.h"
-#include "GLFW/glfw3.h"
+#else
+#define GLFW_INCLUDE_NONE
+#endif
 
 #include "mpgx/_source/swapchain.h"
+
+#include "GLFW/glfw3.h"
+#include <stdio.h>
 
 #define ENGINE_NAME "MPGX"
 #define VK_VERSION VK_API_VERSION_1_2
@@ -248,10 +254,10 @@ inline static VkInstance createVkInstance(
 				NULL,
 				0,
 				VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
+					VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
 				VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+					VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+					VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
 				vkDebugMessengerCallback,
 				NULL,
 			};
@@ -283,17 +289,17 @@ inline static VkDebugUtilsMessengerEXT createVkDebugUtilsMessenger(
 		NULL,
 		0,
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
 		VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
 		vkDebugMessengerCallback,
 		NULL,
 	};
 
 	PFN_vkCreateDebugUtilsMessengerEXT createFunction =
 		(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			instance, "vkCreateDebugUtilsMessengerEXT");
+		instance, "vkCreateDebugUtilsMessengerEXT");
 
 	if (createFunction == NULL)
 		return NULL;

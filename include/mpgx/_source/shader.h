@@ -19,13 +19,6 @@
 #include "mpgx/md5.h"
 #include <string.h>
 
-#define OPENGL_SHADER_HEADER \
-	"#version 330 core\n"
-#define OPENGL_ES_SHADER_HEADER \
-	"#version 300 es\n"         \
-	"precision highp float;\n"  \
-	"precision highp int;\n"
-
 typedef struct BaseShader_T
 {
 	Window window;
@@ -34,6 +27,7 @@ typedef struct BaseShader_T
 	uint8_t hash[MD5_BLOCK_SIZE];
 #endif
 } BaseShader_T;
+#if MPGX_SUPPORT_VULKAN
 typedef struct VkShader_T
 {
 	Window window;
@@ -41,11 +35,11 @@ typedef struct VkShader_T
 #ifndef NDEBUG
 	uint8_t hash[MD5_BLOCK_SIZE];
 #endif
-#if MPGX_SUPPORT_VULKAN
 	VkShaderModule handle;
 	VkShaderStageFlags stage;
-#endif
 } VkShader_T;
+#endif
+#if MPGX_SUPPORT_OPENGL
 typedef struct GlShader_T
 {
 	Window window;
@@ -55,12 +49,26 @@ typedef struct GlShader_T
 #endif
 	GLuint handle;
 } GlShader_T;
+#endif
 union Shader_T
 {
 	BaseShader_T base;
+#if MPGX_SUPPORT_VULKAN
 	VkShader_T vk;
+#endif
+#if MPGX_SUPPORT_OPENGL
 	GlShader_T gl;
+#endif
 };
+
+#if MPGX_SUPPORT_OPENGL
+#define OPENGL_SHADER_HEADER \
+	"#version 330 core\n"
+#define OPENGL_ES_SHADER_HEADER \
+	"#version 300 es\n"         \
+	"precision highp float;\n"  \
+	"precision highp int;\n"
+#endif
 
 #if MPGX_SUPPORT_VULKAN
 inline static void destroyVkShader(
@@ -157,6 +165,7 @@ inline static Shader createVkShader(
 }
 #endif
 
+#if MPGX_SUPPORT_OPENGL
 inline static bool getGlShaderType(
 	ShaderType shaderType,
 	GLenum* glShaderType)
@@ -321,3 +330,4 @@ inline static Shader createGlShader(
 
 	return shader;
 }
+#endif

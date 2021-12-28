@@ -17,100 +17,99 @@
 #include <string.h>
 #include <assert.h>
 
-struct RenderHandle_T
+typedef struct Handle_T
 {
 	LinearColor color;
-	Mesh mesh;
-};
+	GraphicsMesh mesh;
+} Handle_T;
 
-typedef struct RenderHandle_T RenderHandle_T;
-typedef RenderHandle_T* RenderHandle;
+typedef Handle_T* Handle;
 
 static void onDestroy(void* handle)
 {
-	free((RenderHandle)handle);
+	free((Handle)handle);
 }
 static size_t onDraw(
-	Render render,
-	Pipeline pipeline,
+	GraphicsRender graphicsRender,
+	GraphicsPipeline graphicsPipeline,
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	RenderHandle renderHandle =
-		getRenderHandle(render);
+	Handle handle = getGraphicsRenderHandle(
+		graphicsRender);
 	Mat4F mvp = dotMat4F(
 		*viewProj,
 		*model);
 	setColorPipelineMvp(
-		pipeline,
+		graphicsPipeline,
 		mvp);
 	setColorPipelineColor(
-		pipeline,
-		renderHandle->color);
-	return drawMesh(
-		renderHandle->mesh,
-		pipeline);
+		graphicsPipeline,
+		handle->color);
+	return drawGraphicsMesh(
+		graphicsPipeline,
+		handle->mesh);
 }
-Renderer createColorRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createColorRenderer(
+	GraphicsPipeline colorPipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity)
 {
-	assert(pipeline != NULL);
-	assert(sorting < RENDER_SORTING_COUNT);
+	assert(colorPipeline != NULL);
+	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
 	assert(capacity != 0);
 
-	assert(strcmp(
-		getPipelineName(pipeline),
+	assert(strcmp(getGraphicsPipelineName(
+		colorPipeline),
 		COLOR_PIPELINE_NAME) == 0);
 
-	return createRenderer(
-		pipeline,
+	return createGraphicsRenderer(
+		colorPipeline,
 		sorting,
 		useCulling,
 		onDestroy,
 		onDraw,
 		capacity);
 }
-Render createColorRender(
-	Renderer renderer,
+GraphicsRender createColorRender(
+	GraphicsRenderer colorRenderer,
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
-	Mesh mesh)
+	GraphicsMesh mesh)
 {
-	assert(renderer != NULL);
+	assert(colorRenderer != NULL);
 	assert(transform != NULL);
 	assert(mesh != NULL);
 
 	assert(getFramebufferWindow(
-		getPipelineFramebuffer(
-		getRendererPipeline(renderer))) ==
-		getMeshWindow(mesh));
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(renderer)),
+		getGraphicsPipelineFramebuffer(
+		getGraphicsRendererPipeline(
+		colorRenderer))) ==
+		getGraphicsMeshWindow(mesh));
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		colorRenderer)),
 		COLOR_PIPELINE_NAME) == 0);
 
-	RenderHandle renderHandle = malloc(
-		sizeof(RenderHandle_T));
+	Handle handle = malloc(sizeof(Handle_T));
 
-	if (renderHandle == NULL)
+	if (handle == NULL)
 		return NULL;
 
-	renderHandle->color = color;
-	renderHandle->mesh = mesh;
+	handle->color = color;
+	handle->mesh = mesh;
 
-	Render render = createRender(
-		renderer,
+	GraphicsRender render = createGraphicsRender(
+		colorRenderer,
 		transform,
 		bounding,
-		renderHandle);
+		handle);
 
 	if (render == NULL)
 	{
-		free(renderHandle);
+		free(handle);
 		return NULL;
 	}
 
@@ -118,58 +117,58 @@ Render createColorRender(
 }
 
 LinearColor getColorRenderColor(
-	Render render)
+	GraphicsRender colorRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(colorRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		colorRender))),
 		COLOR_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->color;
+	Handle handle = getGraphicsRenderHandle(
+		colorRender);
+	return handle->color;
 }
 void setColorRenderColor(
-	Render render,
+	GraphicsRender colorRender,
 	LinearColor color)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(colorRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		colorRender))),
 		COLOR_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->color = color;
+	Handle handle = getGraphicsRenderHandle(
+		colorRender);
+	handle->color = color;
 }
 
-Mesh getColorRenderMesh(
-	Render render)
+GraphicsMesh getColorRenderMesh(
+	GraphicsRender colorRender)
 {
-	assert(render != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(colorRender != NULL);
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		colorRender))),
 		COLOR_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	return renderHandle->mesh;
+	Handle handle = getGraphicsRenderHandle(
+		colorRender);
+	return handle->mesh;
 }
 void setColorRenderMesh(
-	Render render,
-	Mesh mesh)
+	GraphicsRender colorRender,
+	GraphicsMesh mesh)
 {
-	assert(render != NULL);
+	assert(colorRender != NULL);
 	assert(mesh != NULL);
-	assert(strcmp(
-		getPipelineName(
-		getRendererPipeline(
-		getRenderRenderer(render))),
+	assert(strcmp(getGraphicsPipelineName(
+		getGraphicsRendererPipeline(
+		getGraphicsRenderRenderer(
+		colorRender))),
 		COLOR_PIPELINE_NAME) == 0);
-	RenderHandle renderHandle =
-		getRenderHandle(render);
-	renderHandle->mesh = mesh;
+	Handle handle = getGraphicsRenderHandle(
+		colorRender);
+	handle->mesh = mesh;
 }

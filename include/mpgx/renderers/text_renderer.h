@@ -13,16 +13,16 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/renderer.h"
+#include "mpgx/graphics_renderer.h"
 #include "mpgx/text.h"
 
-Renderer createTextRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createTextRenderer(
+	GraphicsPipeline textPipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity);
-Render createTextRender(
-	Renderer renderer,
+GraphicsRender createTextRender(
+	GraphicsRenderer textRenderer,
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
@@ -30,13 +30,13 @@ Render createTextRender(
 	Vec4U scissor);
 
 LinearColor getTextRenderColor(
-	Render render);
+	GraphicsRender render);
 void setTextRenderColor(
-	Render render,
+	GraphicsRender render,
 	LinearColor color);
 
 Text getTextRenderText(
-	Render render);
+	GraphicsRender textRender);
 void setTextRenderText(
-	Render render,
+	GraphicsRender textRender,
 	Text text);

@@ -13,22 +13,22 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/renderer.h"
+#include "mpgx/graphics_renderer.h"
 #include "mpgx/pipelines/diffuse_pipeline.h"
 
-Renderer createDiffuseRenderer(
-	Pipeline pipeline,
-	RenderSorting sorting,
+GraphicsRenderer createDiffuseRenderer(
+	GraphicsPipeline diffusePipeline,
+	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity);
-Render createDiffuseRender(
-	Renderer renderer,
+GraphicsRender createDiffuseRender(
+	GraphicsRenderer diffuseRenderer,
 	Transform transform,
 	Box3F bounding,
-	Mesh mesh);
+	GraphicsMesh mesh);
 
-Mesh getDiffuseRenderMesh(
-	Render render);
+GraphicsMesh getDiffuseRenderMesh(
+	GraphicsRender diffuseRender);
 void setDiffuseRenderMesh(
-	Render render,
-	Mesh mesh);
+	GraphicsRender diffuseRender,
+	GraphicsMesh mesh);

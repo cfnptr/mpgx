@@ -19,19 +19,19 @@
 
 Sampler createSimpleShadowSampler(Window window);
 
-Pipeline createSimpleShadowPipelineExt(
+GraphicsPipeline createSimpleShadowPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const PipelineState* state);
-Pipeline createSimpleShadowPipeline(
+	const GraphicsPipelineState* state);
+GraphicsPipeline createSimpleShadowPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	uint32_t shadowMapLength);
 
 Mat4F getSimpleShadowPipelineMvp(
-	Pipeline pipeline);
+	GraphicsPipeline simpleShadowPipeline);
 void setSimpleShadowPipelineMvp(
-	Pipeline pipeline,
+	GraphicsPipeline simpleShadowPipeline,
 	Mat4F mvp);

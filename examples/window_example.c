@@ -31,23 +31,25 @@ typedef struct Client_T
 	Window window;
 	Transformer transformer;
 	FreeCamera freeCamera;
-	RenderData renderData;
-	Renderer diffuseRenderer;
-	Render diffuseRender;
+	GraphicsRendererData data;
+	GraphicsRenderer diffuseRenderer;
+	GraphicsRender diffuseRender;
 } Client_T;
 
 typedef Client_T* Client;
 
 inline static void rotateRender(
 	double time,
-	Render render)
+	GraphicsRender graphicsRender)
 {
 	Quat rotation = eulerQuat(vec3F(
 		sinf((float)time),
 		cosf((float)time),
 		0.0f));
+	Transform transform = getGraphicsRenderTransform(
+		graphicsRender);
 	setTransformRotation(
-		getRenderTransform(render),
+		transform,
 		rotation);
 }
 static void onWindowUpdate(void* handle)
@@ -68,13 +70,13 @@ static void onWindowUpdate(void* handle)
 
 	Transform cameraTransform =
 		getFreeCameraTransform(freeCamera);
-	RenderData* renderData = &client->renderData;
+	GraphicsRendererData* data = &client->data;
 
-	createRenderData(
+	createGraphicsRenderData(
 		window,
 		getTransformModel(cameraTransform),
 		getFreeCamera(freeCamera),
-		renderData,
+		data,
 		true);
 
 	Framebuffer framebuffer =
@@ -89,15 +91,15 @@ static void onWindowUpdate(void* handle)
 		framebuffer,
 		clearValues,
 		2);
-	drawRenderer(
+	drawGraphicsRenderer(
 		client->diffuseRenderer,
-		renderData);
+		data);
 	endFramebufferRender(framebuffer);
 
 	endWindowRecord(window);
 }
 
-inline static Renderer createDiffuseRendererInstance(Window window)
+inline static GraphicsRenderer createDiffuseRendererInstance(Window window)
 {
 	const char* vertexShaderPath;
 	const char* fragmentShaderPath;
@@ -139,50 +141,52 @@ inline static Renderer createDiffuseRendererInstance(Window window)
 		return NULL;
 	}
 
-	Pipeline pipeline = createDiffusePipeline(
+	GraphicsPipeline graphicsPipeline = createDiffusePipeline(
 		getWindowFramebuffer(window),
 		vertexShader,
 		fragmentShader);
 
-	if (pipeline == NULL)
+	if (graphicsPipeline == NULL)
 	{
 		destroyShader(fragmentShader);
 		destroyShader(vertexShader);
 		return NULL;
 	}
 
-	Renderer renderer = createDiffuseRenderer(
-		pipeline,
-		ASCENDING_RENDER_SORTING,
+	GraphicsRenderer graphicsRenderer = createDiffuseRenderer(
+		graphicsPipeline,
+		ASCENDING_GRAPHICS_RENDER_SORTING,
 		true,
 		MPGX_DEFAULT_CAPACITY);
 
-	if (renderer == NULL)
+	if (graphicsRenderer == NULL)
 	{
-		destroyPipeline(
-			pipeline,
+		destroyGraphicsPipeline(
+			graphicsPipeline,
 			true);
 		return NULL;
 	}
 
-	return renderer;
+	return graphicsRenderer;
 }
 inline static void destroyDiffuseRendererInstance(
-	Renderer diffuseRenderer)
+	GraphicsRenderer diffuseRenderer)
 {
 	if (diffuseRenderer == NULL)
 		return;
 
-	destroyPipeline(
-		getRendererPipeline(diffuseRenderer),
+	GraphicsPipeline graphicsPipeline =
+		getGraphicsRendererPipeline(diffuseRenderer);
+	destroyGraphicsPipeline(
+		graphicsPipeline,
 		true);
-	destroyRenderer(diffuseRenderer);
+	destroyGraphicsRenderer(diffuseRenderer);
 }
 
-inline static Render createDiffuseRenderInstance(
+inline static GraphicsRender createDiffuseRenderInstance(
 	Window window,
 	Transformer transformer,
-	Renderer diffuseRenderer)
+	GraphicsRenderer diffuseRenderer)
 {
 	Vec3F position = vec3F(0.0f, 0.0f, 4.0f);
 
@@ -225,7 +229,7 @@ inline static Render createDiffuseRenderInstance(
 		return NULL;
 	}
 
-	Mesh mesh = createMesh(
+	GraphicsMesh graphicsMesh = createGraphicsMesh(
 		window,
 		UINT16_INDEX_TYPE,
 		sizeof(cubeTriangleIndices) / sizeof(uint16_t),
@@ -233,7 +237,7 @@ inline static Render createDiffuseRenderInstance(
 		vertexBuffer,
 		indexBuffer);
 
-	if (mesh == NULL)
+	if (graphicsMesh == NULL)
 	{
 		destroyBuffer(indexBuffer);
 		destroyBuffer(vertexBuffer);
@@ -244,32 +248,33 @@ inline static Render createDiffuseRenderInstance(
 	Box3F bounding = posExtBox3F(
 		zeroVec3F,
 		oneVec3F);
-	Render render = createDiffuseRender(
+	GraphicsRender graphicsRender = createDiffuseRender(
 		diffuseRenderer,
 		transform,
 		bounding,
-		mesh);
+		graphicsMesh);
 
-	if (render == NULL)
+	if (graphicsRender == NULL)
 	{
-		destroyMesh(
-			mesh,
+		destroyGraphicsMesh(
+			graphicsMesh,
 			true);
 		destroyTransform(transform);
 		return NULL;
 	}
 
-	return render;
+	return graphicsRender;
 }
 inline static void destroyDiffuseRenderInstance(
-	Render diffuseRender)
+	GraphicsRender diffuseRender)
 {
 	if (diffuseRender == NULL)
 		return;
 
-	Mesh mesh = getDiffuseRenderMesh(diffuseRender);
-	destroyRender(diffuseRender, true);
-	destroyMesh(mesh, true);
+	GraphicsMesh graphicsMesh =
+		getDiffuseRenderMesh(diffuseRender);
+	destroyGraphicsRender(diffuseRender, true);
+	destroyGraphicsMesh(graphicsMesh, true);
 }
 
 inline static Client createClient()
@@ -327,7 +332,7 @@ inline static Client createClient()
 		return NULL;
 	}
 
-	Renderer diffuseRenderer = createDiffuseRendererInstance(window);
+	GraphicsRenderer diffuseRenderer = createDiffuseRendererInstance(window);
 
 	if (diffuseRenderer == NULL)
 	{
@@ -338,7 +343,7 @@ inline static Client createClient()
 		return NULL;
 	}
 
-	Render diffuseRender = createDiffuseRenderInstance(
+	GraphicsRender diffuseRender = createDiffuseRenderInstance(
 		window,
 		transformer,
 		diffuseRenderer);
@@ -359,8 +364,8 @@ inline static Client createClient()
 	client->diffuseRenderer = diffuseRenderer;
 	client->diffuseRender = diffuseRender;
 
-	memset(&client->renderData,
-		0, sizeof(RenderData));
+	memset(&client->data,
+		0, sizeof(GraphicsRendererData));
 
 	showWindow(window);
 	return client;
@@ -385,13 +390,13 @@ inline static void updateClient(Client client)
 
 int main()
 {
-	bool result = initializeGraphics(
+	MpgxResult mpgxResult = initializeGraphics(
 		APPLICATION_NAME,
 		MPGX_VERSION_MAJOR,
 		MPGX_VERSION_MINOR,
 		MPGX_VERSION_PATCH);
 
-	if (result == false)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return EXIT_FAILURE;
 
 	Client client = createClient();

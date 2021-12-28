@@ -13,43 +13,43 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/renderer.h"
+#include "mpgx/graphics_renderer.h"
 #include "mpgx/pipelines/texture_sprite_pipeline.h"
 
-Renderer createTextureSpriteRenderer(
-	Pipeline pipeline,
-	RenderSorting sortingType,
+GraphicsRenderer createTextureSpriteRenderer(
+	GraphicsPipeline textureSpritePipeline,
+	GraphicsRenderSorting sortingType,
 	bool useCulling,
 	size_t capacity);
-Render createTextureSpriteRender(
-	Renderer renderer,
+GraphicsRender createTextureSpriteRender(
+	GraphicsRenderer textureSpriteRenderer,
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
 	Vec2F size,
 	Vec2F offset,
-	Mesh mesh);
+	GraphicsMesh mesh);
 
 LinearColor getTextureSpriteRenderColor(
-	Render render);
+	GraphicsRender textureSpriteRender);
 void setTextureSpriteRenderColor(
-	Render render,
+	GraphicsRender textureSpriteRender,
 	LinearColor color);
 
 Vec2F getTextureSpriteRenderSize(
-	Render render);
+	GraphicsRender textureSpriteRender);
 void setTextureSpriteRenderSize(
-	Render render,
+	GraphicsRender textureSpriteRender,
 	Vec2F size);
 
 Vec2F getTextureSpriteRenderOffset(
-	Render render);
+	GraphicsRender textureSpriteRender);
 void setTextureSpriteRenderOffset(
-	Render render,
+	GraphicsRender textureSpriteRender,
 	Vec2F offset);
 
-Mesh getTextureSpriteRenderMesh(
-	Render render);
+GraphicsMesh getTextureSpriteRenderMesh(
+	GraphicsRender textureSpriteRender);
 void setTextureSpriteRenderMesh(
-	Render render,
-	Mesh mesh);
+	GraphicsRender textureSpriteRender,
+	GraphicsMesh mesh);

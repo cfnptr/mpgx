@@ -32,14 +32,14 @@ LinearColor getGradientSkyAmbientColor(
 
 Sampler createGradientSkySampler(Window window);
 
-Pipeline createGradientSkyPipelineExt(
+GraphicsPipeline createGradientSkyPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
-	const PipelineState* state);
-Pipeline createGradientSkyPipeline(
+	const GraphicsPipelineState* state);
+GraphicsPipeline createGradientSkyPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
@@ -47,24 +47,24 @@ Pipeline createGradientSkyPipeline(
 	Sampler sampler);
 
 Image getGradientSkyPipelineTexture(
-	Pipeline pipeline);
+	GraphicsPipeline gradientSkyPipeline);
 Sampler getGradientSkyPipelineSampler(
-	Pipeline pipeline);
+	GraphicsPipeline gradientSkyPipeline);
 
 Mat4F getGradientSkyPipelineMvp(
-	Pipeline pipeline);
+	GraphicsPipeline gradientSkyPipeline);
 void setGradientSkyPipelineMvp(
-	Pipeline pipeline,
+	GraphicsPipeline gradientSkyPipeline,
 	Mat4F mvp);
 
 Vec3F getGradientSkyPipelineSunDir(
-	Pipeline pipeline);
+	GraphicsPipeline gradientSkyPipeline);
 void setGradientSkyPipelineSunDir(
-	Pipeline pipeline,
+	GraphicsPipeline gradientSkyPipeline,
 	Vec3F sunDir);
 
 LinearColor getGradientSkyPipelineSunColor(
-	Pipeline pipeline);
+	GraphicsPipeline gradientSkyPipeline);
 void setGradientSkyPipelineSunColor(
-	Pipeline pipeline,
+	GraphicsPipeline gradientSkyPipeline,
 	LinearColor sunColor);

@@ -13,43 +13,43 @@
 // limitations under the License.
 
 #pragma once
-#include "mpgx/renderer.h"
+#include "mpgx/graphics_renderer.h"
 #include "mpgx/pipelines/texture_color_pipeline.h"
 
-Renderer createTextureColorRenderer(
-	Pipeline pipeline,
-	RenderSorting sortingType,
+GraphicsRenderer createTextureColorRenderer(
+	GraphicsPipeline textureColorPipeline,
+	GraphicsRenderSorting sortingType,
 	bool useCulling,
 	size_t capacity);
-Render createTextureColorRender(
-	Renderer renderer,
+GraphicsRender createTextureColorRender(
+	GraphicsRenderer textureColorRenderer,
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
 	Vec2F size,
 	Vec2F offset,
-	Mesh mesh);
+	GraphicsMesh mesh);
 
 LinearColor getTextureColorRenderColor(
-	Render render);
+	GraphicsRender textureColorRender);
 void setTextureColorRenderColor(
-	Render render,
+	GraphicsRender textureColorRender,
 	LinearColor color);
 
 Vec2F getTextureColorRenderSize(
-	Render render);
+	GraphicsRender textureColorRender);
 void setTextureColorRenderSize(
-	Render render,
+	GraphicsRender textureColorRender,
 	Vec2F size);
 
 Vec2F getTextureColorRenderOffset(
-	Render render);
+	GraphicsRender textureColorRender);
 void setTextureColorRenderOffset(
-	Render render,
+	GraphicsRender textureColorRender,
 	Vec2F offset);
 
-Mesh getTextureColorRenderMesh(
-	Render render);
+GraphicsMesh getTextureColorRenderMesh(
+	GraphicsRender textureColorRender);
 void setTextureColorRenderMesh(
-	Render render,
-	Mesh mesh);
+	GraphicsRender textureColorRender,
+	GraphicsMesh mesh);

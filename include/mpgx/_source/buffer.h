@@ -26,6 +26,7 @@ typedef struct BaseBuffer_T
 	bool isConstant;
 	bool isMapped;
 } BaseBuffer_T;
+#if MPGX_SUPPORT_VULKAN
 typedef struct VkBuffer_T
 {
 	Window window;
@@ -33,12 +34,12 @@ typedef struct VkBuffer_T
 	size_t size;
 	bool isConstant;
 	bool isMapped;
-#if MPGX_SUPPORT_VULKAN
 	bool writeAccess;
 	VkBuffer handle;
 	VmaAllocation allocation;
-#endif
 } VkBuffer_T;
+#endif
+#if MPGX_SUPPORT_OPENGL
 typedef struct GlBuffer_T
 {
 	Window window;
@@ -49,11 +50,16 @@ typedef struct GlBuffer_T
 	GLenum glType;
 	GLuint handle;
 } GlBuffer_T;
+#endif
 union Buffer_T
 {
 	BaseBuffer_T base;
+#if MPGX_SUPPORT_VULKAN
 	VkBuffer_T vk;
+#endif
+#if MPGX_SUPPORT_OPENGL
 	GlBuffer_T gl;
+#endif
 };
 
 #if MPGX_SUPPORT_VULKAN
@@ -365,6 +371,7 @@ inline static Buffer createVkBuffer(
 }
 #endif
 
+#if MPGX_SUPPORT_OPENGL
 inline static void* mapGlBuffer(
 	GLenum type,
 	GLuint handle,
@@ -513,3 +520,4 @@ inline static Buffer createGlBuffer(
 
 	return buffer;
 }
+#endif

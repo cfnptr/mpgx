@@ -433,7 +433,7 @@ typedef union FramebufferClear
 	DepthStencilClear depthStencil;
 } FramebufferClear;
 
-typedef struct PipelineState
+typedef struct GraphicsPipelineState
 {
 	DrawMode drawMode;
 	PolygonMode polygonMode;
@@ -461,7 +461,7 @@ typedef struct PipelineState
 	Vec2F depthRange;
 	Vec2F depthBias;
 	Vec4F blendColor;
-} PipelineState;
+} GraphicsPipelineState;
 
 typedef struct Window_T Window_T;
 typedef Window_T* Window;
@@ -471,43 +471,45 @@ typedef union Image_T Image_T;
 typedef Image_T* Image;
 typedef union Sampler_T Sampler_T;
 typedef Sampler_T* Sampler;
-typedef union Pipeline_T Pipeline_T;
-typedef Pipeline_T* Pipeline;
+typedef union GraphicsPipeline_T GraphicsPipeline_T;
+typedef GraphicsPipeline_T* GraphicsPipeline;
 typedef union Framebuffer_T Framebuffer_T;
 typedef Framebuffer_T* Framebuffer;
 typedef union Shader_T Shader_T;
 typedef Shader_T* Shader;
-typedef union Mesh_T Mesh_T;
-typedef Mesh_T* Mesh;
-
-typedef union RayPipeline_T RayPipeline_T;
-typedef RayPipeline_T* RayPipeline;
-typedef union RayMesh_T RayMesh_T;
-typedef RayMesh_T* RayMesh;
-typedef union RayScene_T RayScene_T;
-typedef RayScene_T* RayScene;
+typedef union GraphicsMesh_T GraphicsMesh_T;
+typedef GraphicsMesh_T* GraphicsMesh;
+typedef union ComputePipeline_T ComputePipeline_T;
+typedef ComputePipeline_T* ComputePipeline;
+typedef union RayTracingPipeline_T RayTracingPipeline_T;
+typedef RayTracingPipeline_T* RayTracingPipeline;
+typedef union RayTracingMesh_T RayTracingMesh_T;
+typedef RayTracingMesh_T* RayTracingMesh;
+typedef union RayTracingScene_T RayTracingScene_T;
+typedef RayTracingScene_T* RayTracingScene;
 
 typedef struct ImageData_T ImageData_T;
 typedef ImageData_T* ImageData;
 
 typedef void(*OnWindowUpdate)(void* argument);
 
-typedef void(*OnPipelineDestroy)(void* handle);
-typedef void(*OnPipelineBind)(Pipeline pipeline);
-typedef void(*OnPipelineUniformsSet)(Pipeline pipeline);
-
-typedef bool(*OnPipelineResize)(
-	Pipeline pipeline,
+typedef void(*OnGraphicsPipelineDestroy)(void* handle);
+typedef void(*OnGraphicsPipelineBind)(
+	GraphicsPipeline graphicsPipeline);
+typedef void(*OnGraphicsPipelineUniformsSet)(
+	GraphicsPipeline graphicsPipeline);
+typedef bool(*OnGraphicsPipelineResize)(
+	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
-	void* createInfo);
+	void* createData);
 
-typedef void(*OnRayPipelineDestroy)(void* handle);
-typedef void(*OnRayPipelineBind)(RayPipeline rayPipeline);
+typedef void(*OnComputePipelineDestroy)(void* handle);
+typedef void(*OnComputePipelineBind)(
+	ComputePipeline computePipeline);
 
-typedef bool(*OnRayPipelineResize)(
-	RayPipeline pipeline,
-	Vec2U newSize,
-	void* createInfo);
+typedef void(*OnRayTracingPipelineDestroy)(void* handle);
+typedef void(*OnRayTracingPipelineBind)(
+	RayTracingPipeline rayTracingPipeline);
 
 MpgxResult initializeGraphics(
 	const char* appName,
@@ -802,144 +804,198 @@ void clearFramebuffer(
 	const FramebufferClear* clearValues,
 	size_t clearValueCount);
 
-Pipeline createPipeline(
+GraphicsPipeline createGraphicsPipeline(
 	Framebuffer framebuffer,
 	const char* name,
-	const PipelineState* state,
-	OnPipelineBind onBind,
-	OnPipelineUniformsSet onUniformsSet,
-	OnPipelineResize onResize,
-	OnPipelineDestroy onDestroy,
+	const GraphicsPipelineState* state,
+	OnGraphicsPipelineBind onBind,
+	OnGraphicsPipelineUniformsSet onUniformsSet,
+	OnGraphicsPipelineResize onResize,
+	OnGraphicsPipelineDestroy onDestroy,
 	void* handle,
-	const void* createInfo,
+	const void* createData,
 	Shader* shaders,
 	size_t shaderCount);
-void destroyPipeline(
-	Pipeline pipeline,
+void destroyGraphicsPipeline(
+	GraphicsPipeline graphicsPipeline,
 	bool destroyShaders);
 
-Framebuffer getPipelineFramebuffer(Pipeline pipeline);
-const char* getPipelineName(Pipeline pipeline);
-Shader* getPipelineShaders(Pipeline pipeline);
-size_t getPipelineShaderCount(Pipeline pipeline);
-const PipelineState* getPipelineState(Pipeline pipeline);
-OnPipelineBind getPipelineOnBind(Pipeline pipeline);
-OnPipelineUniformsSet getPipelineOnUniformsSet(Pipeline pipeline);
-OnPipelineResize getPipelineOnResize(Pipeline pipeline);
-OnPipelineDestroy getPipelineOnDestroy(Pipeline pipeline);
-void* getPipelineHandle(Pipeline pipeline);
+Framebuffer getGraphicsPipelineFramebuffer(
+	GraphicsPipeline graphicsPipeline);
+const char* getGraphicsPipelineName(
+	GraphicsPipeline graphicsPipeline);
+const GraphicsPipelineState* getGraphicsPipelineState(
+	GraphicsPipeline graphicsPipeline);
+OnGraphicsPipelineBind getGraphicsPipelineOnBind(
+	GraphicsPipeline graphicsPipeline);
+OnGraphicsPipelineUniformsSet getGraphicsPipelineOnUniformsSet(
+	GraphicsPipeline graphicsPipeline);
+OnGraphicsPipelineResize getGraphicsPipelineOnResize(
+	GraphicsPipeline graphicsPipeline);
+OnGraphicsPipelineDestroy getGraphicsPipelineOnDestroy(
+	GraphicsPipeline graphicsPipeline);
+void* getGraphicsPipelineHandle(
+	GraphicsPipeline graphicsPipeline);
+Shader* getGraphicsPipelineShaders(
+	GraphicsPipeline graphicsPipeline);
+size_t getGraphicsPipelineShaderCount(
+	GraphicsPipeline graphicsPipeline);
 
-void bindPipeline(Pipeline pipeline);
+void bindGraphicsPipeline(
+	GraphicsPipeline graphicsPipeline);
 
-Mesh createMesh(
+GraphicsMesh createGraphicsMesh(
 	Window window,
 	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
 	Buffer indexBuffer);
-void destroyMesh(
-	Mesh mesh,
+void destroyGraphicsMesh(
+	GraphicsMesh graphicsMesh,
 	bool destroyBuffers);
 
-Window getMeshWindow(Mesh mesh);
-IndexType getMeshIndexType(Mesh mesh);
+Window getGraphicsMeshWindow(GraphicsMesh graphicsMesh);
+IndexType getGraphicsMeshIndexType(GraphicsMesh graphicsMesh);
 
-size_t getMeshIndexCount(
-	Mesh mesh);
-void setMeshIndexCount(
-	Mesh mesh,
+size_t getGraphicsMeshIndexCount(
+	GraphicsMesh graphicsMesh);
+void setGraphicsMeshIndexCount(
+	GraphicsMesh graphicsMesh,
 	size_t indexCount);
 
-size_t getMeshIndexOffset(
-	Mesh mesh);
-void setMeshIndexOffset(
-	Mesh mesh,
+size_t getGraphicsMeshIndexOffset(
+	GraphicsMesh graphicsMesh);
+void setGraphicsMeshIndexOffset(
+	GraphicsMesh graphicsMesh,
 	size_t indexOffset);
 
-Buffer getMeshVertexBuffer(
-	Mesh mesh);
-void setMeshVertexBuffer(
-	Mesh mesh,
+Buffer getGraphicsMeshVertexBuffer(
+	GraphicsMesh graphicsMesh);
+void setGraphicsMeshVertexBuffer(
+	GraphicsMesh graphicsMesh,
 	Buffer vertexBuffer);
 
-Buffer getMeshIndexBuffer(
-	Mesh mesh);
-void setMeshIndexBuffer(
-	Mesh mesh,
+Buffer getGraphicsMeshIndexBuffer(
+	GraphicsMesh graphicsMesh);
+void setGraphicsMeshIndexBuffer(
+	GraphicsMesh graphicsMesh,
 	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer indexBuffer);
 
-size_t drawMesh(
-	Mesh mesh,
-	Pipeline pipeline);
+size_t drawGraphicsMesh(
+	GraphicsPipeline graphicsPipeline,
+	GraphicsMesh graphicsMesh);
 
-RayPipeline createRayPipeline(
+ComputePipeline createComputePipeline(
 	Window window,
 	const char* name,
-	OnRayPipelineBind onBind,
-	OnRayPipelineResize onResize,
-	OnRayPipelineDestroy onDestroy,
+	OnComputePipelineBind onBind,
+	OnComputePipelineDestroy onDestroy,
 	void* handle,
-	const void* createInfo,
+	const void* createData,
+	Shader shader);
+void destroyComputePipeline(
+	ComputePipeline computePipeline,
+	bool destroyShader);
+
+Window getComputePipelineWindow(
+	ComputePipeline computePipeline);
+const char* getComputePipelineName(
+	ComputePipeline computePipeline);
+OnComputePipelineBind getComputePipelineOnBind(
+	ComputePipeline computePipeline);
+OnComputePipelineDestroy getComputePipelineOnDestroy(
+	ComputePipeline computePipeline);
+Shader getComputePipelineShader(
+	ComputePipeline computePipeline);
+void* getComputePipelineHandle(
+	ComputePipeline computePipeline);
+
+void bindComputePipeline(
+	ComputePipeline computePipeline);
+
+void dispatchComputePipeline(
+	ComputePipeline computePipeline,
+	size_t groupCountX,
+	size_t groupCountY,
+	size_t groupCountZ);
+
+RayTracingPipeline createRayTracingPipeline(
+	Window window,
+	const char* name,
+	OnRayTracingPipelineBind onBind,
+	OnRayTracingPipelineDestroy onDestroy,
+	void* handle,
+	const void* createData,
 	Shader* generationShaders,
 	size_t generationShaderCount,
 	Shader* missShaders,
 	size_t missShaderCount,
 	Shader* closestHitShaders,
 	size_t closestHitShaderCount);
-void destroyRayPipeline(
-	RayPipeline rayPipeline,
+void destroyRayTracingPipeline(
+	RayTracingPipeline rayTracingPipeline,
 	bool destroyShaders);
 
-Window getRayPipelineWindow(RayPipeline rayPipeline);
-const char* getRayPipelineName(RayPipeline rayPipeline);
-Shader* getRayPipelineGenerationShaders(RayPipeline rayPipeline);
-size_t getRayPipelineGenerationShaderCount(RayPipeline rayPipeline);
-Shader* getRayPipelineMissShaders(RayPipeline rayPipeline);
-size_t getRayPipelineMissShaderCount(RayPipeline rayPipeline);
-Shader* getRayPipelineClosestHitShaders(RayPipeline rayPipeline);
-size_t getRayPipelineClosestHitShaderCount(RayPipeline rayPipeline);
-OnRayPipelineBind getRayPipelineOnBind(RayPipeline rayPipeline);
-OnRayPipelineResize getRayPipelineOnResize(RayPipeline rayPipeline);
-OnRayPipelineDestroy getRayPipelineOnDestroy(RayPipeline rayPipeline);
-void* getRayPipelineHandle(RayPipeline rayPipeline);
+Window getRayTracingPipelineWindow(
+	RayTracingPipeline rayTracingPipeline);
+const char* getRayTracingPipelineName(
+	RayTracingPipeline rayTracingPipeline);
+OnRayTracingPipelineBind getRayTracingPipelineOnBind(
+	RayTracingPipeline rayTracingPipeline);
+OnRayTracingPipelineDestroy getRayTracingPipelineOnDestroy(
+	RayTracingPipeline rayTracingPipeline);
+void* getRayTracingPipelineHandle(
+	RayTracingPipeline rayTracingPipeline);
+Shader* getRayTracingPipelineGenerationShaders(
+	RayTracingPipeline rayTracingPipeline);
+size_t getRayTracingPipelineGenerationShaderCount(
+	RayTracingPipeline rayTracingPipeline);
+Shader* getRayTracingPipelineMissShaders(
+	RayTracingPipeline rayTracingPipeline);
+size_t getRayTracingPipelineMissShaderCount(
+	RayTracingPipeline rayTracingPipeline);
+Shader* getRayTracingPipelineClosestHitShaders(
+	RayTracingPipeline rayTracingPipeline);
+size_t getRayTracingPipelineClosestHitShaderCount(
+	RayTracingPipeline rayTracingPipeline);
 
-void bindRayPipeline(RayPipeline rayPipeline);
-void tracePipelineRays(RayPipeline rayPipeline);
+void bindRayTracingPipeline(RayTracingPipeline rayTracingPipeline);
+void traceRayTracingPipeline(RayTracingPipeline rayTracingPipeline);
 
-RayMesh createRayMesh(
+RayTracingMesh createRayTracingMesh(
 	Window window,
 	size_t vertexStride,
 	IndexType indexType,
 	Buffer vertexBuffer,
 	Buffer indexBuffer);
-void destroyRayMesh(
-	RayMesh rayMesh,
+void destroyRayTracingMesh(
+	RayTracingMesh rayTracingMesh,
 	bool destroyBuffers);
 
-Window getRayMeshWindow(RayMesh rayMesh);
-size_t getRayMeshVertexStride(RayMesh rayMesh);
-IndexType getRayMeshIndexType(RayMesh rayMesh);
-Buffer getRayMeshVertexBuffer(RayMesh rayMesh);
-Buffer getRayMeshIndexBuffer(RayMesh rayMesh);
+Window getRayTracingMeshWindow(RayTracingMesh rayTracingMesh);
+size_t getRayTracingMeshVertexStride(RayTracingMesh rayTracingMesh);
+IndexType getRayTracingMeshIndexType(RayTracingMesh rayTracingMesh);
+Buffer getRayTracingMeshVertexBuffer(RayTracingMesh rayTracingMesh);
+Buffer getRayTracingMeshIndexBuffer(RayTracingMesh rayTracingMesh);
 
 // TODO: get/set ray mesh transform matrix
 
-RayScene createRayScene(
+RayTracingScene createRayTracingScene(
 	Window window,
-	RayMesh* rayMeshes,
-	size_t rayMeshCount);
-void destroyRayScene(RayScene rayScene);
+	RayTracingMesh* meshes,
+	size_t meshCount);
+void destroyRayTracingScene(
+	RayTracingScene rayTracingScene);
 
-Window getRaySceneWindow(RayScene rayMesh);
-RayMesh* getRaySceneMeshes(RayScene rayMesh);
-size_t getRaySceneMeshCount(RayScene rayMesh);
+Window getRayTracingSceneWindow(RayTracingScene rayTracingScene);
+RayTracingMesh* getRayTracingSceneMeshes(RayTracingScene rayTracingScene);
+size_t getRayTracingSceneMeshCount(RayTracingScene rayTracingScene);
 
 // TODO: add/remove ray scene mesh
-
 
 // TODO: add functions:
 // create group: buffer, image, ray mesh

@@ -50,7 +50,7 @@ Transformer createTransformer(size_t capacity)
 {
 	assert(capacity != 0);
 
-	Transformer transformer = malloc(
+	Transformer transformer = calloc(1,
 		sizeof(Transformer_T));
 
 	if (transformer == NULL)

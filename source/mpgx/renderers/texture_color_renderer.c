@@ -1,4 +1,4 @@
-// Copyright 2020-2021 Nikita Fediuchin. All rights reserved.
+// Copyright 2020-2022 Nikita Fediuchin. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,22 +58,22 @@ static size_t onDraw(
 		graphicsPipeline,
 		handle->mesh);
 }
-GraphicsRenderer createTextureSpriteRenderer(
-	GraphicsPipeline textureSpritePipeline,
+GraphicsRenderer createTextureColorRenderer(
+	GraphicsPipeline textureColorPipeline,
 	GraphicsRenderSorting sorting,
 	bool useCulling,
 	size_t capacity)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureColorPipeline != NULL);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
 	assert(capacity != 0);
 
 	assert(strcmp(getGraphicsPipelineName(
-		textureSpritePipeline),
+		textureColorPipeline),
 		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 
 	return createGraphicsRenderer(
-		textureSpritePipeline,
+		textureColorPipeline,
 		sorting,
 		useCulling,
 		onDestroy,
@@ -81,7 +81,7 @@ GraphicsRenderer createTextureSpriteRenderer(
 		capacity);
 }
 GraphicsRender createTextureColorRender(
-	GraphicsRenderer textureSpriteRenderer,
+	GraphicsRenderer textureColorRenderer,
 	Transform transform,
 	Box3F bounding,
 	LinearColor color,
@@ -89,18 +89,18 @@ GraphicsRender createTextureColorRender(
 	Vec2F offset,
 	GraphicsMesh mesh)
 {
-	assert(textureSpriteRenderer != NULL);
+	assert(textureColorRenderer != NULL);
 	assert(transform != NULL);
 	assert(mesh != NULL);
 
 	assert(getFramebufferWindow(
 		getGraphicsPipelineFramebuffer(
 		getGraphicsRendererPipeline(
-		textureSpriteRenderer))) ==
+		textureColorRenderer))) ==
 		getGraphicsMeshWindow(mesh));
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
-		textureSpriteRenderer)),
+		textureColorRenderer)),
 		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 
 	Handle handle = malloc(sizeof(Handle_T));
@@ -114,7 +114,7 @@ GraphicsRender createTextureColorRender(
 	handle->mesh = mesh;
 
 	GraphicsRender render = createGraphicsRender(
-		textureSpriteRenderer,
+		textureColorRenderer,
 		transform,
 		bounding,
 		handle);

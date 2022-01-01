@@ -21,8 +21,9 @@
 typedef struct GradientSkyAmbient_T GradientSkyAmbient_T;
 typedef GradientSkyAmbient_T* GradientSkyAmbient;
 
-GradientSkyAmbient createGradientSkyAmbient(
-	ImageData gradient);
+MpgxResult createGradientSkyAmbient(
+	ImageData gradient,
+	GradientSkyAmbient* gradientSkyAmbient);
 void destroyGradientSkyAmbient(
 	GradientSkyAmbient gradientSkyAmbient);
 
@@ -30,21 +31,25 @@ LinearColor getGradientSkyAmbientColor(
 	GradientSkyAmbient gradientSkyAmbient,
 	float dayTime);
 
-Sampler createGradientSkySampler(Window window);
+MpgxResult createGradientSkySampler(
+	Window window,
+	Sampler* gradientSkySampler);
 
-GraphicsPipeline createGradientSkyPipelineExt(
+MpgxResult createGradientSkyPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
-	const GraphicsPipelineState* state);
-GraphicsPipeline createGradientSkyPipeline(
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* gradientSky);
+MpgxResult createGradientSkyPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
-	Sampler sampler);
+	Sampler sampler,
+	GraphicsPipeline* gradientSky);
 
 Image getGradientSkyPipelineTexture(
 	GraphicsPipeline gradientSkyPipeline);

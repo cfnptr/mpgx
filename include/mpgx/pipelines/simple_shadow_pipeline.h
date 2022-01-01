@@ -17,18 +17,22 @@
 
 #define SIMPLE_SHADOW_PIPELINE_NAME "SimpleShadow"
 
-Sampler createSimpleShadowSampler(Window window);
+MpgxResult createSimpleShadowSampler(
+	Window window,
+	Sampler* simpleShadowSampler);
 
-GraphicsPipeline createSimpleShadowPipelineExt(
+MpgxResult createSimpleShadowPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const GraphicsPipelineState* state);
-GraphicsPipeline createSimpleShadowPipeline(
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* simpleShadowPipeline);
+MpgxResult createSimpleShadowPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	uint32_t shadowMapLength);
+	uint32_t shadowMapLength,
+	GraphicsPipeline* simpleShadowPipeline);
 
 Mat4F getSimpleShadowPipelineMvp(
 	GraphicsPipeline simpleShadowPipeline);

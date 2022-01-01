@@ -498,7 +498,7 @@ typedef void(*OnGraphicsPipelineBind)(
 	GraphicsPipeline graphicsPipeline);
 typedef void(*OnGraphicsPipelineUniformsSet)(
 	GraphicsPipeline graphicsPipeline);
-typedef bool(*OnGraphicsPipelineResize)(
+typedef MpgxResult(*OnGraphicsPipelineResize)(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createData);
@@ -628,18 +628,19 @@ void requestWindowAttention(Window window);
 void makeWindowContextCurrent(Window window);
 void updateWindow(Window window);
 
-bool beginWindowRecord(Window window);
+MpgxResult beginWindowRecord(Window window);
 void endWindowRecord(Window window);
 
 // TODO: make create buffer/image/ray mesh batching system. (Vulkan)
 // Add option createNow or batch and create with shared cmd buffer
 
-Buffer createBuffer(
+MpgxResult createBuffer(
 	Window window,
 	BufferType type,
 	const void* data,
 	size_t size,
-	bool isConstant);
+	bool isConstant,
+	Buffer* buffer);
 void destroyBuffer(Buffer buffer);
 
 Window getBufferWindow(Buffer buffer);
@@ -647,32 +648,35 @@ BufferType getBufferType(Buffer buffer);
 size_t getBufferSize(Buffer buffer);
 bool isBufferConstant(Buffer buffer);
 
-void* mapBuffer(
+MpgxResult mapBuffer(
 	Buffer buffer,
 	bool readAccess,
-	bool writeAccess);
+	bool writeAccess,
+	void** map);
 void unmapBuffer(Buffer buffer);
 
-void setBufferData(
+MpgxResult setBufferData(
 	Buffer buffer,
 	const void* data,
 	size_t size,
 	size_t offset);
 
-ImageData createImageData(
+MpgxResult createImageData(
 	const void* data,
 	size_t size,
-	uint8_t channelCount);
-ImageData createImageDataFromFile(
+	uint8_t channelCount,
+	ImageData* imageData);
+MpgxResult createImageDataFromFile(
 	const char* filePath,
-	uint8_t channelCount);
+	uint8_t channelCount,
+	ImageData* imageData);
 void destroyImageData(ImageData imageData);
 
 const uint8_t* getImageDataPixels(ImageData imageData);
 Vec2U getImageDataSize(ImageData imageData);
 uint8_t getImageDataChannelCount(ImageData imageData);
 
-Image createImage(
+MpgxResult createImage(
 	Window window,
 	ImageType type,
 	ImageDimension dimension,
@@ -680,24 +684,27 @@ Image createImage(
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant);
-Image createImageFromFile(
+	bool isConstant,
+	Image* image);
+MpgxResult createImageFromFile(
 	Window window,
 	ImageFormat format,
 	const char* filePath,
 	bool generateMipmap,
-	bool isConstant);
-Image createImageFromData(
+	bool isConstant,
+	Image* image);
+MpgxResult createImageFromData(
 	Window window,
 	ImageFormat format,
 	const void* data,
 	size_t size,
 	bool generateMipmap,
-	bool isConstant);
+	bool isConstant,
+	Image* image);
 void destroyImage(Image image);
 
 // TODO: set data[].
-void setImageData(
+MpgxResult setImageData(
 	Image image,
 	const void* data,
 	Vec3U size,
@@ -712,7 +719,7 @@ bool isImageConstant(Image image);
 
 uint8_t getImageLevelCount(Vec3U imageSize);
 
-Sampler createSampler(
+MpgxResult createSampler(
 	Window window,
 	ImageFilter minImageFilter,
 	ImageFilter magImageFilter,
@@ -724,7 +731,8 @@ Sampler createSampler(
 	CompareOperator compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange,
-	float mipmapLodBias);
+	float mipmapLodBias,
+	Sampler* sampler);
 void destroySampler(Sampler sampler);
 
 Window getSamplerWindow(Sampler sampler);
@@ -740,15 +748,17 @@ bool isSamplerUseCompare(Sampler sampler);
 Vec2F getSamplerMipmapLodRange(Sampler sampler);
 float getSamplerMipmapLodBias(Sampler sampler);
 
-Shader createShader(
+MpgxResult createShader(
 	Window window,
 	ShaderType type,
 	const void* code,
-	size_t size);
-Shader createShaderFromFile(
+	size_t size,
+	Shader* shader);
+MpgxResult createShaderFromFile(
 	Window window,
 	ShaderType type,
-	const char* filePath);
+	const char* filePath,
+	Shader* shader);
 void destroyShader(Shader shader);
 
 Window getShaderWindow(Shader shader);
@@ -757,20 +767,22 @@ ShaderType getShaderType(Shader shader);
 // TODO: add deferred rendering framebuffer constructor
 // utilize vulkan subpass optimization
 
-Framebuffer createFramebuffer(
+MpgxResult createFramebuffer(
 	Window window,
 	Vec2U size,
 	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
-	size_t pipelineCapacity);
-Framebuffer createShadowFramebuffer(
+	size_t pipelineCapacity,
+	Framebuffer* framebuffer);
+MpgxResult createShadowFramebuffer(
 	Window window,
 	Vec2U size,
 	bool useBeginClear,
 	Image depthAttachment,
-	size_t pipelineCapacity);
+	size_t pipelineCapacity,
+	Framebuffer* framebuffer);
 void destroyFramebuffer(
 	Framebuffer framebuffer,
 	bool destroyAttachments);
@@ -783,7 +795,7 @@ size_t getFramebufferColorAttachmentCount(Framebuffer framebuffer);
 Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer);
 bool isFramebufferDefault(Framebuffer framebuffer);
 
-bool setFramebufferAttachments(
+MpgxResult setFramebufferAttachments(
 	Framebuffer framebuffer,
 	Vec2U size,
 	bool useBeginClear,
@@ -804,7 +816,7 @@ void clearFramebuffer(
 	const FramebufferClear* clearValues,
 	size_t clearValueCount);
 
-GraphicsPipeline createGraphicsPipeline(
+MpgxResult createGraphicsPipeline(
 	Framebuffer framebuffer,
 	const char* name,
 	const GraphicsPipelineState* state,
@@ -815,7 +827,8 @@ GraphicsPipeline createGraphicsPipeline(
 	void* handle,
 	const void* createData,
 	Shader* shaders,
-	size_t shaderCount);
+	size_t shaderCount,
+	GraphicsPipeline* graphicsPipeline);
 void destroyGraphicsPipeline(
 	GraphicsPipeline graphicsPipeline,
 	bool destroyShaders);
@@ -844,13 +857,14 @@ size_t getGraphicsPipelineShaderCount(
 void bindGraphicsPipeline(
 	GraphicsPipeline graphicsPipeline);
 
-GraphicsMesh createGraphicsMesh(
+MpgxResult createGraphicsMesh(
 	Window window,
 	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
-	Buffer indexBuffer);
+	Buffer indexBuffer,
+	GraphicsMesh* graphicsMesh);
 void destroyGraphicsMesh(
 	GraphicsMesh graphicsMesh,
 	bool destroyBuffers);
@@ -889,14 +903,15 @@ size_t drawGraphicsMesh(
 	GraphicsPipeline graphicsPipeline,
 	GraphicsMesh graphicsMesh);
 
-ComputePipeline createComputePipeline(
+MpgxResult createComputePipeline(
 	Window window,
 	const char* name,
 	OnComputePipelineBind onBind,
 	OnComputePipelineDestroy onDestroy,
 	void* handle,
 	const void* createData,
-	Shader shader);
+	Shader shader,
+	ComputePipeline* computePipeline);
 void destroyComputePipeline(
 	ComputePipeline computePipeline,
 	bool destroyShader);
@@ -923,7 +938,7 @@ void dispatchComputePipeline(
 	size_t groupCountY,
 	size_t groupCountZ);
 
-RayTracingPipeline createRayTracingPipeline(
+MpgxResult createRayTracingPipeline(
 	Window window,
 	const char* name,
 	OnRayTracingPipelineBind onBind,
@@ -935,7 +950,8 @@ RayTracingPipeline createRayTracingPipeline(
 	Shader* missShaders,
 	size_t missShaderCount,
 	Shader* closestHitShaders,
-	size_t closestHitShaderCount);
+	size_t closestHitShaderCount,
+	RayTracingPipeline* rayTracingPipeline);
 void destroyRayTracingPipeline(
 	RayTracingPipeline rayTracingPipeline,
 	bool destroyShaders);
@@ -966,12 +982,13 @@ size_t getRayTracingPipelineClosestHitShaderCount(
 void bindRayTracingPipeline(RayTracingPipeline rayTracingPipeline);
 void traceRayTracingPipeline(RayTracingPipeline rayTracingPipeline);
 
-RayTracingMesh createRayTracingMesh(
+MpgxResult createRayTracingMesh(
 	Window window,
 	size_t vertexStride,
 	IndexType indexType,
 	Buffer vertexBuffer,
-	Buffer indexBuffer);
+	Buffer indexBuffer,
+	RayTracingMesh* rayTracingMesh);
 void destroyRayTracingMesh(
 	RayTracingMesh rayTracingMesh,
 	bool destroyBuffers);
@@ -984,10 +1001,11 @@ Buffer getRayTracingMeshIndexBuffer(RayTracingMesh rayTracingMesh);
 
 // TODO: get/set ray mesh transform matrix
 
-RayTracingScene createRayTracingScene(
+MpgxResult createRayTracingScene(
 	Window window,
 	RayTracingMesh* meshes,
-	size_t meshCount);
+	size_t meshCount,
+	RayTracingScene* rayTracingScene);
 void destroyRayTracingScene(
 	RayTracingScene rayTracingScene);
 

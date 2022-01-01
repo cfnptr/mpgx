@@ -114,7 +114,7 @@ static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 		sizeof(FragmentPushConstants),
 		&handle->vk.fpc);
 }
-static bool onVkResize(
+static MpgxResult onVkResize(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createData)
@@ -144,18 +144,19 @@ static bool onVkResize(
 	};
 
 	*(VkGraphicsPipelineCreateData*)createData = _createData;
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
 static void onVkDestroy(void* handle)
 {
 	free((Handle)handle);
 }
-inline static GraphicsPipeline createVkPipeline(
+inline static MpgxResult createVkPipeline(
 	Framebuffer framebuffer,
 	const GraphicsPipelineState* state,
 	Handle handle,
 	Shader* shaders,
-	uint8_t shaderCount)
+	uint8_t shaderCount,
+	GraphicsPipeline* graphicsPipeline)
 {
 	VkGraphicsPipelineCreateData createData = {
 		1,
@@ -179,12 +180,14 @@ inline static GraphicsPipeline createVkPipeline(
 		handle,
 		&createData,
 		shaders,
-		shaderCount);
+		shaderCount,
+		graphicsPipeline);
 }
 #endif
 
 #if MPGX_SUPPORT_OPENGL
-static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
+static void onGlUniformsSet(
+	GraphicsPipeline graphicsPipeline)
 {
 	Handle handle = graphicsPipeline->gl.handle;
 
@@ -210,7 +213,7 @@ static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 
 	assertOpenGL();
 }
-static bool onGlResize(
+static MpgxResult onGlResize(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createData)
@@ -218,29 +221,32 @@ static bool onGlResize(
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = graphicsPipeline->vk.state.viewport.z +
-		graphicsPipeline->vk.state.viewport.w == 0;
+	bool dynamic = graphicsPipeline->gl.state.viewport.z +
+		graphicsPipeline->gl.state.viewport.w == 0;
 	if (dynamic == false)
-		graphicsPipeline->vk.state.viewport = size;
+		graphicsPipeline->gl.state.viewport = size;
 
-	dynamic = graphicsPipeline->vk.state.scissor.z +
-		graphicsPipeline->vk.state.scissor.w == 0;
+	dynamic = graphicsPipeline->gl.state.scissor.z +
+		graphicsPipeline->gl.state.scissor.w == 0;
 	if (dynamic == false)
-		graphicsPipeline->vk.state.scissor = size;
-	return true;
+		graphicsPipeline->gl.state.scissor = size;
+	return SUCCESS_MPGX_RESULT;
 }
 static void onGlDestroy(void* handle)
 {
 	free((Handle)handle);
 }
-inline static GraphicsPipeline createGlPipeline(
+inline static MpgxResult createGlPipeline(
 	Framebuffer framebuffer,
 	const GraphicsPipelineState* state,
 	Handle handle,
 	Shader* shaders,
-	uint8_t shaderCount)
+	uint8_t shaderCount,
+	GraphicsPipeline* graphicsPipeline)
 {
-	GraphicsPipeline pipeline = createGraphicsPipeline(
+	GraphicsPipeline graphicsPipelineInstance;
+
+	MpgxResult mpgxResult = createGraphicsPipeline(
 		framebuffer,
 		COLOR_PIPELINE_NAME,
 		state,
@@ -251,12 +257,13 @@ inline static GraphicsPipeline createGlPipeline(
 		handle,
 		NULL,
 		shaders,
-		shaderCount);
+		shaderCount,
+		&graphicsPipelineInstance);
 
-	if (pipeline == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
-	GLuint glHandle = pipeline->gl.glHandle;
+	GLuint glHandle = graphicsPipelineInstance->gl.glHandle;
 
 	GLint mvpLocation, colorLocation;
 
@@ -271,23 +278,28 @@ inline static GraphicsPipeline createGlPipeline(
 
 	if (result == false)
 	{
-		destroyGraphicsPipeline(pipeline, false);
-		return NULL;
+		destroyGraphicsPipeline(
+			graphicsPipelineInstance,
+			false);
+		return BAD_SHADER_CODE_MPGX_RESULT;
 	}
 
 	assertOpenGL();
 
 	handle->gl.mvpLocation = mvpLocation;
 	handle->gl.colorLocation = colorLocation;
-	return pipeline;
+
+	*graphicsPipeline = graphicsPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
-GraphicsPipeline createColorPipelineExt(
+MpgxResult createColorPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const GraphicsPipelineState* state)
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* colorPipeline)
 {
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
@@ -300,7 +312,7 @@ GraphicsPipeline createColorPipelineExt(
 	Handle handle = malloc(sizeof(Handle_T));
 
 	if (handle == NULL)
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Window window = framebuffer->base.window;
 	handle->base.window = window;
@@ -322,7 +334,8 @@ GraphicsPipeline createColorPipelineExt(
 			state,
 			handle,
 			shaders,
-			2);
+			2,
+			colorPipeline);
 #else
 		abort();
 #endif
@@ -336,7 +349,8 @@ GraphicsPipeline createColorPipelineExt(
 			state,
 			handle,
 			shaders,
-			2);
+			2,
+			colorPipeline);
 #else
 		abort();
 #endif
@@ -346,10 +360,11 @@ GraphicsPipeline createColorPipelineExt(
 		abort();
 	}
 }
-GraphicsPipeline createColorPipeline(
+MpgxResult createColorPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
-	Shader fragmentShader)
+	Shader fragmentShader,
+	GraphicsPipeline* colorPipeline)
 {
 	assert(framebuffer != NULL);
 
@@ -392,7 +407,8 @@ GraphicsPipeline createColorPipeline(
 		framebuffer,
 		vertexShader,
 		fragmentShader,
-		&state);
+		&state,
+		colorPipeline);
 }
 
 Mat4F getColorPipelineMvp(

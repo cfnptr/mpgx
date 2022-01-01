@@ -351,23 +351,25 @@ bool validateStringUTF32(
 	return true;
 }
 
-Font createFont(
+MpgxResult createFont(
 	const void* _data,
-	size_t size)
+	size_t size,
+	Font* font)
 {
 	assert(_data != NULL);
 	assert(size != 0);
+	assert(font != NULL);
 
-	Font font = malloc(sizeof(Font_T));
+	Font fontInstance = malloc(sizeof(Font_T));
 
-	if (font == NULL)
-		return NULL;
+	if (fontInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	uint8_t* data = malloc(
 		size * sizeof(uint8_t));
 
 	if (data == NULL)
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	memcpy(data, _data, size);
 
@@ -386,7 +388,7 @@ Font createFont(
 	{
 		free(data);
 		free(font);
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle freetype error
 	}
 
 	result = FT_Select_Charmap(
@@ -398,22 +400,26 @@ Font createFont(
 		FT_Done_Face(face);
 		free(data);
 		free(font);
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	font->data = data;
-	font->face = face;
-	return font;
+	fontInstance->data = data;
+	fontInstance->face = face;
+
+	*font = fontInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-Font createFontFromFile(
-	const void* filePath)
+MpgxResult createFontFromFile(
+	const void* filePath,
+	Font* font)
 {
 	assert(filePath != NULL);
+	assert(font != NULL);
 
-	Font font = malloc(sizeof(Font_T));
+	Font fontInstance = malloc(sizeof(Font_T));
 
-	if (font == NULL)
-		return NULL;
+	if (fontInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	FT_Library ftLibrary =
 		(FT_Library)getFtLibrary();
@@ -429,7 +435,7 @@ Font createFontFromFile(
 	if (result != 0)
 	{
 		free(font);
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle freetype error
 	}
 
 	result = FT_Select_Charmap(
@@ -440,12 +446,14 @@ Font createFontFromFile(
 	{
 		FT_Done_Face(face);
 		free(font);
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	font->data = NULL;
-	font->face = face;
-	return font;
+	fontInstance->data = NULL;
+	fontInstance->face = face;
+
+	*font = fontInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyFont(Font font)
 {
@@ -470,7 +478,7 @@ static int compareGlyph(
 
 	abort();
 }
-inline static bool createTextGlyphs(
+inline static bool createTextGlyphs( // TODO: use instead of bools MpgxResults
 	const uint32_t* array,
 	size_t arrayLength,
 	Glyph** _glyphs,
@@ -987,9 +995,10 @@ inline static bool createTextIndices(
 }
 
 #if MPGX_SUPPORT_VULKAN
-inline static VkDescriptorPool createVkDescriptorPool(
+inline static MpgxResult createVkDescriptorPoolInstance(
 	VkDevice device,
-	uint32_t bufferCount)
+	uint32_t bufferCount,
+	VkDescriptorPool* descriptorPool)
 {
 	VkDescriptorPoolSize descriptorPoolSizes[1] = {
 		{
@@ -997,74 +1006,43 @@ inline static VkDescriptorPool createVkDescriptorPool(
 			bufferCount * 2,
 		},
 	};
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-		NULL,
-		VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-		bufferCount * 2,
-		1,
-		descriptorPoolSizes,
-	};
 
-	VkDescriptorPool descriptorPool;
+	VkDescriptorPool descriptorPoolInstance;
 
-	VkResult result = vkCreateDescriptorPool(
+	MpgxResult mpgxResult = createVkDescriptorPool(
 		device,
-		&descriptorPoolCreateInfo,
-		NULL,
-		&descriptorPool);
+		bufferCount,
+		descriptorPoolSizes,
+		1,
+		&descriptorPoolInstance);
 
-	if (result != VK_SUCCESS)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
-	return descriptorPool;
+	*descriptorPool = descriptorPoolInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-inline static VkDescriptorSet* createVkDescriptorSets(
+inline static MpgxResult createVkDescriptorSetArray(
 	VkDevice device,
 	VkDescriptorSetLayout descriptorSetLayout,
 	VkDescriptorPool descriptorPool,
 	uint32_t bufferCount,
 	VkSampler sampler,
-	VkImageView imageView)
+	VkImageView imageView,
+	VkDescriptorSet** descriptorSets)
 {
-	VkDescriptorSetLayout* descriptorSetLayouts = malloc(
-		bufferCount * sizeof(VkDescriptorSetLayout));
+	VkDescriptorSet* descriptorSetArray;
 
-	if (descriptorSetLayouts == NULL)
-		return NULL;
-
-	for (uint32_t i = 0; i < bufferCount; i++)
-		descriptorSetLayouts[i] = descriptorSetLayout;
-
-	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo ={
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		NULL,
+	// TODO: possibly allocate only one descriptor set?
+	MpgxResult mpgxResult = allocateVkDescriptorSets(
+		device,
+		descriptorSetLayout,
 		descriptorPool,
 		bufferCount,
-		descriptorSetLayouts,
-	};
+		&descriptorSetArray);
 
-	VkDescriptorSet* descriptorSets = malloc(
-		bufferCount * sizeof(VkDescriptorSet));
-
-	if (descriptorSets == NULL)
-	{
-		free(descriptorSetLayouts);
-		return NULL;
-	}
-
-	VkResult result = vkAllocateDescriptorSets(
-		device,
-		&descriptorSetAllocateInfo,
-		descriptorSets);
-
-	free(descriptorSetLayouts);
-
-	if (result != VK_SUCCESS)
-	{
-		free(descriptorSets);
-		return NULL;
-	}
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	for (uint32_t i = 0; i < bufferCount; i++)
 	{
@@ -1079,7 +1057,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 			{
 				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				NULL,
-				descriptorSets[i],
+				descriptorSetArray[i],
 				0,
 				0,
 				1,
@@ -1098,18 +1076,20 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 			NULL);
 	}
 
-	return descriptorSets;
+	*descriptorSets = descriptorSetArray;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
-Text createText32(
+MpgxResult createText32(
 	GraphicsPipeline textPipeline,
 	Font font,
 	uint32_t fontSize,
 	AlignmentType alignment,
 	const uint32_t* _data,
 	size_t dataLength,
-	bool isConstant)
+	bool isConstant,
+	Text* text)
 {
 	assert(textPipeline != NULL);
 	assert(font != NULL);
@@ -1118,15 +1098,16 @@ Text createText32(
 	assert(alignment < ALIGNMENT_TYPE_COUNT);
 	assert(_data != NULL);
 	assert(dataLength != 0);
+	assert(text != NULL);
 
 	assert(strcmp(
 		textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 
-	Text text = malloc(sizeof(Text_T));
+	Text textInstance = malloc(sizeof(Text_T));
 
-	if (text == NULL)
-		return NULL;
+	if (textInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	uint32_t* data = malloc(
 		dataLength * sizeof(uint32_t));
@@ -1134,7 +1115,7 @@ Text createText32(
 	if (data == NULL)
 	{
 		free(text);
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	memcpy(data, _data,
@@ -1153,7 +1134,7 @@ Text createText32(
 	{
 		free(data);
 		free(text);
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle bad text data
 	}
 
 	FT_Face face = font->face;
@@ -1168,7 +1149,7 @@ Text createText32(
 		free(glyphs);
 		free(data);
 		free(text);
-		return false;
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	float newLineAdvance =
@@ -1194,12 +1175,14 @@ Text createText32(
 		free(glyphs);
 		free(data);
 		free(text);
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	Window window = textPipeline->base.framebuffer->base.window;
 
-	Image texture = createImage(
+	Image texture;
+
+	MpgxResult mpgxResult = createImage(
 		window,
 		GENERAL_IMAGE_TYPE,
 		IMAGE_2D,
@@ -1207,16 +1190,17 @@ Text createText32(
 		(const void**)&pixels,
 		vec3U(pixelLength, pixelLength, 1),
 		1,
-		isConstant);
+		isConstant,
+		&texture);
 
 	free(pixels);
 
-	if (texture == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		free(glyphs);
 		free(data);
 		free(text);
-		return NULL;
+		return mpgxResult;
 	}
 
 	float* vertices;
@@ -1241,24 +1225,27 @@ Text createText32(
 		destroyImage(texture);
 		free(data);
 		free(text);
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	Buffer vertexBuffer = createBuffer(
+	Buffer vertexBuffer;
+
+	mpgxResult = createBuffer(
 		window,
 		VERTEX_BUFFER_TYPE,
 		vertices,
 		vertexCount * sizeof(float),
-		isConstant);
+		isConstant,
+		&vertexBuffer);
 
 	free(vertices);
 
-	if (vertexBuffer == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyImage(texture);
 		free(data);
 		free(text);
-		return NULL;
+		return mpgxResult;
 	}
 
 	uint32_t* indices;
@@ -1275,43 +1262,49 @@ Text createText32(
 		destroyImage(texture);
 		free(data);
 		free(text);
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	Buffer indexBuffer = createBuffer(
+	Buffer indexBuffer;
+
+	mpgxResult = createBuffer(
 		window,
 		INDEX_BUFFER_TYPE,
 		indices,
 		indexCount * sizeof(uint32_t),
-		isConstant);
+		isConstant,
+		&indexBuffer);
 
 	free(indices);
 
-	if (indexBuffer == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyBuffer(vertexBuffer);
 		destroyImage(texture);
 		free(data);
 		free(text);
-		return NULL;
+		return mpgxResult;
 	}
 
-	GraphicsMesh mesh = createGraphicsMesh(
+	GraphicsMesh mesh;
+
+	mpgxResult = createGraphicsMesh(
 		window,
 		UINT32_INDEX_TYPE,
 		indexCount,
 		0,
 		vertexBuffer,
-		indexBuffer);
+		indexBuffer,
+		&mesh);
 
-	if (mesh == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyBuffer(indexBuffer);
 		destroyBuffer(vertexBuffer);
 		destroyImage(texture);
 		free(data);
 		free(text);
-		return NULL;
+		return mpgxResult;
 	}
 
 	GraphicsAPI api = getWindowGraphicsAPI(window);
@@ -1325,28 +1318,34 @@ Text createText32(
 		Handle handle = textPipeline->vk.handle;
 		uint8_t bufferCount = handle->vk.bufferCount;
 
-		VkDescriptorPool descriptorPool = createVkDescriptorPool(
-			device,
-			bufferCount);
+		VkDescriptorPool descriptorPool;
 
-		if (descriptorPool == NULL)
+		mpgxResult = createVkDescriptorPoolInstance(
+			device,
+			bufferCount,
+			&descriptorPool);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyGraphicsMesh(mesh, true);
 			destroyImage(texture);
 			free(data);
 			free(text);
-			return NULL;
+			return mpgxResult;
 		}
 
-		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+		VkDescriptorSet* descriptorSets;
+
+		mpgxResult = createVkDescriptorSetArray(
 			device,
 			handle->vk.descriptorSetLayout,
 			descriptorPool,
 			bufferCount,
 			handle->vk.sampler->vk.handle,
-			texture->vk.imageView);
+			texture->vk.imageView,
+			&descriptorSets);
 
-		if (descriptorSets == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			vkDestroyDescriptorPool(
 				device,
@@ -1356,30 +1355,30 @@ Text createText32(
 			destroyImage(texture);
 			free(data);
 			free(text);
-			return NULL;
+			return mpgxResult;
 		}
 
-		text->descriptorPool = descriptorPool;
-		text->descriptorSets = descriptorSets;
+		textInstance->descriptorPool = descriptorPool;
+		textInstance->descriptorSets = descriptorSets;
 	}
 	else
 	{
-		text->descriptorPool = NULL;
-		text->descriptorSets = NULL;
+		textInstance->descriptorPool = NULL;
+		textInstance->descriptorSets = NULL;
 	}
 #endif
 
-	text->font = font;
-	text->pipeline = textPipeline;
-	text->fontSize = fontSize;
-	text->alignment = alignment;
-	text->isConstant = isConstant;
-	text->data = data;
-	text->dataCapacity = dataLength;
-	text->dataLength = dataLength;
-	text->texture = texture;
-	text->mesh = mesh;
-	text->textSize = textSize;
+	textInstance->font = font;
+	textInstance->pipeline = textPipeline;
+	textInstance->fontSize = fontSize;
+	textInstance->alignment = alignment;
+	textInstance->isConstant = isConstant;
+	textInstance->data = data;
+	textInstance->dataCapacity = dataLength;
+	textInstance->dataLength = dataLength;
+	textInstance->texture = texture;
+	textInstance->mesh = mesh;
+	textInstance->textSize = textSize;
 
 	Handle handle = textPipeline->base.handle;
 	size_t count = handle->base.textCount;
@@ -1397,39 +1396,42 @@ Text createText32(
 #if MPGX_SUPPORT_VULKAN
 			if (api == VULKAN_GRAPHICS_API)
 			{
-				free(text->descriptorSets);
+				free(textInstance->descriptorSets);
 
 				VkWindow vkWindow = getVkWindow(window);
 
 				vkDestroyDescriptorPool(
 					vkWindow->device,
-					text->descriptorPool,
+					textInstance->descriptorPool,
 					NULL);
 			}
 #endif
-			destroyGraphicsMesh(text->mesh, true);
-			destroyImage(text->texture);
-			free(text->data);
-			free(text);
-			return NULL;
+			destroyGraphicsMesh(textInstance->mesh, true);
+			destroyImage(textInstance->texture);
+			free(textInstance->data);
+			free(textInstance);
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		handle->base.texts = texts;
 		handle->base.textCapacity = capacity;
 	}
 
-	handle->base.texts[count] = text;
+	handle->base.texts[count] = textInstance;
 	handle->base.textCount = count + 1;
-	return text;
+
+	*text = textInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-Text createText8(
+MpgxResult createText8(
 	GraphicsPipeline textPipeline,
 	Font font,
 	uint32_t fontSize,
 	AlignmentType alignment,
 	const char* data,
 	size_t dataLength,
-	bool isConstant)
+	bool isConstant,
+	Text* text)
 {
 	assert(data != NULL);
 	assert(dataLength != 0);
@@ -1444,23 +1446,20 @@ Text createText8(
 		&arrayLength);
 
 	if (result == false)
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO:
 
-	Text text = createText32(
+	MpgxResult mpgxResult = createText32(
 		textPipeline,
 		font,
 		fontSize,
 		alignment,
 		array,
 		arrayLength,
-		isConstant);
+		isConstant,
+		text);
 
 	destroyStringUTF32(array);
-
-	if (text == NULL)
-		return NULL;
-
-	return text;
+	return mpgxResult;
 }
 void destroyText(Text text)
 {
@@ -1832,7 +1831,7 @@ bool setTextData8(
 	return result;
 }
 
-bool bakeText(
+MpgxResult bakeText(
 	Text text,
 	bool reuseBuffers)
 {
@@ -1858,7 +1857,7 @@ bool bakeText(
 			&glyphCount);
 
 		if (result == false)
-			return false;
+			return UNKNOWN_ERROR_MPGX_RESULT; // TODO:
 
 		FT_Face face = text->font->face;
 		uint32_t fontSize = text->fontSize;
@@ -1871,7 +1870,7 @@ bool bakeText(
 		if (ftResult != 0)
 		{
 			free(glyphs);
-			return false;
+			return UNKNOWN_ERROR_MPGX_RESULT;
 		}
 
 		float newLineAdvance =
@@ -1898,7 +1897,7 @@ bool bakeText(
 		if (result == false)
 		{
 			free(glyphs);
-			return false;
+			return UNKNOWN_ERROR_MPGX_RESULT;
 		}
 
 		Image texture;
@@ -1909,7 +1908,7 @@ bool bakeText(
 
 		if (pixelLength > textPixelLength)
 		{
-			texture = createImage(
+			MpgxResult mpgxResult = createImage(
 				window,
 				GENERAL_IMAGE_TYPE,
 				IMAGE_2D,
@@ -1917,15 +1916,16 @@ bool bakeText(
 				(const void**)&pixels,
 				vec3U(pixelLength, pixelLength, 1),
 				1,
-				false);
+				false,
+				&texture);
 
 			free(pixels);
 			pixels = NULL;
 
-			if (texture == NULL)
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
 			{
 				free(glyphs);
-				return false;
+				return mpgxResult;
 			}
 
 #if MPGX_SUPPORT_VULKAN
@@ -1935,19 +1935,20 @@ bool bakeText(
 				VkDevice device = vkWindow->device;
 				Handle handle = pipeline->vk.handle;
 
-				descriptorSets = createVkDescriptorSets(
+				mpgxResult = createVkDescriptorSetArray(
 					device,
 					handle->vk.descriptorSetLayout,
 					text->descriptorPool,
 					handle->vk.bufferCount,
 					handle->vk.sampler->vk.handle,
-					texture->vk.imageView);
+					texture->vk.imageView,
+					&descriptorSets);
 
-				if (descriptorSets == NULL)
+				if (mpgxResult != SUCCESS_MPGX_RESULT)
 				{
 					destroyImage(texture);
 					free(glyphs);
-					return false;
+					return mpgxResult;
 				}
 			}
 #endif
@@ -1978,7 +1979,7 @@ bool bakeText(
 		{
 			destroyImage(texture);
 			free(pixels);
-			return false;
+			return UNKNOWN_ERROR_MPGX_RESULT;
 		}
 
 		Buffer vertexBuffer = NULL;
@@ -1989,20 +1990,21 @@ bool bakeText(
 
 		if (vertexCount * sizeof(float) > textVertexBufferSize)
 		{
-			vertexBuffer = createBuffer(
+			MpgxResult mpgxResult = createBuffer(
 				window,
 				VERTEX_BUFFER_TYPE,
 				vertices,
 				vertexCount * sizeof(float),
-				false);
+				false,
+				&vertexBuffer);
 
 			free(vertices);
 
-			if (vertexBuffer == NULL)
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
 			{
 				destroyImage(texture);
 				free(pixels);
-				return false;
+				return mpgxResult;
 			}
 
 			uint32_t* indices;
@@ -2018,52 +2020,52 @@ bool bakeText(
 				destroyBuffer(vertexBuffer);
 				destroyImage(texture);
 				free(pixels);
-				return false;
+				return UNKNOWN_ERROR_MPGX_RESULT;
 			}
 
-			indexBuffer = createBuffer(
+			mpgxResult = createBuffer(
 				window,
 				INDEX_BUFFER_TYPE,
 				indices,
 				indexCount * sizeof(uint32_t),
-				false);
+				false,
+				&indexBuffer);
 
 			free(indices);
 
-			if (indexBuffer == NULL)
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
 			{
 				destroyBuffer(vertexBuffer);
 				destroyImage(texture);
 				free(pixels);
-				return false;
+				return mpgxResult;
 			}
 		}
 
 		if (texture == NULL)
 		{
-			setImageData(
+			MpgxResult mpgxResult = setImageData(
 				text->texture,
 				pixels,
 				vec3U(pixelLength, pixelLength, 1),
 				zeroVec3U);
+
 			free(pixels); // TODO: replace pixels with image data map
+
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
+			{
+				destroyBuffer(indexBuffer);
+				destroyBuffer(vertexBuffer);
+				destroyImage(texture);
+				return mpgxResult;
+			}
 		}
 		else
 		{
 #if MPGX_SUPPORT_VULKAN
 			if (api == VULKAN_GRAPHICS_API)
 			{
-				VkWindow vkWindow = getVkWindow(window);
-				VkDevice device = vkWindow->device;
-				Handle handle = pipeline->vk.handle;
-
-				vkFreeDescriptorSets(
-					device,
-					text->descriptorPool,
-					handle->vk.bufferCount,
-					text->descriptorSets);
 				free(text->descriptorSets);
-
 				text->descriptorSets = descriptorSets;
 			}
 #endif
@@ -2077,11 +2079,14 @@ bool bakeText(
 			GraphicsMesh mesh = text->mesh;
 			Buffer _vertexBuffer = getGraphicsMeshVertexBuffer(mesh);
 
-			setBufferData(
+			MpgxResult mpgxResult = setBufferData(
 				_vertexBuffer,
 				vertices,
 				vertexCount * sizeof(float),
 				0);
+
+			// TODO: if mpgxResult != SUCCESS
+
 			setGraphicsMeshIndexCount(
 				mesh,
 				(vertexCount / 16) * 6);
@@ -2122,7 +2127,7 @@ bool bakeText(
 			&glyphCount);
 
 		if (result == false)
-			return false;
+			return UNKNOWN_ERROR_MPGX_RESULT; // TODO:
 
 		FT_Face face = text->font->face;
 		uint32_t fontSize = text->fontSize;
@@ -2135,7 +2140,7 @@ bool bakeText(
 		if (ftResult != 0)
 		{
 			free(glyphs);
-			return false;
+			return UNKNOWN_ERROR_MPGX_RESULT;
 		}
 
 		float newLineAdvance =
@@ -2159,10 +2164,12 @@ bool bakeText(
 		if (result == false)
 		{
 			free(glyphs);
-			return false;
+			return UNKNOWN_ERROR_MPGX_RESULT;
 		}
 
-		Image texture = createImage(
+		Image texture;
+
+		MpgxResult mpgxResult = createImage(
 			window,
 			GENERAL_IMAGE_TYPE,
 			IMAGE_2D,
@@ -2170,14 +2177,15 @@ bool bakeText(
 			(const void**)&pixels,
 			vec3U(pixelLength, pixelLength, 1),
 			1,
-			false);
+			false,
+			&texture);
 
 		free(pixels);
 
-		if (texture == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			free(glyphs);
-			return false;
+			return mpgxResult;
 		}
 
 		float* vertices;
@@ -2200,22 +2208,25 @@ bool bakeText(
 		if (result == false)
 		{
 			destroyImage(texture);
-			return false;
+			return UNKNOWN_ERROR_MPGX_RESULT;
 		}
 
-		Buffer vertexBuffer = createBuffer(
+		Buffer vertexBuffer;
+
+		mpgxResult = createBuffer(
 			window,
 			VERTEX_BUFFER_TYPE,
 			vertices,
 			vertexCount * sizeof(float),
-			false);
+			false,
+			&vertexBuffer);
 
 		free(vertices);
 
-		if (vertexBuffer == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyImage(texture);
-			return false;
+			return mpgxResult;
 		}
 
 		uint32_t* indices;
@@ -2230,39 +2241,45 @@ bool bakeText(
 		{
 			destroyBuffer(vertexBuffer);
 			destroyImage(texture);
-			return false;
+			return UNKNOWN_ERROR_MPGX_RESULT;
 		}
 
-		Buffer indexBuffer = createBuffer(
+		Buffer indexBuffer;
+
+		mpgxResult = createBuffer(
 			window,
 			INDEX_BUFFER_TYPE,
 			indices,
 			indexCount * sizeof(uint32_t),
-			false);
+			false,
+			&indexBuffer);
 
 		free(indices);
 
-		if (indexBuffer == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyBuffer(vertexBuffer);
 			destroyImage(texture);
-			return false;
+			return mpgxResult;
 		}
 
-		GraphicsMesh mesh = createGraphicsMesh(
+		GraphicsMesh mesh;
+
+		mpgxResult = createGraphicsMesh(
 			window,
 			UINT32_INDEX_TYPE,
 			indexCount,
 			0,
 			vertexBuffer,
-			indexBuffer);
+			indexBuffer,
+			&mesh);
 
-		if (mesh == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyBuffer(indexBuffer);
 			destroyBuffer(vertexBuffer);
 			destroyImage(texture);
-			return false;
+			return mpgxResult;
 		}
 
 #if MPGX_SUPPORT_VULKAN
@@ -2274,26 +2291,24 @@ bool bakeText(
 			uint8_t bufferCount = handle->vk.bufferCount;
 			VkDescriptorPool descriptorPool = text->descriptorPool;
 
-			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+			VkDescriptorSet* descriptorSets;
+
+			mpgxResult = createVkDescriptorSetArray(
 				device,
 				handle->vk.descriptorSetLayout,
 				descriptorPool,
 				bufferCount,
 				handle->vk.sampler->vk.handle,
-				texture->vk.imageView);
+				texture->vk.imageView,
+				&descriptorSets);
 
-			if (descriptorSets == NULL)
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
 			{
 				destroyGraphicsMesh(mesh, true);
 				destroyImage(texture);
-				return false;
+				return mpgxResult;
 			}
 
-			vkFreeDescriptorSets(
-				device,
-				descriptorPool,
-				bufferCount,
-				text->descriptorSets);
 			free(text->descriptorSets);
 
 			text->descriptorPool = descriptorPool;
@@ -2409,10 +2424,10 @@ float getTextPlatformScale(
 		(float)framebufferSize.y / (float)windowSize.y);
 }
 
-Sampler createTextSampler(Window window)
+MpgxResult createTextSampler(
+	Window window,
+	Sampler* textSampler)
 {
-	assert(window != NULL);
-
 	return createSampler(
 		window,
 		LINEAR_IMAGE_FILTER,
@@ -2425,7 +2440,8 @@ Sampler createTextSampler(Window window)
 		NEVER_COMPARE_OPERATOR,
 		false,
 		defaultMipmapLodRange,
-		DEFAULT_MIPMAP_LOD_BIAS);
+		DEFAULT_MIPMAP_LOD_BIAS,
+		textSampler);
 }
 
 #if MPGX_SUPPORT_VULKAN
@@ -2463,40 +2479,6 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 	},
 };
 
-inline static VkDescriptorSetLayout createVkDescriptorSetLayout(
-	VkDevice device)
-{
-	VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[1] = {
-		{
-			0,
-			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			1,
-			VK_SHADER_STAGE_FRAGMENT_BIT,
-			NULL,
-		},
-	};
-	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		NULL,
-		0,
-		1,
-		descriptorSetLayoutBindings,
-	};
-
-	VkDescriptorSetLayout descriptorSetLayout;
-
-	VkResult result = vkCreateDescriptorSetLayout(
-		device,
-		&descriptorSetLayoutCreateInfo,
-		NULL,
-		&descriptorSetLayout);
-
-	if(result != VK_SUCCESS)
-		return NULL;
-
-	return descriptorSetLayout;
-}
-
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
 	Handle handle = graphicsPipeline->vk.handle;
@@ -2519,7 +2501,7 @@ static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 		sizeof(FragmentPushConstants),
 		&handle->vk.fpc);
 }
-static bool onVkHandleResize(
+static MpgxResult onVkResize(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createData)
@@ -2539,28 +2521,34 @@ static bool onVkHandleResize(
 		{
 			Text text = texts[i];
 
-			VkDescriptorPool descriptorPool = createVkDescriptorPool(
+			VkDescriptorPool descriptorPool;
+
+			MpgxResult mpgxResult = createVkDescriptorPoolInstance(
 				device,
-				bufferCount);
+				bufferCount,
+				&descriptorPool);
 
-			if (descriptorPool == NULL)
-				return false;
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
+				return mpgxResult;
 
-			VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+			VkDescriptorSet* descriptorSets;
+
+			mpgxResult = createVkDescriptorSetArray(
 				device,
 				handle->vk.descriptorSetLayout,
 				descriptorPool,
 				bufferCount,
 				handle->vk.sampler->vk.handle,
-				text->texture->vk.imageView);
+				text->texture->vk.imageView,
+				&descriptorSets);
 
-			if (descriptorSets == NULL)
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
 			{
 				vkDestroyDescriptorPool(
 					device,
 					descriptorPool,
 					NULL);
-				return false;
+				return mpgxResult;
 			}
 
 			free(text->descriptorSets);
@@ -2603,9 +2591,9 @@ static bool onVkHandleResize(
 	};
 
 	*(VkGraphicsPipelineCreateData*)createData = _createData;
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
-static void onVkHandleDestroy(void* _handle)
+static void onVkDestroy(void* _handle)
 {
 	Handle handle = _handle;
 
@@ -2621,24 +2609,37 @@ static void onVkHandleDestroy(void* _handle)
 	free(handle->vk.texts);
 	free(handle);
 }
-inline static GraphicsPipeline createVkPipeline(
+inline static MpgxResult createVkPipeline(
 	Framebuffer framebuffer,
 	const GraphicsPipelineState* state,
 	Handle handle,
 	Shader* shaders,
-	uint8_t shaderCount)
+	uint8_t shaderCount,
+	GraphicsPipeline* graphicsPipeline)
 {
 	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
 
-	VkDescriptorSetLayout descriptorSetLayout =
-		createVkDescriptorSetLayout(device);
+	VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[1] = {
+		{
+			0,
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			1,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			NULL,
+		},
+	};
 
-	if (descriptorSetLayout == NULL)
-	{
-		free(handle);
-		return NULL;
-	}
+	VkDescriptorSetLayout descriptorSetLayout;
+
+	MpgxResult mpgxResult = createVkDescriptorSetLayout(
+		device,
+		descriptorSetLayoutBindings,
+		1,
+		&descriptorSetLayout);
+
+	if(mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	VkGraphicsPipelineCreateData createData = {
 		1,
@@ -2660,12 +2661,13 @@ inline static GraphicsPipeline createVkPipeline(
 		state,
 		NULL,
 		onVkUniformsSet,
-		onVkHandleResize,
-		onVkHandleDestroy,
+		onVkResize,
+		onVkDestroy,
 		handle,
 		&createData,
 		shaders,
-		shaderCount);
+		shaderCount,
+		graphicsPipeline);
 }
 #endif
 
@@ -2717,7 +2719,7 @@ static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 
 	assertOpenGL();
 }
-static bool onGlHandleResize(
+static MpgxResult onGlResize(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createInfo)
@@ -2734,9 +2736,9 @@ static bool onGlHandleResize(
 		graphicsPipeline->vk.state.scissor.w == 0;
 	if (dynamic == false)
 		graphicsPipeline->vk.state.scissor = size;
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
-static void onGlHandleDestroy(void* _handle)
+static void onGlDestroy(void* _handle)
 {
 	Handle handle = _handle;
 
@@ -2745,33 +2747,36 @@ static void onGlHandleDestroy(void* _handle)
 	free(handle->gl.texts);
 	free(handle);
 }
-inline static GraphicsPipeline createGlPipeline(
+inline static MpgxResult createGlPipeline(
 	Framebuffer framebuffer,
 	const GraphicsPipelineState* state,
 	Handle handle,
 	Shader* shaders,
-	uint8_t shaderCount)
+	uint8_t shaderCount,
+	GraphicsPipeline* graphicsPipeline)
 {
-	GraphicsPipeline graphicsPipeline = createGraphicsPipeline(
+	GraphicsPipeline graphicsPipelineInstance;
+
+	MpgxResult mpgxResult = createGraphicsPipeline(
 		framebuffer,
 		TEXT_PIPELINE_NAME,
 		state,
 		NULL,
 		onGlUniformsSet,
-		onGlHandleResize,
-		onGlHandleDestroy,
+		onGlResize,
+		onGlDestroy,
 		handle,
 		NULL,
 		shaders,
-		shaderCount);
+		shaderCount,
+		&graphicsPipelineInstance);
 
-	if (graphicsPipeline == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
-	GLuint glHandle = graphicsPipeline->gl.glHandle;
+	GLuint glHandle = graphicsPipelineInstance->gl.glHandle;
 
-	GLint mvpLocation, colorLocation,
-		textureLocation;
+	GLint mvpLocation, colorLocation, textureLocation;
 
 	bool result = getGlUniformLocation(
 		glHandle,
@@ -2788,8 +2793,10 @@ inline static GraphicsPipeline createGlPipeline(
 
 	if (result == false)
 	{
-		destroyGraphicsPipeline(graphicsPipeline, false);
-		return NULL;
+		destroyGraphicsPipeline(
+			graphicsPipelineInstance,
+			false);
+		return BAD_SHADER_CODE_MPGX_RESULT;
 	}
 
 	assertOpenGL();
@@ -2797,17 +2804,20 @@ inline static GraphicsPipeline createGlPipeline(
 	handle->gl.mvpLocation = mvpLocation;
 	handle->gl.colorLocation = colorLocation;
 	handle->gl.textureLocation = textureLocation;
-	return graphicsPipeline;
+
+	*graphicsPipeline = graphicsPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
-GraphicsPipeline createExtTextPipeline(
+MpgxResult createTextPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler,
 	const GraphicsPipelineState* state,
-	size_t textCapacity)
+	size_t textCapacity,
+	GraphicsPipeline* textPipeline)
 {
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
@@ -2820,11 +2830,10 @@ GraphicsPipeline createExtTextPipeline(
 	assert(fragmentShader->base.window == framebuffer->base.window);
 	assert(sampler->base.window == framebuffer->base.window);
 
-	Handle handle = malloc(
-		sizeof(Handle_T));
+	Handle handle = malloc(sizeof(Handle_T));
 
 	if (handle == NULL)
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Text* texts = malloc(
 		textCapacity * sizeof(Text));
@@ -2832,7 +2841,7 @@ GraphicsPipeline createExtTextPipeline(
 	if (texts == NULL)
 	{
 		free(handle);
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	Window window = framebuffer->vk.window;
@@ -2860,7 +2869,8 @@ GraphicsPipeline createExtTextPipeline(
 			state,
 			handle,
 			shaders,
-			2);
+			2,
+			textPipeline);
 #else
 		abort();
 #endif
@@ -2874,7 +2884,8 @@ GraphicsPipeline createExtTextPipeline(
 			state,
 			handle,
 			shaders,
-			2);
+			2,
+			textPipeline);
 #else
 		abort();
 #endif
@@ -2884,13 +2895,14 @@ GraphicsPipeline createExtTextPipeline(
 		abort();
 	}
 }
-GraphicsPipeline createTextPipeline(
+MpgxResult createTextPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler,
 	size_t textCapacity,
-	bool useScissor)
+	bool useScissor,
+	GraphicsPipeline* textPipeline)
 {
 	assert(framebuffer != NULL);
 
@@ -2929,13 +2941,14 @@ GraphicsPipeline createTextPipeline(
 		defaultBlendColor,
 	};
 
-	return createExtTextPipeline(
+	return createTextPipelineExt(
 		framebuffer,
 		vertexShader,
 		fragmentShader,
 		sampler,
 		&state,
-		textCapacity);
+		textCapacity,
+		textPipeline);
 }
 
 Sampler getTextPipelineSampler(

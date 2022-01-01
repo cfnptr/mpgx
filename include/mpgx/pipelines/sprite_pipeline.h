@@ -18,15 +18,17 @@
 
 #define SPRITE_PIPELINE_NAME "Sprite"
 
-GraphicsPipeline createSpritePipelineExt(
+MpgxResult createSpritePipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const GraphicsPipelineState* state);
-GraphicsPipeline createSpritePipeline(
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* spritePipeline);
+MpgxResult createSpritePipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
-	Shader fragmentShader);
+	Shader fragmentShader,
+	GraphicsPipeline* spritePipeline);
 
 Mat4F getSpritePipelineMvp(
 	GraphicsPipeline spritePipeline);

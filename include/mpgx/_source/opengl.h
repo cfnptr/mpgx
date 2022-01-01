@@ -64,7 +64,6 @@ inline static void assertOpenGL()
 		fprintf(stderr,
 			"OpenGL error: %s\n",
 			errorName);
-
 		abort();
 	}
 #endif

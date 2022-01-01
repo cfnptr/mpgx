@@ -103,42 +103,10 @@ static const VkPushConstantRange pushConstantRanges[1] = {
 	},
 };
 
-inline static VkDescriptorSetLayout createVkDescriptorSetLayout(
-	VkDevice device)
-{
-	VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[1] = {
-		{
-			0,
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			1,
-			VK_SHADER_STAGE_FRAGMENT_BIT,
-			NULL,
-		},
-	};
-	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		NULL,
-		0,
-		1,
-		descriptorSetLayoutBindings,
-	};
-
-	VkDescriptorSetLayout descriptorSetLayout;
-
-	VkResult result = vkCreateDescriptorSetLayout(
-		device,
-		&descriptorSetLayoutCreateInfo,
-		NULL,
-		&descriptorSetLayout);
-
-	if(result != VK_SUCCESS)
-		return NULL;
-
-	return descriptorSetLayout;
-}
-inline static VkDescriptorPool createVkDescriptorPool(
+inline static MpgxResult createVkDescriptorPoolInstance(
 	VkDevice device,
-	uint32_t bufferCount)
+	uint32_t bufferCount,
+	VkDescriptorPool* descriptorPool)
 {
 	VkDescriptorPoolSize descriptorPoolSizes[1] = {
 		{
@@ -146,29 +114,21 @@ inline static VkDescriptorPool createVkDescriptorPool(
 			bufferCount,
 		},
 	};
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfos[1] = {
-		{
-			VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			NULL,
-			0,
-			bufferCount,
-			1,
-			descriptorPoolSizes,
-		},
-	};
 
-	VkDescriptorPool descriptorPool;
+	VkDescriptorPool descriptorPoolInstance;
 
-	VkResult result = vkCreateDescriptorPool(
+	MpgxResult mpgxResult = createVkDescriptorPool(
 		device,
-		descriptorPoolCreateInfos,
-		NULL,
-		&descriptorPool);
+		bufferCount,
+		descriptorPoolSizes,
+		1,
+		&descriptorPoolInstance);
 
-	if (result != VK_SUCCESS)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
-	return descriptorPool;
+	*descriptorPool = descriptorPoolInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 inline static void destroyVkUniformBuffers(
 	uint32_t bufferCount,
@@ -179,81 +139,61 @@ inline static void destroyVkUniformBuffers(
 
 	free(uniformBuffers);
 }
-inline static Buffer* createVkUniformBuffers(
+inline static MpgxResult createVkUniformBufferArray(
 	Window window,
-	uint32_t bufferCount)
+	uint32_t bufferCount,
+	Buffer** buffers)
 {
-	Buffer* buffers = malloc(
+	Buffer* bufferArray = malloc(
 		bufferCount * sizeof(Buffer));
 
-	if (buffers == NULL)
-		return NULL;
+	if (bufferArray == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	for (uint32_t i = 0; i < bufferCount; i++)
 	{
-		Buffer buffer = createBuffer(
+		Buffer buffer;
+
+		MpgxResult mpgxResult = createBuffer(
 			window,
 			UNIFORM_BUFFER_TYPE,
 			NULL,
 			sizeof(UniformBuffer),
-			false);
+			false,
+			&buffer);
 
-		if (buffer == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
-			destroyVkUniformBuffers(i, buffers);
-			return NULL;
+			destroyVkUniformBuffers(
+				i, bufferArray);
+			return mpgxResult;
 		}
 
-		buffers[i] = buffer;
+		bufferArray[i] = buffer;
 	}
 
-	return buffers;
+	*buffers = bufferArray;
+	return SUCCESS_MPGX_RESULT;
 }
-inline static VkDescriptorSet* createVkDescriptorSets(
+inline static MpgxResult createVkDescriptorSetArray(
 	VkDevice device,
 	VkDescriptorSetLayout descriptorSetLayout,
 	VkDescriptorPool descriptorPool,
 	uint32_t bufferCount,
-	Buffer* uniformBuffers)
+	Buffer* uniformBuffers,
+	VkDescriptorSet** descriptorSets)
 {
-	VkDescriptorSetLayout* descriptorSetLayouts = malloc(
-		bufferCount * sizeof(VkDescriptorSetLayout));
+	VkDescriptorSet* descriptorSetArray;
 
-	if (descriptorSetLayouts == NULL)
-		return NULL;
-
-	for (uint32_t i = 0; i < bufferCount; i++)
-		descriptorSetLayouts[i] = descriptorSetLayout;
-
-	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo ={
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		NULL,
+	MpgxResult mpgxResult = allocateVkDescriptorSets(
+		device,
+		descriptorSetLayout,
 		descriptorPool,
 		bufferCount,
-		descriptorSetLayouts,
-	};
+		&descriptorSetArray);
 
-	VkDescriptorSet* descriptorSets = malloc(
-		bufferCount * sizeof(VkDescriptorSet));
-
-	if (descriptorSets == NULL)
-	{
-		free(descriptorSetLayouts);
-		return NULL;
-	}
-
-	VkResult result = vkAllocateDescriptorSets(
-		device,
-		&descriptorSetAllocateInfo,
-		descriptorSets);
-
-	free(descriptorSetLayouts);
-
-	if (result != VK_SUCCESS)
-	{
-		free(descriptorSets);
-		return NULL;
-	}
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	for (uint32_t i = 0; i < bufferCount; i++)
 	{
@@ -268,7 +208,7 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 			{
 				VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				NULL,
-				descriptorSets[i],
+				descriptorSetArray[i],
 				0,
 				0,
 				1,
@@ -287,7 +227,8 @@ inline static VkDescriptorSet* createVkDescriptorSets(
 			NULL);
 	}
 
-	return descriptorSets;
+	*descriptorSets = descriptorSetArray;
+	return SUCCESS_MPGX_RESULT;
 }
 
 static void onVkBind(GraphicsPipeline graphicsPipeline)
@@ -326,7 +267,7 @@ static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 		sizeof(VertexPushConstants),
 		&handle->vk.vpc);
 }
-static bool onVkResize(
+static MpgxResult onVkResize(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createData)
@@ -340,34 +281,43 @@ static bool onVkResize(
 	{
 		VkDevice device = vkWindow->device;
 
-		VkDescriptorPool descriptorPool = createVkDescriptorPool(
+		VkDescriptorPool descriptorPool;
+
+		MpgxResult mpgxResult = createVkDescriptorPoolInstance(
 			device,
-			bufferCount);
+			bufferCount,
+			&descriptorPool);
 
-		if (descriptorPool == NULL)
-			return false;
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+			return mpgxResult;
 
-		Buffer* uniformBuffers = createVkUniformBuffers(
+		Buffer* uniformBuffers;
+
+		mpgxResult = createVkUniformBufferArray(
 			window,
-			bufferCount);
+			bufferCount,
+			&uniformBuffers);
 
-		if (uniformBuffers == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			vkDestroyDescriptorPool(
 				device,
 				descriptorPool,
 				NULL);
-			return false;
+			return mpgxResult;
 		}
 
-		VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+		VkDescriptorSet* descriptorSets;
+
+		mpgxResult = createVkDescriptorSetArray(
 			device,
 			handle->vk.descriptorSetLayout,
 			descriptorPool,
 			bufferCount,
-			uniformBuffers);
+			uniformBuffers,
+			&descriptorSets);
 
-		if (descriptorSets == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyVkUniformBuffers(
 				bufferCount,
@@ -376,7 +326,7 @@ static bool onVkResize(
 				device,
 				descriptorPool,
 				NULL);
-			return false;
+			return mpgxResult;
 		}
 
 		free(handle->vk.descriptorSets);
@@ -420,7 +370,7 @@ static bool onVkResize(
 	};
 
 	*(VkGraphicsPipelineCreateData*)createData = _createData;
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
 static void onVkDestroy(void* _handle)
 {
@@ -442,25 +392,38 @@ static void onVkDestroy(void* _handle)
 		NULL);
 	free(handle);
 }
-inline static GraphicsPipeline createVkPipeline(
+inline static MpgxResult createVkPipeline(
 	Framebuffer framebuffer,
 	const GraphicsPipelineState* state,
 	Handle handle,
 	Shader* shaders,
-	uint8_t shaderCount)
+	uint8_t shaderCount,
+	GraphicsPipeline* graphicsPipeline)
 {
 	Window window = framebuffer->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	VkDevice device = vkWindow->device;
 
-	VkDescriptorSetLayout descriptorSetLayout =
-		createVkDescriptorSetLayout(device);
+	VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[1] = {
+		{
+			0,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			1,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			NULL,
+		},
+	};
 
-	if (descriptorSetLayout == NULL)
-	{
-		free(handle);
-		return NULL;
-	}
+	VkDescriptorSetLayout descriptorSetLayout;
+
+	MpgxResult mpgxResult = createVkDescriptorSetLayout(
+		device,
+		descriptorSetLayoutBindings,
+		1,
+		&descriptorSetLayout);
+
+	if(mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	VkGraphicsPipelineCreateData createData = {
 		1,
@@ -475,25 +438,31 @@ inline static GraphicsPipeline createVkPipeline(
 
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
-	VkDescriptorPool descriptorPool = createVkDescriptorPool(
-		device,
-		bufferCount);
+	VkDescriptorPool descriptorPool;
 
-	if (descriptorPool == NULL)
+	mpgxResult = createVkDescriptorPoolInstance(
+		device,
+		bufferCount,
+		&descriptorPool);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
 		free(handle);
-		return NULL;
+		return mpgxResult;
 	}
 
-	Buffer* uniformBuffers = createVkUniformBuffers(
-		window,
-		bufferCount);
+	Buffer* uniformBuffers;
 
-	if (uniformBuffers == NULL)
+	mpgxResult = createVkUniformBufferArray(
+		window,
+		bufferCount,
+		&uniformBuffers);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		vkDestroyDescriptorPool(
 			device,
@@ -504,17 +473,20 @@ inline static GraphicsPipeline createVkPipeline(
 			descriptorSetLayout,
 			NULL);
 		free(handle);
-		return NULL;
+		return mpgxResult;
 	}
 
-	VkDescriptorSet* descriptorSets = createVkDescriptorSets(
+	VkDescriptorSet* descriptorSets;
+
+	mpgxResult = createVkDescriptorSetArray(
 		device,
 		descriptorSetLayout,
 		descriptorPool,
 		bufferCount,
-		uniformBuffers);
+		uniformBuffers,
+		&descriptorSets);
 
-	if (descriptorSets == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyVkUniformBuffers(
 			bufferCount,
@@ -528,7 +500,7 @@ inline static GraphicsPipeline createVkPipeline(
 			descriptorSetLayout,
 			NULL);
 		free(handle);
-		return NULL;
+		return mpgxResult;
 	}
 
 	handle->vk.descriptorSetLayout = descriptorSetLayout;
@@ -548,7 +520,8 @@ inline static GraphicsPipeline createVkPipeline(
 		handle,
 		&createData,
 		shaders,
-		shaderCount);
+		shaderCount,
+		graphicsPipeline);
 }
 #endif
 
@@ -606,7 +579,7 @@ static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 
 	assertOpenGL();
 }
-static bool onGlResize(
+static MpgxResult onGlResize(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createData)
@@ -614,16 +587,16 @@ static bool onGlResize(
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = graphicsPipeline->vk.state.viewport.z +
-		graphicsPipeline->vk.state.viewport.w == 0;
+	bool dynamic = graphicsPipeline->gl.state.viewport.z +
+		graphicsPipeline->gl.state.viewport.w == 0;
 	if (dynamic == false)
-		graphicsPipeline->vk.state.viewport = size;
+		graphicsPipeline->gl.state.viewport = size;
 
-	dynamic = graphicsPipeline->vk.state.scissor.z +
-		graphicsPipeline->vk.state.scissor.w == 0;
+	dynamic = graphicsPipeline->gl.state.scissor.z +
+		graphicsPipeline->gl.state.scissor.w == 0;
 	if (dynamic == false)
-		graphicsPipeline->vk.state.scissor = size;
-	return true;
+		graphicsPipeline->gl.state.scissor = size;
+	return SUCCESS_MPGX_RESULT;
 }
 static void onGlDestroy(void* _handle)
 {
@@ -631,29 +604,35 @@ static void onGlDestroy(void* _handle)
 	destroyBuffer(handle->gl.uniformBuffer);
 	free(handle);
 }
-inline static GraphicsPipeline createGlPipeline(
+inline static MpgxResult createGlPipeline(
 	Framebuffer framebuffer,
+	const GraphicsPipelineState* state,
+	Handle handle,
 	Shader* shaders,
 	uint8_t shaderCount,
-	const GraphicsPipelineState* state,
-	Handle handle)
+	GraphicsPipeline* graphicsPipeline)
 {
-	Buffer uniformBuffer = createBuffer(
+	Buffer uniformBuffer;
+
+	MpgxResult mpgxResult = createBuffer(
 		framebuffer->gl.window,
 		UNIFORM_BUFFER_TYPE,
 		NULL,
 		sizeof(UniformBuffer),
-		false);
+		false,
+		&uniformBuffer);
 
-	if (uniformBuffer == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		free(handle);
-		return NULL;
+		return mpgxResult;
 	}
 
 	handle->gl.uniformBuffer = uniformBuffer;
 
-	GraphicsPipeline pipeline = createGraphicsPipeline(
+	GraphicsPipeline graphicsPipelineInstance;
+
+	mpgxResult = createGraphicsPipeline(
 		framebuffer,
 		DIFFUSE_PIPELINE_NAME,
 		state,
@@ -664,12 +643,13 @@ inline static GraphicsPipeline createGlPipeline(
 		handle,
 		NULL,
 		shaders,
-		shaderCount);
+		shaderCount,
+		&graphicsPipelineInstance);
 
-	if (pipeline == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
-	GLuint glHandle = pipeline->gl.glHandle;
+	GLuint glHandle = graphicsPipelineInstance->gl.glHandle;
 
 	GLint mvpLocation, normalLocation;
 	GLuint uniformBlockIndex;
@@ -689,8 +669,10 @@ inline static GraphicsPipeline createGlPipeline(
 
 	if (result == false)
 	{
-		destroyGraphicsPipeline(pipeline, false);
-		return NULL;
+		destroyGraphicsPipeline(
+			graphicsPipelineInstance,
+			false);
+		return BAD_SHADER_CODE_MPGX_RESULT;
 	}
 
 	glUniformBlockBinding(
@@ -702,15 +684,18 @@ inline static GraphicsPipeline createGlPipeline(
 
 	handle->gl.mvpLocation = mvpLocation;
 	handle->gl.normalLocation = normalLocation;
-	return pipeline;
+
+	*graphicsPipeline = graphicsPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
-GraphicsPipeline createDiffusePipelineExt(
+MpgxResult createDiffusePipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const GraphicsPipelineState* state)
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* diffusePipeline)
 {
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
@@ -723,7 +708,7 @@ GraphicsPipeline createDiffusePipelineExt(
 	Handle handle = malloc(sizeof(Handle_T));
 
 	if (handle == NULL)
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Vec3F lightDirection = normVec3F(
 		vec3F(1.0f, -3.0f, 6.0f));
@@ -760,7 +745,8 @@ GraphicsPipeline createDiffusePipelineExt(
 			state,
 			handle,
 			shaders,
-			2);
+			2,
+			diffusePipeline);
 #else
 		abort();
 #endif
@@ -771,10 +757,11 @@ GraphicsPipeline createDiffusePipelineExt(
 #if MPGX_SUPPORT_OPENGL
 		return createGlPipeline(
 			framebuffer,
+			state,
+			handle,
 			shaders,
 			2,
-			state,
-			handle);
+			diffusePipeline);
 #else
 		abort();
 #endif
@@ -784,10 +771,11 @@ GraphicsPipeline createDiffusePipelineExt(
 		abort();
 	}
 }
-GraphicsPipeline createDiffusePipeline(
+MpgxResult createDiffusePipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
-	Shader fragmentShader)
+	Shader fragmentShader,
+	GraphicsPipeline* diffusePipeline)
 {
 	assert(framebuffer != NULL);
 
@@ -830,7 +818,8 @@ GraphicsPipeline createDiffusePipeline(
 		framebuffer,
 		vertexShader,
 		fragmentShader,
-		&state);
+		&state,
+		diffusePipeline);
 }
 
 Mat4F getDiffusePipelineMvp(

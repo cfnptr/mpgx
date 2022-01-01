@@ -1,34 +1,27 @@
 /*********************************************************************
 * Filename:   md5.h
-* Author:     Brad Conte (brad AT bradconte.com)
+* Authors:    Brad Conte (brad AT bradconte.com), Nikita Fediuchin
 * Copyright:
 * Disclaimer: This code is presented "as is" without any guarantees.
 * Details:    Defines the API for the corresponding MD5 implementation.
 *********************************************************************/
 
-#ifndef MD5_H
-#define MD5_H
+#pragma once
 
 /*************************** HEADER FILES ***************************/
-#include <stddef.h>
+#include <stdint.h>
 
 /****************************** MACROS ******************************/
 #define MD5_BLOCK_SIZE 16               // MD5 outputs a 16 byte digest
 
-/**************************** DATA TYPES ****************************/
-typedef unsigned char BYTE;             // 8-bit byte
-typedef unsigned int  WORD;             // 32-bit word, change to "long" for 16-bit machines
-
 typedef struct {
-	BYTE data[64];
-	WORD datalen;
-	unsigned long long bitlen;
-	WORD state[4];
-} MD5_CTX;
+	uint8_t data[64];
+	uint32_t dataLength;
+	uint64_t bitLength;
+	uint32_t state[4];
+} MD5_CONTEXT;
 
 /*********************** FUNCTION DECLARATIONS **********************/
-void md5_init(MD5_CTX *ctx);
-void md5_update(MD5_CTX *ctx, const BYTE data[], size_t len);
-void md5_final(MD5_CTX *ctx, BYTE hash[]);
-
-#endif   // MD5_H
+void md5_init(MD5_CONTEXT* context);
+void md5_update(MD5_CONTEXT* context, const uint8_t data[], size_t length);
+void md5_final(MD5_CONTEXT* context, uint8_t hash[]);

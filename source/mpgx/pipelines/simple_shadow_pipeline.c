@@ -55,7 +55,9 @@ typedef union Handle_T
 
 typedef Handle_T* Handle;
 
-Sampler createSimpleShadowSampler(Window window)
+MpgxResult createSimpleShadowSampler(
+	Window window,
+	Sampler* simpleShadowSampler)
 {
 	return createSampler(
 		window,
@@ -69,7 +71,8 @@ Sampler createSimpleShadowSampler(Window window)
 		LESS_COMPARE_OPERATOR,
 		true,
 		defaultMipmapLodRange,
-		DEFAULT_MIPMAP_LOD_BIAS);
+		DEFAULT_MIPMAP_LOD_BIAS,
+		simpleShadowSampler);
 }
 
 #if MPGX_SUPPORT_VULKAN
@@ -109,7 +112,7 @@ static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 		sizeof(VertexPushConstants),
 		&handle->vk.vpc);
 }
-static bool onVkResize(
+static MpgxResult onVkResize(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createData)
@@ -126,18 +129,19 @@ static bool onVkResize(
 	};
 
 	*(VkGraphicsPipelineCreateData*)createData = _createData;
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
 static void onVkDestroy(void* handle)
 {
 	free((Handle)handle);
 }
-inline static GraphicsPipeline createVkPipeline(
+inline static MpgxResult createVkPipeline(
 	Framebuffer framebuffer,
 	const GraphicsPipelineState* state,
 	Handle handle,
 	Shader* shaders,
-	uint8_t shaderCount)
+	uint8_t shaderCount,
+	GraphicsPipeline* graphicsPipeline)
 {
 	VkGraphicsPipelineCreateData createData = {
 		1,
@@ -161,12 +165,14 @@ inline static GraphicsPipeline createVkPipeline(
 		handle,
 		&createData,
 		shaders,
-		shaderCount);
+		shaderCount,
+		graphicsPipeline);
 }
 #endif
 
 #if MPGX_SUPPORT_OPENGL
-static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
+static void onGlUniformsSet(
+	GraphicsPipeline graphicsPipeline)
 {
 	Handle handle = graphicsPipeline->gl.handle;
 
@@ -188,25 +194,28 @@ static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 
 	assertOpenGL();
 }
-static bool onGlResize(
+static MpgxResult onGlResize(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
 	void* createData)
 {
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
 static void onGlDestroy(void* handle)
 {
 	free((Handle)handle);
 }
-inline static GraphicsPipeline createGlPipeline(
+inline static MpgxResult createGlPipeline(
 	Framebuffer framebuffer,
 	const GraphicsPipelineState* state,
 	Handle handle,
 	Shader* shaders,
-	uint8_t shaderCount)
+	uint8_t shaderCount,
+	GraphicsPipeline* graphicsPipeline)
 {
-	GraphicsPipeline pipeline = createGraphicsPipeline(
+	GraphicsPipeline graphicsPipelineInstance;
+
+	MpgxResult mpgxResult = createGraphicsPipeline(
 		framebuffer,
 		SIMPLE_SHADOW_PIPELINE_NAME,
 		state,
@@ -217,12 +226,13 @@ inline static GraphicsPipeline createGlPipeline(
 		handle,
 		NULL,
 		shaders,
-		shaderCount);
+		shaderCount,
+		&graphicsPipelineInstance);
 
-	if (pipeline == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
-	GLuint glHandle = pipeline->gl.glHandle;
+	GLuint glHandle = graphicsPipelineInstance->gl.glHandle;
 
 	GLint mvpLocation;
 
@@ -233,22 +243,27 @@ inline static GraphicsPipeline createGlPipeline(
 
 	if (result == false)
 	{
-		destroyGraphicsPipeline(pipeline, false);
-		return NULL;
+		destroyGraphicsPipeline(
+			graphicsPipelineInstance,
+			false);
+		return BAD_SHADER_CODE_MPGX_RESULT;
 	}
 
 	assertOpenGL();
 
 	handle->gl.mvpLocation = mvpLocation;
-	return pipeline;
+
+	*graphicsPipeline = graphicsPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
-GraphicsPipeline createSimpleShadowPipelineExt(
+MpgxResult createSimpleShadowPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const GraphicsPipelineState* state)
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* simpleShadowPipeline)
 {
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
@@ -261,7 +276,7 @@ GraphicsPipeline createSimpleShadowPipelineExt(
 	Handle handle = malloc(sizeof(Handle_T));
 
 	if (handle == NULL)
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Window window = framebuffer->base.window;
 	handle->base.window = window;
@@ -282,7 +297,8 @@ GraphicsPipeline createSimpleShadowPipelineExt(
 			state,
 			handle,
 			shaders,
-			2);
+			2,
+			simpleShadowPipeline);
 #else
 		abort();
 #endif
@@ -296,7 +312,8 @@ GraphicsPipeline createSimpleShadowPipelineExt(
 			state,
 			handle,
 			shaders,
-			2);
+			2,
+			simpleShadowPipeline);
 #else
 		abort();
 #endif
@@ -306,11 +323,12 @@ GraphicsPipeline createSimpleShadowPipelineExt(
 		abort();
 	}
 }
-GraphicsPipeline createSimpleShadowPipeline(
+MpgxResult createSimpleShadowPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	uint32_t shadowMapLength)
+	uint32_t shadowMapLength,
+	GraphicsPipeline* simpleShadowPipeline)
 {
 	assert(framebuffer != NULL);
 	assert(shadowMapLength != 0);
@@ -354,7 +372,8 @@ GraphicsPipeline createSimpleShadowPipeline(
 		framebuffer,
 		vertexShader,
 		fragmentShader,
-		&state);
+		&state,
+		simpleShadowPipeline);
 }
 
 Mat4F getSimpleShadowPipelineMvp(

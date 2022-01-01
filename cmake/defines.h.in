@@ -41,17 +41,28 @@
 typedef enum MpgxResult_T
 {
 	SUCCESS_MPGX_RESULT = 0,
-	FAILED_TO_ALLOCATE_MPGX_RESULT = 1,
-	GRAPHICS_IS_NOT_INITIALIZED_MPGX_RESULT = 2,
-	GRAPHICS_IS_ALREADY_INITIALIZED_MPGX_RESULT = 3,
-	FAILED_TO_INITIALIZE_GLFW_MPGX_RESULT = 4,
-	FAILED_TO_INITIALIZE_FREETYPE_MPGX_RESULT = 5,
-	FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT = 6,
-	FAILED_TO_INITIALIZE_OPENGL_MPGX_RESULT = 7,
-	VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT = 8,
-	OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT = 9,
-	RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT = 10,
-	MPGX_RESULT_COUNT = 11,
+	FAILED_TO_OPEN_FILE_MPGX_RESULT = 1,
+	FAILED_TO_SEEK_FILE_MPGX_RESULT = 2,
+	FAILED_TO_READ_FILE_MPGX_RESULT = 3,
+	GRAPHICS_IS_NOT_INITIALIZED_MPGX_RESULT = 4,
+	GRAPHICS_IS_ALREADY_INITIALIZED_MPGX_RESULT = 5,
+	FAILED_TO_INITIALIZE_GLFW_MPGX_RESULT = 6,
+	FAILED_TO_INITIALIZE_FREETYPE_MPGX_RESULT = 7,
+	FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT = 8,
+	FAILED_TO_INITIALIZE_OPENGL_MPGX_RESULT = 9,
+	VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT = 10,
+	OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT = 11,
+	RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT = 12,
+	FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT = 13,
+	BAD_SHADER_CODE_MPGX_RESULT = 14,
+	OUT_OF_HOST_MEMORY_MPGX_RESULT = 15,
+	OUT_OF_DEVICE_MEMORY_MPGX_RESULT = 16,
+	FAILED_TO_MAP_MEMORY_MPGX_RESULT = 17,
+	ZERO_FRAMEBUFFER_SIZE_MPGX_RESULT = 18,
+	DEVICE_IS_LOST_MPGX_RESULT = 19,
+	SURFACE_IS_LOST_MPGX_RESULT = 20,
+	UNKNOWN_ERROR_MPGX_RESULT = 21,
+	MPGX_RESULT_COUNT = 22,
 } MpgxResult_T;
 /*
  * Returns MPGX result as string.
@@ -64,7 +75,9 @@ typedef uint8_t MpgxResult;
  */
 static const char* const mpgxResultStrings[MPGX_RESULT_COUNT] = {
 	"Success",
-	"Failed to allocate",
+	"Failed to open file",
+	"Failed to seek file",
+	"Failed to read file",
 	"Graphics is not initialized",
 	"Graphics is already initialized",
 	"Failed to initialize GLFW",
@@ -74,6 +87,15 @@ static const char* const mpgxResultStrings[MPGX_RESULT_COUNT] = {
 	"Vulkan is not supported",
 	"OpenGL is not supported",
 	"Ray tracing is not supported",
+	"Failed to get function address",
+	"Bad shader code",
+	"Out of host memory",
+	"Out of device memory",
+	"Failed to map memory",
+	"Zero framebuffer size",
+	"Device is lost",
+	"Surface is lost",
+	"Unknown error",
 };
 
 /*

@@ -15,7 +15,7 @@
 #include "mpgx/pipelines/ray_tracing_color_pipeline.h"
 #include "mpgx/_source/image.h"
 #include "mpgx/_source/window.h"
-#include "mpgx/_source/ray_tracing.h"
+#include "mpgx/_source/ray_tracing_pipeline.h"
 
 #include <string.h>
 
@@ -62,48 +62,9 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 	},
 };
 
-inline static VkDescriptorSetLayout createVkDescriptorSetLayout(
-	VkDevice device)
-{
-	VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[2] = {
-		{
-			0,
-			VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-			1,
-			VK_SHADER_STAGE_RAYGEN_BIT_KHR,
-			NULL,
-		},
-		{
-			1,
-			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-			1,
-			VK_SHADER_STAGE_RAYGEN_BIT_KHR,
-			NULL,
-		},
-	};
-	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		NULL,
-		0,
-		2,
-		descriptorSetLayoutBindings,
-	};
-
-	VkDescriptorSetLayout descriptorSetLayout;
-
-	VkResult result = vkCreateDescriptorSetLayout(
-		device,
-		&descriptorSetLayoutCreateInfo,
-		NULL,
-		&descriptorSetLayout);
-
-	if(result != VK_SUCCESS)
-		return NULL;
-
-	return descriptorSetLayout;
-}
-inline static VkDescriptorPool createVkDescriptorPool(
-	VkDevice device)
+inline static MpgxResult createVkDescriptorPoolInstance(
+	VkDevice device,
+	VkDescriptorPool* descriptorPool)
 {
 	VkDescriptorPoolSize descriptorPoolSizes[2] = {
 		{
@@ -115,52 +76,40 @@ inline static VkDescriptorPool createVkDescriptorPool(
 			1,
 		},
 	};
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-		NULL,
-		0,
-		1,
-		2,
-		descriptorPoolSizes,
-	};
 
-	VkDescriptorPool descriptorPool;
+	VkDescriptorPool descriptorPoolInstance;
 
-	VkResult result = vkCreateDescriptorPool(
+	MpgxResult mpgxResult = createVkDescriptorPool(
 		device,
-		&descriptorPoolCreateInfo,
-		NULL,
-		&descriptorPool);
+		1,
+		descriptorPoolSizes,
+		2,
+		&descriptorPoolInstance);
 
-	if (result != VK_SUCCESS)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
-	return descriptorPool;
+	*descriptorPool = descriptorPoolInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-inline static VkDescriptorSet createVkDescriptorSet(
+inline static MpgxResult createVkDescriptorSetInstance(
 	VkDevice device,
 	VkDescriptorSetLayout descriptorSetLayout,
 	VkDescriptorPool descriptorPool,
 	VkAccelerationStructureKHR tlas,
-	VkImageView storageImageView)
+	VkImageView storageImageView,
+	VkDescriptorSet* descriptorSet)
 {
-	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		NULL,
-		descriptorPool,
-		1,
-		&descriptorSetLayout,
-	};
+	VkDescriptorSet descriptorSetInstance;
 
-	VkDescriptorSet descriptorSet;
-
-	VkResult result = vkAllocateDescriptorSets(
+	MpgxResult mpgxResult = allocateVkDescriptorSet(
 		device,
-		&descriptorSetAllocateInfo,
-		&descriptorSet);
+		descriptorSetLayout,
+		descriptorPool,
+		&descriptorSetInstance);
 
-	if (result != VK_SUCCESS)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	VkWriteDescriptorSetAccelerationStructureKHR writeAccelerationStructure[1] = {
 		{
@@ -182,7 +131,7 @@ inline static VkDescriptorSet createVkDescriptorSet(
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			&writeAccelerationStructure,
-			descriptorSet,
+			descriptorSetInstance,
 			0,
 			0,
 			1,
@@ -194,7 +143,7 @@ inline static VkDescriptorSet createVkDescriptorSet(
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			NULL,
-			descriptorSet,
+			descriptorSetInstance,
 			1,
 			0,
 			1,
@@ -212,7 +161,8 @@ inline static VkDescriptorSet createVkDescriptorSet(
 		0,
 		NULL);
 
-	return descriptorSet;
+	*descriptorSet = descriptorSetInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
 static void onVkBind(RayTracingPipeline rayTracingPipeline)
@@ -401,7 +351,7 @@ static void onVkDestroy(void* _handle)
 	destroyImage(handle->vk.storageImage);
 	free(handle);
 }
-inline static RayTracingPipeline createVkPipeline(
+inline static MpgxResult createVkPipeline(
 	Window window,
 	VkAccelerationStructureKHR tlas,
 	VkImageView storageImageView,
@@ -411,19 +361,39 @@ inline static RayTracingPipeline createVkPipeline(
 	Shader* missShaders,
 	size_t missShaderCount,
 	Shader* closestHitShaders,
-	size_t closestHitShaderCount)
+	size_t closestHitShaderCount,
+	RayTracingPipeline* rayTracingPipeline)
 {
 	VkWindow vkWindow = getVkWindow(window);
 	VkDevice device = vkWindow->device;
 
-	VkDescriptorSetLayout descriptorSetLayout =
-		createVkDescriptorSetLayout(device);
+	VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[2] = {
+		{
+			0,
+			VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+			1,
+			VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+			NULL,
+		},
+		{
+			1,
+			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+			1,
+			VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+			NULL,
+		},
+	};
 
-	if (descriptorSetLayout == NULL)
-	{
-		free(handle);
-		return NULL;
-	}
+	VkDescriptorSetLayout descriptorSetLayout;
+
+	MpgxResult mpgxResult = createVkDescriptorSetLayout(
+		device,
+		descriptorSetLayoutBindings,
+		2,
+		&descriptorSetLayout);
+
+	if(mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	VkRayTracingPipelineCreateData createData = {
 		1,
@@ -432,26 +402,33 @@ inline static RayTracingPipeline createVkPipeline(
 		pushConstantRanges,
 	};
 
-	VkDescriptorPool descriptorPool = createVkDescriptorPool(device);
+	VkDescriptorPool descriptorPool;
 
-	if (descriptorPool == NULL)
+	mpgxResult = createVkDescriptorPoolInstance(
+		device,
+		&descriptorPool);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		vkDestroyDescriptorSetLayout(
 			device,
 			descriptorSetLayout,
 			NULL);
 		free(handle);
-		return NULL;
+		return mpgxResult;
 	}
 
-	VkDescriptorSet descriptorSet = createVkDescriptorSet(
+	VkDescriptorSet descriptorSet;
+
+	mpgxResult = createVkDescriptorSetInstance(
 		device,
 		descriptorSetLayout,
 		descriptorPool,
 		tlas,
-		storageImageView);
+		storageImageView,
+		&descriptorSet);
 
-	if (descriptorSet == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		vkDestroyDescriptorPool(
 			device,
@@ -462,7 +439,7 @@ inline static RayTracingPipeline createVkPipeline(
 			descriptorSetLayout,
 			NULL);
 		free(handle);
-		return NULL;
+		return mpgxResult;
 	}
 
 	handle->vk.descriptorSetLayout = descriptorSetLayout;
@@ -481,16 +458,18 @@ inline static RayTracingPipeline createVkPipeline(
 		missShaders,
 		missShaderCount,
 		closestHitShaders,
-		closestHitShaderCount);
+		closestHitShaderCount,
+		rayTracingPipeline);
 }
 #endif
 
-RayTracingPipeline createRayTracingColorPipeline(
+MpgxResult createRayTracingColorPipeline(
 	Window window,
 	Shader generationShader,
 	Shader missShader,
 	Shader closestHitShader,
-	RayTracingScene scene)
+	RayTracingScene scene,
+	RayTracingPipeline* rayTracingColorPipeline)
 {
 	assert(window != NULL);
 	assert(generationShader != NULL);
@@ -508,7 +487,7 @@ RayTracingPipeline createRayTracingColorPipeline(
 	Handle handle = malloc(sizeof(Handle_T));
 
 	if (handle == NULL)
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	handle->base.window = window;
 	handle->base.scene = scene;
@@ -521,7 +500,9 @@ RayTracingPipeline createRayTracingColorPipeline(
 		getWindowFramebuffer(window));
 	Vec3U size = vec3U(framebufferSize.x, framebufferSize.y, 1);
 
-	Image storageImage = createImage(
+	Image storageImage;
+
+	MpgxResult mpgxResult = createImage(
 		window,
 		STORAGE_IMAGE_TYPE,
 		IMAGE_2D,
@@ -529,12 +510,13 @@ RayTracingPipeline createRayTracingColorPipeline(
 		&data,
 		size,
 		1,
-		true);
+		true,
+		&storageImage);
 
-	if (storageImage == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		free(handle);
-		return NULL;
+		return mpgxResult;
 	}
 
 	handle->base.storageImage = storageImage;
@@ -554,7 +536,8 @@ RayTracingPipeline createRayTracingColorPipeline(
 			&missShader,
 			1,
 			&closestHitShader,
-			1);
+			1,
+			rayTracingColorPipeline);
 #else
 		abort();
 #endif

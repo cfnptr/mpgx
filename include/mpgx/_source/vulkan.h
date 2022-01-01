@@ -19,9 +19,10 @@
 #include "vulkan/vulkan.h"
 #include "vk_mem_alloc.h"
 
-inline static VkCommandBuffer allocateBeginVkOneTimeCommandBuffer(
+inline static MpgxResult allocateBeginVkOneTimeCommandBuffer(
 	VkDevice device,
-	VkCommandPool commandPool)
+	VkCommandPool commandPool,
+	VkCommandBuffer* commandBuffer)
 {
 	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -31,15 +32,22 @@ inline static VkCommandBuffer allocateBeginVkOneTimeCommandBuffer(
 		1,
 	};
 
-	VkCommandBuffer commandBuffer;
+	VkCommandBuffer commandBufferInstance;
 
 	VkResult vkResult = vkAllocateCommandBuffers(
 		device,
 		&commandBufferAllocateInfo,
-		&commandBuffer);
+		&commandBufferInstance);
 
 	if (vkResult != VK_SUCCESS)
-		return NULL;
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
 	VkCommandBufferBeginInfo commandBufferBeginInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -49,7 +57,7 @@ inline static VkCommandBuffer allocateBeginVkOneTimeCommandBuffer(
 	};
 
 	vkResult = vkBeginCommandBuffer(
-		commandBuffer,
+		commandBufferInstance,
 		&commandBufferBeginInfo);
 
 	if (vkResult != VK_SUCCESS)
@@ -58,13 +66,20 @@ inline static VkCommandBuffer allocateBeginVkOneTimeCommandBuffer(
 			device,
 			commandPool,
 			1,
-			&commandBuffer);
-		return NULL;
+			&commandBufferInstance);
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	return commandBuffer;
+	*commandBuffer = commandBufferInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-inline static bool endSubmitWaitFreeVkCommandBuffer(
+inline static MpgxResult endSubmitWaitFreeVkCommandBuffer(
 	VkDevice device,
 	VkQueue queue,
 	VkCommandPool commandPool,
@@ -80,7 +95,13 @@ inline static bool endSubmitWaitFreeVkCommandBuffer(
 			commandPool,
 			1,
 			&commandBuffer);
-		return false;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	vkResult = vkResetFences(
@@ -95,7 +116,11 @@ inline static bool endSubmitWaitFreeVkCommandBuffer(
 			commandPool,
 			1,
 			&commandBuffer);
-		return false;
+
+		if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	VkSubmitInfo submitInfo = {
@@ -123,7 +148,15 @@ inline static bool endSubmitWaitFreeVkCommandBuffer(
 			commandPool,
 			1,
 			&commandBuffer);
-		return false;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_DEVICE_LOST)
+			return DEVICE_IS_LOST_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	vkResult = vkWaitForFences(
@@ -140,9 +173,185 @@ inline static bool endSubmitWaitFreeVkCommandBuffer(
 		&commandBuffer);
 
 	if (vkResult != VK_SUCCESS)
-		return false;
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_DEVICE_LOST)
+			return DEVICE_IS_LOST_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
-	return true;
+	return SUCCESS_MPGX_RESULT;
+}
+
+inline static MpgxResult createVkDescriptorSetLayout(
+	VkDevice device,
+	VkDescriptorSetLayoutBinding* descriptorSetLayoutBindings,
+	uint32_t descriptorSetLayoutBindingCount,
+	VkDescriptorSetLayout* descriptorSetLayout)
+{
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		NULL,
+		0,
+		descriptorSetLayoutBindingCount,
+		descriptorSetLayoutBindings,
+	};
+
+	VkDescriptorSetLayout descriptorSetLayoutInstance;
+
+	VkResult vkResult = vkCreateDescriptorSetLayout(
+		device,
+		&descriptorSetLayoutCreateInfo,
+		NULL,
+		&descriptorSetLayoutInstance);
+
+	if(vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
+
+	*descriptorSetLayout = descriptorSetLayoutInstance;
+	return SUCCESS_MPGX_RESULT;
+}
+inline static MpgxResult createVkDescriptorPool(
+	VkDevice device,
+	uint32_t maxSetCount,
+	VkDescriptorPoolSize* descriptorPoolSizes,
+	uint32_t descriptorPoolSizeCount,
+	VkDescriptorPool* descriptorPool)
+{
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		NULL,
+		0,
+		maxSetCount,
+		descriptorPoolSizeCount,
+		descriptorPoolSizes,
+	};
+
+	VkDescriptorPool descriptorPoolInstance;
+
+	VkResult vkResult = vkCreateDescriptorPool(
+		device,
+		&descriptorPoolCreateInfo,
+		NULL,
+		&descriptorPoolInstance);
+
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
+
+	*descriptorPool = descriptorPoolInstance;
+	return SUCCESS_MPGX_RESULT;
+}
+
+inline static MpgxResult allocateVkDescriptorSet(
+	VkDevice device,
+	VkDescriptorSetLayout descriptorSetLayout,
+	VkDescriptorPool descriptorPool,
+	VkDescriptorSet* descriptorSet)
+{
+	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		NULL,
+		descriptorPool,
+		1,
+		&descriptorSetLayout,
+	};
+
+	VkDescriptorSet descriptorSetInstance;
+
+	VkResult vkResult = vkAllocateDescriptorSets(
+		device,
+		&descriptorSetAllocateInfo,
+		&descriptorSetInstance);
+
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+
+		// TODO: handle VK_ERROR_FRAGMENTED_POOL, VK_ERROR_OUT_OF_POOL_MEMORY
+	}
+
+	*descriptorSet = descriptorSetInstance;
+	return SUCCESS_MPGX_RESULT;
+}
+inline static MpgxResult allocateVkDescriptorSets(
+	VkDevice device,
+	VkDescriptorSetLayout descriptorSetLayout,
+	VkDescriptorPool descriptorPool,
+	uint32_t descriptorSetCount,
+	VkDescriptorSet** descriptorSets)
+{
+	VkDescriptorSetLayout* descriptorSetLayouts = malloc(
+		descriptorSetCount * sizeof(VkDescriptorSetLayout));
+
+	if (descriptorSetLayouts == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+
+	VkDescriptorSet* descriptorSetArray = malloc(
+		descriptorSetCount * sizeof(VkDescriptorSet));
+
+	if (descriptorSetArray == NULL)
+	{
+		free(descriptorSetLayouts);
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+	}
+
+	for (uint32_t i = 0; i < descriptorSetCount; i++)
+		descriptorSetLayouts[i] = descriptorSetLayout;
+
+	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		NULL,
+		descriptorPool,
+		descriptorSetCount,
+		descriptorSetLayouts,
+	};
+
+	VkResult vkResult = vkAllocateDescriptorSets(
+		device,
+		&descriptorSetAllocateInfo,
+		descriptorSetArray);
+
+	free(descriptorSetLayouts);
+
+	if (vkResult != VK_SUCCESS)
+	{
+		free(descriptorSets);
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+
+		// TODO: handle VK_ERROR_FRAGMENTED_POOL, VK_ERROR_OUT_OF_POOL_MEMORY
+	}
+
+	*descriptorSets = descriptorSetArray;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static bool getVkCompareOperator(

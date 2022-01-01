@@ -283,7 +283,7 @@ inline static bool getVkBlendOperator(
 	}
 }
 
-inline static VkPipeline createVkGraphicsPipelineHandle(
+inline static MpgxResult createVkGraphicsPipelineHandle(
 	VkDevice device,
 	VkRenderPass renderPass,
 	VkPipelineCache cache,
@@ -292,13 +292,14 @@ inline static VkPipeline createVkGraphicsPipelineHandle(
 	size_t shaderCount,
 	GraphicsPipelineState state,
 	size_t colorAttachmentCount,
-	const VkGraphicsPipelineCreateData* createData)
+	const VkGraphicsPipelineCreateData* createData,
+	VkPipeline* handle)
 {
 	VkPipelineShaderStageCreateInfo* shaderStageCreateInfos =
 		malloc(shaderCount * sizeof(VkPipelineShaderStageCreateInfo));
 
 	if (shaderStageCreateInfos == NULL)
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	VkPipelineShaderStageCreateInfo shaderStageCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -363,7 +364,7 @@ inline static VkPipeline createVkGraphicsPipelineHandle(
 	if (result == false)
 	{
 		free(shaderStageCreateInfos);
-		return NULL;
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	VkFrontFace vkFrontFace = state.clockwiseFrontFace ?
@@ -392,23 +393,15 @@ inline static VkPipeline createVkGraphicsPipelineHandle(
 	VkDynamicState dynamicStates[2];
 	uint32_t dynamicStateCount = 0;
 
-	bool dynamicViewport = state.viewport.z +
-		state.viewport.w == 0;
+	bool dynamicViewport = state.viewport.z + state.viewport.w == 0;
 
 	if (dynamicViewport == true)
-	{
-		dynamicStates[dynamicStateCount++] =
-			VK_DYNAMIC_STATE_VIEWPORT;
-	}
+		dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_VIEWPORT;
 
-	bool dynamicScissor = state.scissor.z +
-		state.scissor.w == 0;
+	bool dynamicScissor = state.scissor.z + state.scissor.w == 0;
 
 	if (dynamicScissor == true)
-	{
-		dynamicStates[dynamicStateCount++] =
-			VK_DYNAMIC_STATE_SCISSOR;
-	}
+		dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_SCISSOR;
 
 	// TODO: fix different Vulkan viewport/scissor
 	// coordinate system from OpenGL
@@ -517,7 +510,7 @@ inline static VkPipeline createVkGraphicsPipelineHandle(
 	if (colorBlendAttachmentStates == NULL)
 	{
 		free(shaderStageCreateInfos);
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	VkPipelineColorBlendAttachmentState colorBlendAttachmentState = {
@@ -580,7 +573,7 @@ inline static VkPipeline createVkGraphicsPipelineHandle(
 		0,
 	};
 
-	VkPipeline handle;
+	VkPipeline handleInstance;
 
 	VkResult vkResult = vkCreateGraphicsPipelines(
 		device,
@@ -588,24 +581,36 @@ inline static VkPipeline createVkGraphicsPipelineHandle(
 		1,
 		&graphicsPipelineCreateInfo,
 		NULL,
-		&handle);
+		&handleInstance);
 
 	free(colorBlendAttachmentStates);
 	free(shaderStageCreateInfos);
 
 	if (vkResult != VK_SUCCESS)
-		return NULL;
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_INVALID_SHADER_NV)
+			return BAD_SHADER_CODE_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
-	return handle;
+	*handle = handleInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-inline static bool recreateVkGraphicsPipelineHandle(
+inline static MpgxResult recreateVkGraphicsPipelineHandle(
 	VkDevice device,
 	VkRenderPass renderPass,
 	GraphicsPipeline graphicsPipeline,
 	size_t colorAttachmentCount,
 	const VkGraphicsPipelineCreateData* createData)
 {
-	VkPipeline handle = createVkGraphicsPipelineHandle(
+	VkPipeline handle;
+
+	MpgxResult mpgxResult = createVkGraphicsPipelineHandle(
 		device,
 		renderPass,
 		graphicsPipeline->vk.cache,
@@ -614,10 +619,11 @@ inline static bool recreateVkGraphicsPipelineHandle(
 		graphicsPipeline->vk.shaderCount,
 		graphicsPipeline->vk.state,
 		colorAttachmentCount,
-		createData);
+		createData,
+		&handle);
 
-	if (handle == NULL)
-		return false;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	vkDestroyPipeline(
 		device,
@@ -625,7 +631,7 @@ inline static bool recreateVkGraphicsPipelineHandle(
 		NULL);
 
 	graphicsPipeline->vk.vkHandle = handle;
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static void destroyVkGraphicsPipeline(
@@ -661,7 +667,7 @@ inline static void destroyVkGraphicsPipeline(
 	free(graphicsPipeline->vk.shaders);
 	free(graphicsPipeline);
 }
-inline static GraphicsPipeline createVkGraphicsPipeline(
+inline static MpgxResult createVkGraphicsPipeline(
 	VkDevice device,
 	const VkGraphicsPipelineCreateData* createData,
 	Framebuffer framebuffer,
@@ -673,24 +679,25 @@ inline static GraphicsPipeline createVkGraphicsPipeline(
 	OnGraphicsPipelineDestroy onDestroy,
 	void* handle,
 	Shader* shaders,
-	size_t shaderCount)
+	size_t shaderCount,
+	GraphicsPipeline* graphicsPipeline)
 {
-	GraphicsPipeline graphicsPipeline = calloc(1,
+	GraphicsPipeline graphicsPipelineInstance = calloc(1,
 		sizeof(GraphicsPipeline_T));
 
-	if (graphicsPipeline == NULL)
-		return NULL;
+	if (graphicsPipelineInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 #ifndef NDEBUG
-	graphicsPipeline->vk.name = name;
+	graphicsPipelineInstance->vk.name = name;
 #endif
-	graphicsPipeline->vk.framebuffer = framebuffer;
-	graphicsPipeline->vk.state = state;
-	graphicsPipeline->vk.onBind = onBind;
-	graphicsPipeline->vk.onUniformsSet = onUniformsSet;
-	graphicsPipeline->vk.onResize = onResize;
-	graphicsPipeline->vk.onDestroy = onDestroy;
-	graphicsPipeline->vk.handle = handle;
+	graphicsPipelineInstance->vk.framebuffer = framebuffer;
+	graphicsPipelineInstance->vk.state = state;
+	graphicsPipelineInstance->vk.onBind = onBind;
+	graphicsPipelineInstance->vk.onUniformsSet = onUniformsSet;
+	graphicsPipelineInstance->vk.onResize = onResize;
+	graphicsPipelineInstance->vk.onDestroy = onDestroy;
+	graphicsPipelineInstance->vk.handle = handle;
 
 	Shader* pipelineShaders = malloc(
 		shaderCount * sizeof(Shader));
@@ -699,16 +706,16 @@ inline static GraphicsPipeline createVkGraphicsPipeline(
 	{
 		destroyVkGraphicsPipeline(
 			device,
-			graphicsPipeline,
+			graphicsPipelineInstance,
 			false);
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	for (size_t i = 0; i < shaderCount; i++)
 		pipelineShaders[i] = shaders[i];
 
-	graphicsPipeline->vk.shaders = pipelineShaders;
-	graphicsPipeline->vk.shaderCount = shaderCount;
+	graphicsPipelineInstance->vk.shaders = pipelineShaders;
+	graphicsPipelineInstance->vk.shaderCount = shaderCount;
 
 	VkPipelineCacheCreateInfo cacheCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
@@ -730,12 +737,18 @@ inline static GraphicsPipeline createVkGraphicsPipeline(
 	{
 		destroyVkGraphicsPipeline(
 			device,
-			graphicsPipeline,
+			graphicsPipelineInstance,
 			false);
-		return NULL;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	graphicsPipeline->vk.cache = cache;
+	graphicsPipelineInstance->vk.cache = cache;
 
 	VkPipelineLayoutCreateInfo layoutCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -759,14 +772,22 @@ inline static GraphicsPipeline createVkGraphicsPipeline(
 	{
 		destroyVkGraphicsPipeline(
 			device,
-			graphicsPipeline,
+			graphicsPipelineInstance,
 			false);
-		return NULL;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	graphicsPipeline->vk.layout = layout;
+	graphicsPipelineInstance->vk.layout = layout;
 
-	VkPipeline vkHandle = createVkGraphicsPipelineHandle(
+	VkPipeline vkHandle;
+
+	MpgxResult mpgxResult = createVkGraphicsPipelineHandle(
 		device,
 		framebuffer->vk.renderPass,
 		cache,
@@ -775,19 +796,22 @@ inline static GraphicsPipeline createVkGraphicsPipeline(
 		shaderCount,
 		state,
 		framebuffer->vk.colorAttachmentCount,
-		createData);
+		createData,
+		&vkHandle);
 
-	if (vkHandle == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyVkGraphicsPipeline(
 			device,
-			graphicsPipeline,
+			graphicsPipelineInstance,
 			false);
-		return NULL;
+		return mpgxResult;
 	}
 
-	graphicsPipeline->vk.vkHandle = vkHandle;
-	return graphicsPipeline;
+	graphicsPipelineInstance->vk.vkHandle = vkHandle;
+
+	*graphicsPipeline = graphicsPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static void bindVkGraphicsPipeline(
@@ -975,8 +999,7 @@ inline static void destroyGlGraphicsPipeline(
 	makeWindowContextCurrent(
 		graphicsPipeline->gl.framebuffer->gl.window);
 
-	glDeleteProgram(
-		graphicsPipeline->gl.glHandle);
+	glDeleteProgram(graphicsPipeline->gl.glHandle);
 	assertOpenGL();
 
 	if (destroyShaders == true)
@@ -991,7 +1014,7 @@ inline static void destroyGlGraphicsPipeline(
 	free(graphicsPipeline->gl.shaders);
 	free(graphicsPipeline);
 }
-inline static GraphicsPipeline createGlGraphicsPipeline(
+inline static MpgxResult createGlGraphicsPipeline(
 	Framebuffer framebuffer,
 	const char* name,
 	GraphicsPipelineState state,
@@ -1001,24 +1024,25 @@ inline static GraphicsPipeline createGlGraphicsPipeline(
 	OnGraphicsPipelineDestroy onDestroy,
 	void* handle,
 	Shader* shaders,
-	size_t shaderCount)
+	size_t shaderCount,
+	GraphicsPipeline* graphicsPipeline)
 {
-	GraphicsPipeline graphicsPipeline = calloc(1,
+	GraphicsPipeline graphicsPipelineInstance = calloc(1,
 		sizeof(GraphicsPipeline_T));
 
-	if (graphicsPipeline == NULL)
-		return NULL;
+	if (graphicsPipelineInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 #ifndef NDEBUG
-	graphicsPipeline->gl.name = name;
+	graphicsPipelineInstance->gl.name = name;
 #endif
-	graphicsPipeline->gl.framebuffer = framebuffer;
-	graphicsPipeline->gl.state = state;
-	graphicsPipeline->gl.onBind = onBind;
-	graphicsPipeline->gl.onUniformsSet = onUniformsSet;
-	graphicsPipeline->gl.onResize = onResize;
-	graphicsPipeline->gl.onDestroy = onDestroy;
-	graphicsPipeline->gl.handle = handle;
+	graphicsPipelineInstance->gl.framebuffer = framebuffer;
+	graphicsPipelineInstance->gl.state = state;
+	graphicsPipelineInstance->gl.onBind = onBind;
+	graphicsPipelineInstance->gl.onUniformsSet = onUniformsSet;
+	graphicsPipelineInstance->gl.onResize = onResize;
+	graphicsPipelineInstance->gl.onDestroy = onDestroy;
+	graphicsPipelineInstance->gl.handle = handle;
 
 	Shader* pipelineShaders = malloc(
 		shaderCount * sizeof(Shader));
@@ -1026,13 +1050,13 @@ inline static GraphicsPipeline createGlGraphicsPipeline(
 	if (pipelineShaders == NULL)
 	{
 		destroyGlGraphicsPipeline(
-			graphicsPipeline,
+			graphicsPipelineInstance,
 			false);
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
-	graphicsPipeline->gl.shaders = pipelineShaders;
-	graphicsPipeline->gl.shaderCount = shaderCount;
+	graphicsPipelineInstance->gl.shaders = pipelineShaders;
+	graphicsPipelineInstance->gl.shaderCount = shaderCount;
 
 	GLenum drawMode, polygonMode,
 		cullMode, depthCompareOperator,
@@ -1083,33 +1107,33 @@ inline static GraphicsPipeline createGlGraphicsPipeline(
 	if (result == false)
 	{
 		destroyGlGraphicsPipeline(
-			graphicsPipeline,
+			graphicsPipelineInstance,
 			false);
-		return NULL;
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
-	graphicsPipeline->gl.drawMode = drawMode;
-	graphicsPipeline->gl.polygonMode = polygonMode;
-	graphicsPipeline->gl.cullMode = cullMode;
-	graphicsPipeline->gl.depthCompareOperator = depthCompareOperator;
-	graphicsPipeline->gl.srcColorBlendFactor = srcColorBlendFactor;
-	graphicsPipeline->gl.dstColorBlendFactor = dstColorBlendFactor;
-	graphicsPipeline->gl.srcAlphaBlendFactor = srcAlphaBlendFactor;
-	graphicsPipeline->gl.dstAlphaBlendFactor = dstAlphaBlendFactor;
-	graphicsPipeline->gl.colorBlendOperator = colorBlendOperator;
-	graphicsPipeline->gl.alphaBlendOperator = alphaBlendOperator;
+	graphicsPipelineInstance->gl.drawMode = drawMode;
+	graphicsPipelineInstance->gl.polygonMode = polygonMode;
+	graphicsPipelineInstance->gl.cullMode = cullMode;
+	graphicsPipelineInstance->gl.depthCompareOperator = depthCompareOperator;
+	graphicsPipelineInstance->gl.srcColorBlendFactor = srcColorBlendFactor;
+	graphicsPipelineInstance->gl.dstColorBlendFactor = dstColorBlendFactor;
+	graphicsPipelineInstance->gl.srcAlphaBlendFactor = srcAlphaBlendFactor;
+	graphicsPipelineInstance->gl.dstAlphaBlendFactor = dstAlphaBlendFactor;
+	graphicsPipelineInstance->gl.colorBlendOperator = colorBlendOperator;
+	graphicsPipelineInstance->gl.alphaBlendOperator = alphaBlendOperator;
 
 	GLenum frontFace =
 		state.clockwiseFrontFace == true ?
 		GL_CW : GL_CCW;
 
-	graphicsPipeline->gl.frontFace = frontFace;
+	graphicsPipelineInstance->gl.frontFace = frontFace;
 
 	Window window = framebuffer->gl.window;
 	makeWindowContextCurrent(window);
 
 	GLuint glHandle = glCreateProgram();
-	graphicsPipeline->gl.glHandle = glHandle;
+	graphicsPipelineInstance->gl.glHandle = glHandle;
 
 	for (size_t i = 0; i < shaderCount; i++)
 	{
@@ -1147,15 +1171,14 @@ inline static GraphicsPipeline createGlGraphicsPipeline(
 
 		if (length > 0)
 		{
-			char* infoLog = malloc(
-				length * sizeof(char));
+			char* infoLog = malloc(length * sizeof(char));
 
 			if (infoLog == NULL)
 			{
 				destroyGlGraphicsPipeline(
-					graphicsPipeline,
+					graphicsPipelineInstance,
 					false);
-				return NULL;
+				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 			}
 
 			glGetProgramInfoLog(
@@ -1164,17 +1187,16 @@ inline static GraphicsPipeline createGlGraphicsPipeline(
 				&length,
 				(GLchar*)infoLog);
 
-			printf("OpenGL program link error:\n%s",
-				infoLog);
+			printf("OpenGL program link error:\n%s", infoLog);
 			free(infoLog);
 		}
 
 		assertOpenGL();
 
 		destroyGlGraphicsPipeline(
-			graphicsPipeline,
+			graphicsPipelineInstance,
 			false);
-		return NULL;
+		return BAD_SHADER_CODE_MPGX_RESULT;
 	}
 
 	GLenum error = glGetError();
@@ -1182,12 +1204,13 @@ inline static GraphicsPipeline createGlGraphicsPipeline(
 	if (error != GL_NO_ERROR)
 	{
 		destroyGlGraphicsPipeline(
-			graphicsPipeline,
+			graphicsPipelineInstance,
 			false);
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	return graphicsPipeline;
+	*graphicsPipeline = graphicsPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static void bindGlGraphicsPipeline(
@@ -1329,39 +1352,37 @@ inline static void bindGlGraphicsPipeline(
 inline static bool getGlUniformLocation(
 	GLuint program,
 	const GLchar* name,
-	GLint* _location)
+	GLint* location)
 {
-	GLint location = glGetUniformLocation(
+	GLint uniformLocation = glGetUniformLocation(
 		program,
 		name);
 
-	if (location == -1)
+	if (uniformLocation == -1)
 	{
-		printf("Failed to get '%s' uniform location.\n",
-			name);
+		printf("Failed to get '%s' uniform location.\n", name);
 		return false;
 	}
 
-	*_location = location;
+	*location = uniformLocation;
 	return true;
 }
 inline static GLuint getGlUniformBlockIndex(
 	GLuint program,
 	const GLchar* name,
-	GLuint* _blockIndex)
+	GLuint* blockIndex)
 {
-	GLuint blockIndex = glGetUniformBlockIndex(
+	GLuint uniformBlockIndex = glGetUniformBlockIndex(
 		program,
 		name);
 
-	if (blockIndex == GL_INVALID_INDEX)
+	if (uniformBlockIndex == GL_INVALID_INDEX)
 	{
-		printf("Failed to get '%s' uniform block index.\n",
-			name);
+		printf("Failed to get '%s' uniform block index.\n", name);
 		return false;
 	}
 
-	*_blockIndex = blockIndex;
+	*blockIndex = uniformBlockIndex;
 	return true;
 }
 #endif

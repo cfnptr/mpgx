@@ -1,6 +1,6 @@
 /*********************************************************************
 * Filename:   md5.c
-* Author:     Brad Conte (brad AT bradconte.com)
+* Authors:    Brad Conte (brad AT bradconte.com), Nikita Fediuchin
 * Copyright:
 * Disclaimer: This code is presented "as is" without any guarantees.
 * Details:    Implementation of the MD5 hashing algorithm.
@@ -31,20 +31,20 @@
                             a = b + ROTLEFT(a,s); }
 
 /*********************** FUNCTION DEFINITIONS ***********************/
-void md5_transform(MD5_CTX *ctx, const BYTE data[])
+inline static void md5_transform(MD5_CONTEXT* context, const uint8_t data[])
 {
-	WORD a, b, c, d, m[16], i, j;
+	uint32_t a, b, c, d, m[16];
 
 	// MD5 specifies big endian byte order, but this implementation assumes a little
 	// endian byte order CPU. Reverse all the bytes upon input, and re-reverse them
 	// on output (in md5_final()).
-	for (i = 0, j = 0; i < 16; ++i, j += 4)
+	for (uint32_t i = 0, j = 0; i < 16; ++i, j += 4)
 		m[i] = (data[j]) + (data[j + 1] << 8) + (data[j + 2] << 16) + (data[j + 3] << 24);
 
-	a = ctx->state[0];
-	b = ctx->state[1];
-	c = ctx->state[2];
-	d = ctx->state[3];
+	a = context->state[0];
+	b = context->state[1];
+	c = context->state[2];
+	d = context->state[3];
 
 	FF(a,b,c,d,m[0],  7,0xd76aa478);
 	FF(d,a,b,c,m[1], 12,0xe8c7b756);
@@ -114,75 +114,79 @@ void md5_transform(MD5_CTX *ctx, const BYTE data[])
 	II(c,d,a,b,m[2], 15,0x2ad7d2bb);
 	II(b,c,d,a,m[9], 21,0xeb86d391);
 
-	ctx->state[0] += a;
-	ctx->state[1] += b;
-	ctx->state[2] += c;
-	ctx->state[3] += d;
+	context->state[0] += a;
+	context->state[1] += b;
+	context->state[2] += c;
+	context->state[3] += d;
 }
 
-void md5_init(MD5_CTX *ctx)
+void md5_init(MD5_CONTEXT* context)
 {
-	ctx->datalen = 0;
-	ctx->bitlen = 0;
-	ctx->state[0] = 0x67452301;
-	ctx->state[1] = 0xEFCDAB89;
-	ctx->state[2] = 0x98BADCFE;
-	ctx->state[3] = 0x10325476;
+	context->dataLength = 0;
+	context->bitLength = 0;
+	context->state[0] = 0x67452301;
+	context->state[1] = 0xEFCDAB89;
+	context->state[2] = 0x98BADCFE;
+	context->state[3] = 0x10325476;
 }
 
-void md5_update(MD5_CTX *ctx, const BYTE data[], size_t len)
+void md5_update(MD5_CONTEXT *context, const uint8_t data[], size_t len)
 {
-	size_t i;
+	for (size_t i = 0; i < len; ++i)
+	{
+		context->data[context->dataLength++] = data[i];
 
-	for (i = 0; i < len; ++i) {
-		ctx->data[ctx->datalen] = data[i];
-		ctx->datalen++;
-		if (ctx->datalen == 64) {
-			md5_transform(ctx, ctx->data);
-			ctx->bitlen += 512;
-			ctx->datalen = 0;
+		if (context->dataLength == 64)
+		{
+			md5_transform(context, context->data);
+			context->bitLength += 512;
+			context->dataLength = 0;
 		}
 	}
 }
 
-void md5_final(MD5_CTX *ctx, BYTE hash[])
+void md5_final(MD5_CONTEXT *context, uint8_t hash[])
 {
-	size_t i;
-
-	i = ctx->datalen;
+	size_t i = context->dataLength;
 
 	// Pad whatever data is left in the buffer.
-	if (ctx->datalen < 56) {
-		ctx->data[i++] = 0x80;
+	if (context->dataLength < 56)
+	{
+		context->data[i++] = 0x80;
+
 		while (i < 56)
-			ctx->data[i++] = 0x00;
+			context->data[i++] = 0x00;
 	}
-	else if (ctx->datalen >= 56) {
-		ctx->data[i++] = 0x80;
+	else if (context->dataLength >= 56)
+	{
+		context->data[i++] = 0x80;
+
 		while (i < 64)
-			ctx->data[i++] = 0x00;
-		md5_transform(ctx, ctx->data);
-		memset(ctx->data, 0, 56);
+			context->data[i++] = 0x00;
+
+		md5_transform(context, context->data);
+		memset(context->data, 0, 56);
 	}
 
 	// Append to the padding the total message's length in bits and transform.
-	ctx->bitlen += ctx->datalen * 8;
-	ctx->data[56] = ctx->bitlen;
-	ctx->data[57] = ctx->bitlen >> 8;
-	ctx->data[58] = ctx->bitlen >> 16;
-	ctx->data[59] = ctx->bitlen >> 24;
-	ctx->data[60] = ctx->bitlen >> 32;
-	ctx->data[61] = ctx->bitlen >> 40;
-	ctx->data[62] = ctx->bitlen >> 48;
-	ctx->data[63] = ctx->bitlen >> 56;
-	md5_transform(ctx, ctx->data);
+	context->bitLength += context->dataLength * 8;
+	context->data[56] = context->bitLength;
+	context->data[57] = context->bitLength >> 8;
+	context->data[58] = context->bitLength >> 16;
+	context->data[59] = context->bitLength >> 24;
+	context->data[60] = context->bitLength >> 32;
+	context->data[61] = context->bitLength >> 40;
+	context->data[62] = context->bitLength >> 48;
+	context->data[63] = context->bitLength >> 56;
+	md5_transform(context, context->data);
 
 	// Since this implementation uses little endian byte ordering and MD uses big endian,
 	// reverse all the bytes when copying the final state to the output hash.
-	for (i = 0; i < 4; ++i) {
-		hash[i]      = (ctx->state[0] >> (i * 8)) & 0x000000ff;
-		hash[i + 4]  = (ctx->state[1] >> (i * 8)) & 0x000000ff;
-		hash[i + 8]  = (ctx->state[2] >> (i * 8)) & 0x000000ff;
-		hash[i + 12] = (ctx->state[3] >> (i * 8)) & 0x000000ff;
+	for (i = 0; i < 4; ++i)
+	{
+		hash[i]      = (context->state[0] >> (i * 8)) & 0x000000ff;
+		hash[i + 4]  = (context->state[1] >> (i * 8)) & 0x000000ff;
+		hash[i + 8]  = (context->state[2] >> (i * 8)) & 0x000000ff;
+		hash[i + 12] = (context->state[3] >> (i * 8)) & 0x000000ff;
 	}
 }

@@ -60,27 +60,30 @@ union GraphicsMesh_T
 };
 
 #if MPGX_SUPPORT_VULKAN
-inline static GraphicsMesh createVkGraphicsMesh(
+inline static MpgxResult createVkGraphicsMesh(
 	Window window,
 	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
-	Buffer indexBuffer)
+	Buffer indexBuffer,
+	GraphicsMesh* graphicsMesh)
 {
-	GraphicsMesh graphicsMesh = calloc(1,
+	GraphicsMesh graphicsMeshInstance = calloc(1,
 		sizeof(GraphicsMesh_T));
 
-	if (graphicsMesh == NULL)
-		return NULL;
+	if (graphicsMeshInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	graphicsMesh->vk.window = window;
-	graphicsMesh->vk.indexType = indexType;
-	graphicsMesh->vk.indexCount = indexCount;
-	graphicsMesh->vk.indexOffset = indexOffset;
-	graphicsMesh->vk.vertexBuffer = vertexBuffer;
-	graphicsMesh->vk.indexBuffer = indexBuffer;
-	return graphicsMesh;
+	graphicsMeshInstance->vk.window = window;
+	graphicsMeshInstance->vk.indexType = indexType;
+	graphicsMeshInstance->vk.indexCount = indexCount;
+	graphicsMeshInstance->vk.indexOffset = indexOffset;
+	graphicsMeshInstance->vk.vertexBuffer = vertexBuffer;
+	graphicsMeshInstance->vk.indexBuffer = indexBuffer;
+
+	*graphicsMesh = graphicsMeshInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 inline static void destroyVkGraphicsMesh(
 	GraphicsMesh graphicsMesh,
@@ -169,26 +172,27 @@ inline static void destroyGlGraphicsMesh(
 
 	free(graphicsMesh);
 }
-inline static GraphicsMesh createGlGraphicsMesh(
+inline static MpgxResult createGlGraphicsMesh(
 	Window window,
 	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
-	Buffer indexBuffer)
+	Buffer indexBuffer,
+	GraphicsMesh* graphicsMesh)
 {
-	GraphicsMesh graphicsMesh = calloc(1,
+	GraphicsMesh graphicsMeshInstance = calloc(1,
 		sizeof(GraphicsMesh_T));
 
 	if (graphicsMesh == NULL)
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	graphicsMesh->gl.window = window;
-	graphicsMesh->gl.indexType = indexType;
-	graphicsMesh->gl.indexCount = indexCount;
-	graphicsMesh->gl.indexOffset = indexOffset;
-	graphicsMesh->gl.vertexBuffer = vertexBuffer;
-	graphicsMesh->gl.indexBuffer = indexBuffer;
+	graphicsMeshInstance->gl.window = window;
+	graphicsMeshInstance->gl.indexType = indexType;
+	graphicsMeshInstance->gl.indexCount = indexCount;
+	graphicsMeshInstance->gl.indexOffset = indexOffset;
+	graphicsMeshInstance->gl.vertexBuffer = vertexBuffer;
+	graphicsMeshInstance->gl.indexBuffer = indexBuffer;
 
 	makeWindowContextCurrent(window);
 
@@ -198,19 +202,20 @@ inline static GraphicsMesh createGlGraphicsMesh(
 		GL_ONE,
 		&handle);
 
-	graphicsMesh->gl.handle = handle;
+	graphicsMeshInstance->gl.handle = handle;
 
 	GLenum error = glGetError();
 
 	if (error != GL_NO_ERROR)
 	{
 		destroyGlGraphicsMesh(
-			graphicsMesh,
+			graphicsMeshInstance,
 			false);
-		return NULL;
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	return graphicsMesh;
+	*graphicsMesh = graphicsMeshInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static void drawGlGraphicsMesh(

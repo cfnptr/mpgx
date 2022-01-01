@@ -17,19 +17,21 @@
 
 #define GAUSSIAN_BLUR_PIPELINE_NAME "GaussianBlur"
 
-GraphicsPipeline createGaussianBlurPipelineExt(
+MpgxResult createGaussianBlurPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image buffer,
 	Sampler sampler,
-	const GraphicsPipelineState* state);
-GraphicsPipeline createGaussianBlurPipeline(
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* gaussianBlurPipeline);
+MpgxResult createGaussianBlurPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image buffer,
-	Sampler sampler);
+	Sampler sampler,
+	GraphicsPipeline* gaussianBlurPipeline);
 
 Image getGaussianBlurPipelineBuffer(
 	GraphicsPipeline gaussianBlurPipeline);

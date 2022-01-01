@@ -64,29 +64,33 @@ bool validateStringUTF32(
 	const uint32_t* array,
 	size_t arrayLength);
 
-Font createFont(
+MpgxResult createFont(
 	const void* data,
-	size_t size);
-Font createFontFromFile(
-	const void* filePath);
+	size_t size,
+	Font* font);
+MpgxResult createFontFromFile(
+	const void* filePath,
+	Font* font);
 void destroyFont(Font font);
 
-Text createText32(
+MpgxResult createText32(
 	GraphicsPipeline textPipeline,
 	Font font,
 	uint32_t fontSize,
 	AlignmentType alignment,
 	const uint32_t* data,
 	size_t dataLength,
-	bool isConstant);
-Text createText8(
+	bool isConstant,
+	Text* text);
+MpgxResult createText8(
 	GraphicsPipeline textPipeline,
 	Font font,
 	uint32_t fontSize,
 	AlignmentType alignment,
 	const char* data,
 	size_t dataLength,
-	bool isConstant);
+	bool isConstant,
+	Text* text);
 void destroyText(Text text);
 
 GraphicsPipeline getTextPipeline(Text text);
@@ -136,7 +140,7 @@ bool setTextData8(
 	size_t dataLength,
 	bool reuseBuffers);
 
-bool bakeText(
+MpgxResult bakeText(
 	Text text,
 	bool reuseBuffers);
 size_t drawText(
@@ -146,22 +150,26 @@ size_t drawText(
 float getTextPlatformScale(
 	GraphicsPipeline textPipeline);
 
-Sampler createTextSampler(Window window);
+MpgxResult createTextSampler(
+	Window window,
+	Sampler* textSampler);
 
-GraphicsPipeline createExtTextPipeline(
+MpgxResult createTextPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler,
 	const GraphicsPipelineState* state,
-	size_t textCapacity);
-GraphicsPipeline createTextPipeline(
+	size_t textCapacity,
+	GraphicsPipeline* textPipeline);
+MpgxResult createTextPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Sampler sampler,
 	size_t textCapacity,
-	bool useScissor);
+	bool useScissor,
+	GraphicsPipeline* textPipeline);
 
 Sampler getTextPipelineSampler(
 	GraphicsPipeline textPipeline);

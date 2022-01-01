@@ -88,62 +88,75 @@ static void onWindowUpdate(void* handle)
 		2);
 
 	endFramebufferRender(framebuffer);
-
 	endWindowRecord(window);
 }
 
-inline static RayTracingScene createRayTracingSceneInstance(
-	Window window)
+inline static MpgxResult createRayTracingSceneInstance(
+	Window window,
+	RayTracingScene* rayTracingScene)
 {
-	Buffer vertexBuffer = createBuffer(
+	Buffer vertexBuffer;
+
+	MpgxResult mpgxResult = createBuffer(
 		window,
 		VERTEX_BUFFER_TYPE,
 		cubeTriangleVertices,
 		sizeof(cubeTriangleVertices),
-		true);
+		true,
+		&vertexBuffer);
 
-	if (vertexBuffer == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
-	Buffer indexBuffer = createBuffer(
+	Buffer indexBuffer;
+
+	mpgxResult = createBuffer(
 		window,
 		INDEX_BUFFER_TYPE,
 		cubeTriangleIndices,
 		sizeof(cubeTriangleIndices),
-		true);
+		true,
+		&indexBuffer);
 
-	if (indexBuffer == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyBuffer(vertexBuffer);
-		return NULL;
+		return mpgxResult;
 	}
 
-	RayTracingMesh rayTracingMesh = createRayTracingMesh(
+	RayTracingMesh mesh;
+
+	mpgxResult = createRayTracingMesh(
 		window,
 		sizeof(Vec3F),
 		UINT16_INDEX_TYPE,
 		vertexBuffer,
-		indexBuffer);
+		indexBuffer,
+		&mesh);
 
-	if (rayTracingMesh == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyBuffer(indexBuffer);
 		destroyBuffer(vertexBuffer);
-		return NULL;
+		return mpgxResult;
 	}
 
-	RayTracingScene rayTracingScene = createRayTracingScene(
+	RayTracingScene scene;
+
+	mpgxResult = createRayTracingScene(
 		window,
-		&rayTracingMesh,
-		1);
+		&mesh,
+		1,
+		&scene);
 
-	if (rayTracingScene == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
-		destroyRayTracingMesh(rayTracingMesh, true);
-		return NULL;
+		destroyRayTracingMesh(mesh, true);
+		return mpgxResult;
 	}
 
-	return rayTracingScene;
+	*rayTracingScene = scene;
+	return SUCCESS_MPGX_RESULT;
 }
 inline static void destroyRayTracingSceneInstance(
 	RayTracingScene rayTracingScene)
@@ -157,56 +170,75 @@ inline static void destroyRayTracingSceneInstance(
 	destroyRayTracingMesh(rayTracingMesh, true);
 }
 
-inline static RayTracingPipeline createRayTracingColorPipelineInstance(
+inline static MpgxResult createRayTracingColorPipelineInstance(
 	Window window,
-	RayTracingScene rayTracingScene)
+	RayTracingScene rayTracingScene,
+	RayTracingPipeline* rayTracingPipeline)
 {
 	const char* generationShaderPath = "resources/shaders/vulkan/color.rgen.spv";
 	const char* missShaderPath = "resources/shaders/vulkan/color.rmiss.spv";
 	const char* closestHitShaderPath = "resources/shaders/vulkan/color.rchit.spv";
 
-	Shader generationShader = createShaderFromFile(
+	Shader generationShader;
+
+	MpgxResult mpgxResult = createShaderFromFile(
 		window,
 		RAY_GENERATION_SHADER_TYPE,
-		generationShaderPath);
+		generationShaderPath,
+		&generationShader);
 
-	if (generationShader == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
-	Shader missShader = createShaderFromFile(
+	Shader missShader;
+
+	mpgxResult = createShaderFromFile(
 		window,
 		RAY_MISS_SHADER_TYPE,
-		missShaderPath);
+		missShaderPath,
+		&missShader);
 
-	if (missShader == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyShader(generationShader);
-		return NULL;
+		return mpgxResult;
 	}
 
-	Shader closestHitShader = createShaderFromFile(
+	Shader closestHitShader;
+
+	mpgxResult = createShaderFromFile(
 		window,
 		RAY_CLOSEST_HIT_SHADER_TYPE,
-		closestHitShaderPath);
+		closestHitShaderPath,
+		&closestHitShader);
 
-	if (closestHitShader == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyShader(missShader);
 		destroyShader(generationShader);
-		return NULL;
+		return mpgxResult;
 	}
 
-	RayTracingPipeline rayTracingPipeline = createRayTracingColorPipeline(
+	RayTracingPipeline pipeline;
+
+	mpgxResult = createRayTracingColorPipeline(
 		window,
 		generationShader,
 		missShader,
 		closestHitShader,
-		rayTracingScene);
+		rayTracingScene,
+		&pipeline);
 
-	if (rayTracingPipeline == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		destroyShader(closestHitShader);
+		destroyShader(missShader);
+		destroyShader(generationShader);
+		return mpgxResult;
+	}
 
-	return rayTracingPipeline;
+	*rayTracingPipeline = pipeline;
+	return SUCCESS_MPGX_RESULT;
 }
 inline static void destroyRayTracingColorPipelineInstance(
 	RayTracingPipeline colorPipeline)
@@ -214,7 +246,9 @@ inline static void destroyRayTracingColorPipelineInstance(
 	if (colorPipeline == NULL)
 		return;
 
-	destroyRayTracingPipeline(colorPipeline, true);
+	destroyRayTracingPipeline(
+		colorPipeline,
+		true);
 }
 
 inline static Client createClient()
@@ -225,9 +259,23 @@ inline static Client createClient()
 	if (client == NULL)
 		return NULL;
 
+	MpgxResult mpgxResult = initializeGraphics(
+		APPLICATION_NAME,
+		MPGX_VERSION_MAJOR,
+		MPGX_VERSION_MINOR,
+		MPGX_VERSION_PATCH);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		printf("MPGX Error: %s.",
+			mpgxResultToString(mpgxResult));
+		free(client);
+		return NULL;
+	}
+
 	Window window;
 
-	MpgxResult mpgxResult = createWindow(
+	mpgxResult = createWindow(
 		VULKAN_GRAPHICS_API,
 		defaultWindowSize,
 		APPLICATION_NAME,
@@ -273,11 +321,16 @@ inline static Client createClient()
 		return NULL;
 	}
 
-	RayTracingScene rayTracingScene =
-		createRayTracingSceneInstance(window);
+	RayTracingScene rayTracingScene;
 
-	if (rayTracingScene == NULL)
+	mpgxResult = createRayTracingSceneInstance(
+		window,
+		&rayTracingScene);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
+		printf("MPGX Error: %s.",
+			mpgxResultToString(mpgxResult));
 		destroyFreeCamera(freeCamera);
 		destroyTransformer(transformer);
 		destroyWindow(window);
@@ -285,12 +338,17 @@ inline static Client createClient()
 		return NULL;
 	}
 
-	RayTracingPipeline colorPipeline = createRayTracingColorPipelineInstance(
-		window,
-		rayTracingScene);
+	RayTracingPipeline colorPipeline;
 
-	if (colorPipeline == NULL)
+	mpgxResult = createRayTracingColorPipelineInstance(
+		window,
+		rayTracingScene,
+		&colorPipeline);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
+		printf("MPGX Error: %s.",
+			mpgxResultToString(mpgxResult));
 		destroyRayTracingSceneInstance(rayTracingScene);
 		destroyFreeCamera(freeCamera);
 		destroyTransformer(transformer);
@@ -318,6 +376,7 @@ inline static void destroyClient(Client client)
 	destroyFreeCamera(client->freeCamera);
 	destroyTransformer(client->transformer);
 	destroyWindow(client->window);
+	terminateGraphics();
 	free(client);
 }
 
@@ -328,15 +387,6 @@ inline static void updateClient(Client client)
 
 int main()
 {
-	MpgxResult mpgxResult = initializeGraphics(
-		APPLICATION_NAME,
-		MPGX_VERSION_MAJOR,
-		MPGX_VERSION_MINOR,
-		MPGX_VERSION_PATCH);
-
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-		return EXIT_FAILURE;
-
 	Client client = createClient();
 
 	if (client == NULL)
@@ -344,7 +394,5 @@ int main()
 
 	updateClient(client);
 	destroyClient(client);
-
-	terminateGraphics();
 	return EXIT_SUCCESS;
 }

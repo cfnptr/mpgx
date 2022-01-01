@@ -102,34 +102,47 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	return VK_FALSE;
 }
 
-inline static bool checkVkInstanceLayers(
+inline static MpgxResult checkVkInstanceLayers(
 	const char** layers,
 	bool* isLayerSupported,
 	uint32_t layerCount)
 {
 	uint32_t layerPropertyCount;
 
-	VkResult result = vkEnumerateInstanceLayerProperties(
+	VkResult vkResult = vkEnumerateInstanceLayerProperties(
 		&layerPropertyCount,
 		NULL);
 
-	if (result != VK_SUCCESS || layerPropertyCount == 0)
-		return false;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
 	VkLayerProperties* layerProperties = malloc(
 		layerPropertyCount * sizeof(VkLayerProperties));
 
 	if (layerProperties == NULL)
-		return false;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	result = vkEnumerateInstanceLayerProperties(
+	vkResult = vkEnumerateInstanceLayerProperties(
 		&layerPropertyCount,
 		layerProperties);
 
-	if (result != VK_SUCCESS || layerPropertyCount == 0)
+	if (vkResult != VK_SUCCESS)
 	{
 		free(layerProperties);
-		return false;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	for (uint32_t i = 0; i < layerCount; i++)
@@ -150,38 +163,53 @@ inline static bool checkVkInstanceLayers(
 	}
 
 	free(layerProperties);
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
-inline static bool checkVkInstanceExtensions(
+inline static MpgxResult checkVkInstanceExtensions(
 	const char** extensions,
 	bool* isExtensionSupported,
 	uint32_t extensionCount)
 {
 	uint32_t extensionPropertyCount;
 
-	VkResult result = vkEnumerateInstanceExtensionProperties(
+	VkResult vkResult = vkEnumerateInstanceExtensionProperties(
 		NULL,
 		&extensionPropertyCount,
 		NULL);
 
-	if (result != VK_SUCCESS || extensionPropertyCount == 0)
-		return false;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
 	VkExtensionProperties* extensionProperties = malloc(
 		extensionPropertyCount * sizeof(VkLayerProperties));
 
 	if (extensionProperties == NULL)
-		return false;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	result = vkEnumerateInstanceExtensionProperties(
+	vkResult = vkEnumerateInstanceExtensionProperties(
 		NULL,
 		&extensionPropertyCount,
 		extensionProperties);
 
-	if (result != VK_SUCCESS || extensionPropertyCount == 0)
+	if (vkResult != VK_SUCCESS)
 	{
 		free(extensionProperties);
-		return false;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_LAYER_NOT_PRESENT)
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	for (uint32_t i = 0; i < extensionCount; i++)
@@ -202,9 +230,9 @@ inline static bool checkVkInstanceExtensions(
 	}
 
 	free(extensionProperties);
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
-inline static VkInstance createVkInstance(
+inline static MpgxResult createVkInstance(
 	const char* appName,
 	uint8_t appVersionMajor,
 	uint8_t appVersionMinor,
@@ -212,7 +240,8 @@ inline static VkInstance createVkInstance(
 	const char** layers,
 	uint32_t layerCount,
 	const char** extensions,
-	uint32_t extensionCount)
+	uint32_t extensionCount,
+	VkInstance* instance)
 {
 	uint32_t appVersion = VK_MAKE_API_VERSION(0,
 		appVersionMajor,
@@ -268,21 +297,36 @@ inline static VkInstance createVkInstance(
 	}
 #endif
 
-	VkInstance instance;
+	VkInstance vkInstance;
 
-	VkResult result = vkCreateInstance(
+	VkResult vkResult = vkCreateInstance(
 		&instanceCreateInfo,
 		NULL,
-		&instance);
+		&vkInstance);
 
-	if (result != VK_SUCCESS)
-		return NULL;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_INITIALIZATION_FAILED)
+			return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_LAYER_NOT_PRESENT)
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_EXTENSION_NOT_PRESENT)
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
-	return instance;
+	*instance = vkInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
-inline static VkDebugUtilsMessengerEXT createVkDebugUtilsMessenger(
-	VkInstance instance)
+inline static MpgxResult createVkDebugUtilsMessenger(
+	VkInstance instance,
+	VkDebugUtilsMessengerEXT* debugUtilsMessenger)
 {
 	VkDebugUtilsMessengerCreateInfoEXT createInfo = {
 		VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
@@ -302,20 +346,26 @@ inline static VkDebugUtilsMessengerEXT createVkDebugUtilsMessenger(
 		instance, "vkCreateDebugUtilsMessengerEXT");
 
 	if (createFunction == NULL)
-		return NULL;
+		return FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT;
 
-	VkDebugUtilsMessengerEXT messenger;
+	VkDebugUtilsMessengerEXT debugUtilsMessengerInstance;
 
-	VkResult result = createFunction(
+	VkResult vkResult = createFunction(
 		instance,
 		&createInfo,
 		NULL,
-		&messenger);
+		&debugUtilsMessengerInstance);
 
-	if (result != VK_SUCCESS)
-		return NULL;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
-	return messenger;
+	*debugUtilsMessenger = debugUtilsMessengerInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 inline static void destroyVkDebugUtilsMessenger(
 	VkInstance instance,
@@ -326,7 +376,7 @@ inline static void destroyVkDebugUtilsMessenger(
 
 	PFN_vkDestroyDebugUtilsMessengerEXT destroyFunction =
 		(PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			instance, "vkDestroyDebugUtilsMessengerEXT");
+		instance, "vkDestroyDebugUtilsMessengerEXT");
 
 	if (destroyFunction == NULL)
 		abort();
@@ -337,36 +387,53 @@ inline static void destroyVkDebugUtilsMessenger(
 		NULL);
 }
 
-inline static VkPhysicalDevice getBestVkPhysicalDevice(
+inline static MpgxResult getBestVkPhysicalDevice(
 	VkInstance instance,
-	bool* _isGpuIntegrated)
+	bool* _isGpuIntegrated,
+	VkPhysicalDevice* physicalDevice)
 {
 	uint32_t deviceCount;
 
-	VkResult result = vkEnumeratePhysicalDevices(
+	VkResult vkResult = vkEnumeratePhysicalDevices(
 		instance,
 		&deviceCount,
 		NULL);
 
-	if (result != VK_SUCCESS || deviceCount == 0)
-		return NULL;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_INITIALIZATION_FAILED)
+			return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
 	VkPhysicalDevice* devices = malloc(
 		deviceCount * sizeof(VkPhysicalDevice));
 
 	if (devices == NULL)
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	result = vkEnumeratePhysicalDevices(
+	vkResult = vkEnumeratePhysicalDevices(
 		instance,
 		&deviceCount,
 		devices);
 
-	if (result != VK_SUCCESS ||
-		deviceCount == 0)
+	if (vkResult != VK_SUCCESS)
 	{
 		free(devices);
-		return NULL;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_INITIALIZATION_FAILED)
+			return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	VkPhysicalDevice targetDevice = NULL;
@@ -420,9 +487,10 @@ inline static VkPhysicalDevice getBestVkPhysicalDevice(
 	free(devices);
 
 	*_isGpuIntegrated = isGpuIntegrated;
-	return targetDevice;
+	*physicalDevice = targetDevice;
+	return SUCCESS_MPGX_RESULT;
 }
-inline static bool getVkQueueFamilyIndices(
+inline static MpgxResult getVkQueueFamilyIndices(
 	VkPhysicalDevice physicalDevice,
 	VkSurfaceKHR surface,
 	uint32_t* _graphicsQueueFamilyIndex,
@@ -435,25 +503,16 @@ inline static bool getVkQueueFamilyIndices(
 		&propertyCount,
 		NULL);
 
-	if (propertyCount == 0)
-		return false;
-
 	VkQueueFamilyProperties* properties = malloc(
 		propertyCount * sizeof(VkQueueFamilyProperties));
 
 	if (properties == NULL)
-		return false;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	vkGetPhysicalDeviceQueueFamilyProperties(
 		physicalDevice,
 		&propertyCount,
 		properties);
-
-	if (propertyCount == 0)
-	{
-		free(properties);
-		return false;
-	}
 
 	uint32_t graphicsQueueFamilyIndex = UINT32_MAX;
 	uint32_t presentQueueFamilyIndex = UINT32_MAX;
@@ -470,7 +529,7 @@ inline static bool getVkQueueFamilyIndices(
 
 		VkBool32 isSupported;
 
-		VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(
+		VkResult vkResult = vkGetPhysicalDeviceSurfaceSupportKHR(
 			physicalDevice,
 			i,
 			surface,
@@ -479,10 +538,18 @@ inline static bool getVkQueueFamilyIndices(
 		// TESTING PURPOSE:
 		//if (graphicsQueueFamilyIndex == i) continue;
 
-		if (result != VK_SUCCESS)
+		if (vkResult != VK_SUCCESS)
 		{
 			free(properties);
-			return false;
+
+			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+			else if (vkResult == VK_ERROR_SURFACE_LOST_KHR)
+				return SURFACE_IS_LOST_MPGX_RESULT;
+			else
+				return UNKNOWN_ERROR_MPGX_RESULT;
 		}
 
 		if (isSupported == VK_TRUE)
@@ -498,15 +565,15 @@ inline static bool getVkQueueFamilyIndices(
 			*_presentQueueFamilyIndex = presentQueueFamilyIndex;
 
 			free(properties);
-			return true;
+			return SUCCESS_MPGX_RESULT;
 		}
 	}
 
 	free(properties);
-	return false;
+	return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 }
 
-inline static bool checkVkDeviceExtensions(
+inline static MpgxResult checkVkDeviceExtensions(
 	VkPhysicalDevice physicalDevice,
 	const char** extensions,
 	bool* isExtensionSupported,
@@ -514,14 +581,23 @@ inline static bool checkVkDeviceExtensions(
 {
 	uint32_t propertyCount;
 
-	VkResult result = vkEnumerateDeviceExtensionProperties(
+	VkResult vkResult = vkEnumerateDeviceExtensionProperties(
 		physicalDevice,
 		NULL,
 		&propertyCount,
 		NULL);
 
-	if (result != VK_SUCCESS || propertyCount == 0)
-		return false;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_LAYER_NOT_PRESENT)
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
 	VkExtensionProperties* properties = malloc(
 		propertyCount * sizeof(VkExtensionProperties));
@@ -529,16 +605,24 @@ inline static bool checkVkDeviceExtensions(
 	if (properties == NULL)
 		return false;
 
-	result = vkEnumerateDeviceExtensionProperties(
+	vkResult = vkEnumerateDeviceExtensionProperties(
 		physicalDevice,
 		NULL,
 		&propertyCount,
 		properties);
 
-	if (result != VK_SUCCESS || propertyCount == 0)
+	if (vkResult != VK_SUCCESS)
 	{
 		free(properties);
-		return false;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_LAYER_NOT_PRESENT)
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	for (uint32_t i = 0; i < extensionCount; i++)
@@ -559,7 +643,7 @@ inline static bool checkVkDeviceExtensions(
 	}
 
 	free(properties);
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
 inline static MpgxResult createVkDevice(
 	VkPhysicalDevice physicalDevice,
@@ -650,24 +734,40 @@ inline static MpgxResult createVkDevice(
 		NULL,
 	};
 
-	VkResult result = vkCreateDevice(
+	VkResult vkResult = vkCreateDevice(
 		physicalDevice,
 		&deviceCreateInfo,
 		NULL,
 		device);
 
-	if (result != VK_SUCCESS)
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_INITIALIZATION_FAILED)
+			return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_EXTENSION_NOT_PRESENT)
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_FEATURE_NOT_PRESENT)
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_DEVICE_LOST)
+			return DEVICE_IS_LOST_MPGX_RESULT; // TODO: handle VK_ERROR_TOO_MANY_OBJECTS
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
 	return SUCCESS_MPGX_RESULT;
 }
 
-inline static VmaAllocator createVmaAllocator(
+inline static MpgxResult createVmaAllocator(
 	VkPhysicalDevice physicalDevice,
 	VkDevice device,
 	VkInstance instance,
 	bool hasMemoryBudgetExt,
-	bool hasDeviceAddressExt)
+	bool hasDeviceAddressExt,
+	VmaAllocator* vmaAllocator)
 {
 	VmaAllocatorCreateInfo createInfo;
 
@@ -685,22 +785,31 @@ inline static VmaAllocator createVmaAllocator(
 	if (hasDeviceAddressExt == true)
 		createInfo.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
-	VmaAllocator allocator;
+	VmaAllocator vmaAllocatorInstance;
 
-	VkResult result = vmaCreateAllocator(
+	VkResult vkResult = vmaCreateAllocator(
 		&createInfo,
-		&allocator);
+		&vmaAllocatorInstance);
 
-	if (result != VK_SUCCESS)
-		return NULL;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
-	return allocator;
+	*vmaAllocator = vmaAllocatorInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
-inline static VkCommandPool createVkCommandPool(
+inline static MpgxResult createVkCommandPool(
 	VkDevice device,
 	VkCommandPoolCreateFlags flags,
-	uint32_t queueFamilyIndex)
+	uint32_t queueFamilyIndex,
+	VkCommandPool* commandPool)
 {
 	VkCommandPoolCreateInfo createInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -709,23 +818,32 @@ inline static VkCommandPool createVkCommandPool(
 		queueFamilyIndex,
 	};
 
-	VkCommandPool commandPool;
+	VkCommandPool commandPoolInstance;
 
-	VkResult result = vkCreateCommandPool(
+	VkResult vkResult = vkCreateCommandPool(
 		device,
 		&createInfo,
 		NULL,
-		&commandPool);
+		&commandPoolInstance);
 
-	if (result != VK_SUCCESS)
-		return NULL;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
-	return commandPool;
+	*commandPool = commandPoolInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
-inline static VkFence createVkFence(
+inline static MpgxResult createVkFence(
 	VkDevice device,
-	VkFenceCreateFlags flags)
+	VkFenceCreateFlags flags,
+	VkFence* fence)
 {
 	VkFenceCreateInfo createInfo = {
 		VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -733,20 +851,30 @@ inline static VkFence createVkFence(
 		flags,
 	};
 
-	VkFence fence;
+	VkFence fenceInstance;
 
-	VkResult result = vkCreateFence(
+	VkResult vkResult = vkCreateFence(
 		device,
 		&createInfo,
 		NULL,
-		&fence);
+		&fenceInstance);
 
-	if (result != VK_SUCCESS)
-		return NULL;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
-	return fence;
+	*fence = fenceInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-inline static VkSemaphore createVkSemaphore(VkDevice device)
+inline static MpgxResult createVkSemaphore(
+	VkDevice device,
+	VkSemaphore* semaphore)
 {
 	VkSemaphoreCreateInfo createInfo = {
 		VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -754,18 +882,26 @@ inline static VkSemaphore createVkSemaphore(VkDevice device)
 		0,
 	};
 
-	VkSemaphore semaphore;
+	VkSemaphore semaphoreInstance;
 
-	VkResult result = vkCreateSemaphore(
+	VkResult vkResult = vkCreateSemaphore(
 		device,
 		&createInfo,
 		NULL,
-		&semaphore);
+		&semaphoreInstance);
 
-	if (result != VK_SUCCESS)
-		return NULL;
+	if (vkResult != VK_SUCCESS)
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
-	return semaphore;
+	*semaphore = semaphoreInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static void destroyVkWindow(
@@ -831,14 +967,14 @@ inline static void destroyVkWindow(
 
 				if (fence != NULL)
 				{
-					VkResult result = vkWaitForFences(
+					VkResult vkResult = vkWaitForFences(
 						device,
 						1,
 						&fence,
 						VK_TRUE,
 						UINT64_MAX);
 
-					if (result != VK_SUCCESS)
+					if (vkResult != VK_SUCCESS)
 						abort();
 
 					vkDestroyFence(
@@ -897,7 +1033,7 @@ inline static MpgxResult createVkWindow(
 	VkWindow window = calloc(1, sizeof(VkWindow_T));
 
 	if (window == NULL)
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	VkSurfaceKHR surface;
 
@@ -910,21 +1046,30 @@ inline static MpgxResult createVkWindow(
 	if (vkResult != VK_SUCCESS)
 	{
 		destroyVkWindow(instance, window);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	window->surface = surface;
 
 	bool isGpuIntegrated;
 
-	VkPhysicalDevice physicalDevice = getBestVkPhysicalDevice(
-		instance,
-		&isGpuIntegrated);
+	VkPhysicalDevice physicalDevice;
 
-	if (physicalDevice == NULL)
+	MpgxResult mpgxResult = getBestVkPhysicalDevice(
+		instance,
+		&isGpuIntegrated,
+		&physicalDevice);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyVkWindow(instance, window);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return mpgxResult;
 	}
 
 	window->physicalDevice = physicalDevice;
@@ -933,16 +1078,16 @@ inline static MpgxResult createVkWindow(
 	uint32_t graphicsQueueFamilyIndex,
 		presentQueueFamilyIndex;
 
-	bool result = getVkQueueFamilyIndices(
+	mpgxResult = getVkQueueFamilyIndices(
 		physicalDevice,
 		surface,
 		&graphicsQueueFamilyIndex,
 		&presentQueueFamilyIndex);
 
-	if (result == false)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyVkWindow(instance, window);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return mpgxResult;
 	}
 
 	window->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
@@ -994,13 +1139,19 @@ inline static MpgxResult createVkWindow(
 		rayTracingPipelineExtIndex = targetExtensionCount++;
 	}
 
-	result = checkVkDeviceExtensions(
+	mpgxResult = checkVkDeviceExtensions(
 		physicalDevice,
 		targetExtensions,
 		isExtensionSupported,
 		targetExtensionCount);
 
-	if (result == false || isExtensionSupported[swapchainExtIndex] == false)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		destroyVkWindow(instance, window);
+		return mpgxResult;
+	}
+
+	if (isExtensionSupported[swapchainExtIndex] == false)
 	{
 		destroyVkWindow(instance, window);
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
@@ -1030,7 +1181,7 @@ inline static MpgxResult createVkWindow(
 
 	VkDevice device;
 
-	MpgxResult mpgxResult = createVkDevice(
+	mpgxResult = createVkDevice(
 		physicalDevice,
 		graphicsQueueFamilyIndex,
 		presentQueueFamilyIndex,
@@ -1047,17 +1198,20 @@ inline static MpgxResult createVkWindow(
 
 	window->device = device;
 
-	VmaAllocator allocator = createVmaAllocator(
+	VmaAllocator allocator;
+
+	mpgxResult = createVmaAllocator(
 		physicalDevice,
 		device,
 		instance,
 		isExtensionSupported[memoryBudgetExtIndex],
-		useRayTracing);
+		useRayTracing,
+		&allocator);
 
-	if (allocator == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyVkWindow(instance, window);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return mpgxResult;
 	}
 
 	window->allocator = allocator;
@@ -1086,16 +1240,19 @@ inline static MpgxResult createVkWindow(
 	window->graphicsQueue = graphicsQueue;
 	window->presentQueue = presentQueue;
 
-	VkCommandPool graphicsCommandPool = createVkCommandPool(
+	VkCommandPool graphicsCommandPool;
+
+	mpgxResult = createVkCommandPool(
 		device,
 		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
 		VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		graphicsQueueFamilyIndex);
+		graphicsQueueFamilyIndex,
+		&graphicsCommandPool);
 
-	if (graphicsCommandPool == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyVkWindow(instance, window);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return mpgxResult;
 	}
 
 	window->graphicsCommandPool = graphicsCommandPool;
@@ -1108,30 +1265,34 @@ inline static MpgxResult createVkWindow(
 	}
 	else
 	{
-		presentCommandPool = createVkCommandPool(
+		mpgxResult = createVkCommandPool(
 			device,
 			VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			presentQueueFamilyIndex);
+			presentQueueFamilyIndex,
+			&presentCommandPool);
 
-		if (presentCommandPool == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyVkWindow(instance, window);
-			return FAILED_TO_ALLOCATE_MPGX_RESULT;
+			return mpgxResult;
 		}
 	}
 
 	window->presentCommandPool = presentCommandPool;
 
-	VkCommandPool transferCommandPool = createVkCommandPool(
+	VkCommandPool transferCommandPool;
+
+	mpgxResult = createVkCommandPool(
 		device,
 		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-		graphicsQueueFamilyIndex);
+		graphicsQueueFamilyIndex,
+		&transferCommandPool);
 
-	if (transferCommandPool == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyVkWindow(instance, window);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return mpgxResult;
 	}
 
 	window->transferCommandPool = transferCommandPool;
@@ -1146,31 +1307,71 @@ inline static MpgxResult createVkWindow(
 
 	for (uint8_t i = 0; i < VK_FRAME_LAG; i++)
 	{
-		fences[i] = createVkFence(device,
-			VK_FENCE_CREATE_SIGNALED_BIT);
+		VkFence fence;
 
-		imageAcquiredSemaphores[i] = createVkSemaphore(device);
-		drawCompleteSemaphores[i] = createVkSemaphore(device);
-		imageOwnershipSemaphores[i] = createVkSemaphore(device);
+		mpgxResult = createVkFence(
+			device,
+			VK_FENCE_CREATE_SIGNALED_BIT,
+			&fence);
 
-		if (fences[i] == NULL ||
-			imageAcquiredSemaphores[i] == NULL ||
-			drawCompleteSemaphores[i] == NULL ||
-			imageOwnershipSemaphores[i] == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyVkWindow(instance, window);
-			return FAILED_TO_ALLOCATE_MPGX_RESULT;
+			return mpgxResult;
 		}
+
+		fences[i] = fence;
+
+		VkSemaphore semaphore;
+
+		mpgxResult = createVkSemaphore(
+			device,
+			&semaphore);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		{
+			destroyVkWindow(instance, window);
+			return mpgxResult;
+		}
+
+		imageAcquiredSemaphores[i] = semaphore;
+
+		mpgxResult = createVkSemaphore(
+			device,
+			&semaphore);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		{
+			destroyVkWindow(instance, window);
+			return mpgxResult;
+		}
+
+		drawCompleteSemaphores[i] = semaphore;
+
+		mpgxResult = createVkSemaphore(
+			device,
+			&semaphore);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		{
+			destroyVkWindow(instance, window);
+			return mpgxResult;
+		}
+
+		imageOwnershipSemaphores[i] = semaphore;
 	}
 
-	VkFence transferFence = createVkFence(
-		device,
-		0);
+	VkFence transferFence;
 
-	if (transferFence == NULL)
+	mpgxResult = createVkFence(
+		device,
+		0,
+		&transferFence);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyVkWindow(instance, window);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return mpgxResult;
 	}
 
 	window->transferFence = transferFence;

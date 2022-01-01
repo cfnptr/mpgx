@@ -165,7 +165,7 @@ inline static void destroyVkSampler(
 		NULL);
 	free(sampler);
 }
-inline static Sampler createVkSampler(
+inline static MpgxResult createVkSampler(
 	VkDevice device,
 	Window window,
 	ImageFilter minImageFilter,
@@ -178,26 +178,27 @@ inline static Sampler createVkSampler(
 	CompareOperator compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange,
-	float mipmapLodBias)
+	float mipmapLodBias,
+	Sampler* sampler)
 {
-	Sampler sampler = calloc(1,
+	Sampler samplerInstance = calloc(1,
 		sizeof(Sampler_T));
 
-	if (sampler == NULL)
-		return NULL;
+	if (samplerInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	sampler->vk.window = window;
-	sampler->vk.minImageFilter = minImageFilter;
-	sampler->vk.magImageFilter = magImageFilter;
-	sampler->vk.minMipmapFilter = minMipmapFilter;
-	sampler->vk.useMipmapping = useMipmapping;
-	sampler->vk.imageWrapX = imageWrapX;
-	sampler->vk.imageWrapY = imageWrapY;
-	sampler->vk.imageWrapZ = imageWrapZ;
-	sampler->vk.compareOperator = compareOperator;
-	sampler->vk.useCompare = useCompare;
-	sampler->vk.mipmapLodRange = mipmapLodRange;
-	sampler->vk.mipmapLodBias = mipmapLodBias;
+	samplerInstance->vk.window = window;
+	samplerInstance->vk.minImageFilter = minImageFilter;
+	samplerInstance->vk.magImageFilter = magImageFilter;
+	samplerInstance->vk.minMipmapFilter = minMipmapFilter;
+	samplerInstance->vk.useMipmapping = useMipmapping;
+	samplerInstance->vk.imageWrapX = imageWrapX;
+	samplerInstance->vk.imageWrapY = imageWrapY;
+	samplerInstance->vk.imageWrapZ = imageWrapZ;
+	samplerInstance->vk.compareOperator = compareOperator;
+	samplerInstance->vk.useCompare = useCompare;
+	samplerInstance->vk.mipmapLodRange = mipmapLodRange;
+	samplerInstance->vk.mipmapLodBias = mipmapLodBias;
 
 	VkFilter minFilter, magFilter;
 	VkSamplerMipmapMode mipmapMode;
@@ -230,8 +231,8 @@ inline static Sampler createVkSampler(
 	{
 		destroyVkSampler(
 			device,
-			sampler);
-		return NULL;
+			samplerInstance);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	VkSamplerCreateInfo createInfo = {
@@ -267,12 +268,20 @@ inline static Sampler createVkSampler(
 	{
 		destroyVkSampler(
 			device,
-			sampler);
-		return NULL;
+			samplerInstance);
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	sampler->vk.handle = handle;
-	return sampler;
+	samplerInstance->vk.handle = handle;
+
+	*sampler = samplerInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
@@ -379,7 +388,7 @@ inline static void destroyGlSampler(
 
 	free(sampler);
 }
-inline static Sampler createGlSampler(
+inline static MpgxResult createGlSampler(
 	Window window,
 	ImageFilter minImageFilter,
 	ImageFilter magImageFilter,
@@ -390,26 +399,27 @@ inline static Sampler createGlSampler(
 	ImageWrap imageWrapZ,
 	CompareOperator compareOperator,
 	bool useCompare,
-	Vec2F mipmapLodRange)
+	Vec2F mipmapLodRange,
+	Sampler* sampler)
 {
-	Sampler sampler = calloc(1,
+	Sampler samplerInstance = calloc(1,
 		sizeof(Sampler_T));
 
-	if (sampler == NULL)
-		return NULL;
+	if (samplerInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	sampler->gl.window = window;
-	sampler->gl.minImageFilter = minImageFilter;
-	sampler->gl.magImageFilter = magImageFilter;
-	sampler->gl.minMipmapFilter = minMipmapFilter;
-	sampler->gl.useMipmapping = useMipmapping;
-	sampler->gl.imageWrapX = imageWrapX;
-	sampler->gl.imageWrapY = imageWrapY;
-	sampler->gl.imageWrapZ = imageWrapZ;
-	sampler->gl.compareOperator = compareOperator;
-	sampler->gl.useCompare = useCompare;
-	sampler->gl.mipmapLodRange = mipmapLodRange;
-	sampler->gl.mipmapLodBias = 0.0f;
+	samplerInstance->gl.window = window;
+	samplerInstance->gl.minImageFilter = minImageFilter;
+	samplerInstance->gl.magImageFilter = magImageFilter;
+	samplerInstance->gl.minMipmapFilter = minMipmapFilter;
+	samplerInstance->gl.useMipmapping = useMipmapping;
+	samplerInstance->gl.imageWrapX = imageWrapX;
+	samplerInstance->gl.imageWrapY = imageWrapY;
+	samplerInstance->gl.imageWrapZ = imageWrapZ;
+	samplerInstance->gl.compareOperator = compareOperator;
+	samplerInstance->gl.useCompare = useCompare;
+	samplerInstance->gl.mipmapLodRange = mipmapLodRange;
+	samplerInstance->gl.mipmapLodBias = 0.0f;
 
 	makeWindowContextCurrent(window);
 
@@ -419,7 +429,7 @@ inline static Sampler createGlSampler(
 		GL_ONE,
 		&handle);
 
-	sampler->gl.handle = handle;
+	samplerInstance->gl.handle = handle;
 
 	GLenum minFilter, magFilter,
 		wrapX, wrapY, wrapZ, compare;
@@ -449,8 +459,8 @@ inline static Sampler createGlSampler(
 
 	if (result == false)
 	{
-		destroyGlSampler(sampler);
-		return NULL;
+		destroyGlSampler(samplerInstance);
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	GLint compareMode = useCompare ?
@@ -497,10 +507,11 @@ inline static Sampler createGlSampler(
 
 	if (error != GL_NO_ERROR)
 	{
-		destroyGlSampler(sampler);
-		return NULL;
+		destroyGlSampler(samplerInstance);
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	return sampler;
+	*sampler = samplerInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif

@@ -17,12 +17,13 @@
 
 #define RAY_TRACING_COLOR_PIPELINE_NAME "RayTracingColor"
 
-RayTracingPipeline createRayTracingColorPipeline(
+MpgxResult createRayTracingColorPipeline(
 	Window window,
 	Shader generationShader,
 	Shader missShader,
 	Shader closestHitShader,
-	RayTracingScene scene);
+	RayTracingScene scene,
+	RayTracingPipeline* rayTracingColorPipeline);
 
 RayTracingScene getRayTracingColorPipelineScene(
 	RayTracingPipeline rayTracingColorPipeline);

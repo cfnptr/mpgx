@@ -18,15 +18,17 @@
 
 #define DIFFUSE_PIPELINE_NAME "Diffuse"
 
-GraphicsPipeline createDiffusePipelineExt(
+MpgxResult createDiffusePipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const GraphicsPipelineState* state);
-GraphicsPipeline createDiffusePipeline(
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* diffusePipeline);
+MpgxResult createDiffusePipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
-	Shader fragmentShader);
+	Shader fragmentShader,
+	GraphicsPipeline* diffusePipeline);
 
 Mat4F getDiffusePipelineMvp(
 	GraphicsPipeline diffusePipeline);

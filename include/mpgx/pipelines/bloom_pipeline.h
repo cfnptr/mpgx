@@ -18,19 +18,21 @@
 
 #define BLOOM_PIPELINE_NAME "Bloom"
 
-GraphicsPipeline createBloomPipelineExt(
+MpgxResult createBloomPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image buffer,
 	Sampler sampler,
-	const GraphicsPipelineState* state);
-GraphicsPipeline createBloomPipeline(
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* bloomPipeline);
+MpgxResult createBloomPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image buffer,
-	Sampler sampler);
+	Sampler sampler,
+	GraphicsPipeline* bloomPipeline);
 
 Image getBloomPipelineBuffer(
 	GraphicsPipeline bloomPipeline);

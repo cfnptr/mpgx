@@ -17,8 +17,8 @@
 #include "mpgx/_source/graphics_mesh.h"
 #include "mpgx/_source/sampler.h"
 #include "mpgx/_source/framebuffer.h"
-#include "mpgx/_source/ray_tracing.h"
 #include "mpgx/_source/compute_pipeline.h"
+#include "mpgx/_source/ray_tracing_pipeline.h"
 
 #include "mpio/file.h"
 #include "cmmt/common.h"
@@ -145,7 +145,7 @@ MpgxResult initializeGraphics(
 		glfwGetRequiredInstanceExtensions(
 		&glfwExtensionCount);
 
-	if (glfwExtensionCount == 0 || glfwExtensions == NULL)
+	if (glfwExtensions == NULL)
 	{
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
@@ -164,16 +164,16 @@ MpgxResult initializeGraphics(
 	uint32_t validationLayerIndex = targetLayerCount++;
 #endif
 
-	bool result = checkVkInstanceLayers(
+	MpgxResult mpgxResult = checkVkInstanceLayers(
 		targetLayers,
 		isLayerSupported,
 		targetLayerCount);
 
-	if (result == false)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return mpgxResult;
 	}
 
 #ifndef NDEBUG
@@ -193,7 +193,7 @@ MpgxResult initializeGraphics(
 	{
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	for (uint32_t i = 0; i < glfwExtensionCount; i++)
@@ -206,17 +206,17 @@ MpgxResult initializeGraphics(
 	uint32_t debugUtilsExtIndex = targetExtensionCount++;
 #endif
 
-	result = checkVkInstanceExtensions(
+	mpgxResult = checkVkInstanceExtensions(
 		targetExtensions,
 		isExtensionSupported,
 		targetExtensionCount);
 
-	if (result == false)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		free((void*)extensions);
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return mpgxResult;
 	}
 
 #ifndef NDEBUG
@@ -229,7 +229,7 @@ MpgxResult initializeGraphics(
 	}
 #endif
 
-	vkInstance = createVkInstance(
+	mpgxResult = createVkInstance(
 		appName,
 		appVersionMajor,
 		appVersionMinor,
@@ -237,29 +237,31 @@ MpgxResult initializeGraphics(
 		layers,
 		layerCount,
 		extensions,
-		extensionCount);
+		extensionCount,
+		&vkInstance);
 
 	free((void*)extensions);
 
-	if (vkInstance == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
-		return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
+		return mpgxResult;
 	}
 
 #ifndef NDEBUG
-	vkDebugUtilsMessenger =
-		createVkDebugUtilsMessenger(vkInstance);
+	mpgxResult = createVkDebugUtilsMessenger(
+		vkInstance,
+		&vkDebugUtilsMessenger);
 
-	if (vkDebugUtilsMessenger == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		vkDestroyInstance(
 			vkInstance,
 			NULL);
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return mpgxResult;
 	}
 #endif
 #endif
@@ -556,7 +558,7 @@ MpgxResult createWindow(
 		sizeof(Window_T));
 
 	if (windowInstance == NULL)
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	windowInstance->api = api;
 	windowInstance->useStencilBuffer = useStencilBuffer;
@@ -574,7 +576,7 @@ MpgxResult createWindow(
 	if (handle == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
 	}
 
 	windowInstance->handle = handle;
@@ -607,7 +609,7 @@ MpgxResult createWindow(
 	if (ibeamCursor == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
 	}
 
 	windowInstance->cursorType = DEFAULT_CURSOR_TYPE;
@@ -619,7 +621,7 @@ MpgxResult createWindow(
 	if (crosshairCursor == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
 	}
 
 	windowInstance->crosshairCursor = crosshairCursor;
@@ -630,7 +632,7 @@ MpgxResult createWindow(
 	if (handCursor == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
 	}
 
 	windowInstance->handCursor = handCursor;
@@ -641,7 +643,7 @@ MpgxResult createWindow(
 	if (hresizeCursor == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
 	}
 
 	windowInstance->hresizeCursor = hresizeCursor;
@@ -652,7 +654,7 @@ MpgxResult createWindow(
 	if (vresizeCursor == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
 	}
 
 	windowInstance->vresizeCursor = vresizeCursor;
@@ -663,7 +665,7 @@ MpgxResult createWindow(
 	if (inputBuffer == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	windowInstance->inputBuffer = inputBuffer;
@@ -705,14 +707,17 @@ MpgxResult createWindow(
 
 		if (useRayTracing == true)
 		{
-			RayTracing rayTracing = createVkRayTracing(
-				vkInstance,
-				vkWindow->physicalDevice);
+			RayTracing rayTracing;
 
-			if (rayTracing == NULL)
+			mpgxResult = createVkRayTracing(
+				vkInstance,
+				vkWindow->physicalDevice,
+				&rayTracing);
+
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
 			{
 				destroyWindow(windowInstance);
-				return FAILED_TO_ALLOCATE_MPGX_RESULT;
+				return mpgxResult;
 			}
 
 			windowInstance->rayTracing = rayTracing;
@@ -725,17 +730,20 @@ MpgxResult createWindow(
 		VkSwapchain swapchain = vkWindow->swapchain;
 		VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
 
-		Framebuffer framebuffer = createVkDefaultFramebuffer(
+		Framebuffer framebuffer;
+
+		mpgxResult = createVkDefaultFramebuffer(
 			vkWindow->device,
 			swapchain->renderPass,
 			firstBuffer.framebuffer,
 			windowInstance,
-			framebufferSize);
+			framebufferSize,
+			&framebuffer);
 
-		if (framebuffer == NULL)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyWindow(windowInstance);
-			return FAILED_TO_ALLOCATE_MPGX_RESULT;
+			return mpgxResult;
 		}
 
 		windowInstance->framebuffer = framebuffer;
@@ -757,14 +765,17 @@ MpgxResult createWindow(
 
 		glEnable(GL_FRAMEBUFFER_SRGB);
 
-		Framebuffer framebuffer = createGlDefaultFramebuffer(
-			windowInstance,
-			framebufferSize);
+		Framebuffer framebuffer;
 
-		if (framebuffer == NULL)
+		MpgxResult mpgxResult = createGlDefaultFramebuffer(
+			windowInstance,
+			framebufferSize,
+			&framebuffer);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyWindow(windowInstance);
-			return FAILED_TO_ALLOCATE_MPGX_RESULT;
+			return mpgxResult;
 		}
 
 		windowInstance->framebuffer = framebuffer;
@@ -779,7 +790,7 @@ MpgxResult createWindow(
 	if (buffers == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	windowInstance->buffers = buffers;
@@ -792,7 +803,7 @@ MpgxResult createWindow(
 	if (images == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	windowInstance->images = images;
@@ -805,7 +816,7 @@ MpgxResult createWindow(
 	if (samplers == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	windowInstance->samplers = samplers;
@@ -818,7 +829,7 @@ MpgxResult createWindow(
 	if (shaders == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	windowInstance->shaders = shaders;
@@ -831,7 +842,7 @@ MpgxResult createWindow(
 	if (framebuffers == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	windowInstance->framebuffers = framebuffers;
@@ -844,7 +855,7 @@ MpgxResult createWindow(
 	if (graphicsMeshes == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	windowInstance->graphicsMeshes = graphicsMeshes;
@@ -857,7 +868,7 @@ MpgxResult createWindow(
 	if (computePipelines == NULL)
 	{
 		destroyWindow(windowInstance);
-		return FAILED_TO_ALLOCATE_MPGX_RESULT;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
 	windowInstance->computePipelines = computePipelines;
@@ -1389,7 +1400,7 @@ void updateWindow(Window window)
 }
 
 #if MPGX_SUPPORT_VULKAN
-static bool onVkResize(
+static MpgxResult onVkResize(
 	VkDevice device,
 	VkSwapchain swapchain,
 	Framebuffer framebuffer,
@@ -1408,26 +1419,30 @@ static bool onVkResize(
 		GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
 		VkGraphicsPipelineCreateData createData;
 
-		bool result = graphicsPipeline->vk.onResize(
+		MpgxResult mpgxResult = graphicsPipeline->vk.onResize(
 			graphicsPipeline,
 			newSize,
 			&createData);
-		result &= recreateVkGraphicsPipelineHandle(
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+			return mpgxResult;
+
+		mpgxResult = recreateVkGraphicsPipelineHandle(
 			device,
 			framebuffer->vk.renderPass,
 			graphicsPipeline,
 			framebuffer->vk.colorAttachmentCount,
 			&createData);
 
-		if (result == false)
-			return false;
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+			return mpgxResult;
 	}
 
 	return true;
 }
 #endif
 
-bool beginWindowRecord(Window window)
+MpgxResult beginWindowRecord(Window window)
 {
 	assert(window != NULL);
 	assert(window->isRecording == false);
@@ -1440,7 +1455,7 @@ bool beginWindowRecord(Window window)
 		&height);
 
 	if (width <= 0 || height <= 0)
-		return false;
+		return ZERO_FRAMEBUFFER_SIZE_MPGX_RESULT;
 
 	Vec2U newSize = vec2U(width, height);
 	Framebuffer framebuffer = window->framebuffer;
@@ -1469,7 +1484,7 @@ bool beginWindowRecord(Window window)
 
 		if (!compVec2U(newSize, framebuffer->vk.size))
 		{
-			bool result = resizeVkSwapchain(
+			MpgxResult mpgxResult = resizeVkSwapchain(
 				vkWindow->surface,
 				vkWindow->physicalDevice,
 				vkWindow->graphicsQueueFamilyIndex,
@@ -1482,19 +1497,19 @@ bool beginWindowRecord(Window window)
 				window->useStencilBuffer,
 				newSize);
 
-			if (result == false)
-				return false;
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
+				return mpgxResult;
 
 			vkWindow->frameIndex = 0;
 
-			result = onVkResize(
+			mpgxResult = onVkResize(
 				device,
 				swapchain,
 				framebuffer,
 				newSize);
 
-			if (result == false)
-				return false;
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
+				return mpgxResult;
 		}
 
 		uint32_t frameIndex = vkWindow->frameIndex;
@@ -1507,10 +1522,16 @@ bool beginWindowRecord(Window window)
 			VK_TRUE,
 			UINT64_MAX);
 
-		if (vkResult != VK_SUCCESS &&
-			vkResult != VK_TIMEOUT)
+		if (vkResult != VK_SUCCESS)
 		{
-			return false;
+			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+			else if (vkResult == VK_ERROR_DEVICE_LOST)
+				return DEVICE_IS_LOST_MPGX_RESULT;
+			else
+				return UNKNOWN_ERROR_MPGX_RESULT;
 		}
 
 		vkResult = vkResetFences(
@@ -1519,7 +1540,12 @@ bool beginWindowRecord(Window window)
 			&fence);
 
 		if (vkResult != VK_SUCCESS)
-			return false;
+		{
+			if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+			else
+				return UNKNOWN_ERROR_MPGX_RESULT;
+		}
 
 		VkSemaphore* imageAcquiredSemaphores =
 			vkWindow->imageAcquiredSemaphores;
@@ -1539,7 +1565,7 @@ bool beginWindowRecord(Window window)
 
 			if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
 			{
-				bool result = resizeVkSwapchain(
+				MpgxResult mpgxResult = resizeVkSwapchain(
 					vkWindow->surface,
 					vkWindow->physicalDevice,
 					vkWindow->graphicsQueueFamilyIndex,
@@ -1552,25 +1578,35 @@ bool beginWindowRecord(Window window)
 					window->useStencilBuffer,
 					newSize);
 
-				if (result == false)
-					return false;
+				if (mpgxResult != SUCCESS_MPGX_RESULT)
+					return mpgxResult;
 
 				vkWindow->frameIndex = 0;
 
-				result = onVkResize(
+				mpgxResult = onVkResize(
 					device,
 					swapchain,
 					framebuffer,
 					newSize);
 
-				if (result == false)
-					return false;
+				if (mpgxResult != SUCCESS_MPGX_RESULT)
+					return mpgxResult;
 			}
-			else if (vkResult != VK_SUCCESS &&
-				vkResult != VK_SUBOPTIMAL_KHR &&
-				vkResult == VK_ERROR_SURFACE_LOST_KHR)
+			else if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
 			{
-				return false;
+				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+			}
+			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			{
+				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+			}
+			else if (vkResult == VK_ERROR_DEVICE_LOST)
+			{
+				return DEVICE_IS_LOST_MPGX_RESULT;
+			}
+			else if (vkResult == VK_ERROR_SURFACE_LOST_KHR)
+			{
+				return SURFACE_IS_LOST_MPGX_RESULT;
 			}
 		} while (vkResult != VK_SUCCESS);
 
@@ -1595,7 +1631,14 @@ bool beginWindowRecord(Window window)
 			&commandBufferBeginInfo);
 
 		if (vkResult != VK_SUCCESS)
-			return false;
+		{
+			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+			else
+				return UNKNOWN_ERROR_MPGX_RESULT;
+		}
 
 		vkWindow->bufferIndex = bufferIndex;
 		vkWindow->currenCommandBuffer = graphicsCommandBuffer;
@@ -1618,10 +1661,13 @@ bool beginWindowRecord(Window window)
 			{
 				GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
 
-				graphicsPipeline->gl.onResize(
+				MpgxResult mpgxResult = graphicsPipeline->gl.onResize(
 					graphicsPipeline,
 					newSize,
 					NULL);
+
+				if (mpgxResult != SUCCESS_MPGX_RESULT)
+					return mpgxResult;
 			}
 		}
 #else
@@ -1844,28 +1890,31 @@ void endWindowRecord(Window window)
 	window->isRecording = false;
 }
 
-Buffer createBuffer(
+MpgxResult createBuffer(
 	Window window,
 	BufferType type,
 	const void* data,
 	size_t size,
-	bool isConstant)
+	bool isConstant,
+	Buffer* buffer)
 {
 	assert(window != NULL);
 	assert(type < BUFFER_TYPE_COUNT);
 	assert(size != 0);
+	assert(buffer != NULL);
 	assert(window->isRecording == false);
 
 	GraphicsAPI api = window->api;
 
-	Buffer buffer;
+	MpgxResult mpgxResult;
+	Buffer bufferInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
 
-		buffer = createVkBuffer(
+		mpgxResult = createVkBuffer(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
@@ -1880,7 +1929,8 @@ Buffer createBuffer(
 			data,
 			size,
 			isConstant,
-			window->useRayTracing);
+			window->useRayTracing,
+			&bufferInstance);
 #else
 	abort();
 #endif
@@ -1889,12 +1939,13 @@ Buffer createBuffer(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		buffer = createGlBuffer(
+		mpgxResult = createGlBuffer(
 			window,
 			type,
 			data,
 			size,
-			isConstant);
+			isConstant,
+			&bufferInstance);
 #else
 		abort();
 #endif
@@ -1904,8 +1955,8 @@ Buffer createBuffer(
 		abort();
 	}
 
-	if (buffer == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	size_t count = window->bufferCount;
 
@@ -1924,7 +1975,7 @@ Buffer createBuffer(
 #if MPGX_SUPPORT_VULKAN
 				destroyVkBuffer(
 					window->vkWindow->allocator,
-					buffer);
+					bufferInstance);
 #else
 				abort();
 #endif
@@ -1933,7 +1984,7 @@ Buffer createBuffer(
 				api == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
-				destroyGlBuffer(buffer);
+				destroyGlBuffer(bufferInstance);
 #else
 				abort();
 #endif
@@ -1943,16 +1994,18 @@ Buffer createBuffer(
 				abort();
 			}
 
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		window->buffers = buffers;
 		window->bufferCapacity = capacity;
 	}
 
-	window->buffers[count] = buffer;
+	window->buffers[count] = bufferInstance;
 	window->bufferCount = count + 1;
-	return buffer;
+
+	*buffer = bufferInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyBuffer(Buffer buffer)
 {
@@ -2035,12 +2088,14 @@ bool isBufferConstant(Buffer buffer)
 	return buffer->base.isConstant;
 }
 
-void* mapBuffer(
+MpgxResult mapBuffer(
 	Buffer buffer,
 	bool readAccess,
-	bool writeAccess)
+	bool writeAccess,
+	void** map)
 {
 	assert(buffer != NULL);
+	assert(map != NULL);
 	assert(buffer->base.isConstant == false);
 	assert(buffer->base.isMapped == false);
 	assert(readAccess == true || writeAccess == true);
@@ -2048,15 +2103,16 @@ void* mapBuffer(
 	Window window = buffer->base.window;
 	GraphicsAPI api = window->api;
 
-	void* mappedData;
+	MpgxResult mpgxResult;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		mappedData = mapVkBuffer(
+		mpgxResult = mapVkBuffer(
 			window->vkWindow->allocator,
 			buffer->vk.allocation,
-			readAccess);
+			readAccess,
+			map);
 
 		buffer->vk.writeAccess = writeAccess;
 #else
@@ -2067,12 +2123,13 @@ void* mapBuffer(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		mappedData = mapGlBuffer(
+		mpgxResult = mapGlBuffer(
 			buffer->gl.glType,
 			buffer->gl.handle,
 			buffer->gl.size,
 			readAccess,
-			writeAccess);
+			writeAccess,
+			map);
 #else
 		abort();
 #endif
@@ -2082,11 +2139,11 @@ void* mapBuffer(
 		abort();
 	}
 
-	if (mappedData == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	buffer->base.isMapped = true;
-	return mappedData;
+	return SUCCESS_MPGX_RESULT;
 }
 void unmapBuffer(Buffer buffer)
 {
@@ -2126,7 +2183,7 @@ void unmapBuffer(Buffer buffer)
 	buffer->base.isMapped = false;
 }
 
-void setBufferData(
+MpgxResult setBufferData(
 	Buffer buffer,
 	const void* data,
 	size_t size,
@@ -2145,7 +2202,7 @@ void setBufferData(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		setVkBufferData(
+		return setVkBufferData(
 			window->vkWindow->allocator,
 			buffer->vk.allocation,
 			data,
@@ -2159,7 +2216,7 @@ void setBufferData(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		setGlBufferData(
+		return setGlBufferData(
 			buffer->gl.glType,
 			buffer->gl.handle,
 			data,
@@ -2175,19 +2232,30 @@ void setBufferData(
 	}
 }
 
-ImageData createImageData(
+void destroyImageData(ImageData imageData)
+{
+	if (imageData == NULL)
+		return;
+
+	stbi_image_free(imageData->pixels);
+	free(imageData);
+}
+MpgxResult createImageData(
 	const void* data,
 	size_t size,
-	uint8_t channelCount)
+	uint8_t channelCount,
+	ImageData* imageData)
 {
 	assert(data != NULL);
 	assert(size != 0);
 	assert(channelCount <= 4);
+	assert(imageData != NULL);
 
-	ImageData imageData = malloc(sizeof(ImageData_T));
+	ImageData imageDataInstance = calloc(1,
+		sizeof(ImageData_T));
 
-	if (imageData == NULL)
-		return NULL;
+	if (imageDataInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	stbi_set_flip_vertically_on_load(true);
 
@@ -2201,35 +2269,33 @@ ImageData createImageData(
 		&channels,
 		channelCount);
 
-	if (pixels == NULL)
+	if (pixels == NULL || channels != channelCount)
 	{
-		free(imageData);
-		return NULL;
+		destroyImageData(imageDataInstance);
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle stbi error
 	}
 
-	if (channels != channelCount)
-	{
-		stbi_image_free(pixels);
-		free(imageData);
-		return NULL;
-	}
+	imageDataInstance->pixels = pixels;
+	imageDataInstance->size = vec2U(width, height);
+	imageDataInstance->channelCount = channelCount;
 
-	imageData->pixels = pixels;
-	imageData->size = vec2U(width, height);
-	imageData->channelCount = channelCount;
-	return imageData;
+	*imageData = imageDataInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-ImageData createImageDataFromFile(
+MpgxResult createImageDataFromFile(
 	const char* filePath,
-	uint8_t channelCount)
+	uint8_t channelCount,
+	ImageData* imageData)
 {
 	assert(filePath != NULL);
 	assert(channelCount <= 4);
+	assert(imageData != NULL);
 
-	ImageData imageData = malloc(sizeof(ImageData_T));
+	ImageData imageDataInstance = calloc(1,
+		sizeof(ImageData_T));
 
-	if (imageData == NULL)
-		return NULL;
+	if (imageDataInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	stbi_set_flip_vertically_on_load(true);
 
@@ -2242,31 +2308,18 @@ ImageData createImageDataFromFile(
 		&channels,
 		channelCount);
 
-	if (pixels == NULL)
+	if (pixels == NULL || channels != channelCount)
 	{
-		free(imageData);
-		return NULL;
+		destroyImageData(imageDataInstance);
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle stbi error
 	}
 
-	if (channels != channelCount)
-	{
-		stbi_image_free(pixels);
-		free(imageData);
-		return NULL;
-	}
+	imageDataInstance->pixels = pixels;
+	imageDataInstance->size = vec2U(width, height);
+	imageDataInstance->channelCount = channelCount;
 
-	imageData->pixels = pixels;
-	imageData->size = vec2U(width, height);
-	imageData->channelCount = channelCount;
-	return imageData;
-}
-void destroyImageData(ImageData imageData)
-{
-	if (imageData == NULL)
-		return;
-
-	stbi_image_free(imageData->pixels);
-	free(imageData);
+	*imageData = imageDataInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
 const uint8_t* getImageDataPixels(ImageData imageData)
@@ -2285,7 +2338,7 @@ uint8_t getImageDataChannelCount(ImageData imageData)
 	return imageData->channelCount;
 }
 
-Image createImage(
+MpgxResult createImage(
 	Window window,
 	ImageType type,
 	ImageDimension dimension,
@@ -2293,7 +2346,8 @@ Image createImage(
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant)
+	bool isConstant,
+	Image* image)
 {
 	assert(window != NULL);
 	assert(type < IMAGE_TYPE_COUNT);
@@ -2304,18 +2358,20 @@ Image createImage(
 	assert(size.y > 0);
 	assert(size.z > 0);
 	assert(levelCount <= getImageLevelCount(size));
+	assert(image != NULL);
 	assert(window->isRecording == false);
 
 	GraphicsAPI api = window->api;
 
-	Image image;
+	MpgxResult mpgxResult;
+	Image imageInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
 
-		image = createVkImage(
+		mpgxResult = createVkImage(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
@@ -2331,7 +2387,8 @@ Image createImage(
 			data,
 			size,
 			levelCount,
-			isConstant);
+			isConstant,
+			&imageInstance);
 #else
 		abort();
 #endif
@@ -2340,7 +2397,7 @@ Image createImage(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		image = createGlImage(
+		mpgxResult = createGlImage(
 			window,
 			type,
 			dimension,
@@ -2348,7 +2405,8 @@ Image createImage(
 			data,
 			size,
 			levelCount,
-			isConstant);
+			isConstant,
+			&imageInstance);
 #else
 		abort();
 #endif
@@ -2358,8 +2416,8 @@ Image createImage(
 		abort();
 	}
 
-	if (image == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	size_t count = window->imageCount;
 
@@ -2381,7 +2439,7 @@ Image createImage(
 				destroyVkImage(
 					vkWindow->device,
 					vkWindow->allocator,
-					image);
+					imageInstance);
 #else
 				abort();
 #endif
@@ -2390,7 +2448,7 @@ Image createImage(
 				api == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
-				destroyGlImage(image);
+				destroyGlImage(imageInstance);
 #else
 				abort();
 #endif
@@ -2400,33 +2458,31 @@ Image createImage(
 				abort();
 			}
 
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		window->images = images;
 		window->imageCapacity = capacity;
 	}
 
-	window->images[count] = image;
+	window->images[count] = imageInstance;
 	window->imageCount = count + 1;
-	return image;
+
+	*image = imageInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-Image createImageFromFile(
+MpgxResult createImageFromFile(
 	Window window,
 	ImageFormat format,
 	const char* filePath,
 	bool generateMipmap,
-	bool isConstant)
+	bool isConstant,
+	Image* image)
 {
-	assert(window != NULL);
 	assert(filePath != NULL);
-	assert(window->isRecording == false);
 
-	if (format != R8G8B8A8_UNORM_IMAGE_FORMAT &&
-		format != R8G8B8A8_SRGB_IMAGE_FORMAT)
-	{
-		return NULL;
-	}
+	assert(format == R8G8B8A8_UNORM_IMAGE_FORMAT ||
+		format == R8G8B8A8_SRGB_IMAGE_FORMAT);
 
 	stbi_set_flip_vertically_on_load(true);
 
@@ -2440,9 +2496,11 @@ Image createImageFromFile(
 		4);
 
 	if (pixels == NULL || components != 4)
-		return NULL;
+		return FAILED_TO_READ_FILE_MPGX_RESULT;
 
-	Image image = createImage(
+	Image imageInstance;
+
+	MpgxResult mpgxResult = createImage(
 		window,
 		GENERAL_IMAGE_TYPE,
 		IMAGE_2D,
@@ -2450,29 +2508,31 @@ Image createImageFromFile(
 		(const void**)&pixels,
 		vec3U(width, height, 1),
 		generateMipmap ? 0 : 1,
-		isConstant);
+		isConstant,
+		&imageInstance);
 
 	stbi_image_free(pixels);
-	return image;
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
+
+	*image = imageInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-Image createImageFromData(
+MpgxResult createImageFromData(
 	Window window,
 	ImageFormat format,
 	const void* data,
 	size_t size,
 	bool generateMipmap,
-	bool isConstant)
+	bool isConstant,
+	Image* image)
 {
-	assert(window != NULL);
 	assert(data != NULL);
 	assert(size != 0);
-	assert(window->isRecording == false);
 
-	if (format != R8G8B8A8_UNORM_IMAGE_FORMAT &&
-		format != R8G8B8A8_SRGB_IMAGE_FORMAT)
-	{
-		return NULL;
-	}
+	assert(format == R8G8B8A8_UNORM_IMAGE_FORMAT ||
+		format == R8G8B8A8_SRGB_IMAGE_FORMAT);
 
 	stbi_set_flip_vertically_on_load(true);
 
@@ -2486,13 +2546,12 @@ Image createImageFromData(
 		&components,
 		4);
 
-	if (pixels == NULL ||
-		components != 4)
-	{
-		return NULL;
-	}
+	if (pixels == NULL || components != 4)
+		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle stbi error
 
-	Image image = createImage(
+	Image imageInstance;
+
+	MpgxResult mpgxResult = createImage(
 		window,
 		GENERAL_IMAGE_TYPE,
 		IMAGE_2D,
@@ -2500,10 +2559,16 @@ Image createImageFromData(
 		(const void**)&pixels,
 		vec3U(width, height, 1),
 		generateMipmap ? 0 : 1,
-		isConstant);
+		isConstant,
+		&imageInstance);
 
 	stbi_image_free(pixels);
-	return image;
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
+
+	*image = imageInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyImage(Image image)
 {
@@ -2566,7 +2631,7 @@ void destroyImage(Image image)
 	abort();
 }
 
-void setImageData(
+MpgxResult setImageData(
 	Image image,
 	const void* data,
 	Vec3U size,
@@ -2590,7 +2655,7 @@ void setImageData(
 		VkWindow vkWindow =
 			image->vk.window->vkWindow;
 
-		setVkImageData(
+		return setVkImageData(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
@@ -2612,7 +2677,7 @@ void setImageData(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		setGlImageData(
+		return setGlImageData(
 			image,
 			data,
 			size,
@@ -2666,7 +2731,7 @@ uint8_t getImageLevelCount(Vec3U imageSize)
 	return (uint8_t)floorf(log2f((float)size)) + 1;
 }
 
-Sampler createSampler(
+MpgxResult createSampler(
 	Window window,
 	ImageFilter minImageFilter,
 	ImageFilter magImageFilter,
@@ -2678,7 +2743,8 @@ Sampler createSampler(
 	CompareOperator compareOperator,
 	bool useCompare,
 	Vec2F mipmapLodRange,
-	float mipmapLodBias)
+	float mipmapLodBias,
+	Sampler* sampler)
 {
 	assert(window != NULL);
 	assert(minImageFilter < IMAGE_FILTER_COUNT);
@@ -2688,16 +2754,18 @@ Sampler createSampler(
 	assert(imageWrapY < IMAGE_WRAP_COUNT);
 	assert(imageWrapZ < IMAGE_WRAP_COUNT);
 	assert(compareOperator < COMPARE_OPERATOR_COUNT);
+	assert(sampler != NULL);
 	assert(window->isRecording == false);
 
 	GraphicsAPI api = window->api;
 
-	Sampler sampler;
+	MpgxResult mpgxResult;
+	Sampler samplerInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		sampler = createVkSampler(
+		mpgxResult = createVkSampler(
 			window->vkWindow->device,
 			window,
 			minImageFilter,
@@ -2710,7 +2778,8 @@ Sampler createSampler(
 			compareOperator,
 			useCompare,
 			mipmapLodRange,
-			mipmapLodBias);
+			mipmapLodBias,
+			&samplerInstance);
 #else
 		abort();
 #endif
@@ -2720,9 +2789,9 @@ Sampler createSampler(
 	{
 #if MPGX_SUPPORT_OPENGL
 		if (mipmapLodBias != 0.0f)
-			return NULL;
+			return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 
-		sampler = createGlSampler(
+		mpgxResult = createGlSampler(
 			window,
 			minImageFilter,
 			magImageFilter,
@@ -2733,7 +2802,8 @@ Sampler createSampler(
 			imageWrapZ,
 			compareOperator,
 			useCompare,
-			mipmapLodRange);
+			mipmapLodRange,
+			&samplerInstance);
 #else
 		abort();
 #endif
@@ -2743,8 +2813,8 @@ Sampler createSampler(
 		abort();
 	}
 
-	if (sampler == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	size_t count = window->samplerCount;
 
@@ -2763,7 +2833,7 @@ Sampler createSampler(
 #if MPGX_SUPPORT_VULKAN
 				destroyVkSampler(
 					window->vkWindow->device,
-					sampler);
+					samplerInstance);
 #else
 				abort();
 #endif
@@ -2772,7 +2842,7 @@ Sampler createSampler(
 				api == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
-				destroyGlSampler(sampler);
+				destroyGlSampler(samplerInstance);
 #else
 				abort();
 #endif
@@ -2782,16 +2852,18 @@ Sampler createSampler(
 				abort();
 			}
 
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		window->samplers = samplers;
 		window->samplerCapacity = capacity;
 	}
 
-	window->samplers[count] = sampler;
+	window->samplers[count] = samplerInstance;
 	window->samplerCount = count + 1;
-	return sampler;
+
+	*sampler = samplerInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroySampler(Sampler sampler)
 {
@@ -2914,45 +2986,50 @@ float getSamplerMipmapLodBias(Sampler sampler)
 	return sampler->base.mipmapLodBias;
 }
 
-Shader createShader(
+MpgxResult createShader(
 	Window window,
 	ShaderType type,
 	const void* code,
-	size_t size)
+	size_t size,
+	Shader* shader)
 {
 	assert(window != NULL);
 	assert(type < SHADER_TYPE_COUNT);
 	assert(code != NULL);
 	assert(size != 0);
+	assert(shader != NULL);
 	assert(window->isRecording == false);
 
 	GraphicsAPI api = window->api;
 
-	Shader shader;
+	MpgxResult mpgxResult;
+	Shader shaderInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		shader = createVkShader(
+		mpgxResult = createVkShader(
 			window->vkWindow->device,
 			window,
 			type,
 			code,
-			size);
+			size,
+			&shaderInstance);
 #else
 		abort();
 #endif
 	}
 	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
+		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		shader = createGlShader(
+		mpgxResult = createGlShader(
 			window,
 			type,
 			code,
 			size,
-			window->api);
+			window->api,
+			&shaderInstance);
 #else
 		abort();
 #endif
@@ -2962,13 +3039,13 @@ Shader createShader(
 		abort();
 	}
 
-	if (shader == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	size_t count = window->shaderCount;
 
 #ifndef NDEBUG
-	MD5_CTX md5Context;
+	MD5_CONTEXT md5Context;
 	md5_init(&md5Context);
 
 	md5_update(
@@ -2976,7 +3053,7 @@ Shader createShader(
 		code,
 		size);
 
-	uint8_t* hash = shader->base.hash;
+	uint8_t* hash = shaderInstance->base.hash;
 	md5_final(&md5Context, hash);
 
 	Shader* windowShaders = window->shaders;
@@ -3013,7 +3090,7 @@ Shader createShader(
 #if MPGX_SUPPORT_VULKAN
 				destroyVkShader(
 					window->vkWindow->device,
-					shader);
+					shaderInstance);
 #else
 				abort();
 #endif
@@ -3022,7 +3099,7 @@ Shader createShader(
 				api == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
-				destroyGlShader(shader);
+				destroyGlShader(shaderInstance);
 #else
 				abort();
 #endif
@@ -3032,21 +3109,24 @@ Shader createShader(
 				abort();
 			}
 
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		window->shaders = shaders;
 		window->shaderCapacity = capacity;
 	}
 
-	window->shaders[count] = shader;
+	window->shaders[count] = shaderInstance;
 	window->shaderCount = count + 1;
-	return shader;
+
+	*shader = shaderInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-Shader createShaderFromFile(
+MpgxResult createShaderFromFile(
 	Window window,
 	ShaderType type,
-	const char* filePath)
+	const char* filePath,
+	Shader* shader)
 {
 	assert(window != NULL);
 	assert(filePath != NULL);
@@ -3056,7 +3136,7 @@ Shader createShaderFromFile(
 		"rb");
 
 	if (file == NULL)
-		return NULL;
+		return FAILED_TO_OPEN_FILE_MPGX_RESULT;
 
 	int seekResult = seekFile(
 		file,
@@ -3066,10 +3146,16 @@ Shader createShaderFromFile(
 	if (seekResult != 0)
 	{
 		closeFile(file);
-		return NULL;
+		return FAILED_TO_SEEK_FILE_MPGX_RESULT;
 	}
 
 	size_t fileSize = tellFile(file);
+
+	if (fileSize == 0)
+	{
+		closeFile(file);
+		return FAILED_TO_READ_FILE_MPGX_RESULT;
+	}
 
 	seekResult = seekFile(
 		file,
@@ -3079,7 +3165,7 @@ Shader createShaderFromFile(
 	if (seekResult != 0)
 	{
 		closeFile(file);
-		return NULL;
+		return FAILED_TO_SEEK_FILE_MPGX_RESULT;
 	}
 
 	GraphicsAPI api = window->api;
@@ -3094,7 +3180,7 @@ Shader createShaderFromFile(
 		if (code == NULL)
 		{
 			closeFile(file);
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		readSize = fread(
@@ -3111,7 +3197,7 @@ Shader createShaderFromFile(
 		if (code == NULL)
 		{
 			closeFile(file);
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		readSize = fread(
@@ -3131,17 +3217,25 @@ Shader createShaderFromFile(
 	if (readSize != fileSize)
 	{
 		free(code);
-		return NULL;
+		return FAILED_TO_READ_FILE_MPGX_RESULT;
 	}
 
-	Shader shader = createShader(
+	Shader shaderInstance;
+
+	MpgxResult mpgxResult = createShader(
 		window,
 		type,
 		code,
-		fileSize);
+		fileSize,
+		&shaderInstance);
 
 	free(code);
-	return shader;
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
+
+	*shader = shaderInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyShader(Shader shader)
 {
@@ -3231,18 +3325,20 @@ inline static bool addWindowFramebuffer(
 	window->framebufferCount = count + 1;
 	return true;
 }
-Framebuffer createFramebuffer(
+MpgxResult createFramebuffer(
 	Window window,
 	Vec2U size,
 	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
-	size_t pipelineCapacity)
+	size_t pipelineCapacity,
+	Framebuffer* framebuffer)
 {
 	assert(window != NULL);
 	assert(size.x != 0 && size.y != 0);
 	assert(pipelineCapacity != 0);
+	assert(framebuffer != NULL);
 	assert(window->isRecording == false);
 
 #ifndef NDEBUG
@@ -3277,7 +3373,9 @@ Framebuffer createFramebuffer(
 #endif
 
 	GraphicsAPI api = window->api;
-	Framebuffer framebuffer;
+
+	MpgxResult mpgxResult;
+	Framebuffer framebufferInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -3285,17 +3383,20 @@ Framebuffer createFramebuffer(
 		VkWindow vkWindow = window->vkWindow;
 		VkDevice device = vkWindow->device;
 
-		VkRenderPass renderPass = createVkGeneralRenderPass(
+		VkRenderPass renderPass;
+
+		mpgxResult = createVkGeneralRenderPass(
 			device,
 			useBeginClear,
 			colorAttachments,
 			colorAttachmentCount,
-			depthStencilAttachment);
+			depthStencilAttachment,
+			&renderPass);
 
-		if (renderPass == NULL)
-			return NULL;
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+			return mpgxResult;
 
-		framebuffer = createVkFramebuffer(
+		mpgxResult = createVkFramebuffer(
 			device,
 			renderPass,
 			window,
@@ -3304,7 +3405,8 @@ Framebuffer createFramebuffer(
 			colorAttachments,
 			colorAttachmentCount,
 			depthStencilAttachment,
-			pipelineCapacity);
+			pipelineCapacity,
+			&framebufferInstance);
 #else
 		abort();
 #endif
@@ -3313,14 +3415,15 @@ Framebuffer createFramebuffer(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		framebuffer = createGlFramebuffer(
+		mpgxResult = createGlFramebuffer(
 			window,
 			size,
 			useBeginClear,
 			colorAttachments,
 			colorAttachmentCount,
 			depthStencilAttachment,
-			pipelineCapacity);
+			pipelineCapacity,
+			&framebufferInstance);
 #else
 		abort();
 #endif
@@ -3330,12 +3433,12 @@ Framebuffer createFramebuffer(
 		abort();
 	}
 
-	if (framebuffer == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	bool result = addWindowFramebuffer(
 		window,
-		framebuffer);
+		framebufferInstance);
 
 	if (result == false)
 	{
@@ -3344,7 +3447,7 @@ Framebuffer createFramebuffer(
 #if MPGX_SUPPORT_VULKAN
 			destroyVkFramebuffer(
 				window->vkWindow->device,
-				framebuffer,
+				framebufferInstance,
 				false);
 #else
 			abort();
@@ -3355,7 +3458,7 @@ Framebuffer createFramebuffer(
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(
-				framebuffer,
+				framebufferInstance,
 				false);
 #else
 			abort();
@@ -3366,17 +3469,19 @@ Framebuffer createFramebuffer(
 			abort();
 		}
 
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
-	return framebuffer;
+	*framebuffer = framebufferInstance;
+	return SUCCESS_MPGX_RESULT;
 }
-Framebuffer createShadowFramebuffer(
+MpgxResult createShadowFramebuffer(
 	Window window,
 	Vec2U size,
 	bool useClear,
 	Image depthAttachment,
-	size_t pipelineCapacity)
+	size_t pipelineCapacity,
+	Framebuffer* framebuffer)
 {
 	assert(window != NULL);
 	assert(size.x != 0 && size.y != 0);
@@ -3385,10 +3490,13 @@ Framebuffer createShadowFramebuffer(
 		depthAttachment->base.size.y == size.y);
 	assert(depthAttachment->base.window == window);
 	assert(pipelineCapacity != 0);
+	assert(framebuffer != NULL);
 	assert(window->isRecording == false);
 
 	GraphicsAPI api = window->api;
-	Framebuffer framebuffer;
+
+	MpgxResult mpgxResult;
+	Framebuffer framebufferInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -3396,14 +3504,17 @@ Framebuffer createShadowFramebuffer(
 		VkWindow vkWindow = window->vkWindow;
 		VkDevice device = vkWindow->device;
 
-		VkRenderPass renderPass = createVkShadowRenderPass(
+		VkRenderPass renderPass;
+
+		mpgxResult = createVkShadowRenderPass(
 			device,
-			depthAttachment->vk.vkFormat);
+			depthAttachment->vk.vkFormat,
+			&renderPass);
 
-		if (renderPass == NULL)
-			return NULL;
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+			return mpgxResult;
 
-		framebuffer = createVkFramebuffer(
+		mpgxResult = createVkFramebuffer(
 			device,
 			renderPass,
 			window,
@@ -3412,7 +3523,8 @@ Framebuffer createShadowFramebuffer(
 			NULL,
 			0,
 			depthAttachment,
-			pipelineCapacity);
+			pipelineCapacity,
+			&framebufferInstance);
 #else
 		abort();
 #endif
@@ -3421,14 +3533,15 @@ Framebuffer createShadowFramebuffer(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		framebuffer = createGlFramebuffer(
+		mpgxResult = createGlFramebuffer(
 			window,
 			size,
 			useClear,
 			NULL,
 			0,
 			depthAttachment,
-			pipelineCapacity);
+			pipelineCapacity,
+			&framebufferInstance);
 #else
 		abort();
 #endif
@@ -3438,12 +3551,12 @@ Framebuffer createShadowFramebuffer(
 		abort();
 	}
 
-	if (framebuffer == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	bool result = addWindowFramebuffer(
 		window,
-		framebuffer);
+		framebufferInstance);
 
 	if (result == false)
 	{
@@ -3452,7 +3565,7 @@ Framebuffer createShadowFramebuffer(
 #if MPGX_SUPPORT_VULKAN
 			destroyVkFramebuffer(
 				window->vkWindow->device,
-				framebuffer,
+				framebufferInstance,
 				false);
 #else
 			abort();
@@ -3463,7 +3576,7 @@ Framebuffer createShadowFramebuffer(
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(
-				framebuffer,
+				framebufferInstance,
 				false);
 #else
 			abort();
@@ -3474,10 +3587,11 @@ Framebuffer createShadowFramebuffer(
 			abort();
 		}
 
-		return NULL;
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
-	return framebuffer;
+	*framebuffer = framebufferInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyFramebuffer(
 	Framebuffer framebuffer,
@@ -3583,7 +3697,7 @@ bool isFramebufferDefault(Framebuffer framebuffer)
 	return framebuffer->base.isDefault;
 }
 
-bool setFramebufferAttachments(
+MpgxResult setFramebufferAttachments(
 	Framebuffer framebuffer,
 	Vec2U size,
 	bool useBeginClear,
@@ -3628,21 +3742,33 @@ bool setFramebufferAttachments(
 			vkWindow->graphicsQueue);
 
 		if (vkResult != VK_SUCCESS)
-			return false;
+		{
+			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+			else if (vkResult == VK_ERROR_DEVICE_LOST)
+				return DEVICE_IS_LOST_MPGX_RESULT;
+			else
+				return UNKNOWN_ERROR_MPGX_RESULT;
+		}
 
 		VkDevice device = vkWindow->device;
 
-		VkRenderPass renderPass = createVkGeneralRenderPass(
+		VkRenderPass renderPass;
+
+		MpgxResult mpgxResult = createVkGeneralRenderPass(
 			device,
 			useBeginClear,
 			colorAttachments,
 			colorAttachmentCount,
-			depthStencilAttachment);
+			depthStencilAttachment,
+			&renderPass);
 
-		if (renderPass == NULL)
-			return false;
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+			return mpgxResult;
 
-		bool result = setVkFramebufferAttachments(
+		mpgxResult = setVkFramebufferAttachments(
 			vkWindow->device,
 			renderPass,
 			framebuffer,
@@ -3652,16 +3778,16 @@ bool setFramebufferAttachments(
 			colorAttachmentCount,
 			depthStencilAttachment);
 
-		if (result == false)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			vkDestroyRenderPass(
 				device,
 				renderPass,
 				NULL);
-			return false;
+			return mpgxResult;
 		}
 
-		return true;
+		return SUCCESS_MPGX_RESULT;
 #else
 		abort();
 #endif
@@ -3962,7 +4088,7 @@ void clearFramebuffer(
 	}
 }
 
-GraphicsPipeline createGraphicsPipeline(
+MpgxResult createGraphicsPipeline(
 	Framebuffer framebuffer,
 	const char* name,
 	const GraphicsPipelineState* state,
@@ -3973,7 +4099,8 @@ GraphicsPipeline createGraphicsPipeline(
 	void* handle,
 	const void* createData,
 	Shader* shaders,
-	size_t shaderCount)
+	size_t shaderCount,
+	GraphicsPipeline* graphicsPipeline)
 {
 	assert(framebuffer != NULL);
 	assert(name != NULL);
@@ -3983,6 +4110,7 @@ GraphicsPipeline createGraphicsPipeline(
 	assert(handle != NULL);
 	assert(shaders != NULL);
 	assert(shaderCount != 0);
+	assert(graphicsPipeline != NULL);
 	assert(state->drawMode < DRAW_MODE_COUNT);
 	assert(state->polygonMode < POLYGON_MODE_COUNT);
 	assert(state->cullMode < CULL_MODE_COUNT);
@@ -4016,14 +4144,15 @@ GraphicsPipeline createGraphicsPipeline(
 	Window window = framebuffer->base.window;
 	GraphicsAPI api = window->api;
 
-	GraphicsPipeline graphicsPipeline;
+	MpgxResult mpgxResult;
+	GraphicsPipeline graphicsPipelineInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		assert(createData != NULL);
 
-		graphicsPipeline = createVkGraphicsPipeline(
+		mpgxResult = createVkGraphicsPipeline(
 			window->vkWindow->device,
 			createData,
 			framebuffer,
@@ -4035,7 +4164,8 @@ GraphicsPipeline createGraphicsPipeline(
 			onDestroy,
 			handle,
 			shaders,
-			shaderCount);
+			shaderCount,
+			&graphicsPipelineInstance);
 #else
 		abort();
 #endif
@@ -4047,9 +4177,9 @@ GraphicsPipeline createGraphicsPipeline(
 		assert(createData == NULL);
 
 		if (state->discardRasterizer == true)
-			return NULL;
+			return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 
-		graphicsPipeline = createGlGraphicsPipeline(
+		mpgxResult = createGlGraphicsPipeline(
 			framebuffer,
 			name,
 			*state,
@@ -4059,7 +4189,8 @@ GraphicsPipeline createGraphicsPipeline(
 			onDestroy,
 			handle,
 			shaders,
-			shaderCount);
+			shaderCount,
+			&graphicsPipelineInstance);
 #else
 		abort();
 #endif
@@ -4069,10 +4200,10 @@ GraphicsPipeline createGraphicsPipeline(
 		abort();
 	}
 
-	if (graphicsPipeline == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		onDestroy(handle);
-		return NULL;
+		return mpgxResult;
 	}
 
 	size_t count = framebuffer->base.graphicsPipelineCount;
@@ -4094,7 +4225,7 @@ GraphicsPipeline createGraphicsPipeline(
 #if MPGX_SUPPORT_VULKAN
 				destroyVkGraphicsPipeline(
 					window->vkWindow->device,
-					graphicsPipeline,
+					graphicsPipelineInstance,
 					false);
 #else
 				abort();
@@ -4105,7 +4236,7 @@ GraphicsPipeline createGraphicsPipeline(
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlGraphicsPipeline(
-					graphicsPipeline,
+					graphicsPipelineInstance,
 					false);
 #else
 				abort();
@@ -4116,16 +4247,18 @@ GraphicsPipeline createGraphicsPipeline(
 				abort();
 			}
 
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		framebuffer->base.graphicsPipelines = graphicsPipelines;
 		framebuffer->base.graphicsPipelineCapacity = capacity;
 	}
 
-	framebuffer->base.graphicsPipelines[count] = graphicsPipeline;
+	framebuffer->base.graphicsPipelines[count] = graphicsPipelineInstance;
 	framebuffer->base.graphicsPipelineCount = count + 1;
-	return graphicsPipeline;
+
+	*graphicsPipeline = graphicsPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyGraphicsPipeline(
 	GraphicsPipeline graphicsPipeline,
@@ -4300,15 +4433,17 @@ void bindGraphicsPipeline(GraphicsPipeline graphicsPipeline)
 	}
 }
 
-GraphicsMesh createGraphicsMesh(
+MpgxResult createGraphicsMesh(
 	Window window,
 	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer vertexBuffer,
-	Buffer indexBuffer)
+	Buffer indexBuffer,
+	GraphicsMesh* graphicsMesh)
 {
 	assert(window != NULL);
+	assert(graphicsMesh != NULL);
 	assert(indexType < INDEX_TYPE_COUNT);
 	assert(window->isRecording == false);
 
@@ -4344,18 +4479,20 @@ GraphicsMesh createGraphicsMesh(
 
 	GraphicsAPI api = window->api;
 
-	GraphicsMesh graphicsMesh;
+	MpgxResult mpgxResult;
+	GraphicsMesh graphicsMeshInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		graphicsMesh = createVkGraphicsMesh(
+		mpgxResult = createVkGraphicsMesh(
 			window,
 			indexType,
 			indexCount,
 			indexOffset,
 			vertexBuffer,
-			indexBuffer);
+			indexBuffer,
+			&graphicsMeshInstance);
 #else
 		abort();
 #endif
@@ -4364,13 +4501,14 @@ GraphicsMesh createGraphicsMesh(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		graphicsMesh = createGlGraphicsMesh(
+		mpgxResult = createGlGraphicsMesh(
 			window,
 			indexType,
 			indexCount,
 			indexOffset,
 			vertexBuffer,
-			indexBuffer);
+			indexBuffer,
+			&graphicsMeshInstance);
 #else
 		abort();
 #endif
@@ -4380,8 +4518,8 @@ GraphicsMesh createGraphicsMesh(
 		abort();
 	}
 
-	if (graphicsMesh == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	size_t count = window->graphicsMeshCount;
 
@@ -4399,7 +4537,7 @@ GraphicsMesh createGraphicsMesh(
 			{
 #if MPGX_SUPPORT_VULKAN
 				destroyVkGraphicsMesh(
-					graphicsMesh,
+					graphicsMeshInstance,
 					false);
 #else
 				abort();
@@ -4410,7 +4548,7 @@ GraphicsMesh createGraphicsMesh(
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlGraphicsMesh(
-					graphicsMesh,
+					graphicsMeshInstance,
 					false);
 #else
 				abort();
@@ -4421,16 +4559,18 @@ GraphicsMesh createGraphicsMesh(
 				abort();
 			}
 
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		window->graphicsMeshes = graphicsMeshes;
 		window->graphicsMeshCapacity = capacity;
 	}
 
-	window->graphicsMeshes[count] = graphicsMesh;
+	window->graphicsMeshes[count] = graphicsMeshInstance;
 	window->graphicsMeshCount = count + 1;
-	return graphicsMesh;
+
+	*graphicsMesh = graphicsMeshInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyGraphicsMesh(
 	GraphicsMesh graphicsMesh,
@@ -4702,34 +4842,37 @@ size_t drawGraphicsMesh(
 	return graphicsMesh->base.indexCount;
 }
 
-ComputePipeline createComputePipeline(
+MpgxResult createComputePipeline(
 	Window window,
 	const char* name,
 	OnComputePipelineBind onBind,
 	OnComputePipelineDestroy onDestroy,
 	void* handle,
 	const void* createData,
-	Shader shader)
+	Shader shader,
+	ComputePipeline* computePipeline)
 {
 	assert(window != NULL);
 	assert(name != NULL);
 	assert(onDestroy != NULL);
 	assert(handle != NULL);
 	assert(shader != NULL);
+	assert(computePipeline != NULL);
 	assert(shader->base.type == COMPUTE_SHADER_TYPE);
 	assert(shader->base.window == window);
 	assert(window->isRecording == false);
 
 	GraphicsAPI api = window->api;
 
-	ComputePipeline computePipeline;
+	MpgxResult mpgxResult;
+	ComputePipeline computePipelineInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		assert(createData != NULL);
 
-		computePipeline = createVkComputePipeline(
+		mpgxResult = createVkComputePipeline(
 			window->vkWindow->device,
 			createData,
 			window,
@@ -4737,20 +4880,26 @@ ComputePipeline createComputePipeline(
 			onBind,
 			onDestroy,
 			handle,
-			shader);
+			shader,
+			&computePipelineInstance);
 #else
 		abort();
 #endif
 	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
 	else
 	{
-		return NULL;
+		abort();
 	}
 
-	if (computePipeline == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		onDestroy(handle);
-		return NULL;
+		return mpgxResult;
 	}
 
 	size_t count = window->computePipelineCount;
@@ -4772,7 +4921,7 @@ ComputePipeline createComputePipeline(
 #if MPGX_SUPPORT_VULKAN
 				destroyVkComputePipeline(
 					window->vkWindow->device,
-					computePipeline,
+					computePipelineInstance,
 					false);
 #else
 				abort();
@@ -4783,16 +4932,18 @@ ComputePipeline createComputePipeline(
 				abort();
 			}
 
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		window->computePipelines = computePipelines;
 		window->computePipelineCapacity = capacity;
 	}
 
-	window->computePipelines[count] = computePipeline;
+	window->computePipelines[count] = computePipelineInstance;
 	window->computePipelineCount = count + 1;
-	return computePipeline;
+
+	*computePipeline = computePipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyComputePipeline(
 	ComputePipeline computePipeline,
@@ -4947,7 +5098,7 @@ void dispatchComputePipeline(
 	}
 }
 
-RayTracingPipeline createRayTracingPipeline(
+MpgxResult createRayTracingPipeline(
 	Window window,
 	const char* name,
 	OnRayTracingPipelineBind onBind,
@@ -4959,7 +5110,8 @@ RayTracingPipeline createRayTracingPipeline(
 	Shader* missShaders,
 	size_t missShaderCount,
 	Shader* closestHitShaders,
-	size_t closestHitShaderCount)
+	size_t closestHitShaderCount,
+	RayTracingPipeline* rayTracingPipeline)
 {
 	assert(window != NULL);
 	assert(name != NULL);
@@ -4972,6 +5124,7 @@ RayTracingPipeline createRayTracingPipeline(
 	assert(missShaderCount != 0);
 	assert(closestHitShaders != NULL);
 	assert(closestHitShaderCount != 0);
+	assert(rayTracingPipeline != NULL);
 	assert(window->useRayTracing == true);
 	assert(window->isRecording == false);
 
@@ -4999,14 +5152,15 @@ RayTracingPipeline createRayTracingPipeline(
 	GraphicsAPI api = window->api;
 	RayTracing rayTracing = window->rayTracing;
 
-	RayTracingPipeline rayTracingPipeline;
+	MpgxResult mpgxResult;
+	RayTracingPipeline rayTracingPipelineInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
 
-		rayTracingPipeline = createVkRayTracingPipeline(
+		mpgxResult = createVkRayTracingPipeline(
 			vkWindow->device,
 			vkWindow->allocator,
 			createData,
@@ -5021,20 +5175,26 @@ RayTracingPipeline createRayTracingPipeline(
 			missShaders,
 			missShaderCount,
 			closestHitShaders,
-			closestHitShaderCount);
+			closestHitShaderCount,
+			&rayTracingPipelineInstance);
 #else
 		abort();
 #endif
 	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
 	else
 	{
-		return NULL;
+		abort();
 	}
 
-	if (rayTracingPipeline == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		onDestroy(handle);
-		return NULL;
+		return mpgxResult;
 	}
 
 	size_t count = rayTracing->base.pipelineCount;
@@ -5059,7 +5219,7 @@ RayTracingPipeline createRayTracingPipeline(
 				destroyVkRayTracingPipeline(
 					vkWindow->device,
 					vkWindow->allocator,
-					rayTracingPipeline,
+					rayTracingPipelineInstance,
 					false);
 #else
 				abort();
@@ -5070,16 +5230,18 @@ RayTracingPipeline createRayTracingPipeline(
 				abort();
 			}
 
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		rayTracing->base.pipelines = pipelines;
 		rayTracing->base.pipelineCapacity = capacity;
 	}
 
-	rayTracing->base.pipelines[count] = rayTracingPipeline;
+	rayTracing->base.pipelines[count] = rayTracingPipelineInstance;
 	rayTracing->base.pipelineCount = count + 1;
-	return rayTracingPipeline;
+
+	*rayTracingPipeline = rayTracingPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyRayTracingPipeline(
 	RayTracingPipeline rayTracingPipeline,
@@ -5260,18 +5422,20 @@ void traceRayTracingPipeline(RayTracingPipeline rayTracingPipeline)
 	}
 }
 
-RayTracingMesh createRayTracingMesh(
+MpgxResult createRayTracingMesh(
 	Window window,
 	size_t vertexStride,
 	IndexType indexType,
 	Buffer vertexBuffer,
-	Buffer indexBuffer)
+	Buffer indexBuffer,
+	RayTracingMesh* rayTracingMesh)
 {
 	assert(window != NULL);
 	assert(vertexStride != 0);
 	assert(indexType < INDEX_TYPE_COUNT);
 	assert(vertexBuffer != NULL);
 	assert(indexBuffer != NULL);
+	assert(rayTracingMesh != NULL);
 	assert(vertexBuffer->base.type == VERTEX_BUFFER_TYPE);
 	assert(indexBuffer->base.type == INDEX_BUFFER_TYPE);
 	assert(vertexBuffer->base.window == window);
@@ -5284,14 +5448,15 @@ RayTracingMesh createRayTracingMesh(
 	GraphicsAPI api = window->api;
 	RayTracing rayTracing = window->rayTracing;
 
-	RayTracingMesh rayTracingMesh;
+	MpgxResult mpgxResult;
+	RayTracingMesh rayTracingMeshInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
 
-		rayTracingMesh = createVkRayTracingMesh(
+		mpgxResult = createVkRayTracingMesh(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
@@ -5302,18 +5467,24 @@ RayTracingMesh createRayTracingMesh(
 			vertexStride,
 			indexType,
 			vertexBuffer,
-			indexBuffer);
+			indexBuffer,
+			&rayTracingMeshInstance);
 #else
 		abort();
 #endif
 	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
 	else
 	{
-		return NULL;
+		abort();
 	}
 
-	if (rayTracingMesh == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	size_t count = rayTracing->base.meshCount;
 
@@ -5336,7 +5507,7 @@ RayTracingMesh createRayTracingMesh(
 					vkWindow->device,
 					vkWindow->allocator,
 					window->rayTracing,
-					rayTracingMesh,
+					rayTracingMeshInstance,
 					false);
 #else
 				abort();
@@ -5347,16 +5518,18 @@ RayTracingMesh createRayTracingMesh(
 				abort();
 			}
 
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		rayTracing->base.meshes = meshes;
 		rayTracing->base.meshCapacity = capacity;
 	}
 
-	rayTracing->base.meshes[count] = rayTracingMesh;
+	rayTracing->base.meshes[count] = rayTracingMeshInstance;
 	rayTracing->base.meshCount = count + 1;
-	return rayTracingMesh;
+
+	*rayTracingMesh = rayTracingMeshInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyRayTracingMesh(
 	RayTracingMesh rayTracingMesh,
@@ -5441,28 +5614,31 @@ Buffer getRayTracingMeshIndexBuffer(RayTracingMesh rayTracingMesh)
 	return rayTracingMesh->base.indexBuffer;
 }
 
-RayTracingScene createRayTracingScene(
+MpgxResult createRayTracingScene(
 	Window window,
 	RayTracingMesh* meshes,
-	size_t meshCount)
+	size_t meshCount,
+	RayTracingScene* rayTracingScene)
 {
 	assert(window != NULL);
 	assert(meshes != NULL);
 	assert(meshCount != 0);
+	assert(rayTracingScene != NULL);
 	assert(window->useRayTracing == true);
 	assert(window->isRecording == false);
 
 	GraphicsAPI api = window->api;
 	RayTracing rayTracing = window->rayTracing;
 
-	RayTracingScene rayTracingScene;
+	MpgxResult mpgxResult;
+	RayTracingScene rayTracingSceneInstance;
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
 
-		rayTracingScene = createVkRayTracingScene(
+		mpgxResult = createVkRayTracingScene(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
@@ -5471,18 +5647,24 @@ RayTracingScene createRayTracingScene(
 			rayTracing,
 			window,
 			meshes,
-			meshCount);
+			meshCount,
+			&rayTracingSceneInstance);
 #else
 		abort();
 #endif
 	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
 	else
 	{
-		return NULL;
+		abort();
 	}
 
-	if (rayTracingScene == NULL)
-		return NULL;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	size_t count = rayTracing->base.sceneCount;
 
@@ -5505,7 +5687,7 @@ RayTracingScene createRayTracingScene(
 					vkWindow->device,
 					vkWindow->allocator,
 					window->rayTracing,
-					rayTracingScene);
+					rayTracingSceneInstance);
 #else
 				abort();
 #endif
@@ -5515,16 +5697,18 @@ RayTracingScene createRayTracingScene(
 				abort();
 			}
 
-			return NULL;
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
 		rayTracing->base.scenes = scenes;
 		rayTracing->base.sceneCapacity = capacity;
 	}
 
-	rayTracing->base.scenes[count] = rayTracingScene;
+	rayTracing->base.scenes[count] = rayTracingSceneInstance;
 	rayTracing->base.sceneCount = count + 1;
-	return rayTracingScene;
+
+	*rayTracingScene = rayTracingSceneInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 void destroyRayTracingScene(RayTracingScene rayTracingScene)
 {

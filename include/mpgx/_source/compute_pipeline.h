@@ -61,11 +61,12 @@ typedef struct VkComputePipelineCreateData
 	const VkPushConstantRange* pushConstantRanges;
 } VkComputePipelineCreateData;
 
-inline static VkPipeline createVkComputePipelineHandle(
+inline static MpgxResult createVkComputePipelineHandle(
 	VkDevice device,
 	VkPipelineCache cache,
 	VkPipelineLayout layout,
-	Shader shader)
+	Shader shader,
+	VkPipeline* handle)
 {
 	VkPipelineShaderStageCreateInfo shaderStageCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -87,7 +88,7 @@ inline static VkPipeline createVkComputePipelineHandle(
 		0,
 	};
 
-	VkPipeline handle;
+	VkPipeline handleInstance;
 
 	VkResult vkResult = vkCreateComputePipelines(
 		device,
@@ -95,12 +96,22 @@ inline static VkPipeline createVkComputePipelineHandle(
 		1,
 		&rayTracingPipelineCreateInfo,
 		NULL,
-		&handle);
+		&handleInstance);
 
 	if (vkResult != VK_SUCCESS)
-		return NULL;
+	{
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_INVALID_SHADER_NV)
+			return BAD_SHADER_CODE_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
 
-	return handle;
+	*handle = handleInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static void destroyVkComputePipeline(
@@ -129,7 +140,7 @@ inline static void destroyVkComputePipeline(
 
 	free(computePipeline);
 }
-inline static ComputePipeline createVkComputePipeline(
+inline static MpgxResult createVkComputePipeline(
 	VkDevice device,
 	const VkComputePipelineCreateData* createData,
 	Window window,
@@ -137,22 +148,23 @@ inline static ComputePipeline createVkComputePipeline(
 	OnComputePipelineBind onBind,
 	OnComputePipelineDestroy onDestroy,
 	void* handle,
-	Shader shader)
+	Shader shader,
+	ComputePipeline* computePipeline)
 {
-	ComputePipeline computePipeline = calloc(1,
+	ComputePipeline computePipelineInstance = calloc(1,
 		sizeof(ComputePipeline_T));
 
-	if (computePipeline == NULL)
-		return NULL;
+	if (computePipelineInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 #ifndef NDEBUG
-	computePipeline->vk.name = name;
+	computePipelineInstance->vk.name = name;
 #endif
-	computePipeline->vk.window = window;
-	computePipeline->vk.onBind = onBind;
-	computePipeline->vk.onDestroy = onDestroy;
-	computePipeline->vk.handle = handle;
-	computePipeline->vk.shader = shader;
+	computePipelineInstance->vk.window = window;
+	computePipelineInstance->vk.onBind = onBind;
+	computePipelineInstance->vk.onDestroy = onDestroy;
+	computePipelineInstance->vk.handle = handle;
+	computePipelineInstance->vk.shader = shader;
 
 	VkPipelineCacheCreateInfo cacheCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
@@ -174,12 +186,18 @@ inline static ComputePipeline createVkComputePipeline(
 	{
 		destroyVkComputePipeline(
 			device,
-			computePipeline,
+			computePipelineInstance,
 			false);
-		return NULL;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	computePipeline->vk.cache = cache;
+	computePipelineInstance->vk.cache = cache;
 
 	VkPipelineLayoutCreateInfo layoutCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -203,30 +221,41 @@ inline static ComputePipeline createVkComputePipeline(
 	{
 		destroyVkComputePipeline(
 			device,
-			computePipeline,
+			computePipelineInstance,
 			false);
-		return NULL;
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	computePipeline->vk.layout = layout;
+	computePipelineInstance->vk.layout = layout;
 
-	VkPipeline vkHandle = createVkComputePipelineHandle(
+	VkPipeline vkHandle;
+
+	MpgxResult mpgxResult =createVkComputePipelineHandle(
 		device,
 		cache,
 		layout,
-		shader);
+		shader,
+		&vkHandle);
 
-	if (vkHandle == NULL)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
 		destroyVkComputePipeline(
 			device,
-			computePipeline,
+			computePipelineInstance,
 			false);
-		return NULL;
+		return mpgxResult;
 	}
 
-	computePipeline->vk.vkHandle = vkHandle;
-	return computePipeline;
+	computePipelineInstance->vk.vkHandle = vkHandle;
+
+	*computePipeline = computePipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static void bindVkComputePipeline(

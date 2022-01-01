@@ -18,19 +18,21 @@
 
 #define TEXTURE_COLOR_PIPELINE_NAME "TextureColor"
 
-GraphicsPipeline createTextureColorPipelineExt(
+MpgxResult createTextureColorPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
-	const GraphicsPipelineState* state);
-GraphicsPipeline createTextureColorPipeline(
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* textureColorPipeline);
+MpgxResult createTextureColorPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
-	Sampler sampler);
+	Sampler sampler,
+	GraphicsPipeline* textureColorPipeline);
 
 Image getTextureColorPipelineTexture(
 	GraphicsPipeline textureColorPipeline);

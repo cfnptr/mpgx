@@ -18,15 +18,17 @@
 
 #define COLOR_PIPELINE_NAME "Color"
 
-GraphicsPipeline createColorPipelineExt(
+MpgxResult createColorPipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	const GraphicsPipelineState* state);
-GraphicsPipeline createColorPipeline(
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* colorPipeline);
+MpgxResult createColorPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
-	Shader fragmentShader);
+	Shader fragmentShader,
+	GraphicsPipeline* colorPipeline);
 
 Mat4F getColorPipelineMvp(
 	GraphicsPipeline colorPipeline);

@@ -97,15 +97,15 @@ inline static void destroyVkImage(
 		image->vk.allocation);
 	free(image);
 }
-inline static Image createVkImage(
+inline static MpgxResult createVkImage(
 	VkDevice device,
 	VmaAllocator allocator,
 	VkQueue transferQueue,
 	VkCommandPool transferCommandPool,
 	VkFence transferFence,
-	VkBuffer* _stagingBuffer,
-	VmaAllocation* _stagingAllocation,
-	size_t* _stagingSize,
+	VkBuffer* stagingBuffer,
+	VmaAllocation* stagingAllocation,
+	size_t* stagingSize,
 	Window window,
 	ImageType type,
 	ImageDimension dimension,
@@ -113,21 +113,22 @@ inline static Image createVkImage(
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant)
+	bool isConstant,
+	Image* image)
 {
 	// TODO: mipmap generation, multisampling
 
-	Image image = calloc(1, sizeof(Image_T));
+	Image imageInstance = calloc(1, sizeof(Image_T));
 
-	if (image == NULL)
-		return NULL;
+	if (imageInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	image->vk.window = window;
-	image->vk.type = type;
-	image->vk.dimension = dimension;
-	image->vk.format = format;
-	image->vk.size = size;
-	image->vk.isConstant = isConstant;
+	imageInstance->vk.window = window;
+	imageInstance->vk.type = type;
+	imageInstance->vk.dimension = dimension;
+	imageInstance->vk.format = format;
+	imageInstance->vk.size = size;
+	imageInstance->vk.isConstant = isConstant;
 
 	VkImageType vkType;
 	VkImageViewType vkViewType;
@@ -149,7 +150,11 @@ inline static Image createVkImage(
 	}
 	else
 	{
-		abort();
+		destroyVkImage(
+			device,
+			allocator,
+			imageInstance);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	VkFormat vkFormat;
@@ -170,8 +175,8 @@ inline static Image createVkImage(
 		destroyVkImage(
 			device,
 			allocator,
-			image);
-		return NULL;
+			imageInstance);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 	case R8_UNORM_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_R8_UNORM;
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -249,9 +254,9 @@ inline static Image createVkImage(
 	if (data[0] != NULL)
 		vkUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-	image->vk.vkFormat = vkFormat;
-	image->vk.vkAspect = vkAspect;
-	image->vk.sizeMultiplier = sizeMultiplier;
+	imageInstance->vk.vkFormat = vkFormat;
+	imageInstance->vk.vkAspect = vkAspect;
+	imageInstance->vk.sizeMultiplier = sizeMultiplier;
 
 	VkImageCreateInfo imageCreateInfo = {
 		VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -297,12 +302,18 @@ inline static Image createVkImage(
 		destroyVkImage(
 			device,
 			allocator,
-			image);
-		return NULL;
+			imageInstance);
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	image->vk.handle = handle;
-	image->vk.allocation = allocation;
+	imageInstance->vk.handle = handle;
+	imageInstance->vk.allocation = allocation;
 
 	VkImageViewCreateInfo imageViewCreateInfo = {
 		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -339,18 +350,24 @@ inline static Image createVkImage(
 		destroyVkImage(
 			device,
 			allocator,
-			image);
-		return NULL;
+			imageInstance);
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	image->vk.imageView = imageView;
+	imageInstance->vk.imageView = imageView;
 
 	VkDeviceSize bufferSize =
 		size.x * size.y * size.z *
 		sizeMultiplier;
 
-	VkBuffer stagingBuffer;
-	VmaAllocation stagingAllocation;
+	VkBuffer stagingBufferInstance;
+	VmaAllocation stagingAllocationInstance;
 
 	VkBufferCreateInfo bufferCreateInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -371,8 +388,8 @@ inline static Image createVkImage(
 			allocator,
 			&bufferCreateInfo,
 			&allocationCreateInfo,
-			&stagingBuffer,
-			&stagingAllocation,
+			&stagingBufferInstance,
+			&stagingAllocationInstance,
 			NULL);
 
 		if (vkResult != VK_SUCCESS)
@@ -380,23 +397,29 @@ inline static Image createVkImage(
 			destroyVkImage(
 				device,
 				allocator,
-				image);
-			return NULL;
+				imageInstance);
+
+			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+			else
+				return UNKNOWN_ERROR_MPGX_RESULT;
 		}
 
-		image->vk.stagingBuffer = stagingBuffer;
-		image->vk.stagingAllocation = stagingAllocation;
+		imageInstance->vk.stagingBuffer = stagingBufferInstance;
+		imageInstance->vk.stagingAllocation = stagingAllocationInstance;
 	}
 	else
 	{
-		if (bufferSize > *_stagingSize)
+		if (bufferSize > *stagingSize)
 		{
 			vkResult = vmaCreateBuffer(
 				allocator,
 				&bufferCreateInfo,
 				&allocationCreateInfo,
-				&stagingBuffer,
-				&stagingAllocation,
+				&stagingBufferInstance,
+				&stagingAllocationInstance,
 				NULL);
 
 			if (vkResult != VK_SUCCESS)
@@ -404,48 +427,58 @@ inline static Image createVkImage(
 				destroyVkImage(
 					device,
 					allocator,
-					image);
-				return NULL;
+					imageInstance);
+
+				if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+					return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+				else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+					return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+				else
+					return UNKNOWN_ERROR_MPGX_RESULT;
 			}
 
 			vmaDestroyBuffer(
 				allocator,
-				*_stagingBuffer,
-				*_stagingAllocation);
+				*stagingBuffer,
+				*stagingAllocation);
 
-			*_stagingBuffer = stagingBuffer;
-			*_stagingAllocation = stagingAllocation;
-			*_stagingSize = bufferSize;
+			*stagingBuffer = stagingBufferInstance;
+			*stagingAllocation = stagingAllocationInstance;
+			*stagingSize = bufferSize;
 		}
 		else
 		{
-			stagingBuffer = *_stagingBuffer;
-			stagingAllocation = *_stagingAllocation;
+			stagingBufferInstance = *stagingBuffer;
+			stagingAllocationInstance = *stagingAllocation;
 		}
 
-		image->vk.stagingBuffer = NULL;
-		image->vk.stagingAllocation = NULL;
+		imageInstance->vk.stagingBuffer = NULL;
+		imageInstance->vk.stagingAllocation = NULL;
 	}
 
 	if (data[0] != NULL)
 	{
 		setVkBufferData(
 			allocator,
-			stagingAllocation,
+			stagingAllocationInstance,
 			data[0],
 			bufferSize,
 			0);
 
-		VkCommandBuffer commandBuffer = allocateBeginVkOneTimeCommandBuffer(
-			device, transferCommandPool);
+		VkCommandBuffer commandBuffer;
 
-		if (commandBuffer == NULL)
+		MpgxResult mpgxResult = allocateBeginVkOneTimeCommandBuffer(
+			device,
+			transferCommandPool,
+			&commandBuffer);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyVkImage(
 				device,
 				allocator,
-				image);
-			return NULL;
+				imageInstance);
+			return mpgxResult;
 		}
 
 		VkImageMemoryBarrier imageMemoryBarrier = {
@@ -499,7 +532,7 @@ inline static Image createVkImage(
 
 		vkCmdCopyBufferToImage(
 			commandBuffer,
-			stagingBuffer,
+			stagingBufferInstance,
 			handle,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1,
@@ -522,34 +555,38 @@ inline static Image createVkImage(
 			1,
 			&imageMemoryBarrier);
 
-		bool result = endSubmitWaitFreeVkCommandBuffer(
+		mpgxResult = endSubmitWaitFreeVkCommandBuffer(
 			device,
 			transferQueue,
 			transferCommandPool,
 			transferFence,
 			commandBuffer);
 
-		if (result == false)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyVkImage(
 				device,
 				allocator,
-				image);
-			return NULL;
+				imageInstance);
+			return mpgxResult;
 		}
 	}
 	else
 	{
-		VkCommandBuffer commandBuffer = allocateBeginVkOneTimeCommandBuffer(
-			device, transferCommandPool);
+		VkCommandBuffer commandBuffer;
 
-		if (commandBuffer == NULL)
+		MpgxResult mpgxResult = allocateBeginVkOneTimeCommandBuffer(
+			device,
+			transferCommandPool,
+			&commandBuffer);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyVkImage(
 				device,
 				allocator,
-				image);
-			return NULL;
+				imageInstance);
+			return mpgxResult;
 		}
 
 		VkImageMemoryBarrier imageMemoryBarrier = {
@@ -583,27 +620,28 @@ inline static Image createVkImage(
 			1,
 			&imageMemoryBarrier);
 
-		bool result = endSubmitWaitFreeVkCommandBuffer(
+		mpgxResult = endSubmitWaitFreeVkCommandBuffer(
 			device,
 			transferQueue,
 			transferCommandPool,
 			transferFence,
 			commandBuffer);
 
-		if (result == false)
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			destroyVkImage(
 				device,
 				allocator,
-				image);
-			return NULL;
+				imageInstance);
+			return mpgxResult;
 		}
 	}
 
-	return image;
+	*image = imageInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
-inline static bool setVkImageData(
+inline static MpgxResult setVkImageData(
 	VkDevice device,
 	VmaAllocator allocator,
 	VkQueue transferQueue,
@@ -625,26 +663,25 @@ inline static bool setVkImageData(
 		size.x * size.y * size.z *
 		sizeMultiplier;
 
-	setVkBufferData(
+	MpgxResult mpgxResult = setVkBufferData(
 		allocator,
 		stagingAllocation,
 		data,
 		dataSize,
 		0);
 
-	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-		VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-		NULL,
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
+
+	VkCommandBuffer commandBuffer;
+
+	mpgxResult = allocateBeginVkOneTimeCommandBuffer(
+		device,
 		transferCommandPool,
-		VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		1,
-	};
+		&commandBuffer);
 
-	VkCommandBuffer commandBuffer = allocateBeginVkOneTimeCommandBuffer(
-		device, transferCommandPool);
-
-	if (commandBuffer == NULL)
-		return false;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
 	VkImageMemoryBarrier imageMemoryBarrier = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -722,17 +759,17 @@ inline static bool setVkImageData(
 		1,
 		&imageMemoryBarrier);
 
-	bool result = endSubmitWaitFreeVkCommandBuffer(
+	mpgxResult = endSubmitWaitFreeVkCommandBuffer(
 		device,
 		transferQueue,
 		transferCommandPool,
 		transferFence,
 		commandBuffer);
 
-	if (result == false)
-		return false;
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
 
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
@@ -753,7 +790,7 @@ inline static void destroyGlImage(
 
 	free(image);
 }
-inline static Image createGlImage(
+inline static MpgxResult createGlImage(
 	Window window,
 	ImageType type,
 	ImageDimension dimension,
@@ -761,27 +798,28 @@ inline static Image createGlImage(
 	const void** data,
 	Vec3U size,
 	uint8_t levelCount,
-	bool isConstant)
+	bool isConstant,
+	Image* image)
 {
 	if (type != GENERAL_IMAGE_TYPE &&
 		type != ATTACHMENT_IMAGE_TYPE)
 	{
-		return NULL;
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	// TODO: use isAttachment for renderbuffer optimization
 
-	Image image = calloc(1, sizeof(Image_T));
+	Image imageInstance = calloc(1, sizeof(Image_T));
 
-	if (image == NULL)
-		return NULL;
+	if (imageInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	image->gl.window = window;
-	image->gl.type = type;
-	image->gl.dimension = dimension;
-	image->gl.format = format;
-	image->gl.size = size;
-	image->gl.isConstant = isConstant;
+	imageInstance->gl.window = window;
+	imageInstance->gl.type = type;
+	imageInstance->gl.dimension = dimension;
+	imageInstance->gl.format = format;
+	imageInstance->gl.size = size;
+	imageInstance->gl.isConstant = isConstant;
 
 	GLenum glType;
 
@@ -795,11 +833,11 @@ inline static Image createGlImage(
 	}
 	else
 	{
-		destroyGlImage(image);
-		return NULL;
+		destroyGlImage(imageInstance);
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
-	image->gl.glType = glType;
+	imageInstance->gl.glType = glType;
 
 	GLint glFormat;
 	GLenum dataFormat;
@@ -808,8 +846,8 @@ inline static Image createGlImage(
 	switch (format)
 	{
 	default:
-		destroyGlImage(image);
-		return NULL;
+		destroyGlImage(imageInstance);
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	case R8_UNORM_IMAGE_FORMAT:
 		glFormat = GL_R8;
 		dataFormat = GL_RED;
@@ -852,8 +890,8 @@ inline static Image createGlImage(
 		break;
 	}
 
-	image->gl.dataType = dataType;
-	image->gl.dataFormat = dataFormat;
+	imageInstance->gl.dataType = dataType;
+	imageInstance->gl.dataFormat = dataFormat;
 
 	makeWindowContextCurrent(window);
 
@@ -863,7 +901,7 @@ inline static Image createGlImage(
 		GL_ONE,
 		&handle);
 
-	image->gl.handle = handle;
+	imageInstance->gl.handle = handle;
 
 	glBindTexture(
 		glType,
@@ -973,14 +1011,19 @@ inline static Image createGlImage(
 
 	if (error != GL_NO_ERROR)
 	{
-		destroyGlImage(image);
-		return NULL;
+		destroyGlImage(imageInstance);
+
+		if (error == GL_OUT_OF_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	return image;
+	*image = imageInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 
-inline static void setGlImageData(
+inline static MpgxResult setGlImageData(
 	Image image,
 	const void* data,
 	Vec3U size,
@@ -1028,6 +1071,11 @@ inline static void setGlImageData(
 		abort();
 	}
 
-	assertOpenGL();
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		return UNKNOWN_ERROR_MPGX_RESULT;
+
+	return SUCCESS_MPGX_RESULT;
 }
 #endif

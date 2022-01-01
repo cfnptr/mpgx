@@ -48,7 +48,7 @@ git clone --recursive https://github.com/cfnptr/mpgx
 | MPGX_USE_VULKAN     | Use modern Vulkan API library | `ON`          |
 | MPGX_USE_OPENGL     | Use legacy OpenGL library     | `ON`          |
 
-## Third-party~~~~
+## Third-party
 
 * [cmmt](https://github.com/cfnptr/cmmt/) (Apache-2.0 License)
 * [freetype](https://www.freetype.org/) (FreeType License)

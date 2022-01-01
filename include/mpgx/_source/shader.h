@@ -35,8 +35,8 @@ typedef struct VkShader_T
 #ifndef NDEBUG
 	uint8_t hash[MD5_BLOCK_SIZE];
 #endif
-	VkShaderModule handle;
 	VkShaderStageFlags stage;
+	VkShaderModule handle;
 } VkShader_T;
 #endif
 #if MPGX_SUPPORT_OPENGL
@@ -84,53 +84,31 @@ inline static void destroyVkShader(
 		NULL);
 	free(shader);
 }
-inline static Shader createVkShader(
+inline static MpgxResult createVkShader(
 	VkDevice device,
 	Window window,
 	ShaderType type,
 	const void* code,
-	size_t size)
+	size_t size,
+	Shader* shader)
 {
-	Shader shader = calloc(1, sizeof(Shader_T));
+	Shader shaderInstance = calloc(1, sizeof(Shader_T));
 
-	if (shader == NULL)
-		return NULL;
+	if (shaderInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	shader->vk.window = window;
-	shader->vk.type = type;
-
-	VkShaderModuleCreateInfo createInfo = {
-		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-		NULL,
-		0,
-		size,
-		code,
-	};
-
-	VkShaderModule handle;
-
-	VkResult vkResult = vkCreateShaderModule(
-		device,
-		&createInfo,
-		NULL,
-		&handle);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		destroyVkShader(
-			device,
-			shader);
-		return NULL;
-	}
-
-	shader->vk.handle = handle;
+	shaderInstance->vk.window = window;
+	shaderInstance->vk.type = type;
 
 	VkShaderStageFlags stage;
 
 	switch (type)
 	{
 	default:
-		abort();
+		destroyVkShader(
+			device,
+			shaderInstance);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 	case VERTEX_SHADER_TYPE:
 		stage = VK_SHADER_STAGE_VERTEX_BIT;
 		break;
@@ -160,8 +138,44 @@ inline static Shader createVkShader(
 		break;
 	}
 
-	shader->vk.stage = stage;
-	return shader;
+	shaderInstance->vk.stage = stage;
+
+	VkShaderModuleCreateInfo createInfo = {
+		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+		NULL,
+		0,
+		size,
+		code,
+	};
+
+	VkShaderModule handle;
+
+	VkResult vkResult = vkCreateShaderModule(
+		device,
+		&createInfo,
+		NULL,
+		&handle);
+
+	if (vkResult != VK_SUCCESS)
+	{
+		destroyVkShader(
+			device,
+			shaderInstance);
+
+		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+		else if (vkResult == VK_ERROR_INVALID_SHADER_NV)
+			return BAD_SHADER_CODE_MPGX_RESULT;
+		else
+			return UNKNOWN_ERROR_MPGX_RESULT;
+	}
+
+	shaderInstance->vk.handle = handle;
+
+	*shader = shaderInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
@@ -205,20 +219,21 @@ inline static void destroyGlShader(
 
 	free(shader);
 }
-inline static Shader createGlShader(
+inline static MpgxResult createGlShader(
 	Window window,
 	ShaderType type,
 	const void* code,
 	size_t size,
-	GraphicsAPI api)
+	GraphicsAPI api,
+	Shader* shader)
 {
-	Shader shader = calloc(1, sizeof(Shader_T));
+	Shader shaderInstance = calloc(1, sizeof(Shader_T));
 
-	if (shader == NULL)
-		return NULL;
+	if (shaderInstance == NULL)
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	shader->gl.window = window;
-	shader->gl.type = type;
+	shaderInstance->gl.window = window;
+	shaderInstance->gl.type = type;
 
 	GLenum glType;
 
@@ -228,8 +243,8 @@ inline static Shader createGlShader(
 
 	if (result == false)
 	{
-		destroyGlShader(shader);
-		return NULL;
+		destroyGlShader(shaderInstance);
+		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	const char* sources[2];
@@ -256,7 +271,7 @@ inline static Shader createGlShader(
 	makeWindowContextCurrent(window);
 
 	GLuint handle = glCreateShader(glType);
-	shader->gl.handle = handle;
+	shaderInstance->gl.handle = handle;
 
 	glShaderSource(
 		handle,
@@ -289,8 +304,8 @@ inline static Shader createGlShader(
 
 			if (infoLog == NULL)
 			{
-				destroyGlShader(shader);
-				return NULL;
+				destroyGlShader(shaderInstance);
+				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 			}
 
 			glGetShaderInfoLog(
@@ -306,7 +321,7 @@ inline static Shader createGlShader(
 			else if (type == FRAGMENT_SHADER_TYPE)
 				typeString = "fragment";
 			else
-				typeString = "compute";
+				abort();
 
 			printf("OpenGL %s shader compile error:\n%s",
 				typeString,
@@ -316,18 +331,19 @@ inline static Shader createGlShader(
 
 		assertOpenGL();
 
-		destroyGlShader(shader);
-		return NULL;
+		destroyGlShader(shaderInstance);
+		return BAD_SHADER_CODE_MPGX_RESULT;
 	}
 
 	GLenum error = glGetError();
 
 	if (error != GL_NO_ERROR)
 	{
-		destroyGlShader(shader);
-		return NULL;
+		destroyGlShader(shaderInstance);
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	return shader;
+	*shader = shaderInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif

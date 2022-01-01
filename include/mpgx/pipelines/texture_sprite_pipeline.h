@@ -18,19 +18,21 @@
 
 #define TEXTURE_SPRITE_PIPELINE_NAME "TextureSprite"
 
-GraphicsPipeline createTextureSpritePipelineExt(
+MpgxResult createTextureSpritePipelineExt(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
 	Sampler sampler,
-	const GraphicsPipelineState* state);
-GraphicsPipeline createTextureSpritePipeline(
+	const GraphicsPipelineState* state,
+	GraphicsPipeline* textureSpritePipeline);
+MpgxResult createTextureSpritePipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
 	Image texture,
-	Sampler sampler);
+	Sampler sampler,
+	GraphicsPipeline* textureSpritePipeline);
 
 Image getTextureSpritePipelineTexture(
 	GraphicsPipeline textureSpritePipeline);

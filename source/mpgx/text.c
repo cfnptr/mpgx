@@ -2844,7 +2844,7 @@ MpgxResult createTextPipelineExt(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
-	Window window = framebuffer->vk.window;
+	Window window = framebuffer->base.window;
 	handle->base.window = window;
 	handle->base.texture = NULL;
 	handle->base.sampler = sampler;

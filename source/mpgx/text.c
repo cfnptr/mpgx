@@ -2727,15 +2727,15 @@ static MpgxResult onGlResize(
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = graphicsPipeline->vk.state.viewport.z +
-		graphicsPipeline->vk.state.viewport.w == 0;
+	bool dynamic = graphicsPipeline->gl.state.viewport.z +
+		graphicsPipeline->gl.state.viewport.w == 0;
 	if (dynamic == false)
-		graphicsPipeline->vk.state.viewport = size;
+		graphicsPipeline->gl.state.viewport = size;
 
-	dynamic = graphicsPipeline->vk.state.scissor.z +
-		graphicsPipeline->vk.state.scissor.w == 0;
+	dynamic = graphicsPipeline->gl.state.scissor.z +
+		graphicsPipeline->gl.state.scissor.w == 0;
 	if (dynamic == false)
-		graphicsPipeline->vk.state.scissor = size;
+		graphicsPipeline->gl.state.scissor = size;
 	return SUCCESS_MPGX_RESULT;
 }
 static void onGlDestroy(void* _handle)

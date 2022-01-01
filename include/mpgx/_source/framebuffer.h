@@ -891,12 +891,13 @@ inline static MpgxResult createGlDefaultFramebuffer(
 	if (framebufferInstance == NULL)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
+	framebufferInstance->gl.isDefault = true;
 	framebufferInstance->gl.window = window;
 	framebufferInstance->gl.size = size;
+	framebufferInstance->gl.useBeginClear = true;
 	framebufferInstance->gl.colorAttachments = NULL;
 	framebufferInstance->gl.colorAttachmentCount = 1;
 	framebufferInstance->gl.depthStencilAttachment = NULL;
-	framebufferInstance->gl.isDefault = true;
 
 	GraphicsPipeline* graphicsPipelines = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));

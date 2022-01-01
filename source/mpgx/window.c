@@ -911,8 +911,6 @@ MpgxResult createAnyWindow(
 
 	if (mpgxResult == SUCCESS_MPGX_RESULT)
 		return SUCCESS_MPGX_RESULT;
-#else
-	return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 #endif
 
 #if MPGX_SUPPORT_OPENGL
@@ -940,8 +938,6 @@ MpgxResult createAnyWindow(
 		useRayTracing,
 		visible,
 		window);
-#else
-	return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 #endif
 }
 
@@ -4073,7 +4069,7 @@ void clearFramebuffer(
 	{
 #if MPGX_SUPPORT_OPENGL
 		clearGlFramebuffer(
-			framebuffer->vk.size,
+			framebuffer->gl.size,
 			framebuffer->gl.colorAttachmentCount,
 			hasDepthBuffer,
 			hasStencilBuffer,

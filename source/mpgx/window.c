@@ -895,8 +895,10 @@ MpgxResult createAnyWindow(
 	bool visible,
 	Window* window)
 {
+	MpgxResult mpgxResult;
+
 #if MPGX_SUPPORT_VULKAN
-	MpgxResult mpgxResult = createWindow(
+	mpgxResult = createWindow(
 		VULKAN_GRAPHICS_API,
 		size,
 		title,

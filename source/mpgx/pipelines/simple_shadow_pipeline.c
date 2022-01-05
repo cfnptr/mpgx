@@ -154,7 +154,9 @@ inline static MpgxResult createVkPipeline(
 		pushConstantRanges,
 	};
 
-	return createGraphicsPipeline(
+	GraphicsPipeline graphicsPipelineInstance;
+
+	MpgxResult mpgxResult = createGraphicsPipeline(
 		framebuffer,
 		SIMPLE_SHADOW_PIPELINE_NAME,
 		state,
@@ -166,7 +168,16 @@ inline static MpgxResult createVkPipeline(
 		&createData,
 		shaders,
 		shaderCount,
-		graphicsPipeline);
+		&graphicsPipelineInstance);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		onVkDestroy(handle);
+		return mpgxResult;
+	}
+
+	*graphicsPipeline = graphicsPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
@@ -230,7 +241,10 @@ inline static MpgxResult createGlPipeline(
 		&graphicsPipelineInstance);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		onGlDestroy(handle);
 		return mpgxResult;
+	}
 
 	GLuint glHandle = graphicsPipelineInstance->gl.glHandle;
 
@@ -273,7 +287,7 @@ MpgxResult createSimpleShadowPipelineExt(
 	assert(vertexShader->base.window == framebuffer->base.window);
 	assert(fragmentShader->base.window == framebuffer->base.window);
 
-	Handle handle = malloc(sizeof(Handle_T));
+	Handle handle = calloc(1, sizeof(Handle_T));
 
 	if (handle == NULL)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;

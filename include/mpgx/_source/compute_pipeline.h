@@ -236,7 +236,7 @@ inline static MpgxResult createVkComputePipeline(
 
 	VkPipeline vkHandle;
 
-	MpgxResult mpgxResult =createVkComputePipelineHandle(
+	MpgxResult mpgxResult = createVkComputePipelineHandle(
 		device,
 		cache,
 		layout,

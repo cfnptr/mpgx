@@ -101,7 +101,7 @@ inline static MpgxResult createVkImage(
 	VkDevice device,
 	VmaAllocator allocator,
 	VkQueue transferQueue,
-	VkCommandPool transferCommandPool,
+	VkCommandBuffer transferCommandBuffer,
 	VkFence transferFence,
 	VkBuffer* stagingBuffer,
 	VmaAllocation* stagingAllocation,
@@ -465,12 +465,8 @@ inline static MpgxResult createVkImage(
 			bufferSize,
 			0);
 
-		VkCommandBuffer commandBuffer;
-
-		MpgxResult mpgxResult = allocateBeginVkOneTimeCommandBuffer(
-			device,
-			transferCommandPool,
-			&commandBuffer);
+		MpgxResult mpgxResult = beginVkOneTimeCommandBuffer(
+			transferCommandBuffer);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
@@ -501,7 +497,7 @@ inline static MpgxResult createVkImage(
 		};
 
 		vkCmdPipelineBarrier(
-			commandBuffer,
+			transferCommandBuffer,
 			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			0,
@@ -531,7 +527,7 @@ inline static MpgxResult createVkImage(
 		};
 
 		vkCmdCopyBufferToImage(
-			commandBuffer,
+			transferCommandBuffer,
 			stagingBufferInstance,
 			handle,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -544,7 +540,7 @@ inline static MpgxResult createVkImage(
 		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		vkCmdPipelineBarrier(
-			commandBuffer,
+			transferCommandBuffer,
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 			0,
@@ -555,12 +551,11 @@ inline static MpgxResult createVkImage(
 			1,
 			&imageMemoryBarrier);
 
-		mpgxResult = endSubmitWaitFreeVkCommandBuffer(
+		mpgxResult = endSubmitWaitVkCommandBuffer(
 			device,
 			transferQueue,
-			transferCommandPool,
 			transferFence,
-			commandBuffer);
+			transferCommandBuffer);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
@@ -573,12 +568,8 @@ inline static MpgxResult createVkImage(
 	}
 	else
 	{
-		VkCommandBuffer commandBuffer;
-
-		MpgxResult mpgxResult = allocateBeginVkOneTimeCommandBuffer(
-			device,
-			transferCommandPool,
-			&commandBuffer);
+		MpgxResult mpgxResult = beginVkOneTimeCommandBuffer(
+			transferCommandBuffer);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
@@ -609,7 +600,7 @@ inline static MpgxResult createVkImage(
 		};
 
 		vkCmdPipelineBarrier(
-			commandBuffer,
+			transferCommandBuffer,
 			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 			0,
@@ -620,12 +611,11 @@ inline static MpgxResult createVkImage(
 			1,
 			&imageMemoryBarrier);
 
-		mpgxResult = endSubmitWaitFreeVkCommandBuffer(
+		mpgxResult = endSubmitWaitVkCommandBuffer(
 			device,
 			transferQueue,
-			transferCommandPool,
 			transferFence,
-			commandBuffer);
+			transferCommandBuffer);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
@@ -645,7 +635,7 @@ inline static MpgxResult setVkImageData(
 	VkDevice device,
 	VmaAllocator allocator,
 	VkQueue transferQueue,
-	VkCommandPool transferCommandPool,
+	VkCommandBuffer transferCommandBuffer,
 	VkFence transferFence,
 	VkBuffer stagingBuffer,
 	VmaAllocation stagingAllocation,
@@ -673,12 +663,8 @@ inline static MpgxResult setVkImageData(
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return mpgxResult;
 
-	VkCommandBuffer commandBuffer;
-
-	mpgxResult = allocateBeginVkOneTimeCommandBuffer(
-		device,
-		transferCommandPool,
-		&commandBuffer);
+	mpgxResult = beginVkOneTimeCommandBuffer(
+		transferCommandBuffer);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return mpgxResult;
@@ -703,7 +689,7 @@ inline static MpgxResult setVkImageData(
 	};
 
 	vkCmdPipelineBarrier(
-		commandBuffer,
+		transferCommandBuffer,
 		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 		VK_PIPELINE_STAGE_TRANSFER_BIT,
 		0,
@@ -735,7 +721,7 @@ inline static MpgxResult setVkImageData(
 	};
 
 	vkCmdCopyBufferToImage(
-		commandBuffer,
+		transferCommandBuffer,
 		stagingBuffer,
 		image,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -748,7 +734,7 @@ inline static MpgxResult setVkImageData(
 	imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	vkCmdPipelineBarrier(
-		commandBuffer,
+		transferCommandBuffer,
 		VK_PIPELINE_STAGE_TRANSFER_BIT,
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 		0,
@@ -759,12 +745,11 @@ inline static MpgxResult setVkImageData(
 		1,
 		&imageMemoryBarrier);
 
-	mpgxResult = endSubmitWaitFreeVkCommandBuffer(
+	mpgxResult = endSubmitWaitVkCommandBuffer(
 		device,
 		transferQueue,
-		transferCommandPool,
 		transferFence,
-		commandBuffer);
+		transferCommandBuffer);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return mpgxResult;

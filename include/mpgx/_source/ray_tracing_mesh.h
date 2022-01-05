@@ -264,7 +264,7 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 	VkDevice device,
 	VmaAllocator allocator,
 	VkQueue transferQueue,
-	VkCommandPool transferCommandPool,
+	VkCommandBuffer transferCommandBuffer,
 	VkFence transferFence,
 	RayTracing rayTracing,
 	VkAccelerationStructureTypeKHR type,
@@ -378,12 +378,8 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 		&buildRangeInfo,
 	};
 
-	VkCommandBuffer commandBuffer;
-
-	mpgxResult = allocateBeginVkOneTimeCommandBuffer(
-		device,
-		transferCommandPool,
-		&commandBuffer);
+	mpgxResult = beginVkOneTimeCommandBuffer(
+		transferCommandBuffer);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
@@ -403,17 +399,16 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 	}
 
 	rayTracing->vk.cmdBuildAccelerationStructures(
-		commandBuffer,
+		transferCommandBuffer,
 		1,
 		buildGeometryInfo,
 		buildRangeInfos);
 
-	mpgxResult = endSubmitWaitFreeVkCommandBuffer(
+	mpgxResult = endSubmitWaitVkCommandBuffer(
 		device,
 		transferQueue,
-		transferCommandPool,
 		transferFence,
-		commandBuffer);
+		transferCommandBuffer);
 
 	vmaDestroyBuffer(
 		allocator,
@@ -500,7 +495,7 @@ inline static MpgxResult createVkRayTracingMesh(
 	VkDevice device,
 	VmaAllocator allocator,
 	VkQueue transferQueue,
-	VkCommandPool transferCommandPool,
+	VkCommandBuffer transferCommandBuffer,
 	VkFence transferFence,
 	RayTracing rayTracing,
 	Window window,
@@ -635,7 +630,7 @@ inline static MpgxResult createVkRayTracingMesh(
 		device,
 		allocator,
 		transferQueue,
-		transferCommandPool,
+		transferCommandBuffer,
 		transferFence,
 		rayTracing,
 		VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
@@ -661,6 +656,8 @@ inline static MpgxResult createVkRayTracingMesh(
 	rayTracingMeshInstance->vk.allocation = allocation;
 	rayTracingMeshInstance->vk.accelerationStructure = accelerationStructure;
 	rayTracingMeshInstance->vk.deviceAddress = deviceAddress;
+
+	*rayTracingMesh = rayTracingMeshInstance;
 	return SUCCESS_MPGX_RESULT;
 }
 #endif

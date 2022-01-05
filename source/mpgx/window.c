@@ -878,7 +878,9 @@ MpgxResult createWindow(
 	windowInstance->targetFPS = 60.0;
 	windowInstance->updateTime = 0.0;
 	windowInstance->deltaTime = 0.0;
+#ifndef NDEBUG
 	windowInstance->isRecording = false;
+#endif
 	windowInstance->renderFramebuffer = NULL;
 
 	currentWindow = windowInstance;
@@ -928,7 +930,7 @@ MpgxResult createAnyWindow(
 	if (mpgxResult == SUCCESS_MPGX_RESULT)
 		return SUCCESS_MPGX_RESULT;
 
-	return createWindow(
+	mpgxResult = createWindow(
 		OPENGL_ES_GRAPHICS_API,
 		size,
 		title,
@@ -939,6 +941,8 @@ MpgxResult createAnyWindow(
 		visible,
 		window);
 #endif
+
+	return mpgxResult;
 }
 
 GraphicsAPI getWindowGraphicsAPI(Window window)
@@ -1046,13 +1050,13 @@ void* getVkWindow(Window window)
 	abort();
 #endif
 }
-bool isVkGpuIntegrated(Window window)
+bool isVkDeviceIntegrated(Window window)
 {
 	assert(window != NULL);
 	assert(window->api == VULKAN_GRAPHICS_API);
 
 #if MPGX_SUPPORT_VULKAN
-	return window->vkWindow->isGpuIntegrated;
+	return window->vkWindow->isDeviceIntegrated;
 #else
 	abort();
 #endif
@@ -1677,8 +1681,10 @@ MpgxResult beginWindowRecord(Window window)
 		abort();
 	}
 
+#ifndef NDEBUG
 	window->isRecording = true;
-	return true;
+#endif
+	return SUCCESS_MPGX_RESULT;
 }
 
 void endWindowRecord(Window window)
@@ -1885,22 +1891,29 @@ void endWindowRecord(Window window)
 		abort();
 	}
 
+#ifndef NDEBUG
 	window->isRecording = false;
+#endif
 }
 
 MpgxResult createBuffer(
 	Window window,
 	BufferType type,
+	BufferUsage usage,
+	BufferFlag flags,
 	const void* data,
 	size_t size,
-	bool isConstant,
 	Buffer* buffer)
 {
 	assert(window != NULL);
 	assert(type < BUFFER_TYPE_COUNT);
+	assert(usage < BUFFER_USAGE_COUNT);
 	assert(size != 0);
 	assert(buffer != NULL);
 	assert(window->isRecording == false);
+
+	assert((usage != GPU_TO_CPU_BUFFER_USAGE) ||
+		(usage == GPU_TO_CPU_BUFFER_USAGE && data == NULL));
 
 	GraphicsAPI api = window->api;
 
@@ -1916,7 +1929,7 @@ MpgxResult createBuffer(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
-			vkWindow->transferCommandPool,
+			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
 			&vkWindow->stagingBuffer,
 			&vkWindow->stagingAllocation,
@@ -1924,9 +1937,10 @@ MpgxResult createBuffer(
 			0,
 			window,
 			type,
+			usage,
+			flags,
 			data,
 			size,
-			isConstant,
 			window->useRayTracing,
 			&bufferInstance);
 #else
@@ -1940,9 +1954,10 @@ MpgxResult createBuffer(
 		mpgxResult = createGlBuffer(
 			window,
 			type,
+			usage,
+			flags,
 			data,
 			size,
-			isConstant,
 			&bufferInstance);
 #else
 		abort();
@@ -2010,6 +2025,7 @@ void destroyBuffer(Buffer buffer)
 	if (buffer == NULL)
 		return;
 
+	assert(buffer->base.isMapped == false);
 	assert(buffer->base.window->isRecording == false);
 
 	Window window = buffer->base.window;
@@ -2075,28 +2091,34 @@ BufferType getBufferType(Buffer buffer)
 	assert(buffer != NULL);
 	return buffer->base.type;
 }
+BufferUsage getBufferUsage(Buffer buffer)
+{
+	assert(buffer != NULL);
+	return buffer->base.usage;
+}
 size_t getBufferSize(Buffer buffer)
 {
 	assert(buffer != NULL);
 	return buffer->base.size;
 }
-bool isBufferConstant(Buffer buffer)
-{
-	assert(buffer != NULL);
-	return buffer->base.isConstant;
-}
 
 MpgxResult mapBuffer(
 	Buffer buffer,
-	bool readAccess,
-	bool writeAccess,
+	size_t size,
+	size_t offset,
 	void** map)
 {
 	assert(buffer != NULL);
 	assert(map != NULL);
-	assert(buffer->base.isConstant == false);
+	assert(buffer->base.usage == CPU_ONLY_BUFFER_USAGE ||
+		buffer->base.usage == CPU_TO_GPU_BUFFER_USAGE ||
+		buffer->base.usage == GPU_TO_CPU_BUFFER_USAGE);
 	assert(buffer->base.isMapped == false);
-	assert(readAccess == true || writeAccess == true);
+
+	assert((size == 0 && offset == 0) ||
+		(size != 0 && size + offset <= buffer->base.size));
+
+	size_t mapSize = size != 0 ? size : buffer->base.size;
 
 	Window window = buffer->base.window;
 	GraphicsAPI api = window->api;
@@ -2109,10 +2131,13 @@ MpgxResult mapBuffer(
 		mpgxResult = mapVkBuffer(
 			window->vkWindow->allocator,
 			buffer->vk.allocation,
-			readAccess,
+			buffer->vk.usage,
+			mapSize,
+			offset,
 			map);
 
-		buffer->vk.writeAccess = writeAccess;
+		buffer->vk.mapSize = mapSize;
+		buffer->vk.mapOffset = offset;
 #else
 		abort();
 #endif
@@ -2124,9 +2149,9 @@ MpgxResult mapBuffer(
 		mpgxResult = mapGlBuffer(
 			buffer->gl.glType,
 			buffer->gl.handle,
-			buffer->gl.size,
-			readAccess,
-			writeAccess,
+			buffer->gl.usage,
+			mapSize,
+			offset,
 			map);
 #else
 		abort();
@@ -2140,10 +2165,12 @@ MpgxResult mapBuffer(
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return mpgxResult;
 
+#ifndef NDEBUG
 	buffer->base.isMapped = true;
+#endif
 	return SUCCESS_MPGX_RESULT;
 }
-void unmapBuffer(Buffer buffer)
+MpgxResult unmapBuffer(Buffer buffer)
 {
 	assert(buffer != NULL);
 	assert(buffer->base.isMapped == true);
@@ -2151,13 +2178,17 @@ void unmapBuffer(Buffer buffer)
 	Window window = buffer->base.window;
 	GraphicsAPI api = window->api;
 
+	MpgxResult mpgxResult;
+
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		unmapVkBuffer(
+		mpgxResult = unmapVkBuffer(
 			window->vkWindow->allocator,
 			buffer->vk.allocation,
-			buffer->vk.writeAccess);
+			buffer->vk.usage,
+			buffer->vk.mapSize,
+			buffer->vk.mapOffset);
 #else
 		abort();
 #endif
@@ -2166,7 +2197,7 @@ void unmapBuffer(Buffer buffer)
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		unmapGlBuffer(
+		mpgxResult = unmapGlBuffer(
 			buffer->gl.glType,
 			buffer->gl.handle);
 #else
@@ -2178,7 +2209,10 @@ void unmapBuffer(Buffer buffer)
 		abort();
 	}
 
+#ifndef NDEBUG
 	buffer->base.isMapped = false;
+#endif
+	return mpgxResult;
 }
 
 MpgxResult setBufferData(
@@ -2190,7 +2224,8 @@ MpgxResult setBufferData(
 	assert(buffer != NULL);
 	assert(data != NULL);
 	assert(size != 0);
-	assert(buffer->base.isConstant == false);
+	assert(buffer->base.usage == CPU_ONLY_BUFFER_USAGE ||
+		buffer->base.usage == CPU_TO_GPU_BUFFER_USAGE);
 	assert(buffer->base.isMapped == false);
 	assert(size + offset <= buffer->base.size);
 
@@ -2373,7 +2408,7 @@ MpgxResult createImage(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
-			vkWindow->transferCommandPool,
+			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
 			&vkWindow->stagingBuffer,
 			&vkWindow->stagingAllocation,
@@ -2657,7 +2692,7 @@ MpgxResult setImageData(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
-			vkWindow->transferCommandPool,
+			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
 			image->vk.stagingBuffer,
 			image->vk.stagingAllocation,
@@ -4199,10 +4234,7 @@ MpgxResult createGraphicsPipeline(
 	}
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
-	{
-		onDestroy(handle);
 		return mpgxResult;
-	}
 
 	size_t count = framebuffer->base.graphicsPipelineCount;
 
@@ -4216,8 +4248,6 @@ MpgxResult createGraphicsPipeline(
 
 		if (graphicsPipelines == NULL)
 		{
-			onDestroy(handle);
-
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
@@ -4895,10 +4925,7 @@ MpgxResult createComputePipeline(
 	}
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
-	{
-		onDestroy(handle);
 		return mpgxResult;
-	}
 
 	size_t count = window->computePipelineCount;
 
@@ -4912,8 +4939,6 @@ MpgxResult createComputePipeline(
 
 		if (computePipelines == NULL)
 		{
-			onDestroy(handle);
-
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
@@ -5190,10 +5215,7 @@ MpgxResult createRayTracingPipeline(
 	}
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
-	{
-		onDestroy(handle);
 		return mpgxResult;
-	}
 
 	size_t count = rayTracing->base.pipelineCount;
 
@@ -5207,8 +5229,6 @@ MpgxResult createRayTracingPipeline(
 
 		if (pipelines == NULL)
 		{
-			onDestroy(handle);
-
 			if (api == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
@@ -5458,7 +5478,7 @@ MpgxResult createRayTracingMesh(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
-			vkWindow->transferCommandPool,
+			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
 			rayTracing,
 			window,
@@ -5640,7 +5660,7 @@ MpgxResult createRayTracingScene(
 			vkWindow->device,
 			vkWindow->allocator,
 			vkWindow->graphicsQueue,
-			vkWindow->transferCommandPool,
+			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
 			rayTracing,
 			window,

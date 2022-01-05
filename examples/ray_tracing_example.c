@@ -50,9 +50,9 @@ static void onWindowUpdate(void* handle)
 	updateFreeCamera(freeCamera);
 	updateTransformer(client->transformer);
 
-	bool result = beginWindowRecord(window);
+	MpgxResult mpgxResult = beginWindowRecord(window);
 
-	if (result == false)
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return;
 
 	Framebuffer framebuffer =
@@ -100,9 +100,10 @@ inline static MpgxResult createRayTracingSceneInstance(
 	MpgxResult mpgxResult = createBuffer(
 		window,
 		VERTEX_BUFFER_TYPE,
+		GPU_ONLY_BUFFER_USAGE,
+		NO_BUFFER_FLAG,
 		cubeTriangleVertices,
 		sizeof(cubeTriangleVertices),
-		true,
 		&vertexBuffer);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -113,9 +114,10 @@ inline static MpgxResult createRayTracingSceneInstance(
 	mpgxResult = createBuffer(
 		window,
 		INDEX_BUFFER_TYPE,
+		GPU_ONLY_BUFFER_USAGE,
+		NO_BUFFER_FLAG,
 		cubeTriangleIndices,
 		sizeof(cubeTriangleIndices),
-		true,
 		&indexBuffer);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)

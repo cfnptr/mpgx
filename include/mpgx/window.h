@@ -210,6 +210,8 @@ typedef enum CursorMode
 	LOCKED_CURSOR_MODE = 0x00034003,
 } CursorMode;
 
+#define CURSOR_MODE_COUNT 3
+
 typedef enum CursorType_T
 {
 	DEFAULT_CURSOR_TYPE = 0,
@@ -233,6 +235,27 @@ typedef enum BufferType_T
 } BufferType_T;
 
 typedef uint8_t BufferType;
+
+typedef enum BufferUsage_T
+{
+	CPU_ONLY_BUFFER_USAGE = 0,
+	GPU_ONLY_BUFFER_USAGE = 1,
+	CPU_TO_GPU_BUFFER_USAGE = 2,
+	GPU_TO_CPU_BUFFER_USAGE = 3,
+	BUFFER_USAGE_COUNT = 4,
+} BufferUsage_T;
+
+typedef uint8_t BufferUsage;
+
+typedef enum BufferFlag_T
+{
+	NO_BUFFER_FLAG = 0b00000000,
+	TRANSFER_SOURCE_BUFFER_FLAG = 0b00000001,
+	TRANSFER_DESTINATION_BUFFER_FLAG = 0b00000010,
+} BufferFlag_T;
+
+typedef uint8_t BufferFlag;
+#define BUFFER_FLAG_COUNT 2
 
 typedef enum ImageDimension_T
 {
@@ -374,6 +397,7 @@ typedef enum ColorComponent_T
 } ColorComponent_T;
 
 typedef uint8_t ColorComponent;
+#define COLOR_COMPONENT_COUNT 5
 
 typedef enum BlendFactor_T
 {
@@ -556,7 +580,7 @@ Vec2F getWindowContentScale(Window window);
 const char* getWindowGpuName(Window window);
 
 void* getVkWindow(Window window);
-bool isVkGpuIntegrated(Window window);
+bool isVkDeviceIntegrated(Window window);
 
 double getWindowTargetFPS(
 	Window window);
@@ -637,23 +661,24 @@ void endWindowRecord(Window window);
 MpgxResult createBuffer(
 	Window window,
 	BufferType type,
+	BufferUsage usage,
+	BufferFlag flags,
 	const void* data,
 	size_t size,
-	bool isConstant,
 	Buffer* buffer);
 void destroyBuffer(Buffer buffer);
 
 Window getBufferWindow(Buffer buffer);
 BufferType getBufferType(Buffer buffer);
+BufferUsage getBufferUsage(Buffer buffer);
 size_t getBufferSize(Buffer buffer);
-bool isBufferConstant(Buffer buffer);
 
 MpgxResult mapBuffer(
 	Buffer buffer,
-	bool readAccess,
-	bool writeAccess,
+	size_t size,
+	size_t offset,
 	void** map);
-void unmapBuffer(Buffer buffer);
+MpgxResult unmapBuffer(Buffer buffer);
 
 MpgxResult setBufferData(
 	Buffer buffer,
@@ -676,6 +701,7 @@ const uint8_t* getImageDataPixels(ImageData imageData);
 Vec2U getImageDataSize(ImageData imageData);
 uint8_t getImageDataChannelCount(ImageData imageData);
 
+// TODO: ImageUsage like buffer
 MpgxResult createImage(
 	Window window,
 	ImageType type,

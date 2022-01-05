@@ -1233,9 +1233,12 @@ MpgxResult createText32(
 	mpgxResult = createBuffer(
 		window,
 		VERTEX_BUFFER_TYPE,
+		isConstant ?
+			GPU_ONLY_BUFFER_USAGE :
+			CPU_TO_GPU_BUFFER_USAGE,
+		NO_BUFFER_FLAG,
 		vertices,
 		vertexCount * sizeof(float),
-		isConstant,
 		&vertexBuffer);
 
 	free(vertices);
@@ -1270,9 +1273,12 @@ MpgxResult createText32(
 	mpgxResult = createBuffer(
 		window,
 		INDEX_BUFFER_TYPE,
+		isConstant ?
+			GPU_ONLY_BUFFER_USAGE :
+			CPU_TO_GPU_BUFFER_USAGE,
+		NO_BUFFER_FLAG,
 		indices,
 		indexCount * sizeof(uint32_t),
-		isConstant,
 		&indexBuffer);
 
 	free(indices);
@@ -1993,9 +1999,10 @@ MpgxResult bakeText(
 			MpgxResult mpgxResult = createBuffer(
 				window,
 				VERTEX_BUFFER_TYPE,
+				CPU_TO_GPU_BUFFER_USAGE,
+				NO_BUFFER_FLAG,
 				vertices,
 				vertexCount * sizeof(float),
-				false,
 				&vertexBuffer);
 
 			free(vertices);
@@ -2026,9 +2033,10 @@ MpgxResult bakeText(
 			mpgxResult = createBuffer(
 				window,
 				INDEX_BUFFER_TYPE,
+				CPU_TO_GPU_BUFFER_USAGE,
+				NO_BUFFER_FLAG,
 				indices,
 				indexCount * sizeof(uint32_t),
-				false,
 				&indexBuffer);
 
 			free(indices);
@@ -2216,9 +2224,10 @@ MpgxResult bakeText(
 		mpgxResult = createBuffer(
 			window,
 			VERTEX_BUFFER_TYPE,
+			CPU_TO_GPU_BUFFER_USAGE,
+			NO_BUFFER_FLAG,
 			vertices,
 			vertexCount * sizeof(float),
-			false,
 			&vertexBuffer);
 
 		free(vertices);
@@ -2249,9 +2258,10 @@ MpgxResult bakeText(
 		mpgxResult = createBuffer(
 			window,
 			INDEX_BUFFER_TYPE,
+			CPU_TO_GPU_BUFFER_USAGE,
+			NO_BUFFER_FLAG,
 			indices,
 			indexCount * sizeof(uint32_t),
-			false,
 			&indexBuffer);
 
 		free(indices);
@@ -2772,7 +2782,10 @@ inline static MpgxResult createGlPipeline(
 		&graphicsPipelineInstance);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		onGlDestroy(handle);
 		return mpgxResult;
+	}
 
 	GLuint glHandle = graphicsPipelineInstance->gl.glHandle;
 
@@ -2830,7 +2843,7 @@ MpgxResult createTextPipelineExt(
 	assert(fragmentShader->base.window == framebuffer->base.window);
 	assert(sampler->base.window == framebuffer->base.window);
 
-	Handle handle = malloc(sizeof(Handle_T));
+	Handle handle = calloc(1, sizeof(Handle_T));
 
 	if (handle == NULL)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;

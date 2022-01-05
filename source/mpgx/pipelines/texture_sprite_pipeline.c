@@ -367,7 +367,12 @@ inline static MpgxResult createVkPipeline(
 		&descriptorSetLayout);
 
 	if(mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		onVkDestroy(handle);
 		return mpgxResult;
+	}
+
+	handle->vk.descriptorSetLayout = descriptorSetLayout;
 
 	VkGraphicsPipelineCreateData createData = {
 		1,
@@ -391,13 +396,11 @@ inline static MpgxResult createVkPipeline(
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
-		vkDestroyDescriptorSetLayout(
-			device,
-			descriptorSetLayout,
-			NULL);
-		free(handle);
+		onVkDestroy(handle);
 		return mpgxResult;
 	}
+
+	handle->vk.descriptorPool = descriptorPool;
 
 	VkDescriptorSet* descriptorSets;
 
@@ -412,24 +415,16 @@ inline static MpgxResult createVkPipeline(
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
-		vkDestroyDescriptorPool(
-			device,
-			descriptorPool,
-			NULL);
-		vkDestroyDescriptorSetLayout(
-			device,
-			descriptorSetLayout,
-			NULL);
-		free(handle);
+		onVkDestroy(handle);
 		return mpgxResult;
 	}
 
-	handle->vk.descriptorSetLayout = descriptorSetLayout;
-	handle->vk.descriptorPool = descriptorPool;
 	handle->vk.descriptorSets = descriptorSets;
 	handle->vk.bufferCount = bufferCount;
 
-	return createGraphicsPipeline(
+	GraphicsPipeline graphicsPipelineInstance;
+
+	mpgxResult = createGraphicsPipeline(
 		framebuffer,
 		TEXTURE_SPRITE_PIPELINE_NAME,
 		state,
@@ -441,7 +436,16 @@ inline static MpgxResult createVkPipeline(
 		&createData,
 		shaders,
 		shaderCount,
-		graphicsPipeline);
+		&graphicsPipelineInstance);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		onVkDestroy(handle);
+		return mpgxResult;
+	}
+
+	*graphicsPipeline = graphicsPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
@@ -555,7 +559,10 @@ inline static MpgxResult createGlPipeline(
 		&graphicsPipelineInstance);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		onGlDestroy(handle);
 		return mpgxResult;
+	}
 
 	GLuint glHandle = graphicsPipelineInstance->gl.glHandle;
 
@@ -625,7 +632,7 @@ MpgxResult createTextureSpritePipelineExt(
 	assert(texture->base.window == framebuffer->base.window);
 	assert(sampler->base.window == framebuffer->base.window);
 
-	Handle handle = malloc(sizeof(Handle_T));
+	Handle handle = calloc(1, sizeof(Handle_T));
 
 	if (handle == NULL)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;

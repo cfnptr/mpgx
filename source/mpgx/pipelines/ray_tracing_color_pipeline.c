@@ -41,6 +41,7 @@ typedef struct VkHandle
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSet descriptorSet;
+	// TODO: allocate descriptor set for each frame
 } VkHandle;
 #endif
 typedef union Handle_T
@@ -393,7 +394,12 @@ inline static MpgxResult createVkPipeline(
 		&descriptorSetLayout);
 
 	if(mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		onVkDestroy(handle);
 		return mpgxResult;
+	}
+
+	handle->vk.descriptorSetLayout = descriptorSetLayout;
 
 	VkRayTracingPipelineCreateData createData = {
 		1,
@@ -410,13 +416,11 @@ inline static MpgxResult createVkPipeline(
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
-		vkDestroyDescriptorSetLayout(
-			device,
-			descriptorSetLayout,
-			NULL);
-		free(handle);
+		onVkDestroy(handle);
 		return mpgxResult;
 	}
+
+	handle->vk.descriptorPool = descriptorPool;
 
 	VkDescriptorSet descriptorSet;
 
@@ -430,23 +434,15 @@ inline static MpgxResult createVkPipeline(
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
-		vkDestroyDescriptorPool(
-			device,
-			descriptorPool,
-			NULL);
-		vkDestroyDescriptorSetLayout(
-			device,
-			descriptorSetLayout,
-			NULL);
-		free(handle);
+		onVkDestroy(handle);
 		return mpgxResult;
 	}
 
-	handle->vk.descriptorSetLayout = descriptorSetLayout;
-	handle->vk.descriptorPool = descriptorPool;
 	handle->vk.descriptorSet = descriptorSet;
 
-	return createRayTracingPipeline(
+	RayTracingPipeline rayTracingPipelineInstance;
+
+	mpgxResult = createRayTracingPipeline(
 		window,
 		RAY_TRACING_COLOR_PIPELINE_NAME,
 		onVkBind,
@@ -459,7 +455,16 @@ inline static MpgxResult createVkPipeline(
 		missShaderCount,
 		closestHitShaders,
 		closestHitShaderCount,
-		rayTracingPipeline);
+		&rayTracingPipelineInstance);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		onVkDestroy(handle);
+		return mpgxResult;
+	}
+
+	*rayTracingPipeline = rayTracingPipelineInstance;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
@@ -484,7 +489,7 @@ MpgxResult createRayTracingColorPipeline(
 	assert(closestHitShader->base.window == window);
 	assert(scene->base.window == window);
 
-	Handle handle = malloc(sizeof(Handle_T));
+	Handle handle = calloc(1, sizeof(Handle_T));
 
 	if (handle == NULL)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;

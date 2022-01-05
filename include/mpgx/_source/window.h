@@ -40,16 +40,20 @@ typedef struct VkWindow_T
 {
 	VkSurfaceKHR surface;
 	VkPhysicalDevice physicalDevice;
-	bool isGpuIntegrated;
+	bool isDeviceIntegrated;
 	uint32_t graphicsQueueFamilyIndex;
 	uint32_t presentQueueFamilyIndex;
+	uint32_t computeQueueFamilyIndex;
 	VkDevice device;
 	VmaAllocator allocator;
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
+	VkQueue computeQueue;
 	VkCommandPool graphicsCommandPool;
 	VkCommandPool presentCommandPool;
 	VkCommandPool transferCommandPool;
+	VkCommandPool computeCommandPool;
+	VkCommandBuffer transferCommandBuffer;
 	VkFence fences[VK_FRAME_LAG];
 	VkSemaphore imageAcquiredSemaphores[VK_FRAME_LAG];
 	VkSemaphore drawCompleteSemaphores[VK_FRAME_LAG];
@@ -389,7 +393,7 @@ inline static void destroyVkDebugUtilsMessenger(
 
 inline static MpgxResult getBestVkPhysicalDevice(
 	VkInstance instance,
-	bool* _isGpuIntegrated,
+	bool* isIntegrated,
 	VkPhysicalDevice* physicalDevice)
 {
 	uint32_t deviceCount;
@@ -438,7 +442,7 @@ inline static MpgxResult getBestVkPhysicalDevice(
 
 	VkPhysicalDevice targetDevice = NULL;
 	uint32_t targetScore = 0;
-	bool isGpuIntegrated = false;
+	bool integrated = false;
 
 	for (uint32_t i = 0; i < deviceCount; i++)
 	{
@@ -479,22 +483,23 @@ inline static MpgxResult getBestVkPhysicalDevice(
 			targetDevice = device;
 			targetScore = score;
 
-			isGpuIntegrated = properties.deviceType ==
+			integrated = properties.deviceType ==
 				VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
 		}
 	}
 
 	free(devices);
 
-	*_isGpuIntegrated = isGpuIntegrated;
+	*isIntegrated = integrated;
 	*physicalDevice = targetDevice;
 	return SUCCESS_MPGX_RESULT;
 }
 inline static MpgxResult getVkQueueFamilyIndices(
 	VkPhysicalDevice physicalDevice,
 	VkSurfaceKHR surface,
-	uint32_t* _graphicsQueueFamilyIndex,
-	uint32_t* _presentQueueFamilyIndex)
+	uint32_t* graphicsQueueFamilyIndex,
+	uint32_t* presentQueueFamilyIndex,
+	uint32_t* computeQueueFamilyIndex)
 {
 	uint32_t propertyCount;
 
@@ -514,8 +519,9 @@ inline static MpgxResult getVkQueueFamilyIndices(
 		&propertyCount,
 		properties);
 
-	uint32_t graphicsQueueFamilyIndex = UINT32_MAX;
-	uint32_t presentQueueFamilyIndex = UINT32_MAX;
+	uint32_t graphicsIndex = UINT32_MAX,
+		presentIndex = UINT32_MAX,
+		computeIndex = UINT32_MAX;
 
 	for (uint32_t i = 0; i < propertyCount; i++)
 	{
@@ -523,8 +529,13 @@ inline static MpgxResult getVkQueueFamilyIndices(
 
 		if (property->queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
-			if (graphicsQueueFamilyIndex == UINT32_MAX)
-				graphicsQueueFamilyIndex = i;
+			if (graphicsIndex == UINT32_MAX)
+				graphicsIndex = i;
+		}
+		if (property->queueFlags & VK_QUEUE_COMPUTE_BIT)
+		{
+			if (computeIndex == UINT32_MAX)
+				computeIndex = i;
 		}
 
 		VkBool32 isSupported;
@@ -536,7 +547,7 @@ inline static MpgxResult getVkQueueFamilyIndices(
 			&isSupported);
 
 		// TESTING PURPOSE:
-		//if (graphicsQueueFamilyIndex == i) continue;
+		//if (graphicsIndex == i) continue;
 
 		if (vkResult != VK_SUCCESS)
 		{
@@ -554,15 +565,17 @@ inline static MpgxResult getVkQueueFamilyIndices(
 
 		if (isSupported == VK_TRUE)
 		{
-			if (presentQueueFamilyIndex == UINT32_MAX)
-				presentQueueFamilyIndex = i;
+			if (presentIndex == UINT32_MAX)
+				presentIndex = i;
 		}
 
-		if (graphicsQueueFamilyIndex != UINT32_MAX &&
-			presentQueueFamilyIndex != UINT32_MAX)
+		if (graphicsIndex != UINT32_MAX &&
+			presentIndex != UINT32_MAX &&
+			computeIndex != UINT32_MAX)
 		{
-			*_graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
-			*_presentQueueFamilyIndex = presentQueueFamilyIndex;
+			*graphicsQueueFamilyIndex = graphicsIndex;
+			*presentQueueFamilyIndex = presentIndex;
+			*computeQueueFamilyIndex = computeIndex;
 
 			free(properties);
 			return SUCCESS_MPGX_RESULT;
@@ -748,9 +761,8 @@ inline static MpgxResult createVkDevice(
 			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
 		else if (vkResult == VK_ERROR_INITIALIZATION_FAILED)
 			return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_EXTENSION_NOT_PRESENT)
-			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_FEATURE_NOT_PRESENT)
+		else if (vkResult == VK_ERROR_EXTENSION_NOT_PRESENT ||
+			vkResult == VK_ERROR_FEATURE_NOT_PRESENT)
 			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 		else if (vkResult == VK_ERROR_DEVICE_LOST)
 			return DEVICE_IS_LOST_MPGX_RESULT; // TODO: handle VK_ERROR_TOO_MANY_OBJECTS
@@ -839,25 +851,25 @@ inline static MpgxResult createVkCommandPool(
 	*commandPool = commandPoolInstance;
 	return SUCCESS_MPGX_RESULT;
 }
-
-inline static MpgxResult createVkFence(
+inline static MpgxResult allocateVkCommandBuffer(
 	VkDevice device,
-	VkFenceCreateFlags flags,
-	VkFence* fence)
+	VkCommandPool commandPool,
+	VkCommandBuffer* commandBuffer)
 {
-	VkFenceCreateInfo createInfo = {
-		VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+	VkCommandBufferAllocateInfo allocateInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		NULL,
-		flags,
+		commandPool,
+		VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		1,
 	};
 
-	VkFence fenceInstance;
+	VkCommandBuffer commandBufferInstance;
 
-	VkResult vkResult = vkCreateFence(
+	VkResult vkResult = vkAllocateCommandBuffers(
 		device,
-		&createInfo,
-		NULL,
-		&fenceInstance);
+		&allocateInfo,
+		&commandBufferInstance);
 
 	if (vkResult != VK_SUCCESS)
 	{
@@ -869,38 +881,7 @@ inline static MpgxResult createVkFence(
 			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	*fence = fenceInstance;
-	return SUCCESS_MPGX_RESULT;
-}
-inline static MpgxResult createVkSemaphore(
-	VkDevice device,
-	VkSemaphore* semaphore)
-{
-	VkSemaphoreCreateInfo createInfo = {
-		VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-		NULL,
-		0,
-	};
-
-	VkSemaphore semaphoreInstance;
-
-	VkResult vkResult = vkCreateSemaphore(
-		device,
-		&createInfo,
-		NULL,
-		&semaphoreInstance);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
-
-	*semaphore = semaphoreInstance;
+	*commandBuffer = commandBufferInstance;
 	return SUCCESS_MPGX_RESULT;
 }
 
@@ -921,10 +902,8 @@ inline static void destroyVkWindow(
 			window->stagingBuffer,
 			window->stagingAllocation);
 
-		VkCommandPool graphicsCommandPool =
-			window->graphicsCommandPool;
-		VkCommandPool presentCommandPool =
-			window->presentCommandPool;
+		VkCommandPool graphicsCommandPool = window->graphicsCommandPool;
+		VkCommandPool presentCommandPool = window->presentCommandPool;
 
 		if (device != NULL)
 		{
@@ -984,6 +963,15 @@ inline static void destroyVkWindow(
 				}
 			}
 
+			vkFreeCommandBuffers(
+				device,
+				window->transferCommandPool,
+				1,
+				&window->transferCommandBuffer);
+			vkDestroyCommandPool(
+				device,
+				window->computeCommandPool,
+				NULL);
 			vkDestroyCommandPool(
 				device,
 				window->transferCommandPool,
@@ -1057,13 +1045,13 @@ inline static MpgxResult createVkWindow(
 
 	window->surface = surface;
 
-	bool isGpuIntegrated;
+	bool isDeviceIntegrated;
 
 	VkPhysicalDevice physicalDevice;
 
 	MpgxResult mpgxResult = getBestVkPhysicalDevice(
 		instance,
-		&isGpuIntegrated,
+		&isDeviceIntegrated,
 		&physicalDevice);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -1073,16 +1061,18 @@ inline static MpgxResult createVkWindow(
 	}
 
 	window->physicalDevice = physicalDevice;
-	window->isGpuIntegrated = isGpuIntegrated;
+	window->isDeviceIntegrated = isDeviceIntegrated;
 
 	uint32_t graphicsQueueFamilyIndex,
-		presentQueueFamilyIndex;
+		presentQueueFamilyIndex,
+		computeQueueFamilyIndex;
 
 	mpgxResult = getVkQueueFamilyIndices(
 		physicalDevice,
 		surface,
 		&graphicsQueueFamilyIndex,
-		&presentQueueFamilyIndex);
+		&presentQueueFamilyIndex,
+		&computeQueueFamilyIndex);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
@@ -1092,6 +1082,7 @@ inline static MpgxResult createVkWindow(
 
 	window->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
 	window->presentQueueFamilyIndex = presentQueueFamilyIndex;
+	window->computeQueueFamilyIndex = computeQueueFamilyIndex;
 
 	const char* extensions[6];
 	const char* targetExtensions[6];
@@ -1216,36 +1207,36 @@ inline static MpgxResult createVkWindow(
 
 	window->allocator = allocator;
 
-	VkQueue graphicsQueue, presentQueue;
+	VkQueue graphicsQueue,
+		presentQueue,
+		computeQueue;
 
 	vkGetDeviceQueue(
 		device,
 		graphicsQueueFamilyIndex,
 		0,
 		&graphicsQueue);
-
-	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
-	{
-		presentQueue = graphicsQueue;
-	}
-	else
-	{
-		vkGetDeviceQueue(
-			device,
-			presentQueueFamilyIndex,
-			0,
-			&presentQueue);
-	}
+	vkGetDeviceQueue(
+		device,
+		presentQueueFamilyIndex,
+		0,
+		&presentQueue);
+	vkGetDeviceQueue(
+		device,
+		computeQueueFamilyIndex,
+		0,
+		&computeQueue);
 
 	window->graphicsQueue = graphicsQueue;
 	window->presentQueue = presentQueue;
+	window->computeQueue = computeQueue;
 
 	VkCommandPool graphicsCommandPool;
 
 	mpgxResult = createVkCommandPool(
 		device,
 		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-		VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 		graphicsQueueFamilyIndex,
 		&graphicsCommandPool);
 
@@ -1268,7 +1259,7 @@ inline static MpgxResult createVkWindow(
 		mpgxResult = createVkCommandPool(
 			device,
 			VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 			presentQueueFamilyIndex,
 			&presentCommandPool);
 
@@ -1285,7 +1276,8 @@ inline static MpgxResult createVkWindow(
 
 	mpgxResult = createVkCommandPool(
 		device,
-		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 		graphicsQueueFamilyIndex,
 		&transferCommandPool);
 
@@ -1296,6 +1288,37 @@ inline static MpgxResult createVkWindow(
 	}
 
 	window->transferCommandPool = transferCommandPool;
+
+	VkCommandPool computeCommandPool;
+
+	mpgxResult = createVkCommandPool(
+		device,
+		0, // TODO: should we add VK_COMMAND_POOL_CREATE_TRANSIENT_BIT?
+		computeQueueFamilyIndex,
+		&computeCommandPool);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		destroyVkWindow(instance, window);
+		return mpgxResult;
+	}
+
+	window->computeCommandPool = computeCommandPool;
+
+	VkCommandBuffer transferCommandBuffer;
+
+	mpgxResult = allocateVkCommandBuffer(
+		device,
+		transferCommandPool,
+		&transferCommandBuffer);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		destroyVkWindow(instance, window);
+		return mpgxResult;
+	}
+
+	window->transferCommandBuffer = transferCommandBuffer;
 
 	VkFence* fences = window->fences;
 	VkSemaphore* imageAcquiredSemaphores =

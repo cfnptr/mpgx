@@ -65,7 +65,9 @@ static void onWindowUpdate(void* handle)
 	updateFreeCamera(freeCamera);
 	updateTransformer(client->transformer);
 
-	if (beginWindowRecord(window) == false)
+	MpgxResult mpgxResult = beginWindowRecord(window);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return;
 
 	Transform cameraTransform =
@@ -220,9 +222,10 @@ inline static MpgxResult createDiffuseRenderInstance(
 	MpgxResult mpgxResult = createBuffer(
 		window,
 		VERTEX_BUFFER_TYPE,
+		GPU_ONLY_BUFFER_USAGE,
+		NO_BUFFER_FLAG,
 		cubeTriangleVerticesNormals,
 		sizeof(cubeTriangleVerticesNormals),
-		true,
 		&vertexBuffer);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -236,9 +239,10 @@ inline static MpgxResult createDiffuseRenderInstance(
 	mpgxResult = createBuffer(
 		window,
 		INDEX_BUFFER_TYPE,
+		GPU_ONLY_BUFFER_USAGE,
+		NO_BUFFER_FLAG,
 		cubeTriangleIndices,
 		sizeof(cubeTriangleIndices),
-		true,
 		&indexBuffer);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)

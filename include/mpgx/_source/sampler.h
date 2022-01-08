@@ -83,6 +83,9 @@ inline static bool getVkImageFilter(
 	ImageFilter imageFilter,
 	VkFilter* vkImageFilter)
 {
+	assert(imageFilter < IMAGE_FILTER_COUNT);
+	assert(vkImageFilter != NULL);
+
 	if (imageFilter == NEAREST_IMAGE_FILTER)
 	{
 		*vkImageFilter = VK_FILTER_NEAREST;
@@ -102,6 +105,9 @@ inline static bool getVkMipmapFilter(
 	ImageFilter mipmapFilter,
 	VkSamplerMipmapMode* vkMipmapFilter)
 {
+	assert(mipmapFilter < IMAGE_FILTER_COUNT);
+	assert(vkMipmapFilter != NULL);
+
 	if (mipmapFilter == NEAREST_IMAGE_FILTER)
 	{
 		*vkMipmapFilter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
@@ -121,6 +127,9 @@ inline static bool getVkImageWrap(
 	ImageWrap imageWrap,
 	VkSamplerAddressMode* vkImageWrap)
 {
+	assert(imageWrap < IMAGE_WRAP_COUNT);
+	assert(vkImageWrap != NULL);
+
 	if (imageWrap == REPEAT_IMAGE_WRAP)
 	{
 		*vkImageWrap = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -156,6 +165,8 @@ inline static void destroyVkSampler(
 	VkDevice device,
 	Sampler sampler)
 {
+	assert(device != NULL);
+
 	if (sampler == NULL)
 		return;
 
@@ -181,6 +192,17 @@ inline static MpgxResult createVkSampler(
 	float mipmapLodBias,
 	Sampler* sampler)
 {
+	assert(device != NULL);
+	assert(window != NULL);
+	assert(minImageFilter < IMAGE_FILTER_COUNT);
+	assert(magImageFilter < IMAGE_FILTER_COUNT);
+	assert(minMipmapFilter < IMAGE_FILTER_COUNT);
+	assert(imageWrapX < IMAGE_WRAP_COUNT);
+	assert(imageWrapY < IMAGE_WRAP_COUNT);
+	assert(imageWrapZ < IMAGE_WRAP_COUNT);
+	assert(compareOperator < COMPARE_OPERATOR_COUNT);
+	assert(sampler != NULL);
+
 	Sampler samplerInstance = calloc(1,
 		sizeof(Sampler_T));
 
@@ -292,6 +314,10 @@ inline static bool getGlImageFilter(
 	bool useMipmapping,
 	GLenum* glImageFilter)
 {
+	assert(imageFilter < IMAGE_FILTER_COUNT);
+	assert(mipmapFilter < IMAGE_FILTER_COUNT);
+	assert(glImageFilter != NULL);
+
 	if (imageFilter == NEAREST_IMAGE_FILTER)
 	{
 		if (useMipmapping == true)
@@ -351,6 +377,9 @@ inline static bool getGlImageWrap(
 	ImageWrap imageWrap,
 	GLenum* glImageWrap)
 {
+	assert(imageWrap < IMAGE_WRAP_COUNT);
+	assert(glImageWrap != NULL);
+
 	if (imageWrap == REPEAT_IMAGE_WRAP)
 	{
 		*glImageWrap = GL_REPEAT;
@@ -402,6 +431,16 @@ inline static MpgxResult createGlSampler(
 	Vec2F mipmapLodRange,
 	Sampler* sampler)
 {
+	assert(window != NULL);
+	assert(minImageFilter < IMAGE_FILTER_COUNT);
+	assert(magImageFilter < IMAGE_FILTER_COUNT);
+	assert(minMipmapFilter < IMAGE_FILTER_COUNT);
+	assert(imageWrapX < IMAGE_WRAP_COUNT);
+	assert(imageWrapY < IMAGE_WRAP_COUNT);
+	assert(imageWrapZ < IMAGE_WRAP_COUNT);
+	assert(compareOperator < COMPARE_OPERATOR_COUNT);
+	assert(sampler != NULL);
+
 	Sampler samplerInstance = calloc(1,
 		sizeof(Sampler_T));
 

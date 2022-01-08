@@ -75,6 +75,8 @@ inline static void destroyVkShader(
 	VkDevice device,
 	Shader shader)
 {
+	assert(device != NULL);
+
 	if (shader == NULL)
 		return;
 
@@ -92,6 +94,13 @@ inline static MpgxResult createVkShader(
 	size_t size,
 	Shader* shader)
 {
+	assert(device != NULL);
+	assert(window != NULL);
+	assert(type < SHADER_TYPE_COUNT);
+	assert(code != NULL);
+	assert(size != 0);
+	assert(shader != NULL);
+
 	Shader shaderInstance = calloc(1, sizeof(Shader_T));
 
 	if (shaderInstance == NULL)
@@ -184,6 +193,9 @@ inline static bool getGlShaderType(
 	ShaderType shaderType,
 	GLenum* glShaderType)
 {
+	assert(shaderType < SHADER_TYPE_COUNT);
+	assert(glShaderType != NULL);
+
 	if (shaderType == VERTEX_SHADER_TYPE)
 	{
 		*glShaderType = GL_VERTEX_SHADER;
@@ -227,6 +239,13 @@ inline static MpgxResult createGlShader(
 	GraphicsAPI api,
 	Shader* shader)
 {
+	assert(window != NULL);
+	assert(type < SHADER_TYPE_COUNT);
+	assert(code != NULL);
+	assert(size != 0);
+	assert(api < GRAPHICS_API_COUNT);
+	assert(shader != NULL);
+
 	Shader shaderInstance = calloc(1, sizeof(Shader_T));
 
 	if (shaderInstance == NULL)

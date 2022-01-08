@@ -174,6 +174,9 @@ MpgxResult createGradientSkySampler(
 	Window window,
 	Sampler* gradientSkySampler)
 {
+	assert(window != NULL);
+	assert(gradientSkySampler != NULL);
+
 	return createSampler(
 		window,
 		LINEAR_IMAGE_FILTER,
@@ -224,6 +227,10 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 	uint32_t bufferCount,
 	VkDescriptorPool* descriptorPool)
 {
+	assert(device != NULL);
+	assert(bufferCount != 0);
+	assert(descriptorPool != NULL);
+
 	VkDescriptorPoolSize descriptorPoolSizes[1] = {
 		{
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -255,6 +262,14 @@ inline static MpgxResult createVkDescriptorSetArray(
 	VkImageView imageView,
 	VkDescriptorSet** descriptorSets)
 {
+	assert(device != NULL);
+	assert(descriptorSetLayout != NULL);
+	assert(descriptorPool != NULL);
+	assert(bufferCount != 0);
+	assert(sampler != NULL);
+	assert(imageView != NULL);
+	assert(descriptorSets != NULL);
+
 	VkDescriptorSet* descriptorSetArray;
 
 	MpgxResult mpgxResult = allocateVkDescriptorSets(
@@ -306,6 +321,8 @@ inline static MpgxResult createVkDescriptorSetArray(
 
 static void onVkBind(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	uint32_t bufferIndex = vkWindow->bufferIndex;
@@ -322,6 +339,8 @@ static void onVkBind(GraphicsPipeline graphicsPipeline)
 }
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
@@ -347,6 +366,11 @@ static MpgxResult onVkResize(
 	Vec2U newSize,
 	void* createData)
 {
+	assert(graphicsPipeline != NULL);
+	assert(newSize.x > 0);
+	assert(newSize.y > 0);
+	assert(createData != NULL);
+
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
@@ -427,6 +451,10 @@ static MpgxResult onVkResize(
 static void onVkDestroy(void* _handle)
 {
 	Handle handle = _handle;
+
+	if (handle == NULL)
+		return;
+
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkDevice device = vkWindow->device;
 
@@ -451,6 +479,15 @@ inline static MpgxResult createVkPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
+	assert(framebuffer != NULL);
+	assert(sampler != NULL);
+	assert(imageView != NULL);
+	assert(state != NULL);
+	assert(handle != NULL);
+	assert(shaders != NULL);
+	assert(shaderCount != 0);
+	assert(graphicsPipeline != NULL);
+
 	Window window = framebuffer->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
 	VkDevice device = vkWindow->device;
@@ -559,6 +596,8 @@ inline static MpgxResult createVkPipeline(
 #if MPGX_SUPPORT_OPENGL
 static void onGlBind(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->gl.handle;
 
 	glUniform1i(
@@ -578,6 +617,8 @@ static void onGlBind(GraphicsPipeline graphicsPipeline)
 }
 static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->gl.handle;
 
 	glUniformMatrix4fv(
@@ -611,6 +652,11 @@ static MpgxResult onGlResize(
 	Vec2U newSize,
 	void* createData)
 {
+	assert(graphicsPipeline != NULL);
+	assert(newSize.x > 0);
+	assert(newSize.y > 0);
+	assert(createData == NULL);
+
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
@@ -637,6 +683,13 @@ inline static MpgxResult createGlPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
+	assert(framebuffer != NULL);
+	assert(state != NULL);
+	assert(handle != NULL);
+	assert(shaders != NULL);
+	assert(shaderCount != 0);
+	assert(graphicsPipeline != NULL);
+
 	GraphicsPipeline graphicsPipelineInstance;
 
 	MpgxResult mpgxResult = createGraphicsPipeline(
@@ -715,6 +768,8 @@ MpgxResult createGradientSkyPipelineExt(
 	assert(fragmentShader != NULL);
 	assert(texture != NULL);
 	assert(sampler != NULL);
+	assert(state != NULL);
+	assert(gradientSkyPipeline != NULL);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -787,6 +842,11 @@ MpgxResult createGradientSkyPipeline(
 	GraphicsPipeline* graphicsPipeline)
 {
 	assert(framebuffer != NULL);
+	assert(vertexShader != NULL);
+	assert(fragmentShader != NULL);
+	assert(texture != NULL);
+	assert(sampler != NULL);
+	assert(graphicsPipeline != NULL);
 
 	Vec2U framebufferSize =
 		framebuffer->base.size;

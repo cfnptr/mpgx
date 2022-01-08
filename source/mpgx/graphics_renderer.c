@@ -37,6 +37,7 @@ struct GraphicsRenderer_T
 	bool useCulling;
 	OnGraphicsRenderDestroy onDestroy;
 	OnGraphicsRenderDraw onDraw;
+	void* handle;
 	GraphicsRender* renders;
 	GraphicsRenderElement* renderElements;
 	size_t renderCapacity;
@@ -108,68 +109,71 @@ GraphicsRenderer createGraphicsRenderer(
 }
 
 GraphicsPipeline getGraphicsRendererPipeline(
-	GraphicsRenderer renderer)
+	GraphicsRenderer graphicsRenderer)
 {
-	assert(renderer != NULL);
-	return renderer->pipeline;
+	assert(graphicsRenderer != NULL);
+	return graphicsRenderer->pipeline;
 }
 OnGraphicsRenderDestroy getGraphicsRendererOnDestroy(
-	GraphicsRenderer renderer)
+	GraphicsRenderer graphicsRenderer)
 {
-	assert(renderer != NULL);
-	return renderer->onDestroy;
+	assert(graphicsRenderer != NULL);
+	return graphicsRenderer->onDestroy;
 }
 OnGraphicsRenderDraw getGraphicsRendererOnDraw(
-	GraphicsRenderer renderer)
+	GraphicsRenderer graphicsRenderer)
 {
-	assert(renderer != NULL);
-	return renderer->onDraw;
+	assert(graphicsRenderer != NULL);
+	return graphicsRenderer->onDraw;
 }
 
 GraphicsRenderSorting getGraphicsRendererSorting(
-	GraphicsRenderer renderer)
+	GraphicsRenderer graphicsRenderer)
 {
-	assert(renderer != NULL);
-	return renderer->sorting;
+	assert(graphicsRenderer != NULL);
+	return graphicsRenderer->sorting;
 }
 void setGraphicsRendererSorting(
-	GraphicsRenderer renderer,
+	GraphicsRenderer graphicsRenderer,
 	GraphicsRenderSorting sorting)
 {
-	assert(renderer != NULL);
+	assert(graphicsRenderer != NULL);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
-	renderer->sorting = sorting;
+	graphicsRenderer->sorting = sorting;
 }
 
 bool getGraphicsRendererUseCulling(
-	GraphicsRenderer renderer)
+	GraphicsRenderer graphicsRenderer)
 {
-	assert(renderer != NULL);
-	return renderer->useCulling;
+	assert(graphicsRenderer != NULL);
+	return graphicsRenderer->useCulling;
 }
 void setGraphicsRendererUseCulling(
-	GraphicsRenderer renderer,
+	GraphicsRenderer graphicsRenderer,
 	bool useCulling)
 {
-	assert(renderer != NULL);
-	renderer->useCulling = useCulling;
+	assert(graphicsRenderer != NULL);
+	graphicsRenderer->useCulling = useCulling;
 }
 
 void enumerateGraphicsRenderer(
-	GraphicsRenderer renderer,
+	GraphicsRenderer graphicsRenderer,
 	void(*onItem)(GraphicsRender))
 {
-	assert(renderer != NULL);
+	assert(graphicsRenderer != NULL);
 	assert(onItem != NULL);
 
-	for (size_t i = 0; i < renderer->renderCount; i++)
-		onItem(renderer->renders[i]);
+	for (size_t i = 0; i < graphicsRenderer->renderCount; i++)
+		onItem(graphicsRenderer->renders[i]);
 }
 
 static int ascendingRenderCompare(
 	const void* a,
 	const void* b)
 {
+	// NOTE: a and b should not be NULL!
+	// Skipping assertions for debug build speed.
+
 	const GraphicsRenderElement* data =
 		(GraphicsRenderElement*)a;
 
@@ -196,6 +200,9 @@ static int descendingRenderCompare(
 	const void* a,
 	const void* b)
 {
+	// NOTE: a and b should not be NULL!
+	// Skipping assertions for debug build speed.
+
 	const GraphicsRenderElement* data =
 		(GraphicsRenderElement*)a;
 

@@ -36,6 +36,11 @@ static size_t onDraw(
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
+	assert(graphicsRender != NULL);
+	assert(graphicsPipeline != NULL);
+	assert(model != NULL);
+	assert(viewProj != NULL);
+
 	Handle handle = getGraphicsRenderHandle(
 		graphicsRender);
 	Mat4F mvp = dotMat4F(
@@ -85,19 +90,17 @@ GraphicsRender createTextRender(
 	assert(transform != NULL);
 	assert(text != NULL);
 
-	assert(getFramebufferWindow(
-		getGraphicsPipelineFramebuffer(
+	assert(getGraphicsPipelineWindow(
 		getGraphicsRendererPipeline(
-		textRenderer))) ==
-		getFramebufferWindow(
-		getGraphicsPipelineFramebuffer(
-		getTextPipeline(text))));
+		textRenderer)) ==
+		getGraphicsPipelineWindow(
+		getTextPipeline(text)));
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		textRenderer)),
 		TEXT_PIPELINE_NAME) == 0);
 
-	Handle handle = malloc(sizeof(Handle_T));
+	Handle handle = malloc(1, sizeof(Handle_T));
 
 	if (handle == NULL)
 		return NULL;
@@ -114,7 +117,7 @@ GraphicsRender createTextRender(
 
 	if (render == NULL)
 	{
-		free(handle);
+		onDestroy(handle);
 		return NULL;
 	}
 

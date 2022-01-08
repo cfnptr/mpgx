@@ -76,6 +76,8 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
 	void* userData)
 {
+	assert(callbackData != NULL);
+
 #if __APPLE__
 	if (callbackData->messageIdNumber == 0x6bbb14 ||
 		callbackData->messageIdNumber == 0xf467460 ||
@@ -111,6 +113,10 @@ inline static MpgxResult checkVkInstanceLayers(
 	bool* isLayerSupported,
 	uint32_t layerCount)
 {
+	assert(layers != NULL);
+	assert(isLayerSupported != NULL);
+	assert(layerCount != 0);
+
 	uint32_t layerPropertyCount;
 
 	VkResult vkResult = vkEnumerateInstanceLayerProperties(
@@ -174,6 +180,10 @@ inline static MpgxResult checkVkInstanceExtensions(
 	bool* isExtensionSupported,
 	uint32_t extensionCount)
 {
+	assert(extensions != NULL);
+	assert(isExtensionSupported != NULL);
+	assert(extensionCount != 0);
+
 	uint32_t extensionPropertyCount;
 
 	VkResult vkResult = vkEnumerateInstanceExtensionProperties(
@@ -247,6 +257,13 @@ inline static MpgxResult createVkInstance(
 	uint32_t extensionCount,
 	VkInstance* instance)
 {
+	assert(appName != NULL);
+	assert(layers != NULL);
+	assert(layerCount != 0);
+	assert(extensions != NULL);
+	assert(extensionCount != 0);
+	assert(instance != NULL);
+
 	uint32_t appVersion = VK_MAKE_API_VERSION(0,
 		appVersionMajor,
 		appVersionMinor,
@@ -316,9 +333,8 @@ inline static MpgxResult createVkInstance(
 			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
 		else if (vkResult == VK_ERROR_INITIALIZATION_FAILED)
 			return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_LAYER_NOT_PRESENT)
-			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_EXTENSION_NOT_PRESENT)
+		else if (vkResult == VK_ERROR_LAYER_NOT_PRESENT ||
+			vkResult == VK_ERROR_EXTENSION_NOT_PRESENT)
 			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 		else
 			return UNKNOWN_ERROR_MPGX_RESULT;
@@ -332,6 +348,9 @@ inline static MpgxResult createVkDebugUtilsMessenger(
 	VkInstance instance,
 	VkDebugUtilsMessengerEXT* debugUtilsMessenger)
 {
+	assert(instance != NULL);
+	assert(debugUtilsMessenger != NULL);
+
 	VkDebugUtilsMessengerCreateInfoEXT createInfo = {
 		VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 		NULL,
@@ -375,6 +394,9 @@ inline static void destroyVkDebugUtilsMessenger(
 	VkInstance instance,
 	VkDebugUtilsMessengerEXT debugUtilsMessenger)
 {
+	assert(instance != NULL);
+	assert(debugUtilsMessenger != NULL);
+
 	if (debugUtilsMessenger == NULL)
 		return;
 
@@ -396,6 +418,10 @@ inline static MpgxResult getBestVkPhysicalDevice(
 	bool* isIntegrated,
 	VkPhysicalDevice* physicalDevice)
 {
+	assert(instance != NULL);
+	assert(isIntegrated != NULL);
+	assert(physicalDevice != NULL);
+
 	uint32_t deviceCount;
 
 	VkResult vkResult = vkEnumeratePhysicalDevices(
@@ -501,6 +527,12 @@ inline static MpgxResult getVkQueueFamilyIndices(
 	uint32_t* presentQueueFamilyIndex,
 	uint32_t* computeQueueFamilyIndex)
 {
+	assert(physicalDevice != NULL);
+	assert(surface != NULL);
+	assert(graphicsQueueFamilyIndex != NULL);
+	assert(presentQueueFamilyIndex != NULL);
+	assert(computeQueueFamilyIndex != NULL);
+
 	uint32_t propertyCount;
 
 	vkGetPhysicalDeviceQueueFamilyProperties(
@@ -592,6 +624,11 @@ inline static MpgxResult checkVkDeviceExtensions(
 	bool* isExtensionSupported,
 	uint32_t extensionCount)
 {
+	assert(physicalDevice != NULL);
+	assert(extensions != NULL);
+	assert(isExtensionSupported != NULL);
+	assert(extensionCount != 0);
+
 	uint32_t propertyCount;
 
 	VkResult vkResult = vkEnumerateDeviceExtensionProperties(
@@ -667,6 +704,11 @@ inline static MpgxResult createVkDevice(
 	uint32_t extensionCount,
 	VkDevice* device)
 {
+	assert(physicalDevice != NULL);
+	assert(extensions != NULL);
+	assert(extensionCount != 0);
+	assert(device != NULL);
+
 	float priority = 1.0f;
 
 	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = {
@@ -781,6 +823,11 @@ inline static MpgxResult createVmaAllocator(
 	bool hasDeviceAddressExt,
 	VmaAllocator* vmaAllocator)
 {
+	assert(physicalDevice != NULL);
+	assert(device != NULL);
+	assert(instance != NULL);
+	assert(vmaAllocator != NULL);
+
 	VmaAllocatorCreateInfo createInfo;
 
 	memset(&createInfo,
@@ -823,6 +870,9 @@ inline static MpgxResult createVkCommandPool(
 	uint32_t queueFamilyIndex,
 	VkCommandPool* commandPool)
 {
+	assert(device != NULL);
+	assert(commandPool != NULL);
+
 	VkCommandPoolCreateInfo createInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		NULL,
@@ -856,6 +906,10 @@ inline static MpgxResult allocateVkCommandBuffer(
 	VkCommandPool commandPool,
 	VkCommandBuffer* commandBuffer)
 {
+	assert(device != NULL);
+	assert(commandPool != NULL);
+	assert(commandBuffer != NULL);
+
 	VkCommandBufferAllocateInfo allocateInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		NULL,
@@ -889,6 +943,8 @@ inline static void destroyVkWindow(
 	VkInstance instance,
 	VkWindow window)
 {
+	assert(instance != NULL);
+
 	if (window == NULL)
 		return;
 
@@ -1018,6 +1074,12 @@ inline static MpgxResult createVkWindow(
 	Vec2U framebufferSize,
 	VkWindow* vkWindow)
 {
+	assert(instance != NULL);
+	assert(handle != NULL);
+	assert(framebufferSize.x > 0);
+	assert(framebufferSize.y > 0);
+	assert(vkWindow != NULL);
+
 	VkWindow window = calloc(1, sizeof(VkWindow_T));
 
 	if (window == NULL)

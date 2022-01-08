@@ -96,6 +96,14 @@ inline static MpgxResult createVkRayTracingPipelineHandle(
 	size_t closestHitShaderCount,
 	VkPipeline* handle)
 {
+	assert(device != NULL);
+	assert(cache != NULL);
+	assert(layout != NULL);
+	assert(rayTracing != NULL);
+	assert(handle != NULL);
+
+	// TODO: assert shader arrays
+
 	size_t shaderCount =
 		generationShaderCount +
 		missShaderCount +
@@ -243,6 +251,16 @@ inline static MpgxResult createVkSbt(
 	VmaAllocation* closestHitSbtAllocation,
 	VkDeviceAddress* closestHitSbtAddress)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(rayTracing != NULL);
+	assert(pipeline != NULL);
+	assert(generationSbtBuffer != NULL);
+	assert(generationSbtAllocation != NULL);
+	assert(generationSbtAddress != NULL);
+
+	// TODO: assert shaders
+
 	uint32_t handleSize = rayTracing->vk.
 		rayTracingPipelineProperties.shaderGroupHandleSize;
 	uint32_t handleAlignment = rayTracing->vk.
@@ -476,6 +494,9 @@ inline static void destroyVkRayTracingPipeline(
 	RayTracingPipeline rayTracingPipeline,
 	bool destroyShaders)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+
 	if (rayTracingPipeline == NULL)
 		return;
 
@@ -548,6 +569,17 @@ inline static MpgxResult createVkRayTracingPipeline(
 	size_t closestHitShaderCount,
 	RayTracingPipeline* rayTracingPipeline)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(createData != NULL);
+	assert(rayTracing != NULL);
+	assert(name != NULL);
+	assert(window != NULL);
+	assert(onDestroy != NULL);
+	assert(rayTracingPipeline != NULL);
+
+	// TODO: assert shaders
+
 	RayTracingPipeline rayTracingPipelineInstance = calloc(1,
 		sizeof(RayTracingPipeline_T));
 
@@ -772,6 +804,9 @@ inline static void bindVkRayTracingPipeline(
 	VkCommandBuffer commandBuffer,
 	RayTracingPipeline rayTracingPipeline)
 {
+	assert(commandBuffer != NULL);
+	assert(rayTracingPipeline != NULL);
+
 	vkCmdBindPipeline(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
@@ -785,6 +820,10 @@ inline static void traceVkPipelineRays(
 	RayTracing rayTracing,
 	RayTracingPipeline rayTracingPipeline)
 {
+	assert(commandBuffer != NULL);
+	assert(rayTracing != NULL);
+	assert(rayTracingPipeline != NULL);
+
 	uint32_t handleSize = rayTracing->vk.
 		rayTracingPipelineProperties.shaderGroupHandleSize;
 	uint32_t handleAlignment = rayTracing->vk.

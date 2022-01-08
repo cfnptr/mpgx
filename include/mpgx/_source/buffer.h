@@ -81,6 +81,16 @@ inline static MpgxResult mapVkBuffer(
 	size_t offset,
 	void** map)
 {
+	assert(allocator != NULL);
+	assert(allocation != NULL);
+	assert(usage < BUFFER_USAGE_COUNT);
+	assert(size != 0);
+	assert(map != NULL);
+
+	assert(usage == CPU_ONLY_BUFFER_USAGE ||
+		usage == CPU_TO_GPU_BUFFER_USAGE ||
+		usage == GPU_TO_CPU_BUFFER_USAGE);
+
 	void* mappedData;
 
 	VkResult vkResult = vmaMapMemory(
@@ -133,6 +143,11 @@ inline static MpgxResult unmapVkBuffer(
 	size_t size,
 	size_t offset)
 {
+	assert(allocator != NULL);
+	assert(allocation != NULL);
+	assert(usage < BUFFER_USAGE_COUNT);
+	assert(size != 0);
+
 	if (usage == CPU_ONLY_BUFFER_USAGE ||
 		usage == CPU_TO_GPU_BUFFER_USAGE)
 	{
@@ -170,6 +185,11 @@ inline static MpgxResult setVkBufferData(
 	size_t size,
 	size_t offset)
 {
+	assert(allocator != NULL);
+	assert(allocation != NULL);
+	assert(data != NULL);
+	assert(size != 0);
+
 	void* mappedData;
 
 	VkResult vkResult = vmaMapMemory(
@@ -219,6 +239,8 @@ inline static void destroyVkBuffer(
 	VmaAllocator allocator,
 	Buffer buffer)
 {
+	assert(allocator != NULL);
+
 	vmaDestroyBuffer(
 		allocator,
 		buffer->vk.handle,
@@ -244,6 +266,23 @@ inline static MpgxResult createVkBuffer(
 	bool useRayTracing,
 	Buffer* buffer)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(transferQueue != NULL);
+	assert(transferCommandBuffer != NULL);
+	assert(transferFence != NULL);
+	assert(stagingBuffer != NULL);
+	assert(stagingAllocation != NULL);
+	assert(stagingSize != NULL);
+	assert(window != NULL);
+	assert(type < BUFFER_TYPE_COUNT);
+	assert(usage < BUFFER_USAGE_COUNT);
+	assert(size != 0);
+	assert(buffer != NULL);
+
+	assert((usage != GPU_TO_CPU_BUFFER_USAGE) ||
+		(usage == GPU_TO_CPU_BUFFER_USAGE && data == NULL));
+
 	Buffer bufferInstance = calloc(1, sizeof(Buffer_T));
 
 	if (bufferInstance == NULL)
@@ -497,6 +536,15 @@ inline static MpgxResult mapGlBuffer(
 	size_t offset,
 	void** map)
 {
+	assert(handle != GL_ZERO);
+	assert(usage < BUFFER_TYPE_COUNT);
+	assert(size != 0);
+	assert(map != NULL);
+
+	assert(usage == CPU_ONLY_BUFFER_USAGE ||
+		usage == CPU_TO_GPU_BUFFER_USAGE ||
+		usage == GPU_TO_CPU_BUFFER_USAGE);
+
 	glBindBuffer(
 		type,
 		handle);
@@ -529,6 +577,8 @@ inline static MpgxResult unmapGlBuffer(
 	GLenum type,
 	GLuint handle)
 {
+	assert(handle != GL_ZERO);
+
 	glBindBuffer(
 		type,
 		handle);
@@ -544,14 +594,18 @@ inline static MpgxResult unmapGlBuffer(
 
 inline static MpgxResult setGlBufferData(
 	GLenum type,
-	GLuint buffer,
+	GLuint handle,
 	const void* data,
 	size_t size,
 	size_t offset)
 {
+	assert(handle != GL_ZERO);
+	assert(data != NULL);
+	assert(size != 0);
+
 	glBindBuffer(
 		type,
-		buffer);
+		handle);
 	glBufferSubData(
 		type,
 		(GLintptr)offset,
@@ -591,6 +645,15 @@ inline static MpgxResult createGlBuffer(
 	size_t size,
 	Buffer* buffer)
 {
+	assert(window != NULL);
+	assert(type < BUFFER_TYPE_COUNT);
+	assert(usage < BUFFER_USAGE_COUNT);
+	assert(size != 0);
+	assert(buffer != NULL);
+
+	assert((usage != GPU_TO_CPU_BUFFER_USAGE) ||
+		(usage == GPU_TO_CPU_BUFFER_USAGE && data == NULL));
+
 	Buffer bufferInstance = calloc(1, sizeof(Buffer_T));
 
 	if (bufferInstance == NULL)

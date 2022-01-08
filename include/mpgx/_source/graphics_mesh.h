@@ -69,6 +69,10 @@ inline static MpgxResult createVkGraphicsMesh(
 	Buffer indexBuffer,
 	GraphicsMesh* graphicsMesh)
 {
+	assert(window != NULL);
+	assert(indexType < INDEX_TYPE_COUNT);
+	assert(graphicsMesh != NULL);
+
 	GraphicsMesh graphicsMeshInstance = calloc(1,
 		sizeof(GraphicsMesh_T));
 
@@ -104,6 +108,9 @@ inline static void drawVkGraphicsMesh(
 	VkCommandBuffer commandBuffer,
 	GraphicsMesh graphicsMesh)
 {
+	assert(commandBuffer != NULL);
+	assert(graphicsMesh != NULL);
+
 	IndexType indexType = graphicsMesh->vk.indexType;
 
 	VkIndexType vkDrawIndex;
@@ -181,6 +188,10 @@ inline static MpgxResult createGlGraphicsMesh(
 	Buffer indexBuffer,
 	GraphicsMesh* graphicsMesh)
 {
+	assert(window != NULL);
+	assert(indexType < INDEX_TYPE_COUNT);
+	assert(graphicsMesh != NULL);
+
 	GraphicsMesh graphicsMeshInstance = calloc(1,
 		sizeof(GraphicsMesh_T));
 
@@ -222,6 +233,9 @@ inline static void drawGlGraphicsMesh(
 	GraphicsPipeline graphicsPipeline,
 	GraphicsMesh graphicsMesh)
 {
+	assert(graphicsPipeline != NULL);
+	assert(graphicsMesh != NULL);
+
 	glBindVertexArray(
 		graphicsMesh->gl.handle);
 	glBindBuffer(

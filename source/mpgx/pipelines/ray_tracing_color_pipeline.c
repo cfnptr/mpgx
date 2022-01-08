@@ -19,6 +19,9 @@
 
 #include <string.h>
 
+// TODO: record command buffer
+// and then submit it each frame
+
 typedef struct RayGenPushConstants
 {
 	Mat4F invView;
@@ -67,6 +70,9 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 	VkDevice device,
 	VkDescriptorPool* descriptorPool)
 {
+	assert(device != NULL);
+	assert(descriptorPool != NULL);
+
 	VkDescriptorPoolSize descriptorPoolSizes[2] = {
 		{
 			VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
@@ -101,6 +107,13 @@ inline static MpgxResult createVkDescriptorSetInstance(
 	VkImageView storageImageView,
 	VkDescriptorSet* descriptorSet)
 {
+	assert(device != NULL);
+	assert(descriptorSetLayout != NULL);
+	assert(descriptorPool != NULL);
+	assert(tlas != NULL);
+	assert(storageImageView != NULL);
+	assert(descriptorSet != NULL);
+
 	VkDescriptorSet descriptorSetInstance;
 
 	MpgxResult mpgxResult = allocateVkDescriptorSet(
@@ -168,6 +181,8 @@ inline static MpgxResult createVkDescriptorSetInstance(
 
 static void onVkBind(RayTracingPipeline rayTracingPipeline)
 {
+	assert(rayTracingPipeline != NULL);
+
 	Handle handle = rayTracingPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
@@ -338,6 +353,10 @@ static void onVkBind(RayTracingPipeline rayTracingPipeline)
 static void onVkDestroy(void* _handle)
 {
 	Handle handle = _handle;
+
+	if (handle == NULL)
+		return;
+
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkDevice device = vkWindow->device;
 
@@ -365,6 +384,13 @@ inline static MpgxResult createVkPipeline(
 	size_t closestHitShaderCount,
 	RayTracingPipeline* rayTracingPipeline)
 {
+	assert(window != NULL);
+	assert(tlas != NULL);
+	assert(storageImageView != NULL);
+	assert(handle != NULL);
+	assert(rayTracingPipeline != NULL);
+	// TODO: assert shaders
+
 	VkWindow vkWindow = getVkWindow(window);
 	VkDevice device = vkWindow->device;
 
@@ -479,8 +505,9 @@ MpgxResult createRayTracingColorPipeline(
 	assert(window != NULL);
 	assert(generationShader != NULL);
 	assert(missShader != NULL);
-	assert(missShader != NULL);
+	assert(closestHitShader != NULL);
 	assert(scene != NULL);
+	assert(rayTracingColorPipeline != NULL);
 	assert(generationShader->base.type == RAY_GENERATION_SHADER_TYPE);
 	assert(missShader->base.type == RAY_MISS_SHADER_TYPE);
 	assert(closestHitShader->base.type == RAY_CLOSEST_HIT_SHADER_TYPE);

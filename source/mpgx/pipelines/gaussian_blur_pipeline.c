@@ -104,6 +104,10 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 	uint32_t bufferCount,
 	VkDescriptorPool* descriptorPool)
 {
+	assert(device != NULL);
+	assert(bufferCount != 0);
+	assert(descriptorPool != NULL);
+
 	VkDescriptorPoolSize descriptorPoolSizes[1] = {
 		{
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -135,6 +139,14 @@ inline static MpgxResult createVkDescriptorSetArray(
 	VkSampler sampler,
 	VkDescriptorSet** descriptorSets)
 {
+	assert(device != NULL);
+	assert(descriptorSetLayout != NULL);
+	assert(descriptorPool != NULL);
+	assert(bufferCount != 0);
+	assert(bufferImageView != NULL);
+	assert(sampler != NULL);
+	assert(descriptorSets != NULL);
+
 	VkDescriptorSet* descriptorSetArray;
 
 	MpgxResult mpgxResult = allocateVkDescriptorSets(
@@ -186,6 +198,8 @@ inline static MpgxResult createVkDescriptorSetArray(
 
 static void onVkBind(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	uint32_t bufferIndex = vkWindow->bufferIndex;
@@ -202,6 +216,8 @@ static void onVkBind(GraphicsPipeline graphicsPipeline)
 }
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 
@@ -218,6 +234,11 @@ static MpgxResult onVkResize(
 	Vec2U newSize,
 	void* createData)
 {
+	assert(graphicsPipeline != NULL);
+	assert(newSize.x > 0);
+	assert(newSize.y > 0);
+	assert(createData != NULL);
+
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
@@ -298,6 +319,10 @@ static MpgxResult onVkResize(
 static void onVkDestroy(void* _handle)
 {
 	Handle handle = _handle;
+
+	if (handle == NULL)
+		return;
+
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkDevice device = vkWindow->device;
 
@@ -322,6 +347,15 @@ inline static MpgxResult createVkPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
+	assert(framebuffer != NULL);
+	assert(imageView != NULL);
+	assert(sampler != NULL);
+	assert(state != NULL);
+	assert(handle != NULL);
+	assert(shaders != NULL);
+	assert(shaderCount != 0);
+	assert(graphicsPipeline != NULL);
+
 	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
 
@@ -429,6 +463,8 @@ inline static MpgxResult createVkPipeline(
 #if MPGX_SUPPORT_OPENGL
 static void onGlBind(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->gl.handle;
 
 	glUniform1i(
@@ -448,6 +484,8 @@ static void onGlBind(GraphicsPipeline graphicsPipeline)
 }
 static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->gl.handle;
 
 	glUniform1iv(
@@ -484,6 +522,11 @@ static MpgxResult onGlResize(
 	Vec2U newSize,
 	void* createInfo)
 {
+	assert(graphicsPipeline != NULL);
+	assert(newSize.x > 0);
+	assert(newSize.y > 0);
+	assert(createInfo == NULL);
+
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
@@ -510,6 +553,13 @@ inline static MpgxResult createGlPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
+	assert(framebuffer != NULL);
+	assert(state != NULL);
+	assert(handle != NULL);
+	assert(shaders != NULL);
+	assert(shaderCount != 0);
+	assert(graphicsPipeline != NULL);
+
 	GraphicsPipeline graphicsPipelineInstance;
 
 	MpgxResult mpgxResult = createGraphicsPipeline(
@@ -592,6 +642,8 @@ MpgxResult createGaussianBlurPipelineExt(
 	assert(fragmentShader != NULL);
 	assert(buffer != NULL);
 	assert(sampler != NULL);
+	assert(state != NULL);
+	assert(gaussianBlurPipeline != NULL);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -663,6 +715,11 @@ MpgxResult createGaussianBlurPipeline(
 	GraphicsPipeline* gaussianBlurPipeline)
 {
 	assert(framebuffer != NULL);
+	assert(vertexShader != NULL);
+	assert(fragmentShader != NULL);
+	assert(buffer != NULL);
+	assert(sampler != NULL);
+	assert(gaussianBlurPipeline != NULL);
 
 	Vec2U framebufferSize =
 		framebuffer->base.size;

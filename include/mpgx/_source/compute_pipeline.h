@@ -68,6 +68,12 @@ inline static MpgxResult createVkComputePipelineHandle(
 	Shader shader,
 	VkPipeline* handle)
 {
+	assert(device != NULL);
+	assert(cache != NULL);
+	assert(layout != NULL);
+	assert(shader != NULL);
+	assert(handle != NULL);
+
 	VkPipelineShaderStageCreateInfo shaderStageCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		NULL,
@@ -119,6 +125,8 @@ inline static void destroyVkComputePipeline(
 	ComputePipeline computePipeline,
 	bool _destroyShader)
 {
+	assert(device != NULL);
+
 	if (computePipeline == NULL)
 		return;
 
@@ -151,6 +159,14 @@ inline static MpgxResult createVkComputePipeline(
 	Shader shader,
 	ComputePipeline* computePipeline)
 {
+	assert(device != NULL);
+	assert(createData != NULL);
+	assert(window != NULL);
+	assert(name != NULL);
+	assert(onDestroy != NULL);
+	assert(shader != NULL);
+	assert(computePipeline != NULL);
+
 	ComputePipeline computePipelineInstance = calloc(1,
 		sizeof(ComputePipeline_T));
 
@@ -262,6 +278,9 @@ inline static void bindVkComputePipeline(
 	VkCommandBuffer commandBuffer,
 	ComputePipeline computePipeline)
 {
+	assert(commandBuffer != NULL);
+	assert(computePipeline != NULL);
+
 	vkCmdBindPipeline(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -277,6 +296,12 @@ inline static void dispatchVkComputePipeline(
 	uint32_t groupCountY,
 	uint32_t groupCountZ)
 {
+	assert(commandBuffer != NULL);
+	
+	assert(groupCountX != 0 ||
+		groupCountY != 0 ||
+		groupCountZ != 0);
+
 	vkCmdDispatch(
 		commandBuffer,
 		groupCountX,

@@ -104,6 +104,8 @@ static void glfwErrorCallback(
 	int error,
 	const char* description)
 {
+	assert(description != NULL);
+
 	fprintf(stdout,
 		"GLFW ERROR: %d, %s\n",
 		error,
@@ -306,6 +308,8 @@ static void onWindowChar(
 	GLFWwindow* handle,
 	unsigned int codepoint)
 {
+	assert(handle != NULL);
+
 	Window window = glfwGetWindowUserPointer(handle);
 
 	size_t length = window->inputLength;
@@ -890,13 +894,19 @@ MpgxResult createWindow(
 MpgxResult createAnyWindow(
 	Vec2U size,
 	const char* title,
-	OnWindowUpdate updateFunction,
+	OnWindowUpdate onUpdate,
 	void* updateArgument,
 	bool useStencilBuffer,
 	bool useRayTracing,
-	bool visible,
+	bool isVisible,
 	Window* window)
 {
+	assert(size.x != 0);
+	assert(size.y != 0);
+	assert(title != NULL);
+	assert(onUpdate != NULL);
+	assert(window != NULL);
+
 	MpgxResult mpgxResult;
 
 #if MPGX_SUPPORT_VULKAN
@@ -904,11 +914,11 @@ MpgxResult createAnyWindow(
 		VULKAN_GRAPHICS_API,
 		size,
 		title,
-		updateFunction,
+		onUpdate,
 		updateArgument,
 		useStencilBuffer,
 		useRayTracing,
-		visible,
+		isVisible,
 		window);
 
 	if (mpgxResult == SUCCESS_MPGX_RESULT)
@@ -920,11 +930,11 @@ MpgxResult createAnyWindow(
 		OPENGL_GRAPHICS_API,
 		size,
 		title,
-		updateFunction,
+		onUpdate,
 		updateArgument,
 		useStencilBuffer,
 		useRayTracing,
-		visible,
+		isVisible,
 		window);
 
 	if (mpgxResult == SUCCESS_MPGX_RESULT)
@@ -934,11 +944,11 @@ MpgxResult createAnyWindow(
 		OPENGL_ES_GRAPHICS_API,
 		size,
 		title,
-		updateFunction,
+		onUpdate,
 		updateArgument,
 		useStencilBuffer,
 		useRayTracing,
-		visible,
+		isVisible,
 		window);
 #endif
 
@@ -1408,6 +1418,12 @@ static MpgxResult onVkResize(
 	Framebuffer framebuffer,
 	Vec2U newSize)
 {
+	assert(device != NULL);
+	assert(swapchain != NULL);
+	assert(framebuffer != NULL);
+	assert(newSize.x > 0);
+	assert(newSize.y > 0);
+
 	VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
 	framebuffer->vk.size = newSize;
 	framebuffer->vk.renderPass = swapchain->renderPass;
@@ -1440,7 +1456,7 @@ static MpgxResult onVkResize(
 			return mpgxResult;
 	}
 
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
 #endif
 
@@ -1910,10 +1926,10 @@ MpgxResult createBuffer(
 	assert(usage < BUFFER_USAGE_COUNT);
 	assert(size != 0);
 	assert(buffer != NULL);
-	assert(window->isRecording == false);
 
 	assert((usage != GPU_TO_CPU_BUFFER_USAGE) ||
 		(usage == GPU_TO_CPU_BUFFER_USAGE && data == NULL));
+	assert(window->isRecording == false);
 
 	GraphicsAPI api = window->api;
 
@@ -2110,13 +2126,13 @@ MpgxResult mapBuffer(
 {
 	assert(buffer != NULL);
 	assert(map != NULL);
+
+	assert((size == 0 && offset == 0) ||
+		(size != 0 && size + offset <= buffer->base.size));
 	assert(buffer->base.usage == CPU_ONLY_BUFFER_USAGE ||
 		buffer->base.usage == CPU_TO_GPU_BUFFER_USAGE ||
 		buffer->base.usage == GPU_TO_CPU_BUFFER_USAGE);
 	assert(buffer->base.isMapped == false);
-
-	assert((size == 0 && offset == 0) ||
-		(size != 0 && size + offset <= buffer->base.size));
 
 	size_t mapSize = size != 0 ? size : buffer->base.size;
 
@@ -2512,7 +2528,10 @@ MpgxResult createImageFromFile(
 	bool isConstant,
 	Image* image)
 {
+	assert(window != NULL);
+	assert(format < IMAGE_FORMAT_COUNT);
 	assert(filePath != NULL);
+	assert(image != NULL);
 
 	assert(format == R8G8B8A8_UNORM_IMAGE_FORMAT ||
 		format == R8G8B8A8_SRGB_IMAGE_FORMAT);
@@ -2561,8 +2580,11 @@ MpgxResult createImageFromData(
 	bool isConstant,
 	Image* image)
 {
+	assert(window != NULL);
+	assert(format < IMAGE_FORMAT_COUNT);
 	assert(data != NULL);
 	assert(size != 0);
+	assert(image != NULL);
 
 	assert(format == R8G8B8A8_UNORM_IMAGE_FORMAT ||
 		format == R8G8B8A8_SRGB_IMAGE_FORMAT);
@@ -2671,6 +2693,7 @@ MpgxResult setImageData(
 	Vec3U offset)
 {
 	assert(image != NULL);
+	assert(data != NULL);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
@@ -2696,9 +2719,7 @@ MpgxResult setImageData(
 			vkWindow->transferFence,
 			image->vk.stagingBuffer,
 			image->vk.stagingAllocation,
-			image->vk.handle,
-			image->vk.vkAspect,
-			image->vk.sizeMultiplier,
+			image,
 			data,
 			size,
 			offset);
@@ -3162,7 +3183,9 @@ MpgxResult createShaderFromFile(
 	Shader* shader)
 {
 	assert(window != NULL);
+	assert(type < SHADER_TYPE_COUNT);
 	assert(filePath != NULL);
+	assert(shader != NULL);
 
 	FILE* file = openFile(
 		filePath,
@@ -4421,6 +4444,12 @@ size_t getGraphicsPipelineShaderCount(
 {
 	assert(graphicsPipeline != NULL);
 	return graphicsPipeline->base.shaderCount;
+}
+Window getGraphicsPipelineWindow(
+	GraphicsPipeline graphicsPipeline)
+{
+	assert(graphicsPipeline != NULL);
+	return graphicsPipeline->base.framebuffer->base.window;
 }
 
 void bindGraphicsPipeline(GraphicsPipeline graphicsPipeline)

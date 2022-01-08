@@ -45,6 +45,10 @@ inline static void destroyVkRayTracingScene(
 	RayTracing rayTracing,
 	RayTracingScene rayTracingScene)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(rayTracing != NULL);
+
 	if (rayTracingScene == NULL)
 		return;
 
@@ -71,6 +75,17 @@ inline static MpgxResult createVkRayTracingScene(
 	size_t meshCount,
 	RayTracingScene* rayTracingScene)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(transferQueue != NULL);
+	assert(transferCommandBuffer != NULL);
+	assert(transferFence != NULL);
+	assert(rayTracing != NULL);
+	assert(window != NULL);
+	assert(meshes != NULL);
+	assert(meshCount != 0);
+	assert(rayTracingScene != NULL);
+
 	RayTracingScene rayTracingSceneInstance = calloc(1,
 		sizeof(RayTracingScene_T));
 

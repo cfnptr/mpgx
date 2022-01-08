@@ -59,6 +59,9 @@ MpgxResult createSimpleShadowSampler(
 	Window window,
 	Sampler* simpleShadowSampler)
 {
+	assert(window != NULL);
+	assert(simpleShadowSampler != NULL);
+
 	return createSampler(
 		window,
 		LINEAR_IMAGE_FILTER,
@@ -101,6 +104,8 @@ static const VkPushConstantRange pushConstantRanges[1] = {
 
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 
@@ -117,6 +122,11 @@ static MpgxResult onVkResize(
 	Vec2U newSize,
 	void* createData)
 {
+	assert(graphicsPipeline != NULL);
+	assert(newSize.x > 0);
+	assert(newSize.y > 0);
+	assert(createData != NULL);
+
 	VkGraphicsPipelineCreateData _createData = {
 		1,
 		vertexInputBindingDescriptions,
@@ -143,6 +153,13 @@ inline static MpgxResult createVkPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
+	assert(framebuffer != NULL);
+	assert(state != NULL);
+	assert(handle != NULL);
+	assert(shaders != NULL);
+	assert(shaderCount != 0);
+	assert(graphicsPipeline != NULL);
+
 	VkGraphicsPipelineCreateData createData = {
 		1,
 		vertexInputBindingDescriptions,
@@ -185,6 +202,8 @@ inline static MpgxResult createVkPipeline(
 static void onGlUniformsSet(
 	GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->gl.handle;
 
 	glUniformMatrix4fv(
@@ -210,6 +229,10 @@ static MpgxResult onGlResize(
 	Vec2U newSize,
 	void* createData)
 {
+	assert(graphicsPipeline != NULL);
+	assert(newSize.x > 0);
+	assert(newSize.y > 0);
+	assert(createData == NULL);
 	return SUCCESS_MPGX_RESULT;
 }
 static void onGlDestroy(void* handle)
@@ -224,6 +247,13 @@ inline static MpgxResult createGlPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
+	assert(framebuffer != NULL);
+	assert(state != NULL);
+	assert(handle != NULL);
+	assert(shaders != NULL);
+	assert(shaderCount != 0);
+	assert(graphicsPipeline != NULL);
+
 	GraphicsPipeline graphicsPipelineInstance;
 
 	MpgxResult mpgxResult = createGraphicsPipeline(
@@ -282,6 +312,8 @@ MpgxResult createSimpleShadowPipelineExt(
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
+	assert(state != NULL);
+	assert(simpleShadowPipeline != NULL);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -345,7 +377,10 @@ MpgxResult createSimpleShadowPipeline(
 	GraphicsPipeline* simpleShadowPipeline)
 {
 	assert(framebuffer != NULL);
+	assert(vertexShader != NULL);
+	assert(fragmentShader != NULL);
 	assert(shadowMapLength != 0);
+	assert(simpleShadowPipeline != NULL);
 
 	Vec4U size = vec4U(0, 0,
 		shadowMapLength,

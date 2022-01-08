@@ -37,6 +37,11 @@ static size_t onDraw(
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
+	assert(graphicsRender != NULL);
+	assert(graphicsPipeline != NULL);
+	assert(model != NULL);
+	assert(viewProj != NULL);
+
 	Handle handle = getGraphicsRenderHandle(
 		graphicsRender);
 	Mat4F mvp = dotMat4F(
@@ -93,17 +98,16 @@ GraphicsRender createTextureColorRender(
 	assert(transform != NULL);
 	assert(mesh != NULL);
 
-	assert(getFramebufferWindow(
-		getGraphicsPipelineFramebuffer(
+	assert(getGraphicsPipelineWindow(
 		getGraphicsRendererPipeline(
-		textureColorRenderer))) ==
+		textureColorRenderer)) ==
 		getGraphicsMeshWindow(mesh));
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		textureColorRenderer)),
 		TEXTURE_COLOR_PIPELINE_NAME) == 0);
 
-	Handle handle = malloc(sizeof(Handle_T));
+	Handle handle = calloc(1, sizeof(Handle_T));
 
 	if (handle == NULL)
 		return NULL;
@@ -121,7 +125,7 @@ GraphicsRender createTextureColorRender(
 
 	if (render == NULL)
 	{
-		free(handle);
+		onDestroy(handle);
 		return NULL;
 	}
 

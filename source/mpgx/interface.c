@@ -56,6 +56,7 @@ Interface createInterface(
 	size_t capacity)
 {
 	assert(window != NULL);
+	assert(scale > 0.0f);
 	assert(capacity != 0);
 
 	Interface interface = calloc(1,
@@ -105,6 +106,7 @@ void setInterfaceScale(
 	float scale)
 {
 	assert(interface != NULL);
+	assert(scale > 0.0f);
 	interface->scale = scale;
 }
 

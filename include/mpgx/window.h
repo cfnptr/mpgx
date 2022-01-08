@@ -210,8 +210,6 @@ typedef enum CursorMode
 	LOCKED_CURSOR_MODE = 0x00034003,
 } CursorMode;
 
-#define CURSOR_MODE_COUNT 3
-
 typedef enum CursorType_T
 {
 	DEFAULT_CURSOR_TYPE = 0,
@@ -878,6 +876,8 @@ void* getGraphicsPipelineHandle(
 Shader* getGraphicsPipelineShaders(
 	GraphicsPipeline graphicsPipeline);
 size_t getGraphicsPipelineShaderCount(
+	GraphicsPipeline graphicsPipeline);
+Window getGraphicsPipelineWindow(
 	GraphicsPipeline graphicsPipeline);
 
 void bindGraphicsPipeline(

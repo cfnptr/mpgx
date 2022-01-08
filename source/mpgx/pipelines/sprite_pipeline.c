@@ -94,6 +94,8 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
 	VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
@@ -119,6 +121,11 @@ static MpgxResult onVkResize(
 	Vec2U newSize,
 	void* createData)
 {
+	assert(graphicsPipeline != NULL);
+	assert(newSize.x > 0);
+	assert(newSize.y > 0);
+	assert(createData != NULL);
+
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
@@ -158,6 +165,13 @@ inline static MpgxResult createVkPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
+	assert(framebuffer != NULL);
+	assert(state != NULL);
+	assert(handle != NULL);
+	assert(shaders != NULL);
+	assert(shaderCount != 0);
+	assert(graphicsPipeline != NULL);
+
 	VkGraphicsPipelineCreateData createData = {
 		1,
 		vertexInputBindingDescriptions,
@@ -199,6 +213,8 @@ inline static MpgxResult createVkPipeline(
 #if MPGX_SUPPORT_OPENGL
 static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 {
+	assert(graphicsPipeline != NULL);
+
 	Handle handle = graphicsPipeline->gl.handle;
 
 	glUniformMatrix4fv(
@@ -228,6 +244,11 @@ static MpgxResult onGlResize(
 	Vec2U newSize,
 	void* createData)
 {
+	assert(graphicsPipeline != NULL);
+	assert(newSize.x > 0);
+	assert(newSize.y > 0);
+	assert(createData == NULL);
+
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
@@ -254,6 +275,13 @@ inline static MpgxResult createGlPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
+	assert(framebuffer != NULL);
+	assert(state != NULL);
+	assert(handle != NULL);
+	assert(shaders != NULL);
+	assert(shaderCount != 0);
+	assert(graphicsPipeline != NULL);
+
 	GraphicsPipeline graphicsPipelineInstance;
 
 	MpgxResult mpgxResult = createGraphicsPipeline(
@@ -317,6 +345,8 @@ MpgxResult createSpritePipelineExt(
 	assert(framebuffer != NULL);
 	assert(vertexShader != NULL);
 	assert(fragmentShader != NULL);
+	assert(state != NULL);
+	assert(spritePipeline != NULL);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -380,6 +410,9 @@ MpgxResult createSpritePipeline(
 	GraphicsPipeline* spritePipeline)
 {
 	assert(framebuffer != NULL);
+	assert(vertexShader != NULL);
+	assert(fragmentShader != NULL);
+	assert(spritePipeline != NULL);
 
 	Vec2U framebufferSize =
 		framebuffer->base.size;

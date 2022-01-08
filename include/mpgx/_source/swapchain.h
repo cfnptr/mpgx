@@ -45,6 +45,10 @@ inline static bool getBestVkSurfaceFormat(
 	VkSurfaceKHR surface,
 	VkSurfaceFormatKHR* surfaceFormat)
 {
+	assert(physicalDevice != NULL);
+	assert(surface != NULL);
+	assert(surfaceFormat != NULL);
+
 	uint32_t formatCount;
 
 	VkResult vkResult = vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -99,6 +103,10 @@ inline static bool getBestVkPresentMode(
 	VkSurfaceKHR surface,
 	VkPresentModeKHR* presentMode)
 {
+	assert(physicalDevice != NULL);
+	assert(surface != NULL);
+	assert(presentMode != NULL);
+
 	uint32_t modeCount;
 
 	VkResult result = vkGetPhysicalDeviceSurfacePresentModesKHR(
@@ -157,6 +165,10 @@ inline static bool getVkSurfaceCapabilities(
 	VkSurfaceKHR surface,
 	VkSurfaceCapabilitiesKHR* surfaceCapabilities)
 {
+	assert(physicalDevice != NULL);
+	assert(surface != NULL);
+	assert(surfaceCapabilities != NULL);
+
 	return vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
 		physicalDevice,
 		surface,
@@ -166,6 +178,8 @@ inline static VkExtent2D getBestVkSurfaceExtent(
 	const VkSurfaceCapabilitiesKHR* surfaceCapabilities,
 	Vec2U framebufferSize)
 {
+	assert(surfaceCapabilities != NULL);
+
 	if (surfaceCapabilities->currentExtent.width == UINT32_MAX)
 	{
 		VkExtent2D surfaceExtent = {
@@ -187,6 +201,8 @@ inline static VkExtent2D getBestVkSurfaceExtent(
 inline static uint32_t getBestVkImageCount(
 	const VkSurfaceCapabilitiesKHR* surfaceCapabilities)
 {
+	assert(surfaceCapabilities != NULL);
+
 	uint32_t imageCount = surfaceCapabilities->minImageCount + 1;
 	uint32_t maxImageCount = surfaceCapabilities->maxImageCount;
 
@@ -198,6 +214,7 @@ inline static uint32_t getBestVkImageCount(
 inline static VkSurfaceTransformFlagBitsKHR getBestVkSurfaceTransform(
 	const VkSurfaceCapabilitiesKHR* surfaceCapabilities)
 {
+	assert(surfaceCapabilities != NULL);
 	// TODO: mobile device rotation
 
 	if(surfaceCapabilities->supportedTransforms &
@@ -214,6 +231,8 @@ inline static bool getBestVkCompositeAlpha(
 	const VkSurfaceCapabilitiesKHR* surfaceCapabilities,
 	VkCompositeAlphaFlagBitsKHR* compositeAlpha)
 {
+	assert(surfaceCapabilities != NULL);
+	assert(compositeAlpha != NULL);
 	// TODO: transparent window creation
 
 	VkCompositeAlphaFlagsKHR supportedCompositeAlpha =
@@ -261,6 +280,13 @@ inline static MpgxResult createVkSwapchainHandle(
 	VkSwapchainKHR oldSwapchain,
 	VkSwapchainKHR* swapchain)
 {
+	assert(surface != NULL);
+	assert(device != NULL);
+	assert(imageCount != 0);
+	assert(extent.width > 0);
+	assert(extent.height > 0);
+	assert(swapchain != NULL);
+
 	VkSwapchainCreateInfoKHR createInfo = {
 		VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
 		NULL,
@@ -315,6 +341,9 @@ inline static bool getBestVkDepthFormat(
 	bool useStencilBuffer,
 	VkFormat* depthFormat)
 {
+	assert(physicalDevice != NULL);
+	assert(depthFormat != NULL);
+
 	VkFormatProperties properties;
 
 	if (useStencilBuffer == false)
@@ -393,6 +422,10 @@ inline static MpgxResult createVkDepthImage(
 	VkImage* depthImage,
 	VmaAllocation* depthAllocation)
 {
+	assert(allocator != NULL);
+	assert(depthImage != NULL);
+	assert(depthAllocation != NULL);
+
 	VkImageCreateInfo imageCreateInfo = {
 		VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 		NULL,
@@ -451,6 +484,10 @@ inline static MpgxResult createVkDepthImageView(
 	VkFormat format,
 	VkImageView* imageView)
 {
+	assert(device != NULL);
+	assert(image != NULL);
+	assert(imageView != NULL);
+
 	VkImageViewCreateInfo createInfo = {
 		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 		NULL,
@@ -501,6 +538,9 @@ inline static MpgxResult createVkRenderPass(
 	VkFormat depthFormat,
 	VkRenderPass* renderPass)
 {
+	assert(device != NULL);
+	assert(renderPass != NULL);
+
 	VkAttachmentDescription attachmentDescriptions[2] = {
 		{
 			0,
@@ -597,6 +637,13 @@ inline static void destroyVkSwapchainBuffers(
 	VkSwapchainBuffer* buffers,
 	uint32_t bufferCount)
 {
+	assert(device != NULL);
+	assert(graphicsCommandPool != NULL);
+	assert(presentCommandPool != NULL);
+
+	assert(bufferCount == 0 ||
+		(bufferCount != 0 && buffers != NULL));
+
 	for (uint32_t i = 0; i < bufferCount; i++)
 	{
 		VkSwapchainBuffer* buffer = &buffers[i];
@@ -649,6 +696,17 @@ inline static MpgxResult createVkSwapchainBuffers(
 	VkSwapchainBuffer** buffers,
 	uint32_t* bufferCount)
 {
+	assert(device != NULL);
+	assert(swapchain != NULL);
+	assert(renderPass != NULL);
+	assert(graphicsCommandPool != NULL);
+	assert(presentCommandPool != NULL);
+	assert(depthImageView != NULL);
+	assert(surfaceExtent.width > 0);
+	assert(surfaceExtent.height > 0);
+	assert(buffers != NULL);
+	assert(bufferCount != NULL);
+
 	uint32_t imageCount;
 
 	VkResult vkResult = vkGetSwapchainImagesKHR(
@@ -1026,6 +1084,11 @@ inline static void destroyVkSwapchain(
 	VkCommandPool presentCommandPool,
 	VkSwapchain swapchain)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(graphicsCommandPool != NULL);
+	assert(presentCommandPool != NULL);
+
 	if (swapchain == NULL)
 		return;
 
@@ -1066,6 +1129,16 @@ inline static MpgxResult createVkSwapchain(
 	Vec2U framebufferSize,
 	VkSwapchain* vkSwapchain)
 {
+	assert(surface != NULL);
+	assert(physicalDevice != NULL);
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(graphicsCommandPool != NULL);
+	assert(presentCommandPool != NULL);
+	assert(framebufferSize.x > 0);
+	assert(framebufferSize.y > 0);
+	assert(vkSwapchain != NULL);
+
 	VkSwapchain swapchain = calloc(1,
 		sizeof(VkSwapchain_T));
 
@@ -1311,6 +1384,16 @@ inline static MpgxResult resizeVkSwapchain(
 	bool useStencilBuffer,
 	Vec2U framebufferSize)
 {
+	assert(surface != NULL);
+	assert(physicalDevice != NULL);
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(graphicsCommandPool != NULL);
+	assert(presentCommandPool != NULL);
+	assert(swapchain != NULL);
+	assert(framebufferSize.x > 0);
+	assert(framebufferSize.y > 0);
+
 	VkResult vkResult = vkDeviceWaitIdle(device);
 
 	if (vkResult != VK_SUCCESS)

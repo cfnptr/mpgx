@@ -56,6 +56,12 @@ inline static MpgxResult createVkRayTracingBuffer(
 	void* data,
 	uint8_t** mappedData)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(size != 0);
+	assert(buffer != NULL);
+	assert(allocation != NULL);
+
 	VkBufferCreateInfo bufferCreateInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 		NULL,
@@ -237,6 +243,10 @@ inline static MpgxResult unmapVkRayTracingBuffer(
 	VmaAllocation allocation,
 	size_t size)
 {
+	assert(allocator != NULL);
+	assert(allocation != NULL);
+	assert(size != 0);
+
 	VkResult vkResult = vmaFlushAllocation(
 		allocator,
 		allocation,
@@ -275,6 +285,18 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 	VkAccelerationStructureKHR* accelerationStructure,
 	VkDeviceAddress* deviceAddress)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(transferQueue != NULL);
+	assert(transferCommandBuffer != NULL);
+	assert(transferFence != NULL);
+	assert(rayTracing != NULL);
+	assert(buildGeometryInfo != NULL);
+	assert(primitiveCount != 0);
+	assert(buffer != NULL);
+	assert(allocation != NULL);
+	assert(accelerationStructure != NULL);
+
 	VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo;
 	buildSizeInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 	buildSizeInfo.pNext = NULL;
@@ -471,6 +493,10 @@ inline static void destroyVkRayTracingMesh(
 	RayTracingMesh rayTracingMesh,
 	bool destroyBuffers)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(rayTracing != NULL);
+
 	if (rayTracingMesh == NULL)
 		return;
 
@@ -505,6 +531,19 @@ inline static MpgxResult createVkRayTracingMesh(
 	Buffer indexBuffer,
 	RayTracingMesh* rayTracingMesh)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(transferQueue != NULL);
+	assert(transferCommandBuffer != NULL);
+	assert(transferFence != NULL);
+	assert(rayTracing != NULL);
+	assert(window != NULL);
+	assert(vertexStride != 0);
+	assert(indexType < INDEX_TYPE_COUNT);
+	assert(vertexBuffer != NULL);
+	assert(indexBuffer != NULL);
+	assert(rayTracingMesh != NULL);
+
 	RayTracingMesh rayTracingMeshInstance = calloc(1,
 		sizeof(RayTracingMesh_T));
 

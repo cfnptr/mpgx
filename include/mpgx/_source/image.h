@@ -16,10 +16,6 @@
 #include "mpgx/_source/buffer.h"
 #include <assert.h>
 
-// TODO: handle Vulkan unsupported formats on platforms
-// VkGetPhysicalDeviceImageFormatProperties
-// https://stackoverflow.com/questions/38396578/vulkan-vkcreateimage-with-3-components
-
 typedef struct BaseImage_T
 {
 	Window window;
@@ -80,6 +76,9 @@ inline static void destroyVkImage(
 	VmaAllocator allocator,
 	Image image)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+
 	if (image == NULL)
 		return;
 
@@ -116,6 +115,25 @@ inline static MpgxResult createVkImage(
 	bool isConstant,
 	Image* image)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(transferQueue != NULL);
+	assert(transferCommandBuffer != NULL);
+	assert(transferFence != NULL);
+	assert(stagingBuffer != NULL);
+	assert(stagingAllocation != NULL);
+	assert(stagingSize != NULL);
+	assert(window != NULL);
+	assert(type < IMAGE_TYPE_COUNT);
+	assert(dimension < IMAGE_DIMENSION_COUNT);
+	assert(format < IMAGE_FORMAT_COUNT);
+	assert(data != NULL);
+	assert(size.x > 0);
+	assert(size.y > 0);
+	assert(size.z > 0);
+	assert(levelCount <= getImageLevelCount(size));
+	assert(image != NULL);
+
 	// TODO: mipmap generation, multisampling
 
 	Image imageInstance = calloc(1, sizeof(Image_T));
@@ -639,19 +657,30 @@ inline static MpgxResult setVkImageData(
 	VkFence transferFence,
 	VkBuffer stagingBuffer,
 	VmaAllocation stagingAllocation,
-	VkImage image,
-	VkImageAspectFlags aspect,
-	uint8_t sizeMultiplier,
+	Image image,
 	const void* data,
 	Vec3U size,
 	Vec3U offset)
 {
+	assert(device != NULL);
+	assert(allocator != NULL);
+	assert(transferQueue != NULL);
+	assert(transferCommandBuffer != NULL);
+	assert(transferFence != NULL);
+	assert(stagingBuffer != NULL);
+	assert(stagingAllocation != NULL);
+	assert(image != NULL);
+	assert(data != NULL);
+	assert(size.x > 0);
+	assert(size.y > 0);
+	assert(size.z > 0);
+
 	// TODO: properly add staging buffer image data offset
 	assert(offset.x == 0 && offset.y == 0 && offset.z == 0);
 
 	size_t dataSize =
 		size.x * size.y * size.z *
-		sizeMultiplier;
+		image->vk.sizeMultiplier;
 
 	MpgxResult mpgxResult = setVkBufferData(
 		allocator,
@@ -669,6 +698,9 @@ inline static MpgxResult setVkImageData(
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return mpgxResult;
 
+	VkImage handle = image->vk.handle;
+	VkImageAspectFlagBits aspect = image->vk.vkAspect;
+
 	VkImageMemoryBarrier imageMemoryBarrier = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 		NULL,
@@ -678,7 +710,7 @@ inline static MpgxResult setVkImageData(
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		VK_QUEUE_FAMILY_IGNORED,
 		VK_QUEUE_FAMILY_IGNORED,
-		image,
+		handle,
 		{
 			aspect,
 			0,
@@ -723,7 +755,7 @@ inline static MpgxResult setVkImageData(
 	vkCmdCopyBufferToImage(
 		transferCommandBuffer,
 		stagingBuffer,
-		image,
+		handle,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		1,
 		&bufferImageCopy);
@@ -786,6 +818,17 @@ inline static MpgxResult createGlImage(
 	bool isConstant,
 	Image* image)
 {
+	assert(window != NULL);
+	assert(type < IMAGE_TYPE_COUNT);
+	assert(dimension < IMAGE_DIMENSION_COUNT);
+	assert(format < IMAGE_FORMAT_COUNT);
+	assert(data != NULL);
+	assert(size.x > 0);
+	assert(size.y > 0);
+	assert(size.z > 0);
+	assert(levelCount <= getImageLevelCount(size));
+	assert(image != NULL);
+
 	if (type != GENERAL_IMAGE_TYPE &&
 		type != ATTACHMENT_IMAGE_TYPE)
 	{
@@ -1014,6 +1057,12 @@ inline static MpgxResult setGlImageData(
 	Vec3U size,
 	Vec3U offset)
 {
+	assert(image != NULL);
+	assert(data != NULL);
+	assert(size.x > 0);
+	assert(size.y > 0);
+	assert(size.z > 0);
+
 	makeWindowContextCurrent(
 		image->gl.window);
 

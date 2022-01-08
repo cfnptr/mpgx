@@ -87,6 +87,10 @@ inline static MpgxResult createVkRayTracing(
 	VkPhysicalDevice physicalDevice,
 	RayTracing* rayTracing)
 {
+	assert(instance != NULL);
+	assert(physicalDevice != NULL);
+	assert(rayTracing != NULL);
+
 	RayTracing rayTracingInstance = calloc(1,
 		sizeof(RayTracing_T));
 

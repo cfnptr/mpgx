@@ -95,27 +95,27 @@ inline static MpgxResult createVkGeneralRenderPass(
 	Image depthStencilAttachment,
 	VkRenderPass* renderPass)
 {
-	assert(device != NULL);
-	assert(renderPass != NULL);
+	assert(device);
+	assert(renderPass);
 	// TODO: add attachment assertions
 
-	size_t attachmentCount = depthStencilAttachment != NULL ?
+	size_t attachmentCount = depthStencilAttachment ?
 		colorAttachmentCount + 1 : colorAttachmentCount;
 
 	VkAttachmentDescription* attachmentDescriptions = malloc(
 		attachmentCount * sizeof(VkAttachmentDescription));
 
-	if (attachmentDescriptions == NULL)
+	if (!attachmentDescriptions)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	VkAttachmentReference* colorReferences;
 
-	if (colorAttachmentCount != 0)
+	if (colorAttachmentCount > 0)
 	{
 		colorReferences = malloc(
 			colorAttachmentCount * sizeof(VkAttachmentDescription));
 
-		if (colorReferences == NULL)
+		if (!colorReferences)
 		{
 			free(attachmentDescriptions);
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -125,9 +125,9 @@ inline static MpgxResult createVkGeneralRenderPass(
 			0,
 			0,
 			VK_SAMPLE_COUNT_1_BIT,
-			useBeginClear == true ?
-			VK_ATTACHMENT_LOAD_OP_CLEAR :
-			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			useBeginClear ?
+				VK_ATTACHMENT_LOAD_OP_CLEAR :
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			VK_ATTACHMENT_STORE_OP_STORE,
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -153,7 +153,7 @@ inline static MpgxResult createVkGeneralRenderPass(
 		colorReferences = NULL;
 	}
 
-	if (depthStencilAttachment != NULL)
+	if (depthStencilAttachment)
 	{
 		ImageFormat format = depthStencilAttachment->vk.format;
 
@@ -174,7 +174,7 @@ inline static MpgxResult createVkGeneralRenderPass(
 		case D16_UNORM_S8_UINT_IMAGE_FORMAT:
 		case D24_UNORM_S8_UINT_IMAGE_FORMAT:
 		case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
-			stencilLoadOp = useBeginClear == true ?
+			stencilLoadOp = useBeginClear ?
 				VK_ATTACHMENT_LOAD_OP_CLEAR :
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -185,7 +185,7 @@ inline static MpgxResult createVkGeneralRenderPass(
 			0,
 			depthStencilAttachment->vk.vkFormat,
 			VK_SAMPLE_COUNT_1_BIT,
-			useBeginClear == true ?
+			useBeginClear ?
 				VK_ATTACHMENT_LOAD_OP_CLEAR :
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			VK_ATTACHMENT_STORE_OP_STORE,
@@ -210,7 +210,7 @@ inline static MpgxResult createVkGeneralRenderPass(
 		(uint32_t)colorAttachmentCount,
 		colorReferences,
 		NULL,
-		depthStencilAttachment != NULL ?
+		depthStencilAttachment ?
 			&depthStencilAttachmentReference : NULL,
 		0,
 		NULL,
@@ -257,8 +257,8 @@ inline static MpgxResult createVkShadowRenderPass(
 	VkFormat format,
 	VkRenderPass* renderPass)
 {
-	assert(device != NULL);
-	assert(renderPass != NULL);
+	assert(device);
+	assert(renderPass);
 
 	VkAttachmentDescription attachmentDescription = {
 		0,
@@ -351,13 +351,13 @@ inline static MpgxResult createVkFramebufferHandle(
 	Vec2U size,
 	VkFramebuffer* handle)
 {
-	assert(device != NULL);
-	assert(renderPass != NULL);
-	assert(attachmentCount != 0);
-	assert(imageViews != NULL);
+	assert(device);
+	assert(renderPass);
+	assert(attachmentCount > 0);
+	assert(imageViews);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(handle != NULL);
+	assert(handle);
 
 	VkFramebufferCreateInfo framebufferCreateInfo = {
 		VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -398,12 +398,12 @@ inline static void destroyVkFramebuffer(
 	Framebuffer framebuffer,
 	bool destroyAttachments)
 {
-	assert(device != NULL);
+	assert(device);
 
-	if (framebuffer == NULL)
+	if (!framebuffer)
 		return;
 
-	if (framebuffer->vk.isDefault == false)
+	if (!framebuffer->vk.isDefault)
 	{
 		vkDestroyFramebuffer(
 			device,
@@ -414,7 +414,7 @@ inline static void destroyVkFramebuffer(
 			framebuffer->vk.renderPass,
 			NULL);
 
-		if (destroyAttachments == true)
+		if (destroyAttachments)
 		{
 			Image* colorAttachments = framebuffer->vk.colorAttachments;
 			size_t colorAttachmentCount = framebuffer->vk.colorAttachmentCount;
@@ -442,18 +442,18 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	Vec2U size,
 	Framebuffer* framebuffer)
 {
-	assert(device != NULL);
-	assert(renderPass != NULL);
-	assert(handle != NULL);
-	assert(window != NULL);
+	assert(device);
+	assert(renderPass);
+	assert(handle);
+	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(framebuffer != NULL);
+	assert(framebuffer);
 
 	Framebuffer framebufferInstance = calloc(1,
 		sizeof(Framebuffer_T));
 
-	if (framebufferInstance == NULL)
+	if (!framebufferInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	framebufferInstance->vk.isDefault = true;
@@ -467,7 +467,7 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	GraphicsPipeline* graphicsPipelines = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));
 
-	if (graphicsPipelines == NULL)
+	if (!graphicsPipelines)
 	{
 		destroyVkFramebuffer(
 			device,
@@ -497,19 +497,19 @@ inline static MpgxResult createVkFramebuffer(
 	size_t pipelineCapacity,
 	Framebuffer* framebuffer)
 {
-	assert(device != NULL);
-	assert(renderPass != NULL);
-	assert(window != NULL);
+	assert(device);
+	assert(renderPass);
+	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(pipelineCapacity != 0);
-	assert(framebuffer != NULL);
+	assert(pipelineCapacity > 0);
+	assert(framebuffer);
 	// TODO: assert attachments
 
 	Framebuffer framebufferInstance = calloc(1,
 		sizeof(Framebuffer_T));
 
-	if (framebufferInstance == NULL)
+	if (!framebufferInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	framebufferInstance->vk.isDefault = false;
@@ -517,13 +517,13 @@ inline static MpgxResult createVkFramebuffer(
 	framebufferInstance->vk.size = size;
 	framebufferInstance->vk.useBeginClear = useBeginClear;
 
-	size_t attachmentCount = depthStencilAttachment != NULL ?
+	size_t attachmentCount = depthStencilAttachment ?
 		colorAttachmentCount + 1 : colorAttachmentCount;
 
 	VkImageView* imageViews = malloc(
 		attachmentCount * sizeof(VkImageView));
 
-	if (imageViews == NULL)
+	if (!imageViews)
 	{
 		destroyVkFramebuffer(
 			device,
@@ -534,12 +534,12 @@ inline static MpgxResult createVkFramebuffer(
 
 	Image* colorAttachmentArray;
 
-	if (colorAttachmentCount != 0)
+	if (colorAttachmentCount > 0)
 	{
 		colorAttachmentArray = malloc(
 			colorAttachmentCount * sizeof(Image));
 
-		if (colorAttachmentArray == NULL)
+		if (!colorAttachmentArray)
 		{
 			free(imageViews);
 			destroyVkFramebuffer(
@@ -564,7 +564,7 @@ inline static MpgxResult createVkFramebuffer(
 	framebufferInstance->vk.colorAttachments = colorAttachmentArray;
 	framebufferInstance->vk.colorAttachmentCount = colorAttachmentCount;
 
-	if (depthStencilAttachment != NULL)
+	if (depthStencilAttachment)
 	{
 		imageViews[colorAttachmentCount] =
 			depthStencilAttachment->vk.imageView;
@@ -575,7 +575,7 @@ inline static MpgxResult createVkFramebuffer(
 	GraphicsPipeline* graphicsPipelines = malloc(
 		pipelineCapacity * sizeof(GraphicsPipeline));
 
-	if (graphicsPipelines == NULL)
+	if (!graphicsPipelines)
 	{
 		destroyVkFramebuffer(
 			device,
@@ -633,30 +633,30 @@ inline static MpgxResult setVkFramebufferAttachments(
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment)
 {
-	assert(device != NULL);
-	assert(renderPass != NULL);
-	assert(framebuffer != NULL);
+	assert(device);
+	assert(renderPass);
+	assert(framebuffer);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	// TODO: assert attachments
 
-	size_t attachmentCount = depthStencilAttachment != NULL ?
+	size_t attachmentCount = depthStencilAttachment ?
 		colorAttachmentCount + 1 : colorAttachmentCount;
 
 	VkImageView* imageViews = malloc(
 		attachmentCount * sizeof(VkImageView));
 
-	if (imageViews == NULL)
+	if (!imageViews)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Image* colorAttachmentArray;
 
-	if (colorAttachmentCount != 0)
+	if (colorAttachmentCount > 0)
 	{
 		colorAttachmentArray = malloc(
 			colorAttachmentCount * sizeof(Image));
 
-		if (colorAttachmentArray == NULL)
+		if (!colorAttachmentArray)
 		{
 			free(imageViews);
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -674,7 +674,7 @@ inline static MpgxResult setVkFramebufferAttachments(
 		colorAttachmentArray = NULL;
 	}
 
-	if (depthStencilAttachment != NULL)
+	if (depthStencilAttachment)
 	{
 		imageViews[colorAttachmentCount] =
 			depthStencilAttachment->vk.imageView;
@@ -771,13 +771,13 @@ inline static void beginVkFramebufferRender(
 	const FramebufferClear* clearValues,
 	size_t clearValueCount)
 {
-	assert(commandBuffer != NULL);
-	assert(renderPass != NULL);
-	assert(framebuffer != NULL);
+	assert(commandBuffer);
+	assert(renderPass);
+	assert(framebuffer);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(clearValues != NULL);
-	assert(clearValueCount != 0);
+	assert(clearValues);
+	assert(clearValueCount > 0);
 
 	VkRenderPassBeginInfo renderPassBeginInfo = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -800,7 +800,7 @@ inline static void beginVkFramebufferRender(
 inline static void endVkFramebufferRender(
 	VkCommandBuffer commandBuffer)
 {
-	assert(commandBuffer != NULL);
+	assert(commandBuffer);
 	vkCmdEndRenderPass(commandBuffer);
 }
 inline static void clearVkFramebuffer(
@@ -812,29 +812,29 @@ inline static void clearVkFramebuffer(
 	const FramebufferClear* clearValues,
 	size_t clearValueCount)
 {
-	assert(commandBuffer != NULL);
+	assert(commandBuffer);
 	assert(framebufferSize.x > 0);
 	assert(framebufferSize.y > 0);
-	assert(clearAttachments != NULL);
-	assert(clearValues != NULL);
-	assert(clearValueCount != 0);
+	assert(clearAttachments);
+	assert(clearValues);
+	assert(clearValueCount > 0);
 
 	// TODO: move allocation to framebuffer object (cache it)
 	VkClearAttachment* clearAttachmentArray = malloc(
 		clearValueCount * sizeof(VkClearAttachment));
 
-	if (clearAttachmentArray == NULL)
+	if (!clearAttachmentArray)
 		abort();
 
 	size_t clearAttachmentCount = 0;
 
 	size_t colorAttachmentCount =
-		hasDepthAttachment == true || hasStencilAttachment == true ?
+		hasDepthAttachment || hasStencilAttachment ?
 		clearValueCount - 1 : clearValueCount;
 
 	for (size_t i = 0; i < colorAttachmentCount; i++)
 	{
-		if (clearAttachments[i] == false)
+		if (!clearAttachments[i])
 			continue;
 
 		LinearColor value = clearValues[i].color;
@@ -854,8 +854,8 @@ inline static void clearVkFramebuffer(
 		clearAttachmentArray[clearAttachmentCount++] = clearAttachment;
 	}
 
-	if ((hasDepthAttachment == true || hasStencilAttachment == true) &&
-		clearAttachments[colorAttachmentCount] == true)
+	if ((hasDepthAttachment | hasStencilAttachment) &
+		clearAttachments[colorAttachmentCount])
 	{
 		DepthStencilClear value =
 			clearValues[colorAttachmentCount].depthStencil;
@@ -866,9 +866,9 @@ inline static void clearVkFramebuffer(
 
 		VkImageAspectFlags aspectMask;
 
-		if (hasDepthAttachment == true)
+		if (hasDepthAttachment)
 			aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		if (hasStencilAttachment == true)
+		if (hasStencilAttachment)
 			aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 
 		VkClearAttachment clearAttachment = {
@@ -905,7 +905,7 @@ inline static void destroyGlFramebuffer(
 	Framebuffer framebuffer,
 	bool destroyAttachments)
 {
-	if (framebuffer == NULL)
+	if (!framebuffer)
 		return;
 
 	if (framebuffer->gl.isDefault == false)
@@ -917,7 +917,7 @@ inline static void destroyGlFramebuffer(
 			&framebuffer->gl.handle);
 		assertOpenGL();
 
-		if (destroyAttachments == true)
+		if (destroyAttachments)
 		{
 			Image* colorAttachments = framebuffer->gl.colorAttachments;
 			size_t colorAttachmentCount = framebuffer->gl.colorAttachmentCount;
@@ -942,15 +942,15 @@ inline static MpgxResult createGlDefaultFramebuffer(
 	Vec2U size,
 	Framebuffer* framebuffer)
 {
-	assert(window != NULL);
+	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(framebuffer != NULL);
+	assert(framebuffer);
 
 	Framebuffer framebufferInstance = calloc(1,
 		sizeof(Framebuffer_T));
 
-	if (framebufferInstance == NULL)
+	if (!framebufferInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	framebufferInstance->gl.isDefault = true;
@@ -964,7 +964,7 @@ inline static MpgxResult createGlDefaultFramebuffer(
 	GraphicsPipeline* graphicsPipelines = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));
 
-	if (graphicsPipelines == NULL)
+	if (!graphicsPipelines)
 	{
 		free(framebuffer);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -988,17 +988,17 @@ inline static MpgxResult createGlFramebuffer(
 	size_t pipelineCapacity,
 	Framebuffer* framebuffer)
 {
-	assert(window != NULL);
+	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(pipelineCapacity != 0);
-	assert(framebuffer != NULL);
+	assert(pipelineCapacity > 0);
+	assert(framebuffer);
 	// TODO: assert attachments
 
 	Framebuffer framebufferInstance = calloc(1,
 		sizeof(Framebuffer_T));
 
-	if (framebufferInstance == NULL)
+	if (!framebufferInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	framebufferInstance->gl.isDefault = false;
@@ -1022,12 +1022,12 @@ inline static MpgxResult createGlFramebuffer(
 
 	Image* colorAttachmentArray;
 
-	if (colorAttachmentCount != 0)
+	if (colorAttachmentCount > 0)
 	{
 		colorAttachmentArray = malloc(
 			colorAttachmentCount * sizeof(Image));
 
-		if (colorAttachmentArray == NULL)
+		if (!colorAttachmentArray)
 		{
 			destroyGlFramebuffer(
 				framebufferInstance,
@@ -1038,7 +1038,7 @@ inline static MpgxResult createGlFramebuffer(
 		GLenum* drawBuffers = malloc(
 			sizeof(GLenum) * colorAttachmentCount);
 
-		if (drawBuffers == NULL)
+		if (!drawBuffers)
 		{
 			destroyGlFramebuffer(
 				framebufferInstance,
@@ -1094,7 +1094,7 @@ inline static MpgxResult createGlFramebuffer(
 	framebufferInstance->gl.colorAttachments = colorAttachmentArray;
 	framebufferInstance->gl.colorAttachmentCount = colorAttachmentCount;
 
-	if (depthStencilAttachment != NULL)
+	if (depthStencilAttachment)
 	{
 		ImageFormat format = depthStencilAttachment->gl.format;
 
@@ -1183,7 +1183,7 @@ inline static MpgxResult createGlFramebuffer(
 	GraphicsPipeline* graphicsPipelines = malloc(
 		pipelineCapacity * sizeof(GraphicsPipeline));
 
-	if (graphicsPipelines == NULL)
+	if (!graphicsPipelines)
 	{
 		destroyGlFramebuffer(
 			framebufferInstance,
@@ -1207,19 +1207,19 @@ inline static MpgxResult setGlFramebufferAttachments(
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment)
 {
-	assert(framebuffer != NULL);
+	assert(framebuffer);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	// TODO: assert attachments
 
 	Image* colorAttachmentArray;
 
-	if (colorAttachmentCount != 0)
+	if (colorAttachmentCount > 0)
 	{
 		colorAttachmentArray = malloc(
 			colorAttachmentCount * sizeof(Image));
 
-		if (colorAttachmentArray == NULL)
+		if (!colorAttachmentArray)
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 		for (size_t i = 0; i < colorAttachmentCount; i++)
@@ -1274,8 +1274,8 @@ inline static void beginGlFramebufferRender(
 	assert(framebuffer != GL_ZERO);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(clearValues != NULL);
-	assert(clearValueCount != 0);
+	assert(clearValues);
+	assert(clearValueCount > 0);
 
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,
@@ -1286,9 +1286,9 @@ inline static void beginGlFramebufferRender(
 		(GLsizei)size.y);
 	glDisable(GL_SCISSOR_TEST);
 
-	if (clearValueCount != 0)
+	if (clearValueCount > 0)
 	{
-		if (colorAttachmentCount != 0)
+		if (colorAttachmentCount > 0)
 		{
 			glColorMask(
 				GL_TRUE, GL_TRUE,
@@ -1303,12 +1303,12 @@ inline static void beginGlFramebufferRender(
 			}
 		}
 
-		if (hasDepthAttachment == true || hasStencilAttachment == true)
+		if (hasDepthAttachment | hasStencilAttachment)
 		{
 			DepthStencilClear value =
 				clearValues[colorAttachmentCount].depthStencil;
 
-			if (hasDepthAttachment == true && hasStencilAttachment == true)
+			if (hasDepthAttachment & hasStencilAttachment)
 			{
 				glDepthMask(GL_TRUE);
 				glStencilMask(UINT32_MAX);
@@ -1319,7 +1319,7 @@ inline static void beginGlFramebufferRender(
 					value.depth,
 					(GLint)value.stencil);
 			}
-			else if (hasDepthAttachment == true)
+			else if (hasDepthAttachment)
 			{
 				glDepthMask(GL_TRUE);
 
@@ -1357,18 +1357,18 @@ inline static void clearGlFramebuffer(
 {
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(clearAttachments != NULL);
-	assert(clearValues != NULL);
-	assert(clearValueCount != 0);
+	assert(clearAttachments);
+	assert(clearValues);
+	assert(clearValueCount > 0);
 
 	glViewport(0, 0,
 		(GLsizei)size.x,
 		(GLsizei)size.y);
 	glDisable(GL_SCISSOR_TEST);
 
-	if (clearValueCount != 0)
+	if (clearValueCount > 0)
 	{
-		if (colorAttachmentCount != 0)
+		if (colorAttachmentCount > 0)
 		{
 			glColorMask(
 				GL_TRUE, GL_TRUE,
@@ -1376,7 +1376,7 @@ inline static void clearGlFramebuffer(
 
 			for (size_t i = 0; i < colorAttachmentCount; i++)
 			{
-				if (clearAttachments[i] == false)
+				if (!clearAttachments[i])
 					continue;
 
 				glClearBufferfv(
@@ -1386,13 +1386,13 @@ inline static void clearGlFramebuffer(
 			}
 		}
 
-		if ((hasDepthAttachment == true || hasStencilAttachment == true) &&
-			clearAttachments[colorAttachmentCount] == true)
+		if ((hasDepthAttachment | hasStencilAttachment) &
+			clearAttachments[colorAttachmentCount])
 		{
 			DepthStencilClear value =
 				clearValues[colorAttachmentCount].depthStencil;
 
-			if (hasDepthAttachment == true && hasStencilAttachment == true)
+			if (hasDepthAttachment & hasStencilAttachment)
 			{
 				glDepthMask(GL_TRUE);
 				glStencilMask(UINT32_MAX);
@@ -1403,7 +1403,7 @@ inline static void clearGlFramebuffer(
 					value.depth,
 					(GLint)value.stencil);
 			}
-			else if (hasDepthAttachment == true)
+			else if (hasDepthAttachment)
 			{
 				glDepthMask(GL_TRUE);
 

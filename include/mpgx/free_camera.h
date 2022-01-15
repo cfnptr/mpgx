@@ -29,6 +29,9 @@ FreeCamera createFreeCamera(
 	float fieldOfView,
 	float nearClipPlane,
 	float farClipPlane);
+FreeCamera createDefaultFreeCamera(
+	Framebuffer framebuffer,
+	Transformer transformer);
 void destroyFreeCamera(FreeCamera freeCamera);
 
 Framebuffer getFreeCameraFramebuffer(

@@ -70,7 +70,7 @@ typedef RayTracing_T* RayTracing;
 inline static void destroyVkRayTracing(
 	RayTracing rayTracing)
 {
-	if (rayTracing == NULL)
+	if (!rayTracing)
 		return;
 
 	assert(rayTracing->vk.sceneCount == 0);
@@ -87,14 +87,14 @@ inline static MpgxResult createVkRayTracing(
 	VkPhysicalDevice physicalDevice,
 	RayTracing* rayTracing)
 {
-	assert(instance != NULL);
-	assert(physicalDevice != NULL);
-	assert(rayTracing != NULL);
+	assert(instance);
+	assert(physicalDevice);
+	assert(rayTracing);
 
 	RayTracing rayTracingInstance = calloc(1,
 		sizeof(RayTracing_T));
 
-	if (rayTracingInstance == NULL)
+	if (!rayTracingInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
@@ -115,7 +115,7 @@ inline static MpgxResult createVkRayTracing(
 	RayTracingPipeline* pipelines = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(RayTracingPipeline));
 
-	if (pipelines == NULL)
+	if (!pipelines)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -128,7 +128,7 @@ inline static MpgxResult createVkRayTracing(
 	RayTracingMesh* meshes = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(RayTracingMesh));
 
-	if (meshes == NULL)
+	if (!meshes)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -141,7 +141,7 @@ inline static MpgxResult createVkRayTracing(
 	RayTracingScene* scenes = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(RayTracingScene));
 
-	if (scenes == NULL)
+	if (!scenes)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -156,7 +156,7 @@ inline static MpgxResult createVkRayTracing(
 		(PFN_vkGetAccelerationStructureBuildSizesKHR)vkGetInstanceProcAddr(
 		instance, "vkGetAccelerationStructureBuildSizesKHR");
 
-	if (getAccelerationStructureBuildSizes == NULL)
+	if (!getAccelerationStructureBuildSizes)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT;
@@ -170,7 +170,7 @@ inline static MpgxResult createVkRayTracing(
 		(PFN_vkCreateAccelerationStructureKHR)vkGetInstanceProcAddr(
 		instance, "vkCreateAccelerationStructureKHR");
 
-	if (createAccelerationStructure == NULL)
+	if (!createAccelerationStructure)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT;
@@ -184,7 +184,7 @@ inline static MpgxResult createVkRayTracing(
 		(PFN_vkDestroyAccelerationStructureKHR)vkGetInstanceProcAddr(
 		instance, "vkDestroyAccelerationStructureKHR");
 
-	if (destroyAccelerationStructure == NULL)
+	if (!destroyAccelerationStructure)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT;
@@ -198,7 +198,7 @@ inline static MpgxResult createVkRayTracing(
 		(PFN_vkCmdBuildAccelerationStructuresKHR)vkGetInstanceProcAddr(
 		instance, "vkCmdBuildAccelerationStructuresKHR");
 
-	if (cmdBuildAccelerationStructures == NULL)
+	if (!cmdBuildAccelerationStructures)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT;
@@ -212,7 +212,7 @@ inline static MpgxResult createVkRayTracing(
 		(PFN_vkGetAccelerationStructureDeviceAddressKHR)vkGetInstanceProcAddr(
 		instance, "vkGetAccelerationStructureDeviceAddressKHR");
 
-	if (getAccelerationStructureDeviceAddress == NULL)
+	if (!getAccelerationStructureDeviceAddress)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT;
@@ -226,7 +226,7 @@ inline static MpgxResult createVkRayTracing(
 		(PFN_vkCreateRayTracingPipelinesKHR)vkGetInstanceProcAddr(
 		instance, "vkCreateRayTracingPipelinesKHR");
 
-	if (createRayTracingPipelinesKHR == NULL)
+	if (!createRayTracingPipelinesKHR)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT;
@@ -240,7 +240,7 @@ inline static MpgxResult createVkRayTracing(
 		(PFN_vkGetRayTracingShaderGroupHandlesKHR)vkGetInstanceProcAddr(
 		instance, "vkGetRayTracingShaderGroupHandlesKHR");
 
-	if (getRayTracingShaderGroupHandles == NULL)
+	if (!getRayTracingShaderGroupHandles)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT;
@@ -253,7 +253,7 @@ inline static MpgxResult createVkRayTracing(
 		(PFN_vkCmdTraceRaysKHR)vkGetInstanceProcAddr(
 		instance, "vkCmdTraceRaysKHR");
 
-	if (cmdTraceRays == NULL)
+	if (!cmdTraceRays)
 	{
 		destroyVkRayTracing(rayTracingInstance);
 		return FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT;

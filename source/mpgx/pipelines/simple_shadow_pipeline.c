@@ -285,7 +285,7 @@ inline static MpgxResult createGlPipeline(
 		"u_MVP",
 		&mvpLocation);
 
-	if (result == false)
+	if (!result)
 	{
 		destroyGraphicsPipeline(
 			graphicsPipelineInstance,

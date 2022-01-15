@@ -96,11 +96,11 @@ inline static MpgxResult createVkRayTracingPipelineHandle(
 	size_t closestHitShaderCount,
 	VkPipeline* handle)
 {
-	assert(device != NULL);
-	assert(cache != NULL);
-	assert(layout != NULL);
-	assert(rayTracing != NULL);
-	assert(handle != NULL);
+	assert(device);
+	assert(cache);
+	assert(layout);
+	assert(rayTracing);
+	assert(handle);
 
 	// TODO: assert shader arrays
 
@@ -112,13 +112,13 @@ inline static MpgxResult createVkRayTracingPipelineHandle(
 	VkPipelineShaderStageCreateInfo* shaderStageCreateInfos =
 		malloc(shaderCount * sizeof(VkPipelineShaderStageCreateInfo));
 
-	if (shaderStageCreateInfos == NULL)
+	if (!shaderStageCreateInfos)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	VkRayTracingShaderGroupCreateInfoKHR* shaderGroupCreateInfos =
 		malloc(shaderCount * sizeof(VkRayTracingShaderGroupCreateInfoKHR));
 
-	if (shaderGroupCreateInfos == NULL)
+	if (!shaderGroupCreateInfos)
 	{
 		free(shaderStageCreateInfos);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -251,13 +251,13 @@ inline static MpgxResult createVkSbt(
 	VmaAllocation* closestHitSbtAllocation,
 	VkDeviceAddress* closestHitSbtAddress)
 {
-	assert(device != NULL);
-	assert(allocator != NULL);
-	assert(rayTracing != NULL);
-	assert(pipeline != NULL);
-	assert(generationSbtBuffer != NULL);
-	assert(generationSbtAllocation != NULL);
-	assert(generationSbtAddress != NULL);
+	assert(device);
+	assert(allocator);
+	assert(rayTracing );
+	assert(pipeline);
+	assert(generationSbtBuffer);
+	assert(generationSbtAllocation);
+	assert(generationSbtAddress);
 
 	// TODO: assert shaders
 
@@ -269,15 +269,15 @@ inline static MpgxResult createVkSbt(
 		rayTracingPipelineProperties.shaderGroupBaseAlignment;
 	uint32_t handleSizeAligned = alignVkSbt(handleSize, handleAlignment);
 
-	uint32_t handleCount =
+	uint32_t handleCount = (uint32_t)(
 		generationShaderCount +
 		missShaderCount +
-		closestHitShaderCount;
+		closestHitShaderCount);
 
 	uint32_t shaderGroupHandleSize = handleCount * handleSize;
 	uint8_t* shaderGroupHandles = malloc(shaderGroupHandleSize);
 
-	if (shaderGroupHandles == NULL)
+	if (!shaderGroupHandles)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	VkResult vkResult = rayTracing->vk.getRayTracingShaderGroupHandles(
@@ -300,7 +300,7 @@ inline static MpgxResult createVkSbt(
 			return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	size_t bufferSize = alignVkSbt(
+	size_t bufferSize = alignVkSbt((uint32_t)
 		generationShaderCount * handleSizeAligned,
 		baseAlignment);
 	uint8_t* mappedData;
@@ -352,7 +352,7 @@ inline static MpgxResult createVkSbt(
 		return mpgxResult;
 	}
 
-	bufferSize = alignVkSbt(
+	bufferSize = alignVkSbt((uint32_t)
 		missShaderCount * handleSizeAligned,
 		baseAlignment);
 
@@ -409,7 +409,7 @@ inline static MpgxResult createVkSbt(
 		return mpgxResult;
 	}
 
-	bufferSize = alignVkSbt(
+	bufferSize = alignVkSbt((uint32_t)
 		closestHitShaderCount * handleSizeAligned,
 		baseAlignment);
 
@@ -494,10 +494,10 @@ inline static void destroyVkRayTracingPipeline(
 	RayTracingPipeline rayTracingPipeline,
 	bool destroyShaders)
 {
-	assert(device != NULL);
-	assert(allocator != NULL);
+	assert(device);
+	assert(allocator);
 
-	if (rayTracingPipeline == NULL)
+	if (!rayTracingPipeline)
 		return;
 
 	vmaDestroyBuffer(
@@ -525,7 +525,7 @@ inline static void destroyVkRayTracingPipeline(
 		rayTracingPipeline->vk.cache,
 		NULL);
 
-	if (destroyShaders == true)
+	if (destroyShaders)
 	{
 		Shader* shaders = rayTracingPipeline->vk.closestHitShaders;
 		size_t shaderCount = rayTracingPipeline->vk.closestHitShaderCount;
@@ -569,21 +569,21 @@ inline static MpgxResult createVkRayTracingPipeline(
 	size_t closestHitShaderCount,
 	RayTracingPipeline* rayTracingPipeline)
 {
-	assert(device != NULL);
-	assert(allocator != NULL);
-	assert(createData != NULL);
-	assert(rayTracing != NULL);
-	assert(name != NULL);
-	assert(window != NULL);
-	assert(onDestroy != NULL);
-	assert(rayTracingPipeline != NULL);
+	assert(device);
+	assert(allocator);
+	assert(createData);
+	assert(rayTracing);
+	assert(name);
+	assert(window);
+	assert(onDestroy);
+	assert(rayTracingPipeline);
 
 	// TODO: assert shaders
 
 	RayTracingPipeline rayTracingPipelineInstance = calloc(1,
 		sizeof(RayTracingPipeline_T));
 
-	if (rayTracingPipelineInstance == NULL)
+	if (!rayTracingPipelineInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 #ifndef NDEBUG
@@ -597,7 +597,7 @@ inline static MpgxResult createVkRayTracingPipeline(
 	Shader* rayGenerationShaders = malloc(
 		generationShaderCount * sizeof(Shader));
 
-	if (rayGenerationShaders == NULL)
+	if (!rayGenerationShaders)
 	{
 		destroyVkRayTracingPipeline(
 			device,
@@ -616,7 +616,7 @@ inline static MpgxResult createVkRayTracingPipeline(
 	Shader* rayMissShaders = malloc(
 		missShaderCount * sizeof(Shader));
 
-	if (rayMissShaders == NULL)
+	if (!rayMissShaders)
 	{
 		destroyVkRayTracingPipeline(
 			device,
@@ -635,7 +635,7 @@ inline static MpgxResult createVkRayTracingPipeline(
 	Shader* rayClosestHitShaders = malloc(
 		closestHitShaderCount * sizeof(Shader));
 
-	if (rayClosestHitShaders == NULL)
+	if (!rayClosestHitShaders)
 	{
 		destroyVkRayTracingPipeline(
 			device,
@@ -804,15 +804,15 @@ inline static void bindVkRayTracingPipeline(
 	VkCommandBuffer commandBuffer,
 	RayTracingPipeline rayTracingPipeline)
 {
-	assert(commandBuffer != NULL);
-	assert(rayTracingPipeline != NULL);
+	assert(commandBuffer);
+	assert(rayTracingPipeline);
 
 	vkCmdBindPipeline(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
 		rayTracingPipeline->vk.vkHandle);
 
-	if (rayTracingPipeline->vk.onBind != NULL)
+	if (rayTracingPipeline->vk.onBind)
 		rayTracingPipeline->vk.onBind(rayTracingPipeline);
 }
 inline static void traceVkPipelineRays(
@@ -820,9 +820,9 @@ inline static void traceVkPipelineRays(
 	RayTracing rayTracing,
 	RayTracingPipeline rayTracingPipeline)
 {
-	assert(commandBuffer != NULL);
-	assert(rayTracing != NULL);
-	assert(rayTracingPipeline != NULL);
+	assert(commandBuffer);
+	assert(rayTracing);
+	assert(rayTracingPipeline);
 
 	uint32_t handleSize = rayTracing->vk.
 		rayTracingPipelineProperties.shaderGroupHandleSize;
@@ -832,7 +832,7 @@ inline static void traceVkPipelineRays(
 		rayTracingPipelineProperties.shaderGroupBaseAlignment;
 	uint32_t handleSizeAligned = alignVkSbt(handleSize, handleAlignment);
 
-	VkDeviceSize size = alignVkSbt(
+	VkDeviceSize size = alignVkSbt((uint32_t)
 		rayTracingPipeline->vk.generationShaderCount * handleSizeAligned,
 		baseAlignment);
 	VkStridedDeviceAddressRegionKHR generationSbt = {
@@ -843,14 +843,16 @@ inline static void traceVkPipelineRays(
 
 	VkStridedDeviceAddressRegionKHR missSbt = {
 		rayTracingPipeline->vk.missSbtAddress,
-		alignVkSbt(rayTracingPipeline->vk.missShaderCount *
-				   handleSizeAligned, baseAlignment),
+		alignVkSbt((uint32_t)
+			rayTracingPipeline->vk.missShaderCount *
+			handleSizeAligned, baseAlignment),
 		handleSizeAligned,
 	};
 	VkStridedDeviceAddressRegionKHR closestHitSbt = {
 		rayTracingPipeline->vk.closestHitSbtAddress,
-		alignVkSbt(rayTracingPipeline->vk.closestHitShaderCount *
-				   handleSizeAligned, baseAlignment),
+		alignVkSbt((uint32_t)
+			rayTracingPipeline->vk.closestHitShaderCount *
+			handleSizeAligned, baseAlignment),
 		handleSizeAligned,
 	};
 	VkStridedDeviceAddressRegionKHR callableSbt = {

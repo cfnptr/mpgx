@@ -36,6 +36,8 @@
 
 // TODO: possibly switch to the ktx texture format
 
+// TODO: add ability to store and load shader cache
+
 static const Vec2U defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
 	DEFAULT_WINDOW_HEIGHT,

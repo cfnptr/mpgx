@@ -97,7 +97,7 @@ inline static bool getVkDrawMode(
 	VkPrimitiveTopology* vkDrawMode)
 {
 	assert(drawMode < DRAW_MODE_COUNT);
-	assert(vkDrawMode != NULL);
+	assert(vkDrawMode);
 
 	switch (drawMode)
 	{
@@ -143,7 +143,7 @@ inline static bool getVkPolygonMode(
 	VkPolygonMode* vkPolygonMode)
 {
 	assert(polygonMode < POLYGON_MODE_COUNT);
-	assert(vkPolygonMode != NULL);
+	assert(vkPolygonMode);
 
 	if (polygonMode == POINT_POLYGON_MODE)
 	{
@@ -171,9 +171,9 @@ inline static bool getVkCullMode(
 	VkCullModeFlags* vkCullMode)
 {
 	assert(cullMode < CULL_MODE_COUNT);
-	assert(vkCullMode != NULL);
+	assert(vkCullMode);
 
-	if (cullFace == false)
+	if (!cullFace)
 	{
 		*vkCullMode = VK_CULL_MODE_NONE;
 		return true;
@@ -204,7 +204,7 @@ inline static bool getVkBlendFactor(
 	VkBlendFactor* vkBlendFactor)
 {
 	assert(blendFactor < BLEND_FACTOR_COUNT);
-	assert(vkBlendFactor != NULL);
+	assert(vkBlendFactor);
 
 	switch (blendFactor)
 	{
@@ -274,7 +274,7 @@ inline static bool getVkBlendOperator(
 	VkBlendOp* vkBlendOperator)
 {
 	assert(blendOperator < BLEND_OPERATOR_COUNT);
-	assert(vkBlendOperator != NULL);
+	assert(vkBlendOperator);
 
 	switch (blendOperator)
 	{
@@ -310,19 +310,19 @@ inline static MpgxResult createVkGraphicsPipelineHandle(
 	const VkGraphicsPipelineCreateData* createData,
 	VkPipeline* handle)
 {
-	assert(device != NULL);
-	assert(renderPass != NULL);
-	assert(cache != NULL);
-	assert(layout != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(createData != NULL);
-	assert(handle != NULL);
+	assert(device);
+	assert(renderPass);
+	assert(cache);
+	assert(layout);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(createData);
+	assert(handle);
 
 	VkPipelineShaderStageCreateInfo* shaderStageCreateInfos =
 		malloc(shaderCount * sizeof(VkPipelineShaderStageCreateInfo));
 
-	if (shaderStageCreateInfos == NULL)
+	if (!shaderStageCreateInfos)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	VkPipelineShaderStageCreateInfo shaderStageCreateInfo = {
@@ -385,7 +385,7 @@ inline static MpgxResult createVkGraphicsPipelineHandle(
 		state.alphaBlendOperator,
 		&alphaBlendOperator);
 
-	if (result == false)
+	if (!result)
 	{
 		free(shaderStageCreateInfos);
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
@@ -419,12 +419,12 @@ inline static MpgxResult createVkGraphicsPipelineHandle(
 
 	bool dynamicViewport = state.viewport.z + state.viewport.w == 0;
 
-	if (dynamicViewport == true)
+	if (dynamicViewport)
 		dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_VIEWPORT;
 
 	bool dynamicScissor = state.scissor.z + state.scissor.w == 0;
 
-	if (dynamicScissor == true)
+	if (dynamicScissor)
 		dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_SCISSOR;
 
 	// TODO: fix different Vulkan viewport/scissor
@@ -530,12 +530,12 @@ inline static MpgxResult createVkGraphicsPipelineHandle(
 
 	VkPipelineColorBlendAttachmentState* colorBlendAttachmentStates;
 
-	if (colorAttachmentCount != 0)
+	if (colorAttachmentCount > 0)
 	{
 		colorBlendAttachmentStates = malloc(
 			colorAttachmentCount * sizeof(VkPipelineColorBlendAttachmentState));
 
-		if (colorBlendAttachmentStates == NULL)
+		if (!colorBlendAttachmentStates)
 		{
 			free(shaderStageCreateInfos);
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -641,10 +641,10 @@ inline static MpgxResult recreateVkGraphicsPipelineHandle(
 	size_t colorAttachmentCount,
 	const VkGraphicsPipelineCreateData* createData)
 {
-	assert(device != NULL);
-	assert(renderPass != NULL);
-	assert(graphicsPipeline != NULL);
-	assert(createData != NULL);
+	assert(device);
+	assert(renderPass);
+	assert(graphicsPipeline);
+	assert(createData);
 
 	VkPipeline handle;
 
@@ -677,9 +677,9 @@ inline static void destroyVkGraphicsPipeline(
 	GraphicsPipeline graphicsPipeline,
 	bool destroyShaders)
 {
-	assert(device != NULL);
+	assert(device);
 
-	if (graphicsPipeline == NULL)
+	if (!graphicsPipeline)
 		return;
 
 	vkDestroyPipeline(
@@ -695,7 +695,7 @@ inline static void destroyVkGraphicsPipeline(
 		graphicsPipeline->vk.cache,
 		NULL);
 
-	if (destroyShaders == true)
+	if (destroyShaders)
 	{
 		Shader* shaders = graphicsPipeline->vk.shaders;
 		size_t shaderCount = graphicsPipeline->vk.shaderCount;
@@ -722,20 +722,20 @@ inline static MpgxResult createVkGraphicsPipeline(
 	size_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(device != NULL);
-	assert(createData != NULL);
-	assert(framebuffer != NULL);
-	assert(name != NULL);
-	assert(onResize != NULL);
-	assert(onDestroy != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(device);
+	assert(createData);
+	assert(framebuffer);
+	assert(name);
+	assert(onResize);
+	assert(onDestroy);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	GraphicsPipeline graphicsPipelineInstance = calloc(1,
 		sizeof(GraphicsPipeline_T));
 
-	if (graphicsPipelineInstance == NULL)
+	if (!graphicsPipelineInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 #ifndef NDEBUG
@@ -752,7 +752,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 	Shader* pipelineShaders = malloc(
 		shaderCount * sizeof(Shader));
 
-	if (pipelineShaders == NULL)
+	if (!pipelineShaders)
 	{
 		destroyVkGraphicsPipeline(
 			device,
@@ -868,15 +868,15 @@ inline static void bindVkGraphicsPipeline(
 	VkCommandBuffer commandBuffer,
 	GraphicsPipeline graphicsPipeline)
 {
-	assert(commandBuffer != NULL);
-	assert(graphicsPipeline != NULL);
+	assert(commandBuffer);
+	assert(graphicsPipeline);
 
 	vkCmdBindPipeline(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		graphicsPipeline->vk.vkHandle);
 
-	if (graphicsPipeline->vk.onBind != NULL)
+	if (graphicsPipeline->vk.onBind)
 		graphicsPipeline->vk.onBind(graphicsPipeline);
 }
 #endif
@@ -887,7 +887,7 @@ inline static bool getGlDrawMode(
 	GLenum* glDrawMode)
 {
 	assert(drawMode < DRAW_MODE_COUNT);
-	assert(glDrawMode != NULL);
+	assert(glDrawMode);
 
 	switch (drawMode)
 	{
@@ -921,7 +921,7 @@ inline static bool getGlPolygonMode(
 	GLenum* _glPolygonMode)
 {
 	assert(polygonMode < POLYGON_MODE_COUNT);
-	assert(_glPolygonMode != NULL);
+	assert(_glPolygonMode);
 
 	if (polygonMode == POINT_POLYGON_MODE)
 	{
@@ -948,7 +948,7 @@ inline static bool getGlCullMode(
 	GLenum* glCullMode)
 {
 	assert(cullMode < CULL_MODE_COUNT);
-	assert(glCullMode != NULL);
+	assert(glCullMode);
 
 	if (cullMode == FRONT_CULL_MODE)
 	{
@@ -975,7 +975,7 @@ inline static bool getGlBlendFactor(
 	GLenum* glBlendFactor)
 {
 	assert(blendFactor < BLEND_FACTOR_COUNT);
-	assert(glBlendFactor != NULL);
+	assert(glBlendFactor);
 
 	switch (blendFactor)
 	{
@@ -1033,7 +1033,7 @@ inline static bool getGlBlendOperator(
 	GLenum* glBlendOperator)
 {
 	assert(blendOperator < BLEND_OPERATOR_COUNT);
-	assert(glBlendOperator != NULL);
+	assert(glBlendOperator);
 
 	switch (blendOperator)
 	{
@@ -1061,7 +1061,7 @@ inline static void destroyGlGraphicsPipeline(
 	GraphicsPipeline graphicsPipeline,
 	bool destroyShaders)
 {
-	if (graphicsPipeline == NULL)
+	if (!graphicsPipeline)
 		return;
 
 	makeWindowContextCurrent(
@@ -1070,7 +1070,7 @@ inline static void destroyGlGraphicsPipeline(
 	glDeleteProgram(graphicsPipeline->gl.glHandle);
 	assertOpenGL();
 
-	if (destroyShaders == true)
+	if (destroyShaders)
 	{
 		Shader* shaders = graphicsPipeline->gl.shaders;
 		size_t shaderCount = graphicsPipeline->gl.shaderCount;
@@ -1095,18 +1095,18 @@ inline static MpgxResult createGlGraphicsPipeline(
 	size_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(name != NULL);
-	assert(onResize != NULL);
-	assert(onDestroy != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(name);
+	assert(onResize);
+	assert(onDestroy);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	GraphicsPipeline graphicsPipelineInstance = calloc(1,
 		sizeof(GraphicsPipeline_T));
 
-	if (graphicsPipelineInstance == NULL)
+	if (!graphicsPipelineInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 #ifndef NDEBUG
@@ -1123,7 +1123,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 	Shader* pipelineShaders = malloc(
 		shaderCount * sizeof(Shader));
 
-	if (pipelineShaders == NULL)
+	if (!pipelineShaders)
 	{
 		destroyGlGraphicsPipeline(
 			graphicsPipelineInstance,
@@ -1147,7 +1147,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 		state.polygonMode,
 		&polygonMode);
 
-	if (state.cullFace == true)
+	if (state.cullFace)
 	{
 		result &= getGlCullMode(
 			state.cullMode,
@@ -1180,7 +1180,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 		state.colorBlendOperator,
 		&alphaBlendOperator);
 
-	if (result == false)
+	if (!result)
 	{
 		destroyGlGraphicsPipeline(
 			graphicsPipelineInstance,
@@ -1199,11 +1199,8 @@ inline static MpgxResult createGlGraphicsPipeline(
 	graphicsPipelineInstance->gl.colorBlendOperator = colorBlendOperator;
 	graphicsPipelineInstance->gl.alphaBlendOperator = alphaBlendOperator;
 
-	GLenum frontFace =
-		state.clockwiseFrontFace == true ?
-		GL_CW : GL_CCW;
-
-	graphicsPipelineInstance->gl.frontFace = frontFace;
+	graphicsPipelineInstance->gl.frontFace =
+		state.clockwiseFrontFace ? GL_CW : GL_CCW;
 
 	Window window = framebuffer->gl.window;
 	makeWindowContextCurrent(window);
@@ -1249,7 +1246,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 		{
 			char* infoLog = malloc(length * sizeof(char));
 
-			if (infoLog == NULL)
+			if (!infoLog)
 			{
 				destroyGlGraphicsPipeline(
 					graphicsPipelineInstance,
@@ -1292,7 +1289,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 inline static void bindGlGraphicsPipeline(
 	GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Vec4U viewport = graphicsPipeline->gl.state.viewport;
 
@@ -1331,7 +1328,7 @@ inline static void bindGlGraphicsPipeline(
 		GL_FRONT_AND_BACK,
 		graphicsPipeline->gl.polygonMode);
 
-	if (graphicsPipeline->gl.state.cullFace == true)
+	if (graphicsPipeline->gl.state.cullFace)
 	{
 		glFrontFace(graphicsPipeline->gl.frontFace);
 		glCullFace(graphicsPipeline->gl.cullMode);
@@ -1355,15 +1352,15 @@ inline static void bindGlGraphicsPipeline(
 		colorMask & ALPHA_COLOR_COMPONENT ?
 			GL_TRUE : GL_FALSE);
 
-	if (graphicsPipeline->gl.state.testDepth == true)
+	if (graphicsPipeline->gl.state.testDepth)
 	{
-		if (graphicsPipeline->gl.state.clampDepth == true)
+		if (graphicsPipeline->gl.state.clampDepth)
 			glEnable(GL_DEPTH_CLAMP);
 		else
 			glDisable(GL_DEPTH_CLAMP);
 
 		glDepthMask(
-			graphicsPipeline->gl.state.writeDepth == true ?
+			graphicsPipeline->gl.state.writeDepth ?
 			GL_TRUE : GL_FALSE);
 		glDepthFunc(graphicsPipeline->gl.depthCompareOperator);
 		glEnable(GL_DEPTH_TEST);
@@ -1373,7 +1370,7 @@ inline static void bindGlGraphicsPipeline(
 		glDisable(GL_DEPTH_TEST);
 	}
 
-	if (graphicsPipeline->gl.state.enableDepthBias == true)
+	if (graphicsPipeline->gl.state.enableDepthBias)
 	{
 		Vec2F depthBias =
 			graphicsPipeline->gl.state.depthBias;
@@ -1388,7 +1385,7 @@ inline static void bindGlGraphicsPipeline(
 		glDisable(GL_POLYGON_OFFSET_FILL);
 	}
 
-	if (graphicsPipeline->gl.state.enableBlend == true)
+	if (graphicsPipeline->gl.state.enableBlend)
 	{
 		Vec4F blendColor =
 			graphicsPipeline->gl.state.blendColor;
@@ -1413,7 +1410,7 @@ inline static void bindGlGraphicsPipeline(
 		glDisable(GL_BLEND);
 	}
 
-	if (graphicsPipeline->gl.state.restartPrimitive == true)
+	if (graphicsPipeline->gl.state.restartPrimitive)
 		glEnable(GL_PRIMITIVE_RESTART);
 	else
 		glDisable(GL_PRIMITIVE_RESTART);
@@ -1424,7 +1421,7 @@ inline static void bindGlGraphicsPipeline(
 	glUseProgram(graphicsPipeline->gl.glHandle);
 	assertOpenGL();
 
-	if (graphicsPipeline->gl.onBind != NULL)
+	if (graphicsPipeline->gl.onBind)
 		graphicsPipeline->gl.onBind(graphicsPipeline);
 }
 inline static bool getGlUniformLocation(
@@ -1433,8 +1430,8 @@ inline static bool getGlUniformLocation(
 	GLint* location)
 {
 	assert(program != GL_ZERO);
-	assert(name != NULL);
-	assert(location != NULL);
+	assert(name);
+	assert(location);
 
 	GLint uniformLocation = glGetUniformLocation(
 		program,
@@ -1455,8 +1452,8 @@ inline static GLuint getGlUniformBlockIndex(
 	GLuint* blockIndex)
 {
 	assert(program != GL_ZERO);
-	assert(name != NULL);
-	assert(blockIndex != NULL);
+	assert(name);
+	assert(blockIndex);
 
 	GLuint uniformBlockIndex = glGetUniformBlockIndex(
 		program,

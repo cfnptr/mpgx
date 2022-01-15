@@ -36,10 +36,10 @@ static size_t onDraw(
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	assert(graphicsRender != NULL);
-	assert(graphicsPipeline != NULL);
-	assert(model != NULL);
-	assert(viewProj != NULL);
+	assert(graphicsRender);
+	assert(graphicsPipeline);
+	assert(model);
+	assert(viewProj);
 
 	Handle handle = getGraphicsRenderHandle(
 		graphicsRender);
@@ -62,9 +62,9 @@ GraphicsRenderer createTextRenderer(
 	bool useCulling,
 	size_t capacity)
 {
-	assert(textPipeline != NULL);
+	assert(textPipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
-	assert(capacity != 0);
+	assert(capacity > 0);
 
 	assert(strcmp(getGraphicsPipelineName(
 		textPipeline),
@@ -86,9 +86,9 @@ GraphicsRender createTextRender(
 	Text text,
 	Vec4U scissor)
 {
-	assert(textRenderer != NULL);
-	assert(transform != NULL);
-	assert(text != NULL);
+	assert(textRenderer);
+	assert(transform);
+	assert(text);
 
 	assert(getGraphicsPipelineWindow(
 		getGraphicsRendererPipeline(
@@ -100,9 +100,9 @@ GraphicsRender createTextRender(
 		textRenderer)),
 		TEXT_PIPELINE_NAME) == 0);
 
-	Handle handle = malloc(1, sizeof(Handle_T));
+	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return NULL;
 
 	handle->color = color;
@@ -115,7 +115,7 @@ GraphicsRender createTextRender(
 		bounding,
 		handle);
 
-	if (render == NULL)
+	if (!render)
 	{
 		onDestroy(handle);
 		return NULL;
@@ -127,7 +127,7 @@ GraphicsRender createTextRender(
 LinearColor getTextRenderColor(
 	GraphicsRender textRender)
 {
-	assert(textRender != NULL);
+	assert(textRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -141,7 +141,7 @@ void setTextRenderColor(
 	GraphicsRender textRender,
 	LinearColor color)
 {
-	assert(textRender != NULL);
+	assert(textRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -155,7 +155,7 @@ void setTextRenderColor(
 Text getTextRenderText(
 	GraphicsRender textRender)
 {
-	assert(textRender != NULL);
+	assert(textRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -169,8 +169,8 @@ void setTextRenderText(
 	GraphicsRender textRender,
 	Text text)
 {
-	assert(textRender != NULL);
-	assert(text != NULL);
+	assert(textRender);
+	assert(text);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(

@@ -37,7 +37,7 @@ struct FreeCamera_T
 
 void destroyFreeCamera(FreeCamera freeCamera)
 {
-	if (freeCamera == NULL)
+	if (!freeCamera)
 		return;
 
 	destroyTransform(freeCamera->transform);
@@ -52,13 +52,15 @@ FreeCamera createFreeCamera(
 	float nearClipPlane,
 	float farClipPlane)
 {
-	assert(framebuffer != NULL);
-	assert(transformer != NULL);
+	assert(framebuffer);
+	assert(transformer);
+	assert(fieldOfView > 0.0f);
+	assert(nearClipPlane < farClipPlane);
 
 	FreeCamera freeCamera = calloc(1,
 		sizeof(FreeCamera_T));
 
-	if (freeCamera == NULL)
+	if (!freeCamera)
 		return NULL;
 
 	Vec2F lasCursorPosition = getWindowCursorPosition(
@@ -80,9 +82,10 @@ FreeCamera createFreeCamera(
 		oneQuat,
 		ORBIT_ROTATION_TYPE,
 		NULL,
-		true);
+		true,
+		false);
 
-	if (transform == NULL)
+	if (!transform)
 	{
 		destroyFreeCamera(freeCamera);
 		return NULL;
@@ -91,16 +94,34 @@ FreeCamera createFreeCamera(
 	freeCamera->transform = transform;
 	return freeCamera;
 }
+FreeCamera createDefaultFreeCamera(
+	Framebuffer framebuffer,
+	Transformer transformer)
+{
+	assert(framebuffer);
+	assert(transformer);
+
+	return createFreeCamera(
+		framebuffer,
+		transformer,
+		1.0f,
+		1.0f,
+		degToRadF(60.0f),
+		0.01f,
+		1000.0f);
+}
 
 Framebuffer getFreeCameraFramebuffer(
 	FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	return freeCamera->framebuffer;
 }
 Vec3F getFreeCameraViewDirection(
 	FreeCamera freeCamera)
 {
+	assert(freeCamera);
+
 	Quat rotation = getTransformRotation(
 		freeCamera->transform);
 	return normVec3F(dotVecQuat3F(
@@ -110,22 +131,22 @@ Vec3F getFreeCameraViewDirection(
 Transform getFreeCameraTransform(
 	FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	return freeCamera->transform;
 }
 void setFreeCameraTransform(
 	FreeCamera freeCamera,
 	Transform transform)
 {
-	assert(freeCamera != NULL);
-	assert(transform != NULL);
+	assert(freeCamera);
+	assert(transform);
 	freeCamera->transform = transform;
 }
 
 Vec3F getFreeCameraPosition(
 	FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 
 	return negVec3F(getTransformPosition(
 		freeCamera->transform));
@@ -134,7 +155,7 @@ void setFreeCameraPosition(
 	FreeCamera freeCamera,
 	Vec3F position)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 
 	setTransformPosition(
 		freeCamera->transform,
@@ -144,14 +165,14 @@ void setFreeCameraPosition(
 Vec2F getFreeCameraRotation(
 	FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	return freeCamera->rotation;
 }
 void setFreeCameraRotation(
 	FreeCamera freeCamera,
 	Vec2F rotation)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 
 	if (rotation.y > degToRadF(89.9f))
 		rotation.y = degToRadF(89.9f);
@@ -164,84 +185,84 @@ void setFreeCameraRotation(
 float getFreeCameraMoveSpeed(
 	FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	return freeCamera->moveSpeed;
 }
 void setFreeCameraMoveSpeed(
 	FreeCamera freeCamera,
 	float moveSpeed)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	freeCamera->moveSpeed = moveSpeed;
 }
 
 float getFreeCameraViewSpeed(
 	FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	return freeCamera->viewSpeed;
 }
 void setFreeCameraViewSpeed(
 	FreeCamera freeCamera,
 	float viewSpeed)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	freeCamera->viewSpeed = viewSpeed;
 }
 
 float getFreeCameraFieldOfView(
 	FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	return freeCamera->fieldOfView;
 }
 void setFreeCameraFieldOfView(
 	FreeCamera freeCamera,
 	float fieldOfView)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	freeCamera->fieldOfView = fieldOfView;
 }
 
 float getFreeCameraNearClipPlane(
 	FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	return freeCamera->nearClipPlane;
 }
 void setFreeCameraNearClipPlane(
 	FreeCamera freeCamera,
 	float nearClipPlane)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	freeCamera->nearClipPlane = nearClipPlane;
 }
 
 float getFreeCameraFarClipPlane(
 	FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	return freeCamera->farClipPlane;
 }
 void setFreeCameraFarClipPlane(
 	FreeCamera freeCamera,
 	float farClipPlane)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 	freeCamera->farClipPlane = farClipPlane;
 }
 
 void updateFreeCamera(FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 
 	Window window = getFramebufferWindow(
 		freeCamera->framebuffer);
 
-	if (isWindowFocused(window) == false)
+	if (!isWindowFocused(window))
 		return;
 
-	if (getWindowMouseButton(window, RIGHT_MOUSE_BUTTON) == true)
+	if (getWindowMouseButton(window, RIGHT_MOUSE_BUTTON))
 	{
 		setWindowCursorMode(
 			window,
@@ -316,7 +337,7 @@ void updateFreeCamera(FreeCamera freeCamera)
 }
 Camera getFreeCamera(FreeCamera freeCamera)
 {
-	assert(freeCamera != NULL);
+	assert(freeCamera);
 
 	Vec2U framebufferSize = getFramebufferSize(
 		freeCamera->framebuffer);

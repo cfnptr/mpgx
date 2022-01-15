@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TODO: refactor left pipelines asserts and ifs
+
 #include "mpgx/pipelines/color_pipeline.h"
 #include "mpgx/_source/window.h"
 #include "mpgx/_source/graphics_pipeline.h"
@@ -129,15 +131,16 @@ static MpgxResult onVkResize(
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = graphicsPipeline->vk.state.viewport.z +
-		graphicsPipeline->vk.state.viewport.w == 0;
-	if (dynamic == false)
+	if (!(graphicsPipeline->vk.state.viewport.z +
+		graphicsPipeline->vk.state.viewport.w))
+	{
 		graphicsPipeline->vk.state.viewport = size;
-
-	dynamic = graphicsPipeline->vk.state.scissor.z +
-		graphicsPipeline->vk.state.scissor.w == 0;
-	if (dynamic == false)
+	}
+	if (!(graphicsPipeline->vk.state.scissor.z +
+		graphicsPipeline->vk.state.scissor.w))
+	{
 		graphicsPipeline->vk.state.scissor = size;
+	}
 
 	VkGraphicsPipelineCreateData _createData = {
 		1,
@@ -253,15 +256,16 @@ static MpgxResult onGlResize(
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = graphicsPipeline->gl.state.viewport.z +
-		graphicsPipeline->gl.state.viewport.w == 0;
-	if (dynamic == false)
+	if (!(graphicsPipeline->gl.state.viewport.z +
+		graphicsPipeline->gl.state.viewport.w))
+	{
 		graphicsPipeline->gl.state.viewport = size;
-
-	dynamic = graphicsPipeline->gl.state.scissor.z +
-		graphicsPipeline->gl.state.scissor.w == 0;
-	if (dynamic == false)
+	}
+	if (!(graphicsPipeline->gl.state.scissor.z +
+		graphicsPipeline->gl.state.scissor.w))
+	{
 		graphicsPipeline->gl.state.scissor = size;
+	}
 	return SUCCESS_MPGX_RESULT;
 }
 static void onGlDestroy(void* handle)
@@ -318,7 +322,7 @@ inline static MpgxResult createGlPipeline(
 		"u_Color",
 		&colorLocation);
 
-	if (result == false)
+	if (!result)
 	{
 		destroyGraphicsPipeline(
 			graphicsPipelineInstance,

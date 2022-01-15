@@ -38,6 +38,9 @@ void destroyTransformer(Transformer transformer);
 void enumerateTransformer(
 	Transformer transformer,
 	void(*onItem)(Transform));
+void destroyAllTransforms(Transformer transformer);
+
+void updateTransformer(Transformer transformer);
 
 Transform createTransform(
 	Transformer transformer,
@@ -46,11 +49,21 @@ Transform createTransform(
 	Quat rotation,
 	RotationType rotationType,
 	Transform parent,
-	bool isActive);
+	bool isActive,
+	bool isStatic);
 void destroyTransform(Transform transform);
 
-Transformer getTransformTransformer(
-	Transform transform);
+void updateTransform(
+	Transform transform,
+	Vec3F position,
+	Vec3F scale,
+	Quat rotation,
+	RotationType rotationType,
+	Transform parent,
+	bool isActive,
+	bool isStatic);
+
+Transformer getTransformTransformer(Transform transform);
 
 Vec3F getTransformPosition(
 	Transform transform);
@@ -88,8 +101,5 @@ void setTransformActive(
 	Transform transform,
 	bool isActive);
 
-Mat4F getTransformModel(
-	Transform transform);
-
-void updateTransformer(
-	Transformer transformer);
+bool isTransformStatic(Transform transform);
+Mat4F getTransformModel(Transform transform);

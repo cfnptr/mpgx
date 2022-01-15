@@ -137,13 +137,13 @@ if (MPGX_BUILD_EXAMPLES)
 		${PROJECT_BINARY_DIR}
 		${PROJECT_SOURCE_DIR}/include)
 
-	add_executable(mpgx-ray-tracing-example
-		examples/ray_tracing_example.c)
-	target_link_libraries(mpgx-ray-tracing-example PRIVATE
-		mpgx-static)
-	target_include_directories(mpgx-ray-tracing-example PRIVATE
-		${PROJECT_BINARY_DIR}
-		${PROJECT_SOURCE_DIR}/include)
+	#add_executable(mpgx-ray-tracing-example
+	#	examples/ray_tracing_example.c)
+	#target_link_libraries(mpgx-ray-tracing-example PRIVATE
+	#	mpgx-static)
+	#target_include_directories(mpgx-ray-tracing-example PRIVATE
+	#	${PROJECT_BINARY_DIR}
+	#	${PROJECT_SOURCE_DIR}/include)
 
 	set(EXAMPLE_RESOURCES
 		shaders/vulkan/diffuse.frag.spv

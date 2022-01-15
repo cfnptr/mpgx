@@ -37,10 +37,10 @@ static size_t onDraw(
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	assert(graphicsRender != NULL);
-	assert(graphicsPipeline != NULL);
-	assert(model != NULL);
-	assert(viewProj != NULL);
+	assert(graphicsRender);
+	assert(graphicsPipeline);
+	assert(model);
+	assert(viewProj);
 
 	Handle handle = getGraphicsRenderHandle(
 		graphicsRender);
@@ -69,9 +69,9 @@ GraphicsRenderer createTextureSpriteRenderer(
 	bool useCulling,
 	size_t capacity)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
-	assert(capacity != 0);
+	assert(capacity > 0);
 
 	assert(strcmp(getGraphicsPipelineName(
 		textureSpritePipeline),
@@ -94,9 +94,9 @@ GraphicsRender createTextureSpriteRender(
 	Vec2F offset,
 	GraphicsMesh mesh)
 {
-	assert(textureSpriteRenderer != NULL);
-	assert(transform != NULL);
-	assert(mesh != NULL);
+	assert(textureSpriteRenderer);
+	assert(transform);
+	assert(mesh);
 
 	assert(getGraphicsPipelineWindow(
 		getGraphicsRendererPipeline(
@@ -109,7 +109,7 @@ GraphicsRender createTextureSpriteRender(
 
 	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return NULL;
 
 	handle->color = color;
@@ -123,7 +123,7 @@ GraphicsRender createTextureSpriteRender(
 		bounding,
 		handle);
 
-	if (render == NULL)
+	if (!render)
 	{
 		onDestroy(handle);
 		return NULL;
@@ -135,7 +135,7 @@ GraphicsRender createTextureSpriteRender(
 LinearColor getTextureSpriteRenderColor(
 	GraphicsRender textureSpriteRender)
 {
-	assert(textureSpriteRender != NULL);
+	assert(textureSpriteRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -149,7 +149,7 @@ void setTextureSpriteRenderColor(
 	GraphicsRender textureSpriteRender,
 	LinearColor color)
 {
-	assert(textureSpriteRender != NULL);
+	assert(textureSpriteRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -163,7 +163,7 @@ void setTextureSpriteRenderColor(
 Vec2F getTextureSpriteRenderSize(
 	GraphicsRender textureSpriteRender)
 {
-	assert(textureSpriteRender != NULL);
+	assert(textureSpriteRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -177,7 +177,7 @@ void setTextureSpriteRenderSize(
 	GraphicsRender textureSpriteRender,
 	Vec2F size)
 {
-	assert(textureSpriteRender != NULL);
+	assert(textureSpriteRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -191,7 +191,7 @@ void setTextureSpriteRenderSize(
 Vec2F getTextureSpriteRenderOffset(
 	GraphicsRender textureSpriteRender)
 {
-	assert(textureSpriteRender != NULL);
+	assert(textureSpriteRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -205,7 +205,7 @@ void setTextureSpriteRenderOffset(
 	GraphicsRender textureSpriteRender,
 	Vec2F offset)
 {
-	assert(textureSpriteRender != NULL);
+	assert(textureSpriteRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -219,7 +219,7 @@ void setTextureSpriteRenderOffset(
 GraphicsMesh getTextureSpriteRenderMesh(
 	GraphicsRender textureSpriteRender)
 {
-	assert(textureSpriteRender != NULL);
+	assert(textureSpriteRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -233,8 +233,8 @@ void setTextureSpriteRenderMesh(
 	GraphicsRender textureSpriteRender,
 	GraphicsMesh mesh)
 {
-	assert(textureSpriteRender != NULL);
-	assert(mesh != NULL);
+	assert(textureSpriteRender);
+	assert(mesh);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(

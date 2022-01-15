@@ -22,7 +22,7 @@
 inline static MpgxResult beginVkOneTimeCommandBuffer(
 	VkCommandBuffer commandBuffer)
 {
-	assert(commandBuffer != NULL);
+	assert(commandBuffer);
 
 	VkCommandBufferBeginInfo commandBufferBeginInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -53,10 +53,10 @@ inline static MpgxResult endSubmitWaitVkCommandBuffer(
 	VkFence fence,
 	VkCommandBuffer commandBuffer)
 {
-	assert(device != NULL);
-	assert(queue != NULL);
-	assert(fence != NULL);
-	assert(commandBuffer != NULL);
+	assert(device);
+	assert(queue);
+	assert(fence);
+	assert(commandBuffer);
 
 	VkResult vkResult = vkEndCommandBuffer(commandBuffer);
 
@@ -140,9 +140,9 @@ inline static MpgxResult allocateBeginVkCommandBuffer(
 	VkCommandPool commandPool,
 	VkCommandBuffer* commandBuffer)
 {
-	assert(device != NULL);
-	assert(commandPool != NULL);
-	assert(commandBuffer != NULL);
+	assert(device);
+	assert(commandPool);
+	assert(commandBuffer);
 
 	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -202,7 +202,7 @@ inline static MpgxResult allocateBeginVkCommandBuffer(
 inline static MpgxResult endVkCommandBuffer(
 	VkCommandBuffer commandBuffer)
 {
-	assert(commandBuffer != NULL);
+	assert(commandBuffer);
 
 	VkResult vkResult = vkEndCommandBuffer(commandBuffer);
 
@@ -224,12 +224,12 @@ inline static MpgxResult submitVkCommandBuffer(
 	VkFence fence,
 	VkCommandBuffer commandBuffer)
 {
-	assert(device != NULL);
-	assert(queue != NULL);
-	assert(fence != NULL);
-	assert(commandBuffer != NULL);
+	assert(device);
+	assert(queue);
+	assert(fence);
+	assert(commandBuffer);
 
-	if (fence != NULL)
+	if (fence)
 	{
 		VkResult vkResult = vkResetFences(
 			device,
@@ -284,8 +284,8 @@ inline static MpgxResult createVkDescriptorSetLayout(
 	uint32_t descriptorSetLayoutBindingCount,
 	VkDescriptorSetLayout* descriptorSetLayout)
 {
-	assert(device != NULL);
-	assert(descriptorSetLayout != NULL);
+	assert(device);
+	assert(descriptorSetLayout);
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
 		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -323,11 +323,11 @@ inline static MpgxResult createVkDescriptorPool(
 	uint32_t descriptorPoolSizeCount,
 	VkDescriptorPool* descriptorPool)
 {
-	assert(device != NULL);
-	assert(maxSetCount != 0);
-	assert(descriptorPoolSizes != NULL);
-	assert(descriptorPoolSizeCount != 0);
-	assert(descriptorPool != NULL);
+	assert(device);
+	assert(maxSetCount > 0);
+	assert(descriptorPoolSizes);
+	assert(descriptorPoolSizeCount > 0);
+	assert(descriptorPool);
 
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
 		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -366,10 +366,10 @@ inline static MpgxResult allocateVkDescriptorSet(
 	VkDescriptorPool descriptorPool,
 	VkDescriptorSet* descriptorSet)
 {
-	assert(device != NULL);
-	assert(descriptorSetLayout != NULL);
-	assert(descriptorPool != NULL);
-	assert(descriptorSet != NULL);
+	assert(device);
+	assert(descriptorSetLayout);
+	assert(descriptorPool);
+	assert(descriptorSet);
 
 	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
 		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -408,22 +408,22 @@ inline static MpgxResult allocateVkDescriptorSets(
 	uint32_t descriptorSetCount,
 	VkDescriptorSet** descriptorSets)
 {
-	assert(device != NULL);
-	assert(descriptorSetLayout != NULL);
-	assert(descriptorPool != NULL);
-	assert(descriptorSetCount != 0);
-	assert(descriptorSets != NULL);
+	assert(device);
+	assert(descriptorSetLayout);
+	assert(descriptorPool);
+	assert(descriptorSetCount > 0);
+	assert(descriptorSets);
 
 	VkDescriptorSetLayout* descriptorSetLayouts = malloc(
 		descriptorSetCount * sizeof(VkDescriptorSetLayout));
 
-	if (descriptorSetLayouts == NULL)
+	if (!descriptorSetLayouts)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	VkDescriptorSet* descriptorSetArray = malloc(
 		descriptorSetCount * sizeof(VkDescriptorSet));
 
-	if (descriptorSetArray == NULL)
+	if (!descriptorSetArray)
 	{
 		free(descriptorSetLayouts);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -470,8 +470,8 @@ inline static MpgxResult createVkFence(
 	VkFenceCreateFlags flags,
 	VkFence* fence)
 {
-	assert(device != NULL);
-	assert(fence != NULL);
+	assert(device);
+	assert(fence);
 
 	VkFenceCreateInfo createInfo = {
 		VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -505,9 +505,9 @@ inline static MpgxResult getVkFenceStatus(
 	VkFence fence,
 	bool* status)
 {
-	assert(device != NULL);
-	assert(fence != NULL);
-	assert(status != NULL);
+	assert(device);
+	assert(fence);
+	assert(status);
 
 	VkResult vkResult = vkGetFenceStatus(
 		device, fence);
@@ -539,8 +539,8 @@ inline static MpgxResult createVkSemaphore(
 	VkDevice device,
 	VkSemaphore* semaphore)
 {
-	assert(device != NULL);
-	assert(semaphore != NULL);
+	assert(device);
+	assert(semaphore);
 
 	VkSemaphoreCreateInfo createInfo = {
 		VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -575,7 +575,7 @@ inline static bool getVkCompareOperator(
 	VkCompareOp* vkCompareOperator)
 {
 	assert(compareOperator < COMPARE_OPERATOR_COUNT);
-	assert(vkCompareOperator != NULL);
+	assert(vkCompareOperator);
 
 	switch (compareOperator)
 	{
@@ -613,7 +613,7 @@ static VkPhysicalDeviceProperties physicalDeviceProperties;
 inline static const char* getVkWindowGpuName(
 	VkPhysicalDevice physicalDevice)
 {
-	assert(physicalDevice != NULL);
+	assert(physicalDevice);
 	vkGetPhysicalDeviceProperties(
 		physicalDevice,
 		&physicalDeviceProperties);

@@ -172,7 +172,7 @@ inline static MpgxResult createDiffuseRendererInstance(
 		true,
 		MPGX_DEFAULT_CAPACITY);
 
-	if (renderer == NULL)
+	if (!renderer)
 	{
 		destroyGraphicsPipeline(
 			pipeline,
@@ -186,7 +186,7 @@ inline static MpgxResult createDiffuseRendererInstance(
 inline static void destroyDiffuseRendererInstance(
 	GraphicsRenderer diffuseRenderer)
 {
-	if (diffuseRenderer == NULL)
+	if (!diffuseRenderer)
 		return;
 
 	GraphicsPipeline graphicsPipeline =
@@ -212,9 +212,10 @@ inline static MpgxResult createDiffuseRenderInstance(
 		oneQuat,
 		SPIN_ROTATION_TYPE,
 		NULL,
-		true);
+		true,
+		false);
 
-	if (transform == NULL)
+	if (!transform)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Buffer vertexBuffer;
@@ -280,7 +281,7 @@ inline static MpgxResult createDiffuseRenderInstance(
 		bounding,
 		mesh);
 
-	if (render == NULL)
+	if (!render)
 	{
 		destroyGraphicsMesh(
 			mesh,
@@ -295,13 +296,17 @@ inline static MpgxResult createDiffuseRenderInstance(
 inline static void destroyDiffuseRenderInstance(
 	GraphicsRender diffuseRender)
 {
-	if (diffuseRender == NULL)
+	if (!diffuseRender)
 		return;
 
 	GraphicsMesh graphicsMesh =
 		getDiffuseRenderMesh(diffuseRender);
-	destroyGraphicsRender(diffuseRender, true);
-	destroyGraphicsMesh(graphicsMesh, true);
+	destroyGraphicsRender(
+		diffuseRender,
+		true);
+	destroyGraphicsMesh(
+		graphicsMesh,
+		true);
 }
 
 inline static Client createClient()
@@ -309,7 +314,7 @@ inline static Client createClient()
 	Client client = malloc(
 		sizeof(Client_T));
 
-	if (client == NULL)
+	if (!client)
 		return NULL;
 
 	MpgxResult mpgxResult = initializeGraphics(
@@ -349,23 +354,18 @@ inline static Client createClient()
 	Transformer transformer = createTransformer(
 		MPGX_DEFAULT_CAPACITY);
 
-	if (transformer == NULL)
+	if (!transformer)
 	{
 		destroyWindow(window);
 		free(client);
 		return NULL;
 	}
 
-	FreeCamera freeCamera = createFreeCamera(
+	FreeCamera freeCamera = createDefaultFreeCamera(
 		getWindowFramebuffer(window),
-		transformer,
-		1.0f,
-		1.0f,
-		degToRadF(60.0f),
-		0.01f,
-		100.0f);
+		transformer);
 
-	if (freeCamera == NULL)
+	if (!freeCamera)
 	{
 		destroyTransformer(transformer);
 		destroyWindow(window);
@@ -424,7 +424,7 @@ inline static Client createClient()
 }
 inline static void destroyClient(Client client)
 {
-	if (client == NULL)
+	if (!client)
 		return;
 
 	destroyDiffuseRenderInstance(client->diffuseRender);
@@ -445,7 +445,7 @@ int main()
 {
 	Client client = createClient();
 
-	if (client == NULL)
+	if (!client)
 		return EXIT_FAILURE;
 
 	updateClient(client);

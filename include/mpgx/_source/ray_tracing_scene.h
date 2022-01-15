@@ -45,11 +45,11 @@ inline static void destroyVkRayTracingScene(
 	RayTracing rayTracing,
 	RayTracingScene rayTracingScene)
 {
-	assert(device != NULL);
-	assert(allocator != NULL);
-	assert(rayTracing != NULL);
+	assert(device);
+	assert(allocator);
+	assert(rayTracing);
 
-	if (rayTracingScene == NULL)
+	if (!rayTracingScene)
 		return;
 
 	rayTracing->vk.destroyAccelerationStructure(
@@ -75,21 +75,21 @@ inline static MpgxResult createVkRayTracingScene(
 	size_t meshCount,
 	RayTracingScene* rayTracingScene)
 {
-	assert(device != NULL);
-	assert(allocator != NULL);
-	assert(transferQueue != NULL);
-	assert(transferCommandBuffer != NULL);
-	assert(transferFence != NULL);
-	assert(rayTracing != NULL);
-	assert(window != NULL);
-	assert(meshes != NULL);
-	assert(meshCount != 0);
-	assert(rayTracingScene != NULL);
+	assert(device);
+	assert(allocator);
+	assert(transferQueue);
+	assert(transferCommandBuffer);
+	assert(transferFence);
+	assert(rayTracing);
+	assert(window);
+	assert(meshes);
+	assert(meshCount > 0);
+	assert(rayTracingScene);
 
 	RayTracingScene rayTracingSceneInstance = calloc(1,
 		sizeof(RayTracingScene_T));
 
-	if (rayTracingSceneInstance == NULL)
+	if (!rayTracingSceneInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	rayTracingSceneInstance->vk.window = window;
@@ -97,7 +97,7 @@ inline static MpgxResult createVkRayTracingScene(
 	RayTracingMesh* rayTracingMeshes = malloc(
 		meshCount * sizeof(RayTracingMesh));
 
-	if (meshes == NULL)
+	if (!meshes)
 	{
 		destroyVkRayTracingScene(
 			device,
@@ -118,7 +118,7 @@ inline static MpgxResult createVkRayTracingScene(
 	VkAccelerationStructureInstanceKHR* instances =
 		malloc(instanceBufferSize);
 
-	if (instances == NULL)
+	if (!instances)
 	{
 		destroyVkRayTracingScene(
 			device,

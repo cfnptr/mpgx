@@ -35,10 +35,10 @@ static size_t onDraw(
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	assert(graphicsRender != NULL);
-	assert(graphicsPipeline != NULL);
-	assert(model != NULL);
-	assert(viewProj != NULL);
+	assert(graphicsRender);
+	assert(graphicsPipeline);
+	assert(model);
+	assert(viewProj);
 
 	Handle handle = getGraphicsRenderHandle(
 		graphicsRender);
@@ -61,9 +61,9 @@ GraphicsRenderer createColorRenderer(
 	bool useCulling,
 	size_t capacity)
 {
-	assert(colorPipeline != NULL);
+	assert(colorPipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
-	assert(capacity != 0);
+	assert(capacity > 0);
 
 	assert(strcmp(getGraphicsPipelineName(
 		colorPipeline),
@@ -84,9 +84,9 @@ GraphicsRender createColorRender(
 	LinearColor color,
 	GraphicsMesh mesh)
 {
-	assert(colorRenderer != NULL);
-	assert(transform != NULL);
-	assert(mesh != NULL);
+	assert(colorRenderer);
+	assert(transform);
+	assert(mesh);
 
 	assert(getGraphicsPipelineWindow(
 		getGraphicsRendererPipeline(
@@ -99,7 +99,7 @@ GraphicsRender createColorRender(
 
 	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return NULL;
 
 	handle->color = color;
@@ -111,7 +111,7 @@ GraphicsRender createColorRender(
 		bounding,
 		handle);
 
-	if (render == NULL)
+	if (!render)
 	{
 		onDestroy(handle);
 		return NULL;
@@ -123,7 +123,7 @@ GraphicsRender createColorRender(
 LinearColor getColorRenderColor(
 	GraphicsRender colorRender)
 {
-	assert(colorRender != NULL);
+	assert(colorRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -137,7 +137,7 @@ void setColorRenderColor(
 	GraphicsRender colorRender,
 	LinearColor color)
 {
-	assert(colorRender != NULL);
+	assert(colorRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -151,7 +151,7 @@ void setColorRenderColor(
 GraphicsMesh getColorRenderMesh(
 	GraphicsRender colorRender)
 {
-	assert(colorRender != NULL);
+	assert(colorRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -165,8 +165,8 @@ void setColorRenderMesh(
 	GraphicsRender colorRender,
 	GraphicsMesh mesh)
 {
-	assert(colorRender != NULL);
-	assert(mesh != NULL);
+	assert(colorRender);
+	assert(mesh);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(

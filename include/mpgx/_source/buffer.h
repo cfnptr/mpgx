@@ -81,11 +81,11 @@ inline static MpgxResult mapVkBuffer(
 	size_t offset,
 	void** map)
 {
-	assert(allocator != NULL);
-	assert(allocation != NULL);
+	assert(allocator);
+	assert(allocation);
 	assert(usage < BUFFER_USAGE_COUNT);
-	assert(size != 0);
-	assert(map != NULL);
+	assert(size > 0);
+	assert(map);
 
 	assert(usage == CPU_ONLY_BUFFER_USAGE ||
 		usage == CPU_TO_GPU_BUFFER_USAGE ||
@@ -143,10 +143,10 @@ inline static MpgxResult unmapVkBuffer(
 	size_t size,
 	size_t offset)
 {
-	assert(allocator != NULL);
-	assert(allocation != NULL);
+	assert(allocator);
+	assert(allocation);
 	assert(usage < BUFFER_USAGE_COUNT);
-	assert(size != 0);
+	assert(size > 0);
 
 	if (usage == CPU_ONLY_BUFFER_USAGE ||
 		usage == CPU_TO_GPU_BUFFER_USAGE)
@@ -185,10 +185,10 @@ inline static MpgxResult setVkBufferData(
 	size_t size,
 	size_t offset)
 {
-	assert(allocator != NULL);
-	assert(allocation != NULL);
-	assert(data != NULL);
-	assert(size != 0);
+	assert(allocator);
+	assert(allocation);
+	assert(data);
+	assert(size > 0);
 
 	void* mappedData;
 
@@ -239,7 +239,7 @@ inline static void destroyVkBuffer(
 	VmaAllocator allocator,
 	Buffer buffer)
 {
-	assert(allocator != NULL);
+	assert(allocator);
 
 	vmaDestroyBuffer(
 		allocator,
@@ -266,43 +266,37 @@ inline static MpgxResult createVkBuffer(
 	bool useRayTracing,
 	Buffer* buffer)
 {
-	assert(device != NULL);
-	assert(allocator != NULL);
-	assert(transferQueue != NULL);
-	assert(transferCommandBuffer != NULL);
-	assert(transferFence != NULL);
-	assert(stagingBuffer != NULL);
-	assert(stagingAllocation != NULL);
-	assert(stagingSize != NULL);
-	assert(window != NULL);
+	assert(device);
+	assert(allocator);
+	assert(transferQueue);
+	assert(transferCommandBuffer);
+	assert(transferFence);
+	assert(stagingBuffer);
+	assert(stagingAllocation);
+	assert(stagingSize);
+	assert(window);
 	assert(type < BUFFER_TYPE_COUNT);
 	assert(usage < BUFFER_USAGE_COUNT);
-	assert(size != 0);
-	assert(buffer != NULL);
+	assert(size > 0);
+	assert(buffer);
 
 	assert((usage != GPU_TO_CPU_BUFFER_USAGE) ||
-		(usage == GPU_TO_CPU_BUFFER_USAGE && data == NULL));
+		(usage == GPU_TO_CPU_BUFFER_USAGE && !data));
 
 	Buffer bufferInstance = calloc(1, sizeof(Buffer_T));
 
-	if (bufferInstance == NULL)
+	if (!bufferInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	bufferInstance->vk.window = window;
 	bufferInstance->vk.type = type;
+	bufferInstance->vk.usage = usage;
 	bufferInstance->vk.size = size;
 #ifndef NDEBUG
 	bufferInstance->vk.isMapped = false;
 #endif
 	bufferInstance->vk.mapSize = 0;
 	bufferInstance->vk.mapOffset = 0;
-
-	bool isIntegrated = isVkDeviceIntegrated(window);
-
-	if (isIntegrated == true)
-		usage = CPU_ONLY_BUFFER_USAGE;
-
-	bufferInstance->vk.usage = usage;
 
 	switch (type)
 	{
@@ -325,13 +319,13 @@ inline static MpgxResult createVkBuffer(
 		break;
 	}
 
-	if (data != NULL && usage == GPU_ONLY_BUFFER_USAGE)
+	if (data && usage == GPU_ONLY_BUFFER_USAGE)
 		flags |= TRANSFER_DESTINATION_BUFFER_FLAG;
 
 	bufferInstance->vk.flags = flags;
 
 	// TODO: move this to the usage
-	if (useRayTracing == true)
+	if (useRayTracing)
 	{
 		vkUsage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
 			VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
@@ -359,6 +353,8 @@ inline static MpgxResult createVkBuffer(
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 
+	bool isIntegrated = isVkDeviceIntegrated(window);
+
 	switch (usage)
 	{
 	default:
@@ -370,10 +366,12 @@ inline static MpgxResult createVkBuffer(
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 		break;
 	case GPU_ONLY_BUFFER_USAGE:
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+		allocationCreateInfo.usage = isIntegrated ?
+			VMA_MEMORY_USAGE_CPU_ONLY : VMA_MEMORY_USAGE_GPU_ONLY;
 		break;
 	case CPU_TO_GPU_BUFFER_USAGE:
-		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+		allocationCreateInfo.usage = isIntegrated ?
+			VMA_MEMORY_USAGE_CPU_ONLY : VMA_MEMORY_USAGE_CPU_TO_GPU;
 		break;
 	case GPU_TO_CPU_BUFFER_USAGE:
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
@@ -408,7 +406,7 @@ inline static MpgxResult createVkBuffer(
 	bufferInstance->vk.handle = handle;
 	bufferInstance->vk.allocation = allocation;
 
-	if (data != NULL)
+	if (data)
 	{
 		VmaAllocationInfo allocationInfo;
 
@@ -538,10 +536,10 @@ inline static MpgxResult mapGlBuffer(
 {
 	assert(handle != GL_ZERO);
 	assert(usage < BUFFER_TYPE_COUNT);
-	assert(size != 0);
-	assert(map != NULL);
+	assert(size > 0);
+	assert(map);
 
-	assert(usage == CPU_ONLY_BUFFER_USAGE ||
+	assert(usage == CPU_ONLY_BUFFER_USAGE || // TODO: remove cpu only?
 		usage == CPU_TO_GPU_BUFFER_USAGE ||
 		usage == GPU_TO_CPU_BUFFER_USAGE);
 
@@ -562,7 +560,7 @@ inline static MpgxResult mapGlBuffer(
 		(GLsizeiptr)size,
 		glAccess);
 
-	if (mappedData == NULL)
+	if (!mappedData)
 		return FAILED_TO_MAP_MEMORY_MPGX_RESULT;
 
 	GLenum error = glGetError();
@@ -600,8 +598,8 @@ inline static MpgxResult setGlBufferData(
 	size_t offset)
 {
 	assert(handle != GL_ZERO);
-	assert(data != NULL);
-	assert(size != 0);
+	assert(data);
+	assert(size > 0);
 
 	glBindBuffer(
 		type,
@@ -623,7 +621,7 @@ inline static MpgxResult setGlBufferData(
 inline static void destroyGlBuffer(
 	Buffer buffer)
 {
-	if (buffer == NULL)
+	if (!buffer)
 		return;
 
 	makeWindowContextCurrent(
@@ -645,18 +643,18 @@ inline static MpgxResult createGlBuffer(
 	size_t size,
 	Buffer* buffer)
 {
-	assert(window != NULL);
+	assert(window);
 	assert(type < BUFFER_TYPE_COUNT);
 	assert(usage < BUFFER_USAGE_COUNT);
-	assert(size != 0);
-	assert(buffer != NULL);
+	assert(size > 0);
+	assert(buffer);
 
 	assert((usage != GPU_TO_CPU_BUFFER_USAGE) ||
-		(usage == GPU_TO_CPU_BUFFER_USAGE && data == NULL));
+		(usage == GPU_TO_CPU_BUFFER_USAGE && !data));
 
 	Buffer bufferInstance = calloc(1, sizeof(Buffer_T));
 
-	if (bufferInstance == NULL)
+	if (!bufferInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	bufferInstance->gl.window = window;

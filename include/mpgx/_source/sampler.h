@@ -84,7 +84,7 @@ inline static bool getVkImageFilter(
 	VkFilter* vkImageFilter)
 {
 	assert(imageFilter < IMAGE_FILTER_COUNT);
-	assert(vkImageFilter != NULL);
+	assert(vkImageFilter);
 
 	if (imageFilter == NEAREST_IMAGE_FILTER)
 	{
@@ -106,7 +106,7 @@ inline static bool getVkMipmapFilter(
 	VkSamplerMipmapMode* vkMipmapFilter)
 {
 	assert(mipmapFilter < IMAGE_FILTER_COUNT);
-	assert(vkMipmapFilter != NULL);
+	assert(vkMipmapFilter);
 
 	if (mipmapFilter == NEAREST_IMAGE_FILTER)
 	{
@@ -128,7 +128,7 @@ inline static bool getVkImageWrap(
 	VkSamplerAddressMode* vkImageWrap)
 {
 	assert(imageWrap < IMAGE_WRAP_COUNT);
-	assert(vkImageWrap != NULL);
+	assert(vkImageWrap);
 
 	if (imageWrap == REPEAT_IMAGE_WRAP)
 	{
@@ -165,9 +165,9 @@ inline static void destroyVkSampler(
 	VkDevice device,
 	Sampler sampler)
 {
-	assert(device != NULL);
+	assert(device);
 
-	if (sampler == NULL)
+	if (!sampler)
 		return;
 
 	vkDestroySampler(
@@ -192,8 +192,8 @@ inline static MpgxResult createVkSampler(
 	float mipmapLodBias,
 	Sampler* sampler)
 {
-	assert(device != NULL);
-	assert(window != NULL);
+	assert(device);
+	assert(window);
 	assert(minImageFilter < IMAGE_FILTER_COUNT);
 	assert(magImageFilter < IMAGE_FILTER_COUNT);
 	assert(minMipmapFilter < IMAGE_FILTER_COUNT);
@@ -201,12 +201,12 @@ inline static MpgxResult createVkSampler(
 	assert(imageWrapY < IMAGE_WRAP_COUNT);
 	assert(imageWrapZ < IMAGE_WRAP_COUNT);
 	assert(compareOperator < COMPARE_OPERATOR_COUNT);
-	assert(sampler != NULL);
+	assert(sampler);
 
 	Sampler samplerInstance = calloc(1,
 		sizeof(Sampler_T));
 
-	if (samplerInstance == NULL)
+	if (!samplerInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	samplerInstance->vk.window = window;
@@ -249,7 +249,7 @@ inline static MpgxResult createVkSampler(
 		compareOperator,
 		&compare);
 
-	if (result == false)
+	if (!result)
 	{
 		destroyVkSampler(
 			device,
@@ -316,11 +316,11 @@ inline static bool getGlImageFilter(
 {
 	assert(imageFilter < IMAGE_FILTER_COUNT);
 	assert(mipmapFilter < IMAGE_FILTER_COUNT);
-	assert(glImageFilter != NULL);
+	assert(glImageFilter);
 
 	if (imageFilter == NEAREST_IMAGE_FILTER)
 	{
-		if (useMipmapping == true)
+		if (useMipmapping)
 		{
 			if (mipmapFilter == NEAREST_IMAGE_FILTER)
 			{
@@ -345,7 +345,7 @@ inline static bool getGlImageFilter(
 	}
 	else if (imageFilter == LINEAR_IMAGE_FILTER)
 	{
-		if (useMipmapping == true)
+		if (useMipmapping)
 		{
 			if (mipmapFilter == NEAREST_IMAGE_FILTER)
 			{
@@ -378,7 +378,7 @@ inline static bool getGlImageWrap(
 	GLenum* glImageWrap)
 {
 	assert(imageWrap < IMAGE_WRAP_COUNT);
-	assert(glImageWrap != NULL);
+	assert(glImageWrap);
 
 	if (imageWrap == REPEAT_IMAGE_WRAP)
 	{
@@ -404,7 +404,7 @@ inline static bool getGlImageWrap(
 inline static void destroyGlSampler(
 	Sampler sampler)
 {
-	if (sampler == NULL)
+	if (!sampler)
 		return;
 
 	makeWindowContextCurrent(
@@ -431,7 +431,7 @@ inline static MpgxResult createGlSampler(
 	Vec2F mipmapLodRange,
 	Sampler* sampler)
 {
-	assert(window != NULL);
+	assert(window);
 	assert(minImageFilter < IMAGE_FILTER_COUNT);
 	assert(magImageFilter < IMAGE_FILTER_COUNT);
 	assert(minMipmapFilter < IMAGE_FILTER_COUNT);
@@ -439,12 +439,12 @@ inline static MpgxResult createGlSampler(
 	assert(imageWrapY < IMAGE_WRAP_COUNT);
 	assert(imageWrapZ < IMAGE_WRAP_COUNT);
 	assert(compareOperator < COMPARE_OPERATOR_COUNT);
-	assert(sampler != NULL);
+	assert(sampler);
 
 	Sampler samplerInstance = calloc(1,
 		sizeof(Sampler_T));
 
-	if (samplerInstance == NULL)
+	if (!samplerInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	samplerInstance->gl.window = window;
@@ -496,7 +496,7 @@ inline static MpgxResult createGlSampler(
 		compareOperator,
 		&compare);
 
-	if (result == false)
+	if (!result)
 	{
 		destroyGlSampler(samplerInstance);
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;

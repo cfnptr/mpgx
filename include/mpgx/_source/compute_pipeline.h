@@ -68,11 +68,11 @@ inline static MpgxResult createVkComputePipelineHandle(
 	Shader shader,
 	VkPipeline* handle)
 {
-	assert(device != NULL);
-	assert(cache != NULL);
-	assert(layout != NULL);
-	assert(shader != NULL);
-	assert(handle != NULL);
+	assert(device);
+	assert(cache);
+	assert(layout);
+	assert(shader);
+	assert(handle);
 
 	VkPipelineShaderStageCreateInfo shaderStageCreateInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -125,9 +125,9 @@ inline static void destroyVkComputePipeline(
 	ComputePipeline computePipeline,
 	bool _destroyShader)
 {
-	assert(device != NULL);
+	assert(device);
 
-	if (computePipeline == NULL)
+	if (!computePipeline)
 		return;
 
 	vkDestroyPipeline(
@@ -143,7 +143,7 @@ inline static void destroyVkComputePipeline(
 		computePipeline->vk.cache,
 		NULL);
 
-	if (_destroyShader == true)
+	if (_destroyShader)
 		destroyShader(computePipeline->vk.shader);
 
 	free(computePipeline);
@@ -159,18 +159,18 @@ inline static MpgxResult createVkComputePipeline(
 	Shader shader,
 	ComputePipeline* computePipeline)
 {
-	assert(device != NULL);
-	assert(createData != NULL);
-	assert(window != NULL);
-	assert(name != NULL);
-	assert(onDestroy != NULL);
-	assert(shader != NULL);
-	assert(computePipeline != NULL);
+	assert(device);
+	assert(createData);
+	assert(window);
+	assert(name);
+	assert(onDestroy);
+	assert(shader);
+	assert(computePipeline);
 
 	ComputePipeline computePipelineInstance = calloc(1,
 		sizeof(ComputePipeline_T));
 
-	if (computePipelineInstance == NULL)
+	if (!computePipelineInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 #ifndef NDEBUG
@@ -278,15 +278,15 @@ inline static void bindVkComputePipeline(
 	VkCommandBuffer commandBuffer,
 	ComputePipeline computePipeline)
 {
-	assert(commandBuffer != NULL);
-	assert(computePipeline != NULL);
+	assert(commandBuffer);
+	assert(computePipeline);
 
 	vkCmdBindPipeline(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_COMPUTE,
 		computePipeline->vk.vkHandle);
 
-	if (computePipeline->vk.onBind != NULL)
+	if (computePipeline->vk.onBind)
 		computePipeline->vk.onBind(computePipeline);
 }
 
@@ -296,11 +296,8 @@ inline static void dispatchVkComputePipeline(
 	uint32_t groupCountY,
 	uint32_t groupCountZ)
 {
-	assert(commandBuffer != NULL);
-	
-	assert(groupCountX != 0 ||
-		groupCountY != 0 ||
-		groupCountZ != 0);
+	assert(commandBuffer);
+	assert(groupCountX > 0 || groupCountY > 0 || groupCountZ > 0);
 
 	vkCmdDispatch(
 		commandBuffer,

@@ -76,7 +76,7 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
 	void* userData)
 {
-	assert(callbackData != NULL);
+	assert(callbackData);
 
 #if __APPLE__
 	if (callbackData->messageIdNumber == 0x6bbb14 ||
@@ -113,9 +113,9 @@ inline static MpgxResult checkVkInstanceLayers(
 	bool* isLayerSupported,
 	uint32_t layerCount)
 {
-	assert(layers != NULL);
-	assert(isLayerSupported != NULL);
-	assert(layerCount != 0);
+	assert(layers);
+	assert(isLayerSupported);
+	assert(layerCount > 0);
 
 	uint32_t layerPropertyCount;
 
@@ -136,7 +136,7 @@ inline static MpgxResult checkVkInstanceLayers(
 	VkLayerProperties* layerProperties = malloc(
 		layerPropertyCount * sizeof(VkLayerProperties));
 
-	if (layerProperties == NULL)
+	if (!layerProperties)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	vkResult = vkEnumerateInstanceLayerProperties(
@@ -180,9 +180,9 @@ inline static MpgxResult checkVkInstanceExtensions(
 	bool* isExtensionSupported,
 	uint32_t extensionCount)
 {
-	assert(extensions != NULL);
-	assert(isExtensionSupported != NULL);
-	assert(extensionCount != 0);
+	assert(extensions);
+	assert(isExtensionSupported);
+	assert(extensionCount > 0);
 
 	uint32_t extensionPropertyCount;
 
@@ -204,7 +204,7 @@ inline static MpgxResult checkVkInstanceExtensions(
 	VkExtensionProperties* extensionProperties = malloc(
 		extensionPropertyCount * sizeof(VkLayerProperties));
 
-	if (extensionProperties == NULL)
+	if (!extensionProperties)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	vkResult = vkEnumerateInstanceExtensionProperties(
@@ -257,12 +257,12 @@ inline static MpgxResult createVkInstance(
 	uint32_t extensionCount,
 	VkInstance* instance)
 {
-	assert(appName != NULL);
-	assert(layers != NULL);
-	assert(layerCount != 0);
-	assert(extensions != NULL);
-	assert(extensionCount != 0);
-	assert(instance != NULL);
+	assert(appName);
+	assert(layers);
+	assert(layerCount > 0);
+	assert(extensions);
+	assert(extensionCount > 0);
+	assert(instance);
 
 	uint32_t appVersion = VK_MAKE_API_VERSION(0,
 		appVersionMajor,
@@ -348,8 +348,8 @@ inline static MpgxResult createVkDebugUtilsMessenger(
 	VkInstance instance,
 	VkDebugUtilsMessengerEXT* debugUtilsMessenger)
 {
-	assert(instance != NULL);
-	assert(debugUtilsMessenger != NULL);
+	assert(instance);
+	assert(debugUtilsMessenger);
 
 	VkDebugUtilsMessengerCreateInfoEXT createInfo = {
 		VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
@@ -368,7 +368,7 @@ inline static MpgxResult createVkDebugUtilsMessenger(
 		(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
 		instance, "vkCreateDebugUtilsMessengerEXT");
 
-	if (createFunction == NULL)
+	if (!createFunction)
 		return FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT;
 
 	VkDebugUtilsMessengerEXT debugUtilsMessengerInstance;
@@ -394,17 +394,16 @@ inline static void destroyVkDebugUtilsMessenger(
 	VkInstance instance,
 	VkDebugUtilsMessengerEXT debugUtilsMessenger)
 {
-	assert(instance != NULL);
-	assert(debugUtilsMessenger != NULL);
+	assert(instance);
 
-	if (debugUtilsMessenger == NULL)
+	if (!debugUtilsMessenger)
 		return;
 
 	PFN_vkDestroyDebugUtilsMessengerEXT destroyFunction =
 		(PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
 		instance, "vkDestroyDebugUtilsMessengerEXT");
 
-	if (destroyFunction == NULL)
+	if (!destroyFunction)
 		abort();
 
 	destroyFunction(
@@ -418,9 +417,9 @@ inline static MpgxResult getBestVkPhysicalDevice(
 	bool* isIntegrated,
 	VkPhysicalDevice* physicalDevice)
 {
-	assert(instance != NULL);
-	assert(isIntegrated != NULL);
-	assert(physicalDevice != NULL);
+	assert(instance);
+	assert(isIntegrated);
+	assert(physicalDevice);
 
 	uint32_t deviceCount;
 
@@ -444,7 +443,7 @@ inline static MpgxResult getBestVkPhysicalDevice(
 	VkPhysicalDevice* devices = malloc(
 		deviceCount * sizeof(VkPhysicalDevice));
 
-	if (devices == NULL)
+	if (!devices)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	vkResult = vkEnumeratePhysicalDevices(
@@ -527,11 +526,11 @@ inline static MpgxResult getVkQueueFamilyIndices(
 	uint32_t* presentQueueFamilyIndex,
 	uint32_t* computeQueueFamilyIndex)
 {
-	assert(physicalDevice != NULL);
-	assert(surface != NULL);
-	assert(graphicsQueueFamilyIndex != NULL);
-	assert(presentQueueFamilyIndex != NULL);
-	assert(computeQueueFamilyIndex != NULL);
+	assert(physicalDevice);
+	assert(surface);
+	assert(graphicsQueueFamilyIndex);
+	assert(presentQueueFamilyIndex);
+	assert(computeQueueFamilyIndex);
 
 	uint32_t propertyCount;
 
@@ -543,7 +542,7 @@ inline static MpgxResult getVkQueueFamilyIndices(
 	VkQueueFamilyProperties* properties = malloc(
 		propertyCount * sizeof(VkQueueFamilyProperties));
 
-	if (properties == NULL)
+	if (!properties)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	vkGetPhysicalDeviceQueueFamilyProperties(
@@ -624,10 +623,10 @@ inline static MpgxResult checkVkDeviceExtensions(
 	bool* isExtensionSupported,
 	uint32_t extensionCount)
 {
-	assert(physicalDevice != NULL);
-	assert(extensions != NULL);
-	assert(isExtensionSupported != NULL);
-	assert(extensionCount != 0);
+	assert(physicalDevice);
+	assert(extensions);
+	assert(isExtensionSupported);
+	assert(extensionCount > 0);
 
 	uint32_t propertyCount;
 
@@ -652,7 +651,7 @@ inline static MpgxResult checkVkDeviceExtensions(
 	VkExtensionProperties* properties = malloc(
 		propertyCount * sizeof(VkExtensionProperties));
 
-	if (properties == NULL)
+	if (!properties)
 		return false;
 
 	vkResult = vkEnumerateDeviceExtensionProperties(
@@ -704,10 +703,10 @@ inline static MpgxResult createVkDevice(
 	uint32_t extensionCount,
 	VkDevice* device)
 {
-	assert(physicalDevice != NULL);
-	assert(extensions != NULL);
-	assert(extensionCount != 0);
-	assert(device != NULL);
+	assert(physicalDevice);
+	assert(extensions);
+	assert(extensionCount > 0);
+	assert(device);
 
 	float priority = 1.0f;
 
@@ -753,7 +752,7 @@ inline static MpgxResult createVkDevice(
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures;
 
-	if (useRayTracing == true)
+	if (useRayTracing)
 	{
 		memset(&bufferDeviceAddressFeatures, 0,
 			sizeof(VkPhysicalDeviceBufferDeviceAddressFeatures));
@@ -777,8 +776,7 @@ inline static MpgxResult createVkDevice(
 
 	VkDeviceCreateInfo deviceCreateInfo = {
 		VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-		useRayTracing == true ?
-		&bufferDeviceAddressFeatures : NULL,
+		useRayTracing ? &bufferDeviceAddressFeatures : NULL,
 		0,
 		queueCreateInfoCount,
 		queueCreateInfos,
@@ -823,10 +821,10 @@ inline static MpgxResult createVmaAllocator(
 	bool hasDeviceAddressExt,
 	VmaAllocator* vmaAllocator)
 {
-	assert(physicalDevice != NULL);
-	assert(device != NULL);
-	assert(instance != NULL);
-	assert(vmaAllocator != NULL);
+	assert(physicalDevice);
+	assert(device);
+	assert(instance);
+	assert(vmaAllocator);
 
 	VmaAllocatorCreateInfo createInfo;
 
@@ -839,9 +837,9 @@ inline static MpgxResult createVmaAllocator(
 	createInfo.instance = instance;
 	createInfo.vulkanApiVersion = VK_VERSION;
 
-	if (hasMemoryBudgetExt == true)
+	if (hasMemoryBudgetExt)
 		createInfo.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
-	if (hasDeviceAddressExt == true)
+	if (hasDeviceAddressExt)
 		createInfo.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
 	VmaAllocator vmaAllocatorInstance;
@@ -870,8 +868,8 @@ inline static MpgxResult createVkCommandPool(
 	uint32_t queueFamilyIndex,
 	VkCommandPool* commandPool)
 {
-	assert(device != NULL);
-	assert(commandPool != NULL);
+	assert(device);
+	assert(commandPool);
 
 	VkCommandPoolCreateInfo createInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -906,9 +904,9 @@ inline static MpgxResult allocateVkCommandBuffer(
 	VkCommandPool commandPool,
 	VkCommandBuffer* commandBuffer)
 {
-	assert(device != NULL);
-	assert(commandPool != NULL);
-	assert(commandBuffer != NULL);
+	assert(device);
+	assert(commandPool);
+	assert(commandBuffer);
 
 	VkCommandBufferAllocateInfo allocateInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -943,15 +941,15 @@ inline static void destroyVkWindow(
 	VkInstance instance,
 	VkWindow window)
 {
-	assert(instance != NULL);
+	assert(instance);
 
-	if (window == NULL)
+	if (!window)
 		return;
 
 	VkDevice device = window->device;
 	VmaAllocator allocator = window->allocator;
 
-	if (allocator != NULL)
+	if (allocator)
 	{
 		vmaDestroyBuffer(
 			allocator,
@@ -961,7 +959,7 @@ inline static void destroyVkWindow(
 		VkCommandPool graphicsCommandPool = window->graphicsCommandPool;
 		VkCommandPool presentCommandPool = window->presentCommandPool;
 
-		if (device != NULL)
+		if (device)
 		{
 			destroyVkSwapchain(
 				device,
@@ -1000,7 +998,7 @@ inline static void destroyVkWindow(
 
 				VkFence fence = fences[i];
 
-				if (fence != NULL)
+				if (fence)
 				{
 					VkResult vkResult = vkWaitForFences(
 						device,
@@ -1074,15 +1072,15 @@ inline static MpgxResult createVkWindow(
 	Vec2U framebufferSize,
 	VkWindow* vkWindow)
 {
-	assert(instance != NULL);
-	assert(handle != NULL);
+	assert(instance);
+	assert(handle);
 	assert(framebufferSize.x > 0);
 	assert(framebufferSize.y > 0);
-	assert(vkWindow != NULL);
+	assert(vkWindow);
 
 	VkWindow window = calloc(1, sizeof(VkWindow_T));
 
-	if (window == NULL)
+	if (!window)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	VkSurfaceKHR surface;
@@ -1174,7 +1172,7 @@ inline static MpgxResult createVkWindow(
 	uint32_t accelerationStructureExtIndex;
 	uint32_t rayTracingPipelineExtIndex;
 
-	if (useRayTracing == true)
+	if (useRayTracing)
 	{
 		extensions[extensionCount++] =
 		targetExtensions[targetExtensionCount] =
@@ -1204,28 +1202,28 @@ inline static MpgxResult createVkWindow(
 		return mpgxResult;
 	}
 
-	if (isExtensionSupported[swapchainExtIndex] == false)
+	if (!isExtensionSupported[swapchainExtIndex])
 	{
 		destroyVkWindow(instance, window);
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 #if __APPLE__
-	if (isExtensionSupported[portabilitySubsetExtIndex] == false)
+	if (!isExtensionSupported[portabilitySubsetExtIndex])
 	{
 		destroyVkWindow(instance, window);
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 #endif
 
-	if (isExtensionSupported[memoryBudgetExtIndex] == true)
+	if (isExtensionSupported[memoryBudgetExtIndex])
 		extensions[extensionCount++] = targetExtensions[memoryBudgetExtIndex];
 
-	if (useRayTracing == true)
+	if (useRayTracing)
 	{
-		if (isExtensionSupported[deferredHostOperationsExtIndex] == false ||
-			isExtensionSupported[accelerationStructureExtIndex] == false ||
-			isExtensionSupported[rayTracingPipelineExtIndex] == false)
+		if (!isExtensionSupported[deferredHostOperationsExtIndex] |
+			!isExtensionSupported[accelerationStructureExtIndex] |
+			!isExtensionSupported[rayTracingPipelineExtIndex])
 		{
 			destroyVkWindow(instance, window);
 			return RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT;

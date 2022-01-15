@@ -57,6 +57,13 @@ void setInterfaceScale(
 	Interface interface,
 	float scale);
 
+void enumerateInterface(
+	Interface interface,
+	void(*onItem)(InterfaceElement));
+void destroyAllInterfaceElements(
+	Interface interface,
+	bool destroyTransforms);
+
 Camera createInterfaceCamera(
 	Interface interface);
 

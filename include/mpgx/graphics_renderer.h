@@ -94,6 +94,9 @@ void setGraphicsRendererUseCulling(
 void enumerateGraphicsRenderer(
 	GraphicsRenderer graphicsRenderer,
 	void(*onItem)(GraphicsRender));
+void destroyAllGraphicsRenders(
+	GraphicsRenderer graphicsRenderer,
+	bool destroyTransforms);
 
 void createGraphicsRenderData(
 	Window window,
@@ -127,3 +130,21 @@ void setGraphicsRenderBounding(
 
 void* getGraphicsRenderHandle(
 	GraphicsRender graphicsRender);
+
+inline static GraphicsRenderResult createGraphicsRenderResult()
+{
+	GraphicsRenderResult result;
+	result.renderCount = 0;
+	result.indexCount = 0;
+	result.passCount = 0;
+	return result;
+}
+inline static GraphicsRenderResult addGraphicsRenderResult(
+	GraphicsRenderResult a, GraphicsRenderResult b)
+{
+	GraphicsRenderResult result;
+	result.renderCount = a.renderCount + b.renderCount;
+	result.indexCount = a.indexCount + b.indexCount;
+	result.passCount = a.passCount + b.passCount;
+	return result;
+}

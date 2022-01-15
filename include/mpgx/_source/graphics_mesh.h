@@ -69,14 +69,14 @@ inline static MpgxResult createVkGraphicsMesh(
 	Buffer indexBuffer,
 	GraphicsMesh* graphicsMesh)
 {
-	assert(window != NULL);
+	assert(window);
 	assert(indexType < INDEX_TYPE_COUNT);
-	assert(graphicsMesh != NULL);
+	assert(graphicsMesh);
 
 	GraphicsMesh graphicsMeshInstance = calloc(1,
 		sizeof(GraphicsMesh_T));
 
-	if (graphicsMeshInstance == NULL)
+	if (!graphicsMeshInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	graphicsMeshInstance->vk.window = window;
@@ -93,10 +93,10 @@ inline static void destroyVkGraphicsMesh(
 	GraphicsMesh graphicsMesh,
 	bool destroyBuffers)
 {
-	if (graphicsMesh == NULL)
+	if (!graphicsMesh)
 		return;
 
-	if (destroyBuffers == true)
+	if (destroyBuffers)
 	{
 		destroyBuffer(graphicsMesh->vk.vertexBuffer);
 		destroyBuffer(graphicsMesh->vk.indexBuffer);
@@ -108,8 +108,8 @@ inline static void drawVkGraphicsMesh(
 	VkCommandBuffer commandBuffer,
 	GraphicsMesh graphicsMesh)
 {
-	assert(commandBuffer != NULL);
-	assert(graphicsMesh != NULL);
+	assert(commandBuffer);
+	assert(graphicsMesh);
 
 	IndexType indexType = graphicsMesh->vk.indexType;
 
@@ -160,7 +160,7 @@ inline static void destroyGlGraphicsMesh(
 	GraphicsMesh graphicsMesh,
 	bool destroyBuffers)
 {
-	if (graphicsMesh == NULL)
+	if (!graphicsMesh)
 		return;
 
 	makeWindowContextCurrent(
@@ -171,7 +171,7 @@ inline static void destroyGlGraphicsMesh(
 		&graphicsMesh->gl.handle);
 	assertOpenGL();
 
-	if (destroyBuffers == true)
+	if (destroyBuffers)
 	{
 		destroyBuffer(graphicsMesh->gl.vertexBuffer);
 		destroyBuffer(graphicsMesh->gl.indexBuffer);
@@ -188,14 +188,14 @@ inline static MpgxResult createGlGraphicsMesh(
 	Buffer indexBuffer,
 	GraphicsMesh* graphicsMesh)
 {
-	assert(window != NULL);
+	assert(window);
 	assert(indexType < INDEX_TYPE_COUNT);
-	assert(graphicsMesh != NULL);
+	assert(graphicsMesh);
 
 	GraphicsMesh graphicsMeshInstance = calloc(1,
 		sizeof(GraphicsMesh_T));
 
-	if (graphicsMesh == NULL)
+	if (!graphicsMesh)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	graphicsMeshInstance->gl.window = window;
@@ -233,8 +233,8 @@ inline static void drawGlGraphicsMesh(
 	GraphicsPipeline graphicsPipeline,
 	GraphicsMesh graphicsMesh)
 {
-	assert(graphicsPipeline != NULL);
-	assert(graphicsMesh != NULL);
+	assert(graphicsPipeline);
+	assert(graphicsMesh);
 
 	glBindVertexArray(
 		graphicsMesh->gl.handle);
@@ -246,7 +246,7 @@ inline static void drawGlGraphicsMesh(
 		graphicsMesh->gl.indexBuffer->gl.handle);
 	assertOpenGL();
 
-	if (graphicsPipeline->gl.onUniformsSet != NULL)
+	if (graphicsPipeline->gl.onUniformsSet)
 		graphicsPipeline->gl.onUniformsSet(graphicsPipeline);
 
 	IndexType drawIndex = graphicsMesh->gl.indexType;

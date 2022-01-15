@@ -74,7 +74,7 @@ inline static bool getGlCompareOperator(
 	GLenum* glCompareOperator)
 {
 	assert(compareOperator < COMPARE_OPERATOR_COUNT);
-	assert(glCompareOperator != NULL);
+	assert(glCompareOperator);
 
 	switch (compareOperator)
 	{

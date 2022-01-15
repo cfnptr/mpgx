@@ -34,10 +34,10 @@ static size_t onDraw(
 	const Mat4F* model,
 	const Mat4F* viewProj)
 {
-	assert(graphicsRender != NULL);
-	assert(graphicsPipeline != NULL);
-	assert(model != NULL);
-	assert(viewProj != NULL);
+	assert(graphicsRender);
+	assert(graphicsPipeline);
+	assert(model);
+	assert(viewProj);
 
 	Handle handle = getGraphicsRenderHandle(
 		graphicsRender);
@@ -62,9 +62,9 @@ GraphicsRenderer createDiffuseRenderer(
 	bool useCulling,
 	size_t capacity)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
-	assert(capacity != 0);
+	assert(capacity > 0);
 
 	assert(strcmp(getGraphicsPipelineName(
 		diffusePipeline),
@@ -84,9 +84,9 @@ GraphicsRender createDiffuseRender(
 	Box3F bounding,
 	GraphicsMesh mesh)
 {
-	assert(diffuseRenderer != NULL);
-	assert(transform != NULL);
-	assert(mesh != NULL);
+	assert(diffuseRenderer);
+	assert(transform);
+	assert(mesh);
 
 	assert(getGraphicsPipelineWindow(
 		getGraphicsRendererPipeline(
@@ -99,7 +99,7 @@ GraphicsRender createDiffuseRender(
 
 	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return NULL;
 
 	handle->mesh = mesh;
@@ -110,7 +110,7 @@ GraphicsRender createDiffuseRender(
 		bounding,
 		handle);
 
-	if (render == NULL)
+	if (!render)
 	{
 		onDestroy(handle);
 		return NULL;
@@ -122,7 +122,7 @@ GraphicsRender createDiffuseRender(
 GraphicsMesh getDiffuseRenderMesh(
 	GraphicsRender diffuseRender)
 {
-	assert(diffuseRender != NULL);
+	assert(diffuseRender);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
@@ -136,8 +136,8 @@ void setDiffuseRenderMesh(
 	GraphicsRender diffuseRender,
 	GraphicsMesh mesh)
 {
-	assert(diffuseRender != NULL);
-	assert(mesh != NULL);
+	assert(diffuseRender);
+	assert(mesh);
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(

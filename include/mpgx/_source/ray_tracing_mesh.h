@@ -56,11 +56,11 @@ inline static MpgxResult createVkRayTracingBuffer(
 	void* data,
 	uint8_t** mappedData)
 {
-	assert(device != NULL);
-	assert(allocator != NULL);
-	assert(size != 0);
-	assert(buffer != NULL);
-	assert(allocation != NULL);
+	assert(device);
+	assert(allocator);
+	assert(size > 0);
+	assert(buffer);
+	assert(allocation);
 
 	VkBufferCreateInfo bufferCreateInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -78,7 +78,7 @@ inline static MpgxResult createVkRayTracingBuffer(
 
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 
-	if (data != NULL || mappedData != NULL)
+	if (data || mappedData)
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 	else
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -106,7 +106,7 @@ inline static MpgxResult createVkRayTracingBuffer(
 
 	uint8_t* mappedBuffer;
 
-	if (data != NULL)
+	if (data)
 	{
 		void* bufferMappedData;
 
@@ -135,7 +135,7 @@ inline static MpgxResult createVkRayTracingBuffer(
 		uint8_t* bufferMappedArray = bufferMappedData;
 		memcpy(bufferMappedArray, data, size);
 
-		if (mappedData != NULL)
+		if (mappedData)
 		{
 			mappedBuffer = bufferMappedArray;
 		}
@@ -169,7 +169,7 @@ inline static MpgxResult createVkRayTracingBuffer(
 	}
 	else
 	{
-		if (mappedData != NULL)
+		if (mappedData)
 		{
 			void* bufferMappedData;
 
@@ -207,14 +207,14 @@ inline static MpgxResult createVkRayTracingBuffer(
 
 	VkDeviceAddress bufferAddress;
 
-	if (address != NULL)
+	if (address)
 	{
 		bufferAddress = vkGetBufferDeviceAddress(
 			device, &bufferDeviceAddressInfo);
 
 		if (bufferAddress == 0)
 		{
-			if (mappedData != NULL)
+			if (mappedData)
 			{
 				vmaUnmapMemory(
 					allocator,
@@ -232,9 +232,9 @@ inline static MpgxResult createVkRayTracingBuffer(
 	*buffer = bufferInstance;
 	*allocation = allocationInstance;
 
-	if (mappedData != NULL)
+	if (mappedData)
 		*mappedData = mappedBuffer;
-	if (address != NULL)
+	if (address)
 		*address = bufferAddress;
 	return SUCCESS_MPGX_RESULT;
 }
@@ -243,9 +243,9 @@ inline static MpgxResult unmapVkRayTracingBuffer(
 	VmaAllocation allocation,
 	size_t size)
 {
-	assert(allocator != NULL);
-	assert(allocation != NULL);
-	assert(size != 0);
+	assert(allocator);
+	assert(allocation);
+	assert(size > 0);
 
 	VkResult vkResult = vmaFlushAllocation(
 		allocator,
@@ -285,17 +285,17 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 	VkAccelerationStructureKHR* accelerationStructure,
 	VkDeviceAddress* deviceAddress)
 {
-	assert(device != NULL);
-	assert(allocator != NULL);
-	assert(transferQueue != NULL);
-	assert(transferCommandBuffer != NULL);
-	assert(transferFence != NULL);
-	assert(rayTracing != NULL);
-	assert(buildGeometryInfo != NULL);
-	assert(primitiveCount != 0);
-	assert(buffer != NULL);
-	assert(allocation != NULL);
-	assert(accelerationStructure != NULL);
+	assert(device);
+	assert(allocator);
+	assert(transferQueue);
+	assert(transferCommandBuffer);
+	assert(transferFence);
+	assert(rayTracing);
+	assert(buildGeometryInfo);
+	assert(primitiveCount > 0);
+	assert(buffer);
+	assert(allocation);
+	assert(accelerationStructure);
 
 	VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo;
 	buildSizeInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
@@ -452,7 +452,7 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 
 	// TODO: compact acceleration structure
 
-	if (deviceAddress != NULL)
+	if (!deviceAddress)
 	{
 		VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo = {
 			VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
@@ -493,11 +493,11 @@ inline static void destroyVkRayTracingMesh(
 	RayTracingMesh rayTracingMesh,
 	bool destroyBuffers)
 {
-	assert(device != NULL);
-	assert(allocator != NULL);
-	assert(rayTracing != NULL);
+	assert(device);
+	assert(allocator);
+	assert(rayTracing);
 
-	if (rayTracingMesh == NULL)
+	if (!rayTracingMesh)
 		return;
 
 	rayTracing->vk.destroyAccelerationStructure(
@@ -509,7 +509,7 @@ inline static void destroyVkRayTracingMesh(
 		rayTracingMesh->vk.buffer,
 		rayTracingMesh->vk.allocation);
 
-	if (destroyBuffers == true)
+	if (destroyBuffers)
 	{
 		destroyBuffer(rayTracingMesh->vk.indexBuffer);
 		destroyBuffer(rayTracingMesh->vk.vertexBuffer);
@@ -531,23 +531,23 @@ inline static MpgxResult createVkRayTracingMesh(
 	Buffer indexBuffer,
 	RayTracingMesh* rayTracingMesh)
 {
-	assert(device != NULL);
-	assert(allocator != NULL);
-	assert(transferQueue != NULL);
-	assert(transferCommandBuffer != NULL);
-	assert(transferFence != NULL);
-	assert(rayTracing != NULL);
-	assert(window != NULL);
-	assert(vertexStride != 0);
+	assert(device);
+	assert(allocator);
+	assert(transferQueue);
+	assert(transferCommandBuffer);
+	assert(transferFence);
+	assert(rayTracing);
+	assert(window);
+	assert(vertexStride > 0);
 	assert(indexType < INDEX_TYPE_COUNT);
-	assert(vertexBuffer != NULL);
-	assert(indexBuffer != NULL);
-	assert(rayTracingMesh != NULL);
+	assert(vertexBuffer);
+	assert(indexBuffer);
+	assert(rayTracingMesh);
 
 	RayTracingMesh rayTracingMeshInstance = calloc(1,
 		sizeof(RayTracingMesh_T));
 
-	if (rayTracingMeshInstance == NULL)
+	if (!rayTracingMeshInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	rayTracingMeshInstance->vk.window = window;

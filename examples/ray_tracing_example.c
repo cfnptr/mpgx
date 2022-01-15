@@ -16,7 +16,7 @@
 // NOT YET WORKING
 // !!!!!!!!!!!!!!!!
 
-#include "mpgx/defines.h"
+/*#include "mpgx/defines.h"
 #include "mpgx/free_camera.h"
 #include "mpgx/primitives/cube_primitive.h"
 #include "mpgx/pipelines/ray_tracing_color_pipeline.h"
@@ -306,14 +306,9 @@ inline static Client createClient()
 		return NULL;
 	}
 
-	FreeCamera freeCamera = createFreeCamera(
+	FreeCamera freeCamera = createDefaultFreeCamera(
 		getWindowFramebuffer(window),
-		transformer,
-		1.0f,
-		1.0f,
-		degToRadF(60.0f),
-		0.01f,
-		100.0f);
+		transformer);
 
 	if (freeCamera == NULL)
 	{
@@ -398,3 +393,4 @@ int main()
 	destroyClient(client);
 	return EXIT_SUCCESS;
 }
+*/

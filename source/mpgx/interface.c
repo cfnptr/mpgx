@@ -38,14 +38,18 @@ struct Interface_T
 	size_t elementCapacity;
 	size_t elementCount;
 	InterfaceElement lastElement;
+#ifndef NDEBUG
+	bool isEnumerating;
+#endif
 };
 
 void destroyInterface(Interface interface)
 {
-	if (interface == NULL)
+	if (!interface)
 		return;
 
 	assert(interface->elementCount == 0);
+	assert(!interface->isEnumerating);
 
 	free(interface->elements);
 	free(interface);
@@ -55,23 +59,26 @@ Interface createInterface(
 	float scale,
 	size_t capacity)
 {
-	assert(window != NULL);
+	assert(window);
 	assert(scale > 0.0f);
-	assert(capacity != 0);
+	assert(capacity > 0);
 
 	Interface interface = calloc(1,
 		sizeof(Interface_T));
 
-	if (interface == NULL)
+	if (!interface)
 		return NULL;
 
 	interface->window = window;
 	interface->scale = scale;
+#ifndef NDEBUG
+	interface->isEnumerating = false;
+#endif
 
 	InterfaceElement* elements = malloc(
 		sizeof(InterfaceElement) * capacity);
 
-	if (elements == NULL)
+	if (!elements)
 	{
 		destroyInterface(interface);
 		return NULL;
@@ -86,34 +93,82 @@ Interface createInterface(
 
 bool isInterfaceEmpty(Interface interface)
 {
-	assert(interface != NULL);
+	assert(interface);
 	return interface->elementCount == 0;
 }
 Window getInterfaceWindow(Interface interface)
 {
-	assert(interface != NULL);
+	assert(interface);
 	return interface->window;
 }
 
 float getInterfaceScale(
 	Interface interface)
 {
-	assert(interface != NULL);
+	assert(interface);
 	return interface->scale;
 }
 void setInterfaceScale(
 	Interface interface,
 	float scale)
 {
-	assert(interface != NULL);
+	assert(interface);
 	assert(scale > 0.0f);
 	interface->scale = scale;
+}
+
+void enumerateInterface(
+	Interface interface,
+	void(*onItem)(InterfaceElement))
+{
+	assert(interface);
+	assert(onItem);
+
+#ifndef NDEBUG
+	interface->isEnumerating = true;
+#endif
+
+	InterfaceElement* elements = interface->elements;
+	size_t elementCount = interface->elementCount;
+
+	for (size_t i = 0; i < elementCount; i++)
+		onItem(elements[i]);
+
+#ifndef NDEBUG
+	interface->isEnumerating = false;
+#endif
+}
+void destroyAllInterfaceElements(
+	Interface interface,
+	bool destroyTransforms)
+{
+	assert(interface);
+	assert(!interface->isEnumerating);
+
+	InterfaceElement* elements = interface->elements;
+	size_t elementCount = interface->elementCount;
+
+	if (elementCount == 0)
+		return;
+
+	for (size_t i = 0; i < elementCount; i++)
+	{
+		InterfaceElement element = elements[i];
+		element->onDestroy(element->handle);
+
+		if (destroyTransforms)
+			destroyTransform(element->transform);
+
+		free(element);
+	}
+
+	interface->elementCount = 0;
 }
 
 Camera createInterfaceCamera(
 	Interface interface)
 {
-	assert(interface != NULL);
+	assert(interface);
 
 	Vec2U windowSize = getWindowSize(interface->window);
 	float scale = interface->scale;
@@ -133,7 +188,7 @@ Camera createInterfaceCamera(
 
 void preUpdateInterface(Interface interface)
 {
-	assert(interface != NULL);
+	assert(interface);
 
 	size_t elementCount = interface->elementCount;
 
@@ -153,14 +208,14 @@ void preUpdateInterface(Interface interface)
 		InterfaceElement element = elements[i];
 		Transform transform = element->transform;
 
-		if (isTransformActive(transform) == false)
+		if (!isTransformActive(transform))
 			continue;
 
 		Transform parent = getTransformParent(transform);
 
-		while (parent != NULL)
+		while (parent)
 		{
-			if (isTransformActive(parent) == false)
+			if (!isTransformActive(parent))
 				goto CONTINUE;
 			parent = getTransformParent(parent);
 		}
@@ -234,17 +289,14 @@ void preUpdateInterface(Interface interface)
 }
 void updateInterface(Interface interface)
 {
-	assert(interface != NULL);
+	assert(interface);
 
 	InterfaceElement* elements = interface->elements;
 	size_t elementCount = interface->elementCount;
 	Window window = interface->window;
 
-	if (elementCount == 0 ||
-		isWindowFocused(window) == false)
-	{
+	if (elementCount == 0 || !isWindowFocused(window))
 		return;
-	}
 
 	float interfaceScale = interface->scale;
 	Vec2U windowSize = getWindowSize(window);
@@ -270,22 +322,19 @@ void updateInterface(Interface interface)
 		InterfaceElement element = elements[i];
 		Transform transform = element->transform;
 
-		if (element->isEnabled == false ||
-			isTransformActive(transform) == false)
-		{
+		if (!element->isEnabled || !isTransformActive(transform))
 			continue;
-		}
 
 		Transform parent = getTransformParent(transform);
 
-		while (parent != NULL)
+		while (parent)
 		{
-			if (isTransformActive(parent) == false)
+			if (!isTransformActive(parent))
 				goto CONTINUE;
 			parent = getTransformParent(parent);
 		}
 
-		if (element->events.onUpdate != NULL)
+		if (element->events.onUpdate)
 			element->events.onUpdate(element);
 
 		Vec3F position = getTranslationMat4F(
@@ -307,14 +356,10 @@ void updateInterface(Interface interface)
 			bounds.maximum.x + position.x,
 			bounds.maximum.y + position.y);
 
-		bool colliding = isPointInBox2F(
-			bounds,
-			cursorPosition);
-
-		if (colliding == false)
+		if (!isPointInBox2F(bounds, cursorPosition))
 			continue;
 
-		if (newElement != NULL)
+		if (newElement)
 		{
 			if (position.z < elementDistance)
 			{
@@ -333,26 +378,16 @@ void updateInterface(Interface interface)
 
 	InterfaceElement lastElement = interface->lastElement;
 
-	if (lastElement == NULL)
-	{
-		if (newElement != NULL)
-		{
-			if (newElement->events.onEnter != NULL)
-				newElement->events.onEnter(newElement);
-			interface->lastElement = newElement;
-		}
-	}
-	else
+	if (lastElement)
 	{
 		if (lastElement != newElement)
 		{
-			if (lastElement->events.onExit != NULL)
+			if (lastElement->events.onExit)
 				lastElement->events.onExit(lastElement);
 
 			lastElement->isPressed = false;
 
-			if (newElement != NULL &&
-				newElement->events.onEnter != NULL)
+			if (newElement && newElement->events.onEnter)
 			{
 				newElement->events.onEnter(newElement);
 			}
@@ -361,34 +396,43 @@ void updateInterface(Interface interface)
 		}
 		else
 		{
-			if (isLeftButtonPressed == true)
+			if (isLeftButtonPressed)
 			{
-				if (lastElement->isPressed == false)
+				if (lastElement->isPressed)
 				{
-					if (lastElement->events.onPress != NULL)
-						lastElement->events.onPress(lastElement);
-					lastElement->isPressed = true;
+					if (lastElement->events.onStay)
+						lastElement->events.onStay(lastElement);
 				}
 				else
 				{
-					if (lastElement->events.onStay != NULL)
-						lastElement->events.onStay(lastElement);
+					if (lastElement->events.onPress)
+						lastElement->events.onPress(lastElement);
+					lastElement->isPressed = true;
 				}
 			}
 			else
 			{
-				if (lastElement->isPressed == true)
+				if (lastElement->isPressed)
 				{
-					if (lastElement->events.onRelease != NULL)
+					if (lastElement->events.onRelease)
 						lastElement->events.onRelease(lastElement);
 					lastElement->isPressed = false;
 				}
 				else
 				{
-					if (lastElement->events.onStay != NULL)
+					if (lastElement->events.onStay)
 						lastElement->events.onStay(lastElement);
 				}
 			}
+		}
+	}
+	else
+	{
+		if (newElement)
+		{
+			if (newElement->events.onEnter)
+				newElement->events.onEnter(newElement);
+			interface->lastElement = newElement;
 		}
 	}
 }
@@ -404,18 +448,18 @@ InterfaceElement createInterfaceElement(
 	const InterfaceElementEvents* events,
 	void* handle)
 {
-	assert(interface != NULL);
-	assert(transform != NULL);
-	assert(alignment >= CENTER_ALIGNMENT_TYPE);
+	assert(interface);
+	assert(transform);
 	assert(alignment < ALIGNMENT_TYPE_COUNT);
-	assert(onDestroy != NULL);
-	assert(events != NULL);
-	assert(handle != NULL);
+	assert(onDestroy);
+	assert(events);
+	assert(handle);
+	assert(!interface->isEnumerating);
 
 	InterfaceElement element = malloc(
 		sizeof(InterfaceElement_T));
 
-	if (element == NULL)
+	if (!element)
 		return NULL;
 
 	element->interface = interface;
@@ -439,7 +483,7 @@ InterfaceElement createInterfaceElement(
 			interface->elements,
 			sizeof(InterfaceElement) * capacity);
 
-		if (elements == NULL)
+		if (!elements)
 		{
 			free(element);
 			return NULL;
@@ -457,8 +501,10 @@ void destroyInterfaceElement(
 	InterfaceElement element,
 	bool _destroyTransform)
 {
-	if (element == NULL)
+	if (!element)
 		return;
+
+	assert(!element->interface->isEnumerating);
 
 	Interface interface = element->interface;
 	InterfaceElement* elements = interface->elements;
@@ -474,7 +520,7 @@ void destroyInterfaceElement(
 
 		element->onDestroy(element->handle);
 
-		if (_destroyTransform == true)
+		if (_destroyTransform)
 			destroyTransform(element->transform);
 
 		free(element);
@@ -488,46 +534,45 @@ void destroyInterfaceElement(
 Interface getInterfaceElementInterface(
 	InterfaceElement element)
 {
-	assert(element != NULL);
+	assert(element);
 	return element->interface;
 }
 Transform getInterfaceElementTransform(
 	InterfaceElement element)
 {
-	assert(element != NULL);
+	assert(element);
 	return element->transform;
 }
 OnInterfaceElementDestroy getInterfaceElementOnDestroy(
 	InterfaceElement element)
 {
-	assert(element != NULL);
+	assert(element);
 	return element->onDestroy;
 }
 const InterfaceElementEvents* getInterfaceElementEvents(
 	InterfaceElement element)
 {
-	assert(element != NULL);
+	assert(element);
 	return &element->events;
 }
 void* getInterfaceElementHandle(
 	InterfaceElement element)
 {
-	assert(element != NULL);
+	assert(element);
 	return element->handle;
 }
 
 AlignmentType getInterfaceElementAnchor(
 	InterfaceElement element)
 {
-	assert(element != NULL);
+	assert(element);
 	return element->alignment;
 }
 void setInterfaceElementAnchor(
 	InterfaceElement element,
 	AlignmentType alignment)
 {
-	assert(element != NULL);
-	assert(alignment >= CENTER_ALIGNMENT_TYPE);
+	assert(element);
 	assert(alignment < ALIGNMENT_TYPE_COUNT);
 	element->alignment = alignment;
 }
@@ -535,57 +580,57 @@ void setInterfaceElementAnchor(
 Vec3F getInterfaceElementPosition(
 	InterfaceElement element)
 {
-	assert(element != NULL);
+	assert(element);
 	return element->position;
 }
 void setInterfaceElementPosition(
 	InterfaceElement element,
 	Vec3F position)
 {
-	assert(element != NULL);
+	assert(element);
 	element->position = position;
 }
 
 Box2F getInterfaceElementBounds(
 	InterfaceElement element)
 {
-	assert(element != NULL);
+	assert(element);
 	return element->bounds;
 }
 void setInterfaceElementBounds(
 	InterfaceElement element,
 	Box2F bounds)
 {
-	assert(element != NULL);
+	assert(element);
 	element->bounds = bounds;
 }
 
 bool isInterfaceElementEnabled(
 	InterfaceElement element)
 {
-	assert(element != NULL);
+	assert(element);
 	return element->isEnabled;
 }
 void setInterfaceElementEnabled(
 	InterfaceElement element,
 	bool isEnabled)
 {
-	assert(element != NULL);
+	assert(element);
 
-	if (isEnabled == true)
+	if (isEnabled)
 	{
-		if (element->isEnabled == false)
+		if (!element->isEnabled)
 		{
-			if (element->events.onEnable != NULL)
+			if (element->events.onEnable)
 				element->events.onEnable(element);
 			element->isEnabled = true;
 		}
 	}
 	else
 	{
-		if (element->isEnabled == true)
+		if (element->isEnabled)
 		{
-			if (element->events.onDisable != NULL)
+			if (element->events.onDisable)
 				element->events.onDisable(element);
 			element->isEnabled = false;
 		}

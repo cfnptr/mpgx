@@ -129,10 +129,10 @@ bool createStringUTF8(
 	char** _array,
 	size_t* _arrayLength)
 {
-	assert(data != NULL);
-	assert(dataLength != 0);
-	assert(_array != NULL);
-	assert(_arrayLength != NULL);
+	assert(data);
+	assert(dataLength > 0);
+	assert(_array);
+	assert(_arrayLength);
 
 	size_t arrayLength = 0;
 
@@ -155,7 +155,7 @@ bool createStringUTF8(
 	char* array = malloc(
 		(arrayLength + 1) * sizeof(char));
 
-	if (array == NULL)
+	if (!array)
 		return false;
 
 	for (size_t i = 0, j = 0; i < dataLength; i++)
@@ -205,8 +205,8 @@ bool validateStringUTF8(
 	const char* array,
 	size_t arrayLength)
 {
-	assert(array != NULL);
-	assert(arrayLength != 0);
+	assert(array);
+	assert(arrayLength > 0);
 
 	for (size_t i = 0; i < arrayLength; i++)
 	{
@@ -242,10 +242,10 @@ bool createStringUTF32(
 	uint32_t** _array,
 	size_t* _arrayLength)
 {
-	assert(data != NULL);
-	assert(dataLength != 0);
-	assert(_array != NULL);
-	assert(_arrayLength != NULL);
+	assert(data);
+	assert(dataLength > 0);
+	assert(_array);
+	assert(_arrayLength);
 
 	size_t arrayLength = 0;
 
@@ -289,7 +289,7 @@ bool createStringUTF32(
 	uint32_t* array = malloc(
 		(arrayLength + 1) * sizeof(uint32_t));
 
-	if (array == NULL)
+	if (!array)
 		return false;
 
 	for (size_t i = 0, j = 0; i < dataLength; j++)
@@ -339,8 +339,8 @@ bool validateStringUTF32(
 	const uint32_t* array,
 	size_t arrayLength)
 {
-	assert(array != NULL);
-	assert(arrayLength != 0);
+	assert(array);
+	assert(arrayLength > 0);
 
 	for (size_t i = 0; i < arrayLength; i++)
 	{
@@ -356,19 +356,19 @@ MpgxResult createFont(
 	size_t size,
 	Font* font)
 {
-	assert(_data != NULL);
-	assert(size != 0);
-	assert(font != NULL);
+	assert(_data);
+	assert(size > 0);
+	assert(font);
 
 	Font fontInstance = malloc(sizeof(Font_T));
 
-	if (fontInstance == NULL)
+	if (!fontInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	uint8_t* data = malloc(
 		size * sizeof(uint8_t));
 
-	if (data == NULL)
+	if (!data)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	memcpy(data, _data, size);
@@ -413,12 +413,12 @@ MpgxResult createFontFromFile(
 	const void* filePath,
 	Font* font)
 {
-	assert(filePath != NULL);
-	assert(font != NULL);
+	assert(filePath);
+	assert(font);
 
 	Font fontInstance = malloc(sizeof(Font_T));
 
-	if (fontInstance == NULL)
+	if (!fontInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	FT_Library ftLibrary =
@@ -457,7 +457,7 @@ MpgxResult createFontFromFile(
 }
 void destroyFont(Font font)
 {
-	if (font == NULL)
+	if (!font)
 		return;
 
 	FT_Done_Face(font->face);
@@ -487,15 +487,15 @@ inline static bool createTextGlyphs( // TODO: use instead of bools MpgxResults
 	Glyph** _glyphs,
 	size_t* _glyphCount)
 {
-	assert(array != NULL);
-	assert(arrayLength != 0);
-	assert(_glyphs != NULL);
-	assert(_glyphCount != 0);
+	assert(array);
+	assert(arrayLength > 0);
+	assert(_glyphs);
+	assert(_glyphCount > 0);
 
 	Glyph* glyphs = malloc(
 		arrayLength * sizeof(Glyph));
 
-	if (glyphs == NULL)
+	if (!glyphs)
 		return false;
 
 	size_t glyphCount = 0;
@@ -519,7 +519,7 @@ inline static bool createTextGlyphs( // TODO: use instead of bools MpgxResults
 			sizeof(Glyph),
 			compareGlyph);
 
-		if (glyph == NULL)
+		if (!glyph)
 		{
 			glyphs[glyphCount].value = value;
 			glyphCount++;
@@ -552,14 +552,14 @@ inline static bool createTextPixels(
 	size_t* _pixelCount,
 	uint32_t* _pixelLength)
 {
-	assert(face != NULL);
-	assert(fontSize != 0);
-	assert(glyphs != NULL);
-	assert(glyphCount != 0);
-	assert(textPixelLength != 0);
-	assert(_pixels != NULL);
-	assert(_pixelCount != NULL);
-	assert(_pixelLength != NULL);
+	assert(face);
+	assert(fontSize > 0);
+	assert(glyphs);
+	assert(glyphCount > 0);
+	assert(textPixelLength > 0);
+	assert(_pixels);
+	assert(_pixelCount);
+	assert(_pixelLength);
 
 	uint32_t glyphLength = (uint32_t)ceilf(sqrtf((float)glyphCount));
 	uint32_t pixelLength = glyphLength * fontSize;
@@ -569,7 +569,7 @@ inline static bool createTextPixels(
 		pixelCount,
 		sizeof(uint8_t));
 
-	if (pixels == NULL)
+	if (!pixels)
 		return false;
 
 	if (textPixelLength < pixelLength)
@@ -654,19 +654,19 @@ inline static bool createTextVertices(
 	size_t* _vertexCount,
 	Vec2F* _textSize)
 {
-	assert(array != NULL);
-	assert(arrayLength != 0);
-	assert(glyphs != NULL);
-	assert(glyphCount != 0);
-	assert(_vertices != NULL);
-	assert(_vertexCount != NULL);
-	assert(_textSize != NULL);
+	assert(array);
+	assert(arrayLength > 0);
+	assert(glyphs);
+	assert(glyphCount > 0);
+	assert(_vertices);
+	assert(_vertexCount);
+	assert(_textSize);
 
 	// TODO: use mapBuffer here
 	size_t vertexCount = arrayLength * 16;
 	float* vertices = malloc(vertexCount * sizeof(float));
 
-	if (vertices == NULL)
+	if (!vertices)
 		return false;
 
 	Vec2F vertexOffset = vec2F(
@@ -782,7 +782,7 @@ inline static bool createTextVertices(
 				sizeof(Glyph),
 				compareGlyph);
 
-			if (glyph == NULL)
+			if (!glyph)
 			{
 				free(vertices);
 				return false;
@@ -802,13 +802,13 @@ inline static bool createTextVertices(
 			sizeof(Glyph),
 			compareGlyph);
 
-		if (glyph == NULL)
+		if (!glyph)
 		{
 			free(vertices);
 			return false;
 		}
 
-		if (glyph->isVisible == true)
+		if (glyph->isVisible)
 		{
 			Vec4F position = vec4F(
 				vertexOffset.x + glyph->position.x,
@@ -996,16 +996,16 @@ inline static bool createTextIndices(
 	uint32_t** _indices,
 	size_t* _indexCount)
 {
-	assert(vertexCount != 0);
-	assert(_indices != NULL);
-	assert(_indexCount != 0);
+	assert(vertexCount > 0);
+	assert(_indices);
+	assert(_indexCount > 0);
 
 	size_t indexCount = (vertexCount / 16) * 6;
 
 	uint32_t* indices = malloc(
 		indexCount * sizeof(uint32_t));
 
-	if (indices == NULL)
+	if (!indices)
 		return false;
 
 	for (size_t i = 0, j = 0; i < indexCount; i += 6, j += 4)
@@ -1029,9 +1029,9 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 	uint32_t bufferCount,
 	VkDescriptorPool* descriptorPool)
 {
-	assert(device != NULL);
-	assert(bufferCount != 0);
-	assert(descriptorPool != NULL);
+	assert(device);
+	assert(bufferCount > 0);
+	assert(descriptorPool);
 
 	VkDescriptorPoolSize descriptorPoolSizes[1] = {
 		{
@@ -1064,13 +1064,13 @@ inline static MpgxResult createVkDescriptorSetArray(
 	VkImageView imageView,
 	VkDescriptorSet** descriptorSets)
 {
-	assert(device != NULL);
-	assert(descriptorSetLayout != NULL);
-	assert(descriptorPool != NULL);
-	assert(bufferCount != 0);
-	assert(sampler != NULL);
-	assert(imageView != NULL);
-	assert(descriptorSets != NULL);
+	assert(device);
+	assert(descriptorSetLayout);
+	assert(descriptorPool);
+	assert(bufferCount > 0);
+	assert(sampler);
+	assert(imageView);
+	assert(descriptorSets);
 
 	VkDescriptorSet* descriptorSetArray;
 
@@ -1132,28 +1132,26 @@ MpgxResult createText32(
 	bool isConstant,
 	Text* text)
 {
-	assert(textPipeline != NULL);
-	assert(font != NULL);
-	assert(fontSize != 0);
-	assert(alignment >= CENTER_ALIGNMENT_TYPE);
+	assert(textPipeline);
+	assert(font);
+	assert(fontSize > 0);
 	assert(alignment < ALIGNMENT_TYPE_COUNT);
-	assert(_data != NULL);
-	assert(dataLength != 0);
-	assert(text != NULL);
+	assert(_data);
+	assert(dataLength > 0);
+	assert(text);
 
-	assert(strcmp(
-		textPipeline->base.name,
+	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 
 	Text textInstance = malloc(sizeof(Text_T));
 
-	if (textInstance == NULL)
+	if (!textInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	uint32_t* data = malloc(
 		dataLength * sizeof(uint32_t));
 
-	if (data == NULL)
+	if (!data)
 	{
 		free(text);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -1171,7 +1169,7 @@ MpgxResult createText32(
 		&glyphs,
 		&glyphCount);
 
-	if (result == false)
+	if (!result)
 	{
 		free(data);
 		free(text);
@@ -1211,7 +1209,7 @@ MpgxResult createText32(
 		&pixelCount,
 		&pixelLength);
 
-	if (result == false)
+	if (!result)
 	{
 		free(glyphs);
 		free(data);
@@ -1261,7 +1259,7 @@ MpgxResult createText32(
 
 	free(glyphs);
 
-	if (result == false)
+	if (!result)
 	{
 		destroyImage(texture);
 		free(data);
@@ -1300,7 +1298,7 @@ MpgxResult createText32(
 		&indices,
 		&indexCount);
 
-	if (result == false)
+	if (!result)
 	{
 		destroyBuffer(vertexBuffer);
 		destroyImage(texture);
@@ -1438,7 +1436,7 @@ MpgxResult createText32(
 			handle->base.texts,
 			capacity * sizeof(Text));
 
-		if (texts == NULL)
+		if (!texts)
 		{
 #if MPGX_SUPPORT_VULKAN
 			if (api == VULKAN_GRAPHICS_API)
@@ -1480,12 +1478,12 @@ MpgxResult createText8(
 	bool isConstant,
 	Text* text)
 {
-	assert(textPipeline != NULL);
-	assert(font != NULL);
-	assert(fontSize != 0);
-	assert(data != NULL);
-	assert(dataLength != 0);
-	assert(text != NULL);
+	assert(textPipeline);
+	assert(font);
+	assert(fontSize > 0);
+	assert(data);
+	assert(dataLength > 0);
+	assert(text);
 
 	uint32_t* array;
 	size_t arrayLength;
@@ -1496,7 +1494,7 @@ MpgxResult createText8(
 		&array,
 		&arrayLength);
 
-	if (result == false)
+	if (!result)
 		return UNKNOWN_ERROR_MPGX_RESULT; // TODO:
 
 	MpgxResult mpgxResult = createText32(
@@ -1514,7 +1512,7 @@ MpgxResult createText8(
 }
 void destroyText(Text text)
 {
-	if (text == NULL)
+	if (!text)
 		return;
 
 	Handle handle = text->pipeline->base.handle;
@@ -1570,23 +1568,23 @@ void destroyText(Text text)
 
 GraphicsPipeline getTextPipeline(Text text)
 {
-	assert(text != NULL);
+	assert(text);
 	return text->pipeline;
 }
 bool isTextConstant(Text text)
 {
-	assert(text != NULL);
+	assert(text);
 	return text->isConstant;
 }
 
 Vec2F getTextSize(Text text)
 {
-	assert(text != NULL);
+	assert(text);
 	return text->textSize;
 }
 Vec2F getTextOffset(Text text)
 {
-	assert(text != NULL);
+	assert(text);
 
 	AlignmentType alignment = text->alignment;
 	Vec2F textSize = text->textSize;
@@ -1640,8 +1638,8 @@ bool getTextCaretAdvance(
 	size_t index,
 	Vec2F* _advance)
 {
-	assert(text != NULL);
-	assert(_advance != NULL);
+	assert(text);
+	assert(_advance);
 
 	if (index == 0)
 	{
@@ -1724,9 +1722,9 @@ bool getTextCaretPosition(
 	Vec2F* advance,
 	size_t* index)
 {
-	assert(text != NULL);
-	assert(advance != NULL);
-	assert(index != NULL);
+	assert(text);
+	assert(advance);
+	assert(index);
 
 	// TODO:
 	abort();
@@ -1735,60 +1733,59 @@ bool getTextCaretPosition(
 Font getTextFont(
 	Text text)
 {
-	assert(text != NULL);
+	assert(text);
 	return text->font;
 }
 void setTextFont(
 	Text text,
 	Font font)
 {
-	assert(text != NULL);
-	assert(font != NULL);
-	assert(text->isConstant == false);
+	assert(text);
+	assert(font);
+	assert(!text->isConstant);
 	text->font = font;
 }
 
 uint32_t getTextFontSize(
 	Text text)
 {
-	assert(text != NULL);
+	assert(text);
 	return text->fontSize;
 }
 void setTextFontSize(
 	Text text,
 	uint32_t fontSize)
 {
-	assert(text != NULL);
-	assert(text->isConstant == false);
+	assert(text);
+	assert(!text->isConstant);
 	text->fontSize = fontSize;
 }
 
 AlignmentType getTextAlignment(
 	Text text)
 {
-	assert(text != NULL);
+	assert(text);
 	return text->alignment;
 }
 void setTextAlignment(
 	Text text,
 	AlignmentType alignment)
 {
-	assert(text != NULL);
-	assert(text->isConstant == false);
-	assert(alignment >= CENTER_ALIGNMENT_TYPE);
+	assert(text);
+	assert(!text->isConstant);
 	assert(alignment < ALIGNMENT_TYPE_COUNT);
 	text->alignment = alignment;
 }
 
 size_t getTextDataLength(Text text)
 {
-	assert(text != NULL);
+	assert(text);
 	return text->dataLength;
 }
 const uint32_t* getTextData(
 	Text text)
 {
-	assert(text != NULL);
+	assert(text);
 	return text->data;
 }
 
@@ -1798,12 +1795,12 @@ bool setTextData32(
 	size_t dataLength,
 	bool reuseBuffers)
 {
-	assert(text != NULL);
-	assert(_data != NULL);
-	assert(dataLength != 0);
-	assert(text->isConstant == false);
+	assert(text);
+	assert(_data);
+	assert(dataLength > 0);
+	assert(!text->isConstant);
 
-	if (reuseBuffers == true)
+	if (reuseBuffers)
 	{
 		if (dataLength > text->dataCapacity)
 		{
@@ -1811,7 +1808,7 @@ bool setTextData32(
 				text->data,
 				dataLength * sizeof(uint32_t));
 
-			if (data == NULL)
+			if (!data)
 				return false;
 
 			memcpy(data, _data,
@@ -1835,7 +1832,7 @@ bool setTextData32(
 		uint32_t* data = malloc(
 			dataLength * sizeof(uint32_t));
 
-		if (data == NULL)
+		if (!data)
 			return false;
 
 		free(text->data);
@@ -1852,9 +1849,9 @@ bool setTextData8(
 	size_t dataLength,
 	bool reuseBuffers)
 {
-	assert(data != NULL);
-	assert(dataLength != 0);
-	assert(text->isConstant == false);
+	assert(data);
+	assert(dataLength > 0);
+	assert(!text->isConstant);
 
 	uint32_t* array;
 	size_t arrayLength;
@@ -1865,7 +1862,7 @@ bool setTextData8(
 		&array,
 		&arrayLength);
 
-	if (result == false)
+	if (!result)
 		return false;
 
 	result = setTextData32(
@@ -1882,8 +1879,8 @@ MpgxResult bakeText(
 	Text text,
 	bool reuseBuffers)
 {
-	assert(text != NULL);
-	assert(text->isConstant == false);
+	assert(text);
+	assert(!text->isConstant);
 
 	GraphicsPipeline pipeline = text->pipeline;
 	Window window = pipeline->base.framebuffer->base.window;
@@ -1892,7 +1889,7 @@ MpgxResult bakeText(
 	uint32_t* data = text->data;
 	size_t dataLength = text->dataLength;
 
-	if (reuseBuffers == true)
+	if (reuseBuffers)
 	{
 		Glyph* glyphs;
 		size_t glyphCount;
@@ -1903,7 +1900,7 @@ MpgxResult bakeText(
 			&glyphs,
 			&glyphCount);
 
-		if (result == false)
+		if (!result)
 			return UNKNOWN_ERROR_MPGX_RESULT; // TODO:
 
 		FT_Face face = text->font->face;
@@ -1941,7 +1938,7 @@ MpgxResult bakeText(
 			&pixelCount,
 			&pixelLength);
 
-		if (result == false)
+		if (!result)
 		{
 			free(glyphs);
 			return UNKNOWN_ERROR_MPGX_RESULT;
@@ -2022,7 +2019,7 @@ MpgxResult bakeText(
 
 		free(glyphs);
 
-		if (result == false)
+		if (!result)
 		{
 			destroyImage(texture);
 			free(pixels);
@@ -2063,7 +2060,7 @@ MpgxResult bakeText(
 				&indices,
 				&indexCount);
 
-			if (result == false)
+			if (!result)
 			{
 				destroyBuffer(vertexBuffer);
 				destroyImage(texture);
@@ -2091,7 +2088,7 @@ MpgxResult bakeText(
 			}
 		}
 
-		if (texture == NULL)
+		if (!texture)
 		{
 			MpgxResult mpgxResult = setImageData(
 				text->texture,
@@ -2123,7 +2120,7 @@ MpgxResult bakeText(
 			text->texture = texture;
 		}
 
-		if (vertexBuffer == NULL)
+		if (!vertexBuffer)
 		{
 			GraphicsMesh mesh = text->mesh;
 			Buffer _vertexBuffer = getGraphicsMeshVertexBuffer(mesh);
@@ -2175,7 +2172,7 @@ MpgxResult bakeText(
 			&glyphs,
 			&glyphCount);
 
-		if (result == false)
+		if (!result)
 			return UNKNOWN_ERROR_MPGX_RESULT; // TODO:
 
 		FT_Face face = text->font->face;
@@ -2210,7 +2207,7 @@ MpgxResult bakeText(
 			&pixelCount,
 			&pixelLength);
 
-		if (result == false)
+		if (!result)
 		{
 			free(glyphs);
 			return UNKNOWN_ERROR_MPGX_RESULT;
@@ -2254,7 +2251,7 @@ MpgxResult bakeText(
 
 		free(glyphs);
 
-		if (result == false)
+		if (!result)
 		{
 			destroyImage(texture);
 			return UNKNOWN_ERROR_MPGX_RESULT;
@@ -2287,7 +2284,7 @@ MpgxResult bakeText(
 			&indices,
 			&indexCount);
 
-		if (result == false)
+		if (!result)
 		{
 			destroyBuffer(vertexBuffer);
 			destroyImage(texture);
@@ -2377,13 +2374,13 @@ MpgxResult bakeText(
 		text->textSize = textSize;
 	}
 
-	return true;
+	return SUCCESS_MPGX_RESULT;
 }
 size_t drawText(
 	Text text,
 	Vec4U scissor)
 {
-	assert(text != NULL);
+	assert(text);
 
 	GraphicsPipeline pipeline = text->pipeline;
 	Handle textPipeline = pipeline->base.handle;
@@ -2400,7 +2397,7 @@ size_t drawText(
 		VkWindow vkWindow = getVkWindow(window);
 		VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
 
-		if (dynamicScissor == true)
+		if (dynamicScissor)
 		{
 			VkRect2D vkScissor = {
 				(int32_t)scissor.x,
@@ -2432,7 +2429,7 @@ size_t drawText(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		if (dynamicScissor == true)
+		if (dynamicScissor)
 		{
 			glScissor(
 				(GLint)scissor.x,
@@ -2457,7 +2454,7 @@ size_t drawText(
 float getTextPlatformScale(
 	GraphicsPipeline textPipeline)
 {
-	assert(textPipeline != NULL);
+	assert(textPipeline);
 
 	assert(strcmp(
 		textPipeline->base.name,
@@ -2479,8 +2476,8 @@ MpgxResult createTextSampler(
 	Window window,
 	Sampler* textSampler)
 {
-	assert(window != NULL);
-	assert(textSampler != NULL);
+	assert(window);
+	assert(textSampler);
 
 	return createSampler(
 		window,
@@ -2535,7 +2532,7 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -2562,10 +2559,10 @@ static MpgxResult onVkResize(
 	Vec2U newSize,
 	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createData != NULL);
+	assert(createData);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	Window window = handle->vk.window;
@@ -2630,15 +2627,16 @@ static MpgxResult onVkResize(
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = graphicsPipeline->vk.state.viewport.z +
-		graphicsPipeline->vk.state.viewport.w == 0;
-	if (dynamic == false)
+	if (!(graphicsPipeline->vk.state.viewport.z +
+		graphicsPipeline->vk.state.viewport.w))
+	{
 		graphicsPipeline->vk.state.viewport = size;
-
-	dynamic = graphicsPipeline->vk.state.scissor.z +
-		graphicsPipeline->vk.state.scissor.w == 0;
-	if (dynamic == false)
+	}
+	if (!(graphicsPipeline->vk.state.scissor.z +
+		graphicsPipeline->vk.state.scissor.w))
+	{
 		graphicsPipeline->vk.state.scissor = size;
+	}
 
 	VkGraphicsPipelineCreateData _createData = {
 		1,
@@ -2658,7 +2656,7 @@ static void onVkDestroy(void* _handle)
 {
 	Handle handle = _handle;
 
-	if (handle == NULL)
+	if (!handle)
 		return;
 
 	assert(handle->vk.textCount == 0);
@@ -2681,12 +2679,12 @@ inline static MpgxResult createVkPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
@@ -2745,7 +2743,7 @@ inline static MpgxResult createVkPipeline(
 #if MPGX_SUPPORT_OPENGL
 static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->gl.handle;
 
@@ -2797,30 +2795,31 @@ static MpgxResult onGlResize(
 	Vec2U newSize,
 	void* createInfo)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createInfo == NULL);
+	assert(!createInfo);
 
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	bool dynamic = graphicsPipeline->gl.state.viewport.z +
-		graphicsPipeline->gl.state.viewport.w == 0;
-	if (dynamic == false)
-		graphicsPipeline->gl.state.viewport = size;
-
-	dynamic = graphicsPipeline->gl.state.scissor.z +
-		graphicsPipeline->gl.state.scissor.w == 0;
-	if (dynamic == false)
-		graphicsPipeline->gl.state.scissor = size;
+	if (!(graphicsPipeline->vk.state.viewport.z +
+		graphicsPipeline->vk.state.viewport.w))
+	{
+		graphicsPipeline->vk.state.viewport = size;
+	}
+	if (!(graphicsPipeline->vk.state.scissor.z +
+		graphicsPipeline->vk.state.scissor.w))
+	{
+		graphicsPipeline->vk.state.scissor = size;
+	}
 	return SUCCESS_MPGX_RESULT;
 }
 static void onGlDestroy(void* _handle)
 {
 	Handle handle = _handle;
 
-	if (handle == NULL)
+	if (!handle)
 		return;
 
 	assert(handle->gl.textCount == 0);
@@ -2836,12 +2835,12 @@ inline static MpgxResult createGlPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	GraphicsPipeline graphicsPipelineInstance;
 
@@ -2882,7 +2881,7 @@ inline static MpgxResult createGlPipeline(
 		"u_Texture",
 		&textureLocation);
 
-	if (result == false)
+	if (!result)
 	{
 		destroyGraphicsPipeline(
 			graphicsPipelineInstance,
@@ -2910,13 +2909,13 @@ MpgxResult createTextPipelineExt(
 	size_t textCapacity,
 	GraphicsPipeline* textPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(sampler != NULL);
-	assert(state != NULL);
-	assert(textCapacity != 0);
-	assert(textPipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(sampler);
+	assert(state);
+	assert(textCapacity > 0);
+	assert(textPipeline);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -2925,13 +2924,13 @@ MpgxResult createTextPipelineExt(
 
 	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Text* texts = malloc(
 		textCapacity * sizeof(Text));
 
-	if (texts == NULL)
+	if (!texts)
 	{
 		free(handle);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -2997,12 +2996,12 @@ MpgxResult createTextPipeline(
 	bool useScissor,
 	GraphicsPipeline* textPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(sampler != NULL);
-	assert(textCapacity != 0);
-	assert(textPipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(sampler);
+	assert(textCapacity > 0);
+	assert(textPipeline);
 
 	Vec2U framebufferSize =
 		framebuffer->base.size;
@@ -3052,7 +3051,7 @@ MpgxResult createTextPipeline(
 Sampler getTextPipelineSampler(
 	GraphicsPipeline textPipeline)
 {
-	assert(textPipeline != NULL);
+	assert(textPipeline);
 	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 	Handle handle = textPipeline->base.handle;
@@ -3062,7 +3061,7 @@ Sampler getTextPipelineSampler(
 Mat4F getTextPipelineMVP(
 	GraphicsPipeline textPipeline)
 {
-	assert(textPipeline != NULL);
+	assert(textPipeline);
 	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 	Handle handle = textPipeline->base.handle;
@@ -3072,7 +3071,7 @@ void setTextPipelineMVP(
 	GraphicsPipeline textPipeline,
 	Mat4F mvp)
 {
-	assert(textPipeline != NULL);
+	assert(textPipeline);
 	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 	Handle handle = textPipeline->base.handle;
@@ -3082,7 +3081,7 @@ void setTextPipelineMVP(
 LinearColor getTextPipelineColor(
 	GraphicsPipeline textPipeline)
 {
-	assert(textPipeline != NULL);
+	assert(textPipeline);
 	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 	Handle handle = textPipeline->base.handle;
@@ -3092,7 +3091,7 @@ void setTextPipelineColor(
 	GraphicsPipeline textPipeline,
 	LinearColor color)
 {
-	assert(textPipeline != NULL);
+	assert(textPipeline);
 	assert(strcmp(textPipeline->base.name,
 		TEXT_PIPELINE_NAME) == 0);
 	Handle handle = textPipeline->base.handle;

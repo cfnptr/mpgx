@@ -170,14 +170,14 @@ void md5_final(MD5_CONTEXT *context, uint8_t hash[])
 
 	// Append to the padding the total message's length in bits and transform.
 	context->bitLength += context->dataLength * 8;
-	context->data[56] = context->bitLength;
-	context->data[57] = context->bitLength >> 8;
-	context->data[58] = context->bitLength >> 16;
-	context->data[59] = context->bitLength >> 24;
-	context->data[60] = context->bitLength >> 32;
-	context->data[61] = context->bitLength >> 40;
-	context->data[62] = context->bitLength >> 48;
-	context->data[63] = context->bitLength >> 56;
+	context->data[56] = (uint8_t)(context->bitLength);
+	context->data[57] = (uint8_t)(context->bitLength >> 8);
+	context->data[58] = (uint8_t)(context->bitLength >> 16);
+	context->data[59] = (uint8_t)(context->bitLength >> 24);
+	context->data[60] = (uint8_t)(context->bitLength >> 32);
+	context->data[61] = (uint8_t)(context->bitLength >> 40);
+	context->data[62] = (uint8_t)(context->bitLength >> 48);
+	context->data[63] = (uint8_t)(context->bitLength >> 56);
 	md5_transform(context, context->data);
 
 	// Since this implementation uses little endian byte ordering and MD uses big endian,

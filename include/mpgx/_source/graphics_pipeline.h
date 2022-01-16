@@ -19,7 +19,6 @@
 typedef struct BaseGraphicsPipeline_T
 {
 	Framebuffer framebuffer;
-	GraphicsPipelineState state;
 	OnGraphicsPipelineBind onBind;
 	OnGraphicsPipelineUniformsSet onUniformsSet;
 	OnGraphicsPipelineResize onResize;
@@ -27,6 +26,7 @@ typedef struct BaseGraphicsPipeline_T
 	void* handle;
 	Shader* shaders;
 	size_t shaderCount;
+	GraphicsPipelineState state;
 #ifndef NDEBUG
 	const char* name;
 #endif
@@ -35,7 +35,6 @@ typedef struct BaseGraphicsPipeline_T
 typedef struct VkGraphicsPipeline_T
 {
 	Framebuffer framebuffer;
-	GraphicsPipelineState state;
 	OnGraphicsPipelineBind onBind;
 	OnGraphicsPipelineUniformsSet onUniformsSet;
 	OnGraphicsPipelineResize onResize;
@@ -43,6 +42,7 @@ typedef struct VkGraphicsPipeline_T
 	void* handle;
 	Shader* shaders;
 	size_t shaderCount;
+	GraphicsPipelineState state;
 #ifndef NDEBUG
 	const char* name;
 #endif
@@ -55,7 +55,6 @@ typedef struct VkGraphicsPipeline_T
 typedef struct GlGraphicsPipeline_T
 {
 	Framebuffer framebuffer;
-	GraphicsPipelineState state;
 	OnGraphicsPipelineBind onBind;
 	OnGraphicsPipelineUniformsSet onUniformsSet;
 	OnGraphicsPipelineResize onResize;
@@ -63,6 +62,7 @@ typedef struct GlGraphicsPipeline_T
 	void* handle;
 	Shader* shaders;
 	size_t shaderCount;
+	GraphicsPipelineState state;
 #ifndef NDEBUG
 	const char* name;
 #endif
@@ -738,16 +738,16 @@ inline static MpgxResult createVkGraphicsPipeline(
 	if (!graphicsPipelineInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-#ifndef NDEBUG
-	graphicsPipelineInstance->vk.name = name;
-#endif
 	graphicsPipelineInstance->vk.framebuffer = framebuffer;
-	graphicsPipelineInstance->vk.state = state;
 	graphicsPipelineInstance->vk.onBind = onBind;
 	graphicsPipelineInstance->vk.onUniformsSet = onUniformsSet;
 	graphicsPipelineInstance->vk.onResize = onResize;
 	graphicsPipelineInstance->vk.onDestroy = onDestroy;
 	graphicsPipelineInstance->vk.handle = handle;
+	graphicsPipelineInstance->vk.state = state;
+#ifndef NDEBUG
+	graphicsPipelineInstance->vk.name = name;
+#endif
 
 	Shader* pipelineShaders = malloc(
 		shaderCount * sizeof(Shader));
@@ -1109,16 +1109,16 @@ inline static MpgxResult createGlGraphicsPipeline(
 	if (!graphicsPipelineInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-#ifndef NDEBUG
-	graphicsPipelineInstance->gl.name = name;
-#endif
 	graphicsPipelineInstance->gl.framebuffer = framebuffer;
-	graphicsPipelineInstance->gl.state = state;
 	graphicsPipelineInstance->gl.onBind = onBind;
 	graphicsPipelineInstance->gl.onUniformsSet = onUniformsSet;
 	graphicsPipelineInstance->gl.onResize = onResize;
 	graphicsPipelineInstance->gl.onDestroy = onDestroy;
 	graphicsPipelineInstance->gl.handle = handle;
+	graphicsPipelineInstance->gl.state = state;
+#ifndef NDEBUG
+	graphicsPipelineInstance->gl.name = name;
+#endif
 
 	Shader* pipelineShaders = malloc(
 		shaderCount * sizeof(Shader));

@@ -36,15 +36,15 @@ struct Text_T
 {
 	Font font;
 	GraphicsPipeline pipeline;
-	uint32_t fontSize;
-	AlignmentType alignment;
-	bool isConstant;
 	uint32_t* data;
 	size_t dataCapacity;
 	size_t dataLength;
 	Image texture;
 	GraphicsMesh mesh;
 	Vec2F textSize;
+	uint32_t fontSize;
+	AlignmentType alignment;
+	bool isConstant;
 #if MPGX_SUPPORT_VULKAN
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSet* descriptorSets;
@@ -1415,15 +1415,15 @@ MpgxResult createText32(
 
 	textInstance->font = font;
 	textInstance->pipeline = textPipeline;
-	textInstance->fontSize = fontSize;
-	textInstance->alignment = alignment;
-	textInstance->isConstant = isConstant;
 	textInstance->data = data;
 	textInstance->dataCapacity = dataLength;
 	textInstance->dataLength = dataLength;
 	textInstance->texture = texture;
 	textInstance->mesh = mesh;
 	textInstance->textSize = textSize;
+	textInstance->fontSize = fontSize;
+	textInstance->alignment = alignment;
+	textInstance->isConstant = isConstant;
 
 	Handle handle = textPipeline->base.handle;
 	size_t count = handle->base.textCount;

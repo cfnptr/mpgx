@@ -37,7 +37,6 @@ typedef struct VkComputePipeline_T
 #ifndef NDEBUG
 	const char* name;
 #endif
-
 	VkPipelineCache cache;
 	VkPipelineLayout layout;
 	VkPipeline vkHandle;

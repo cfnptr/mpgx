@@ -21,27 +21,26 @@ struct GraphicsRender_T
 {
 	GraphicsRenderer renderer;
 	Transform transform;
-	Box3F bounding;
 	void* handle;
+	Box3F bounding;
 };
 typedef struct GraphicsRenderElement
 {
+	GraphicsRender render;
 	Vec3F rendererPosition;
 	Vec3F renderPosition;
-	GraphicsRender render;
 } GraphicsRenderElement;
 struct GraphicsRenderer_T
 {
 	GraphicsPipeline pipeline;
-	GraphicsRenderSorting sorting;
-	bool useCulling;
 	OnGraphicsRenderDestroy onDestroy;
 	OnGraphicsRenderDraw onDraw;
-	void* handle;
 	GraphicsRender* renders;
 	GraphicsRenderElement* renderElements;
 	size_t renderCapacity;
 	size_t renderCount;
+	GraphicsRenderSorting sorting;
+	bool useCulling;
 #ifndef NDEBUG
 	bool isEnumerating;
 #endif
@@ -81,10 +80,10 @@ GraphicsRenderer createGraphicsRenderer(
 		return NULL;
 
 	graphicsRenderer->pipeline = pipeline;
-	graphicsRenderer->sorting = sorting;
-	graphicsRenderer->useCulling = useCulling;
 	graphicsRenderer->onDestroy = onDestroy;
 	graphicsRenderer->onDraw = onDraw;
+	graphicsRenderer->sorting = sorting;
+	graphicsRenderer->useCulling = useCulling;
 #ifndef NDEBUG
 	graphicsRenderer->isEnumerating = false;
 #endif
@@ -503,9 +502,9 @@ GraphicsRenderResult drawGraphicsRenderer(
 		}
 
 		GraphicsRenderElement element;
+		element.render = render;
 		element.rendererPosition = rendererPosition;
 		element.renderPosition = renderPosition;
-		element.render = render;
 		renderElements[elementCount++] = element;
 
 	CONTINUE:
@@ -587,8 +586,8 @@ GraphicsRender createGraphicsRender(
 
 	graphicsRender->renderer = renderer;
 	graphicsRender->transform = transform;
-	graphicsRender->bounding = bounding;
 	graphicsRender->handle = handle;
+	graphicsRender->bounding = bounding;
 
 	size_t count = renderer->renderCount;
 

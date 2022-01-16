@@ -44,8 +44,9 @@ struct ImageData_T
 struct Window_T
 {
 	GraphicsAPI api;
-	bool useStencilBuffer;
-	bool useRayTracing;
+	uint8_t useStencilBuffer;
+	uint8_t useRayTracing;
+	uint8_t _alignment[5];
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
@@ -58,6 +59,9 @@ struct Window_T
 	uint32_t* inputBuffer;
 	size_t inputCapacity;
 	size_t inputLength;
+#if MPGX_SUPPORT_VULKAN
+	VkWindow vkWindow;
+#endif
 	RayTracing rayTracing;
 	Framebuffer framebuffer;
 	Buffer* buffers;
@@ -84,11 +88,8 @@ struct Window_T
 	double targetFPS;
 	double updateTime;
 	double deltaTime;
-	bool isRecording;
 	Framebuffer renderFramebuffer;
-#if MPGX_SUPPORT_VULKAN
-	VkWindow vkWindow;
-#endif
+	bool isRecording;
 };
 
 static bool graphicsInitialized = false;
@@ -884,10 +885,10 @@ MpgxResult createWindow(
 	windowInstance->targetFPS = 60.0;
 	windowInstance->updateTime = 0.0;
 	windowInstance->deltaTime = 0.0;
+	windowInstance->renderFramebuffer = NULL;
 #ifndef NDEBUG
 	windowInstance->isRecording = false;
 #endif
-	windowInstance->renderFramebuffer = NULL;
 
 	currentWindow = windowInstance;
 	*window = windowInstance;

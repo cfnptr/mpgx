@@ -19,32 +19,32 @@
 typedef struct BaseGraphicsMesh_T
 {
 	Window window;
-	IndexType indexType;
 	size_t indexCount;
 	size_t indexOffset;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
+	IndexType indexType;
 } BaseGraphicsMesh_T;
 #if MPGX_SUPPORT_VULKAN
 typedef struct VkGraphicsMesh_T
 {
 	Window window;
-	IndexType indexType;
 	size_t indexCount;
 	size_t indexOffset;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
+	IndexType indexType;
 } VkGraphicsMesh_T;
 #endif
 #if MPGX_SUPPORT_OPENGL
 typedef struct GlGraphicsMesh_T
 {
 	Window window;
-	IndexType indexType;
 	size_t indexCount;
 	size_t indexOffset;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
+	IndexType indexType;
 	GLuint handle;
 } GlGraphicsMesh_T;
 #endif
@@ -80,11 +80,11 @@ inline static MpgxResult createVkGraphicsMesh(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	graphicsMeshInstance->vk.window = window;
-	graphicsMeshInstance->vk.indexType = indexType;
 	graphicsMeshInstance->vk.indexCount = indexCount;
 	graphicsMeshInstance->vk.indexOffset = indexOffset;
 	graphicsMeshInstance->vk.vertexBuffer = vertexBuffer;
 	graphicsMeshInstance->vk.indexBuffer = indexBuffer;
+	graphicsMeshInstance->vk.indexType = indexType;
 
 	*graphicsMesh = graphicsMeshInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -199,11 +199,11 @@ inline static MpgxResult createGlGraphicsMesh(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	graphicsMeshInstance->gl.window = window;
-	graphicsMeshInstance->gl.indexType = indexType;
 	graphicsMeshInstance->gl.indexCount = indexCount;
 	graphicsMeshInstance->gl.indexOffset = indexOffset;
 	graphicsMeshInstance->gl.vertexBuffer = vertexBuffer;
 	graphicsMeshInstance->gl.indexBuffer = indexBuffer;
+	graphicsMeshInstance->gl.indexType = indexType;
 
 	makeWindowContextCurrent(window);
 

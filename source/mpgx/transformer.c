@@ -33,12 +33,12 @@ struct Transformer_T
 struct Transform_T
 {
 	Transformer transformer;
-	Vec3F position;
-	Vec3F scale;
-	Quat rotation;
-	RotationType rotationType;
-	Mat4F model; // TODO: use Mat4x3F
 	Transform parent;
+	Mat4F model; // TODO: use Mat4x3F
+	Quat rotation;
+	Vec3F scale;
+	Vec3F position;
+	RotationType rotationType;
 	bool isActive;
 	bool isStatic;
 };
@@ -209,12 +209,11 @@ Transform createTransform(
 		return NULL;
 
 	transform->transformer = transformer;
-	transform->position = position;
-	transform->scale = scale;
-	transform->rotation = rotation;
-	transform->rotationType = rotationType;
-	transform->model = identMat4F;
 	transform->parent = parent;
+	transform->rotation = rotation;
+	transform->scale = scale;
+	transform->position = position;
+	transform->rotationType = rotationType;
 	transform->isActive = isActive;
 	transform->isStatic = isStatic;
 
@@ -289,12 +288,11 @@ void updateTransform(
 	assert(!parent || (parent &&
 		transform->transformer == parent->transformer));
 
-	transform->position = position;
-	transform->scale = scale;
-	transform->rotation = rotation;
-	transform->rotationType = rotationType;
-	transform->model = identMat4F;
 	transform->parent = parent;
+	transform->rotation = rotation;
+	transform->scale = scale;
+	transform->position = position;
+	transform->rotationType = rotationType;
 	transform->isActive = isActive;
 	transform->isStatic = isStatic;
 

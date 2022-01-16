@@ -20,24 +20,24 @@
 struct InterfaceElement_T
 {
 	Interface interface;
-	Transform transform;
-	AlignmentType alignment;
-	Vec3F position;
-	Box2F bounds;
-	bool isEnabled;
 	OnInterfaceElementDestroy onDestroy;
 	InterfaceElementEvents events;
 	void* handle;
+	Transform transform;
+	Vec3F position;
+	Box2F bounds;
+	AlignmentType alignment;
+	bool isEnabled;
 	bool isPressed;
 };
 struct Interface_T
 {
 	Window window;
-	float scale;
 	InterfaceElement* elements;
 	size_t elementCapacity;
 	size_t elementCount;
 	InterfaceElement lastElement;
+	float scale;
 #ifndef NDEBUG
 	bool isEnumerating;
 #endif
@@ -463,14 +463,14 @@ InterfaceElement createInterfaceElement(
 		return NULL;
 
 	element->interface = interface;
-	element->transform = transform;
-	element->alignment = alignment;
-	element->position = position;
-	element->bounds = bounds;
-	element->isEnabled = isEnabled;
 	element->onDestroy = onDestroy;
 	element->events = *events;
 	element->handle = handle;
+	element->transform = transform;
+	element->position = position;
+	element->bounds = bounds;
+	element->alignment = alignment;
+	element->isEnabled = isEnabled;
 	element->isPressed = false;
 
 	size_t count = interface->elementCount;

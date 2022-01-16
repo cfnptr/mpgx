@@ -20,17 +20,17 @@ typedef struct BaseRayTracingMesh_T
 {
 	Window window;
 	size_t vertexStride;
-	IndexType indexType;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
+	IndexType indexType;
 } BaseRayTracingMesh_T;
 typedef struct VkRayTracingMesh_T
 {
 	Window window;
 	size_t vertexStride;
-	IndexType indexType;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
+	IndexType indexType;
 #if MPGX_SUPPORT_VULKAN
 	VkBuffer buffer;
 	VmaAllocation allocation;
@@ -551,6 +551,7 @@ inline static MpgxResult createVkRayTracingMesh(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	rayTracingMeshInstance->vk.window = window;
+	rayTracingMeshInstance->vk.indexType = indexType;
 
 	VkIndexType vkIndexType;
 	size_t indexSize;

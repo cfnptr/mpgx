@@ -25,6 +25,7 @@
 struct FreeCamera_T
 {
 	Framebuffer framebuffer;
+	Transform transform;
 	Vec2F rotation;
 	Vec2F lastCursorPosition;
 	float moveSpeed;
@@ -32,7 +33,6 @@ struct FreeCamera_T
 	float fieldOfView;
 	float nearClipPlane;
 	float farClipPlane;
-	Transform transform;
 };
 
 void destroyFreeCamera(FreeCamera freeCamera)

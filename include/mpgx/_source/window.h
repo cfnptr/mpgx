@@ -40,7 +40,6 @@ typedef struct VkWindow_T
 {
 	VkSurfaceKHR surface;
 	VkPhysicalDevice physicalDevice;
-	bool isDeviceIntegrated;
 	uint32_t graphicsQueueFamilyIndex;
 	uint32_t presentQueueFamilyIndex;
 	uint32_t transferQueueFamilyIndex;
@@ -68,6 +67,7 @@ typedef struct VkWindow_T
 	VkBuffer stagingBuffer;
 	VmaAllocation stagingAllocation;
 	size_t stagingSize;
+	bool isDeviceIntegrated;
 } VkWindow_T;
 
 typedef VkWindow_T* VkWindow;

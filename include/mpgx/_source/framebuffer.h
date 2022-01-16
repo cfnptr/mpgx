@@ -19,30 +19,30 @@
 
 typedef struct BaseFramebuffer_T
 {
-	bool isDefault;
 	Window window;
-	Vec2U size;
-	bool useBeginClear;
 	Image* colorAttachments;
 	size_t colorAttachmentCount;
 	Image depthStencilAttachment;
 	GraphicsPipeline* graphicsPipelines;
 	size_t graphicsPipelineCapacity;
 	size_t graphicsPipelineCount;
+	Vec2U size;
+	bool isDefault;
+	bool useBeginClear;
 } BaseFramebuffer_T;
 #if MPGX_SUPPORT_VULKAN
 typedef struct VkFramebuffer_T
 {
-	bool isDefault;
 	Window window;
-	Vec2U size;
-	bool useBeginClear;
 	Image* colorAttachments;
 	size_t colorAttachmentCount;
 	Image depthStencilAttachment;
 	GraphicsPipeline* graphicsPipelines;
 	size_t graphicsPipelineCapacity;
 	size_t graphicsPipelineCount;
+	Vec2U size;
+	bool isDefault;
+	bool useBeginClear;
 	VkRenderPass renderPass;
 	VkFramebuffer handle;
 } VkFramebuffer_T;
@@ -50,16 +50,16 @@ typedef struct VkFramebuffer_T
 #if MPGX_SUPPORT_OPENGL
 typedef struct GlFramebuffer_T
 {
-	bool isDefault;
 	Window window;
-	Vec2U size;
-	bool useBeginClear;
 	Image* colorAttachments;
 	size_t colorAttachmentCount;
 	Image depthStencilAttachment;
 	GraphicsPipeline* graphicsPipelines;
 	size_t graphicsPipelineCapacity;
 	size_t graphicsPipelineCount;
+	Vec2U size;
+	bool isDefault;
+	bool useBeginClear;
 	GLuint handle;
 } GlFramebuffer_T;
 #endif
@@ -456,13 +456,13 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	if (!framebufferInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	framebufferInstance->vk.isDefault = true;
 	framebufferInstance->vk.window = window;
-	framebufferInstance->vk.size = size;
-	framebufferInstance->vk.useBeginClear = true;
 	framebufferInstance->vk.colorAttachments = NULL;
 	framebufferInstance->vk.colorAttachmentCount = 1;
 	framebufferInstance->vk.depthStencilAttachment = NULL;
+	framebufferInstance->vk.size = size;
+	framebufferInstance->vk.isDefault = true;
+	framebufferInstance->vk.useBeginClear = true;
 
 	GraphicsPipeline* graphicsPipelines = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));
@@ -953,13 +953,13 @@ inline static MpgxResult createGlDefaultFramebuffer(
 	if (!framebufferInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	framebufferInstance->gl.isDefault = true;
 	framebufferInstance->gl.window = window;
-	framebufferInstance->gl.size = size;
-	framebufferInstance->gl.useBeginClear = true;
 	framebufferInstance->gl.colorAttachments = NULL;
 	framebufferInstance->gl.colorAttachmentCount = 1;
 	framebufferInstance->gl.depthStencilAttachment = NULL;
+	framebufferInstance->gl.size = size;
+	framebufferInstance->gl.isDefault = true;
+	framebufferInstance->gl.useBeginClear = true;
 
 	GraphicsPipeline* graphicsPipelines = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));
@@ -1001,9 +1001,9 @@ inline static MpgxResult createGlFramebuffer(
 	if (!framebufferInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	framebufferInstance->gl.isDefault = false;
 	framebufferInstance->gl.window = window;
 	framebufferInstance->gl.size = size;
+	framebufferInstance->gl.isDefault = false;
 	framebufferInstance->gl.useBeginClear = useBeginClear;
 
 	makeWindowContextCurrent(window);

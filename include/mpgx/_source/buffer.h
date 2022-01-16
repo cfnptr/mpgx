@@ -21,10 +21,10 @@
 typedef struct BaseBuffer_T
 {
 	Window window;
+	size_t size;
 	BufferType type;
 	BufferUsage usage;
 	BufferFlag flags;
-	size_t size;
 #ifndef NDEBUG
 	bool isMapped;
 #endif
@@ -33,10 +33,10 @@ typedef struct BaseBuffer_T
 typedef struct VkBuffer_T
 {
 	Window window;
+	size_t size;
 	BufferType type;
 	BufferUsage usage;
 	BufferFlag flags;
-	size_t size;
 #ifndef NDEBUG
 	bool isMapped;
 #endif
@@ -50,10 +50,10 @@ typedef struct VkBuffer_T
 typedef struct GlBuffer_T
 {
 	Window window;
+	size_t size;
 	BufferType type;
 	BufferUsage usage;
 	BufferFlag flags;
-	size_t size;
 #ifndef NDEBUG
 	bool isMapped;
 #endif
@@ -289,9 +289,9 @@ inline static MpgxResult createVkBuffer(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	bufferInstance->vk.window = window;
+	bufferInstance->vk.size = size;
 	bufferInstance->vk.type = type;
 	bufferInstance->vk.usage = usage;
-	bufferInstance->vk.size = size;
 #ifndef NDEBUG
 	bufferInstance->vk.isMapped = false;
 #endif
@@ -658,10 +658,10 @@ inline static MpgxResult createGlBuffer(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	bufferInstance->gl.window = window;
+	bufferInstance->gl.size = size;
 	bufferInstance->gl.type = type;
 	bufferInstance->gl.usage = usage;
 	bufferInstance->gl.flags = flags;
-	bufferInstance->gl.size = size;
 #ifndef NDEBUG
 	bufferInstance->gl.isMapped = false;
 #endif

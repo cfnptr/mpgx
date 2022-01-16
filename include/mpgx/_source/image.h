@@ -19,20 +19,20 @@
 typedef struct BaseImage_T
 {
 	Window window;
+	Vec3U size;
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
-	Vec3U size;
 	bool isConstant;
 } BaseImage_T;
 #if MPGX_SUPPORT_VULKAN
 typedef struct VkImage_T
 {
 	Window window;
+	Vec3U size;
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
-	Vec3U size;
 	bool isConstant;
 	VkFormat vkFormat;
 	VkImageAspectFlagBits vkAspect;
@@ -48,10 +48,10 @@ typedef struct VkImage_T
 typedef struct GlImage_T
 {
 	Window window;
+	Vec3U size;
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
-	Vec3U size;
 	bool isConstant;
 	GLenum glType;
 	GLenum dataType;
@@ -142,10 +142,10 @@ inline static MpgxResult createVkImage(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	imageInstance->vk.window = window;
+	imageInstance->vk.size = size;
 	imageInstance->vk.type = type;
 	imageInstance->vk.dimension = dimension;
 	imageInstance->vk.format = format;
-	imageInstance->vk.size = size;
 	imageInstance->vk.isConstant = isConstant;
 
 	VkImageType vkType;
@@ -843,10 +843,10 @@ inline static MpgxResult createGlImage(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	imageInstance->gl.window = window;
+	imageInstance->gl.size = size;
 	imageInstance->gl.type = type;
 	imageInstance->gl.dimension = dimension;
 	imageInstance->gl.format = format;
-	imageInstance->gl.size = size;
 	imageInstance->gl.isConstant = isConstant;
 
 	GLenum glType;

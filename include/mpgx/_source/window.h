@@ -43,11 +43,13 @@ typedef struct VkWindow_T
 	bool isDeviceIntegrated;
 	uint32_t graphicsQueueFamilyIndex;
 	uint32_t presentQueueFamilyIndex;
+	uint32_t transferQueueFamilyIndex;
 	uint32_t computeQueueFamilyIndex;
 	VkDevice device;
 	VmaAllocator allocator;
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
+	VkQueue transferQueue;
 	VkQueue computeQueue;
 	VkCommandPool graphicsCommandPool;
 	VkCommandPool presentCommandPool;
@@ -1140,8 +1142,11 @@ inline static MpgxResult createVkWindow(
 		return mpgxResult;
 	}
 
+	uint32_t transferQueueFamilyIndex = graphicsQueueFamilyIndex;
+
 	window->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
 	window->presentQueueFamilyIndex = presentQueueFamilyIndex;
+	window->transferQueueFamilyIndex = transferQueueFamilyIndex;
 	window->computeQueueFamilyIndex = computeQueueFamilyIndex;
 
 	const char* extensions[6];
@@ -1287,8 +1292,11 @@ inline static MpgxResult createVkWindow(
 		0,
 		&computeQueue);
 
+	VkQueue transferQueue = graphicsQueue;
+
 	window->graphicsQueue = graphicsQueue;
 	window->presentQueue = presentQueue;
+	window->transferQueue = transferQueue;
 	window->computeQueue = computeQueue;
 
 	VkCommandPool graphicsCommandPool;
@@ -1338,7 +1346,7 @@ inline static MpgxResult createVkWindow(
 		device,
 		VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		graphicsQueueFamilyIndex,
+		transferQueueFamilyIndex,
 		&transferCommandPool);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)

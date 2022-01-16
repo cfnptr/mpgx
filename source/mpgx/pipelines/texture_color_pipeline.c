@@ -315,13 +315,13 @@ static MpgxResult onVkResize(
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	if (!(graphicsPipeline->vk.state.viewport.z +
-		graphicsPipeline->vk.state.viewport.w))
+	if (graphicsPipeline->vk.state.viewport.z +
+		graphicsPipeline->vk.state.viewport.w)
 	{
 		graphicsPipeline->vk.state.viewport = size;
 	}
-	if (!(graphicsPipeline->vk.state.scissor.z +
-		graphicsPipeline->vk.state.scissor.w))
+	if (graphicsPipeline->vk.state.scissor.z +
+		graphicsPipeline->vk.state.scissor.w)
 	{
 		graphicsPipeline->vk.state.scissor = size;
 	}
@@ -563,13 +563,13 @@ static MpgxResult onGlResize(
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
 
-	if (!(graphicsPipeline->gl.state.viewport.z +
-		graphicsPipeline->gl.state.viewport.w))
+	if (graphicsPipeline->gl.state.viewport.z +
+		graphicsPipeline->gl.state.viewport.w)
 	{
 		graphicsPipeline->gl.state.viewport = size;
 	}
-	if (!(graphicsPipeline->gl.state.scissor.z +
-		graphicsPipeline->gl.state.scissor.w))
+	if (graphicsPipeline->gl.state.scissor.z +
+		graphicsPipeline->gl.state.scissor.w)
 	{
 		graphicsPipeline->gl.state.scissor = size;
 	}

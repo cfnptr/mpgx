@@ -1994,7 +1994,7 @@ MpgxResult createBuffer(
 		mpgxResult = createVkBuffer(
 			vkWindow->device,
 			vkWindow->allocator,
-			vkWindow->graphicsQueue,
+			vkWindow->transferQueue,
 			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
 			&vkWindow->stagingBuffer,
@@ -2489,7 +2489,7 @@ MpgxResult createImage(
 		mpgxResult = createVkImage(
 			vkWindow->device,
 			vkWindow->allocator,
-			vkWindow->graphicsQueue,
+			vkWindow->transferQueue,
 			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
 			&vkWindow->stagingBuffer,
@@ -2784,7 +2784,7 @@ MpgxResult setImageData(
 		return setVkImageData(
 			vkWindow->device,
 			vkWindow->allocator,
-			vkWindow->graphicsQueue,
+			vkWindow->transferQueue,
 			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
 			image->vk.stagingBuffer,
@@ -5168,9 +5168,8 @@ void destroyComputePipeline(
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
 
-			// TODO: is graphics pipeline supports compute?
 			VkResult result = vkQueueWaitIdle(
-				vkWindow->graphicsQueue);
+				vkWindow->computeQueue);
 
 			if (result != VK_SUCCESS)
 				abort();
@@ -5674,7 +5673,7 @@ MpgxResult createRayTracingMesh(
 		mpgxResult = createVkRayTracingMesh(
 			vkWindow->device,
 			vkWindow->allocator,
-			vkWindow->graphicsQueue,
+			vkWindow->transferQueue,
 			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
 			rayTracing,
@@ -5863,7 +5862,7 @@ MpgxResult createRayTracingScene(
 		mpgxResult = createVkRayTracingScene(
 			vkWindow->device,
 			vkWindow->allocator,
-			vkWindow->graphicsQueue,
+			vkWindow->transferQueue,
 			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
 			rayTracing,

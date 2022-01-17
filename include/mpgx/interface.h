@@ -57,6 +57,8 @@ void setInterfaceScale(
 	Interface interface,
 	float scale);
 
+size_t getInterfaceElementCount(
+	Interface interface);
 void enumerateInterface(
 	Interface interface,
 	void(*onItem)(InterfaceElement));

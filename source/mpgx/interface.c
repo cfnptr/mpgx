@@ -117,6 +117,12 @@ void setInterfaceScale(
 	interface->scale = scale;
 }
 
+size_t getInterfaceElementCount(
+	Interface interface)
+{
+	assert(interface);
+	return interface->elementCount;
+}
 void enumerateInterface(
 	Interface interface,
 	void(*onItem)(InterfaceElement))

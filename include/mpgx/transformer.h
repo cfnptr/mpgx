@@ -35,10 +35,13 @@ typedef uint8_t RotationType;
 Transformer createTransformer(size_t capacity);
 void destroyTransformer(Transformer transformer);
 
+size_t getTransformerTransformCount(
+	Transformer transformer);
 void enumerateTransformer(
 	Transformer transformer,
 	void(*onItem)(Transform));
-void destroyAllTransforms(Transformer transformer);
+void destroyAllTransformerTransforms(
+	Transformer transformer);
 
 void updateTransformer(Transformer transformer);
 
@@ -63,7 +66,8 @@ void updateTransform(
 	bool isActive,
 	bool isStatic);
 
-Transformer getTransformTransformer(Transform transform);
+Transformer getTransformTransformer(
+	Transform transform);
 
 Vec3F getTransformPosition(
 	Transform transform);

@@ -40,7 +40,6 @@ typedef struct VkComputePipeline_T
 	VkPipelineCache cache;
 	VkPipelineLayout layout;
 	VkPipeline vkHandle;
-
 } VkComputePipeline_T;
 #endif
 union ComputePipeline_T

@@ -126,6 +126,12 @@ Transformer createTransformer(size_t capacity)
 	return transformer;
 }
 
+size_t getTransformerTransformCount(
+	Transformer transformer)
+{
+	assert(transformer);
+	return transformer->transformCount;
+}
 void enumerateTransformer(
 	Transformer transformer,
 	void(*onItem)(Transform))
@@ -147,7 +153,7 @@ void enumerateTransformer(
 	transformer->isEnumerating = false;
 #endif
 }
-void destroyAllTransforms(
+void destroyAllTransformerTransforms(
 	Transformer transformer)
 {
 	assert(transformer);
@@ -301,7 +307,8 @@ void updateTransform(
 		false);
 }
 
-Transformer getTransformTransformer(Transform transform)
+Transformer getTransformTransformer(
+	Transform transform)
 {
 	assert(transform);
 	return transform->transformer;
@@ -396,7 +403,6 @@ void setTransformActive(
 	bool isActive)
 {
 	assert(transform);
-	assert(!transform->isStatic);
 	transform->isActive = isActive;
 }
 

@@ -91,10 +91,12 @@ void setGraphicsRendererUseCulling(
 	GraphicsRenderer renderer,
 	bool useCulling);
 
+size_t getGraphicsRendererRenderCount(
+	GraphicsRenderer graphicsRenderer);
 void enumerateGraphicsRenderer(
 	GraphicsRenderer graphicsRenderer,
 	void(*onItem)(GraphicsRender));
-void destroyAllGraphicsRenders(
+void destroyAllGraphicsRendererRenders(
 	GraphicsRenderer graphicsRenderer,
 	bool destroyTransforms);
 

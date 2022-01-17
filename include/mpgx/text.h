@@ -20,6 +20,8 @@
 
 #define TEXT_PIPELINE_NAME "Text"
 
+// TODO: add enumerator and count getter
+
 typedef struct Font_T Font_T;
 typedef Font_T* Font;
 

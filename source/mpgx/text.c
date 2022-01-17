@@ -25,6 +25,7 @@
 #include <assert.h>
 
 // TODO: possibly bake in separated text pipeline thread
+// TODO: improve construction steps (like in rederer)
 
 struct Font_T
 {
@@ -46,6 +47,7 @@ struct Text_T
 	AlignmentType alignment;
 	bool isConstant;
 #if MPGX_SUPPORT_VULKAN
+	uint8_t _alignment[2];
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSet* descriptorSets;
 #endif
@@ -53,11 +55,11 @@ struct Text_T
 
 typedef struct Glyph
 {
-	bool isVisible;
-	uint32_t value;
 	Vec4F position;
 	Vec4F texCoords;
 	float advance;
+	uint32_t value;
+	bool isVisible;
 } Glyph;
 
 typedef struct VertexPushConstants
@@ -608,13 +610,12 @@ inline static bool createTextPixels(
 
 		if (glyphWidth * glyphHeight == 0)
 		{
-			glyph.isVisible = false;
 			glyph.position = zeroVec4F;
 			glyph.texCoords = zeroVec4F;
+			glyph.isVisible = false;
 		}
 		else
 		{
-			glyph.isVisible = true;
 			glyph.position.x = (float)glyphSlot->bitmap_left / (float)fontSize;
 			glyph.position.y = ((float)glyphSlot->bitmap_top - (float)glyphHeight) / (float)fontSize;
 			glyph.position.z = glyph.position.x + (float)glyphWidth / (float)fontSize;
@@ -623,6 +624,7 @@ inline static bool createTextPixels(
 			glyph.texCoords.y = (float)pixelPosY / (float)textPixelLength;
 			glyph.texCoords.z = glyph.texCoords.x + (float)glyphWidth / (float)textPixelLength;
 			glyph.texCoords.w = glyph.texCoords.y + (float)glyphHeight / (float)textPixelLength;
+			glyph.isVisible = true;
 
 			for (size_t y = 0; y < glyphHeight; y++)
 			{

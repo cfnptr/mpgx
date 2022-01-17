@@ -162,6 +162,12 @@ void setGraphicsRendererUseCulling(
 	graphicsRenderer->useCulling = useCulling;
 }
 
+size_t getGraphicsRendererRenderCount(
+	GraphicsRenderer graphicsRenderer)
+{
+	assert(graphicsRenderer);
+	return graphicsRenderer->renderCount;
+}
 void enumerateGraphicsRenderer(
 	GraphicsRenderer graphicsRenderer,
 	void(*onItem)(GraphicsRender))
@@ -183,7 +189,7 @@ void enumerateGraphicsRenderer(
 	graphicsRenderer->isEnumerating = false;
 #endif
 }
-void destroyAllGraphicsRenders(
+void destroyAllGraphicsRendererRenders(
 	GraphicsRenderer graphicsRenderer,
 	bool destroyTransforms)
 {

@@ -40,6 +40,7 @@ typedef struct VkBuffer_T
 #ifndef NDEBUG
 	bool isMapped;
 #endif
+	uint8_t _alignment[5];
 	size_t mapSize;
 	size_t mapOffset;
 	VkBuffer handle;
@@ -57,6 +58,7 @@ typedef struct GlBuffer_T
 #ifndef NDEBUG
 	bool isMapped;
 #endif
+	uint8_t _alignment[1];
 	GLenum glType;
 	GLuint handle;
 } GlBuffer_T;

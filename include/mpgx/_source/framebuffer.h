@@ -43,6 +43,7 @@ typedef struct VkFramebuffer_T
 	Vec2U size;
 	bool isDefault;
 	bool useBeginClear;
+	uint8_t _alignment[6];
 	VkRenderPass renderPass;
 	VkFramebuffer handle;
 } VkFramebuffer_T;
@@ -60,6 +61,7 @@ typedef struct GlFramebuffer_T
 	Vec2U size;
 	bool isDefault;
 	bool useBeginClear;
+	uint8_t _alignment[2];
 	GLuint handle;
 } GlFramebuffer_T;
 #endif

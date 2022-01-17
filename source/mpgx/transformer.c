@@ -34,7 +34,7 @@ struct Transform_T
 {
 	Transformer transformer;
 	Transform parent;
-	Mat4F model; // TODO: use Mat4x3F
+	Mat4F model;
 	Quat rotation;
 	Vec3F scale;
 	Vec3F position;

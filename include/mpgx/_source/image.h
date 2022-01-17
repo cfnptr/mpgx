@@ -36,12 +36,12 @@ typedef struct VkImage_T
 	bool isConstant;
 	VkFormat vkFormat;
 	VkImageAspectFlagBits vkAspect;
-	uint8_t sizeMultiplier;
 	VkImage handle;
 	VmaAllocation allocation;
 	VkImageView imageView;
 	VkBuffer stagingBuffer;
 	VmaAllocation stagingAllocation;
+	uint8_t sizeMultiplier;
 } VkImage_T;
 #endif
 #if MPGX_SUPPORT_OPENGL

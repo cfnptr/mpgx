@@ -35,6 +35,7 @@ typedef struct VkShader_T
 #ifndef NDEBUG
 	uint8_t hash[MD5_BLOCK_SIZE];
 #endif
+	uint8_t _alignment[3];
 	VkShaderStageFlags stage;
 	VkShaderModule handle;
 } VkShader_T;
@@ -47,6 +48,7 @@ typedef struct GlShader_T
 #ifndef NDEBUG
 	uint8_t hash[MD5_BLOCK_SIZE];
 #endif
+	uint8_t _alignment[3];
 	GLuint handle;
 } GlShader_T;
 #endif

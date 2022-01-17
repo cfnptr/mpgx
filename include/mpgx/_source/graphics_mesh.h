@@ -45,6 +45,7 @@ typedef struct GlGraphicsMesh_T
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
 	IndexType indexType;
+	uint8_t _alignment[3];
 	GLuint handle;
 } GlGraphicsMesh_T;
 #endif

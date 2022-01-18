@@ -243,7 +243,7 @@ static int ascendingRenderCompare(
 	if (distanceA > distanceB)
 		return 1;
 
-	abort();
+	return distanceA > distanceB ? 1 : -1;
 }
 static int descendingRenderCompare(
 	const void* a,
@@ -265,14 +265,7 @@ static int descendingRenderCompare(
 		data->rendererPosition,
 		data->renderPosition);
 
-	if (distanceA > distanceB)
-		return -1;
-	if (distanceA == distanceB)
-		return 0;
-	if (distanceA < distanceB)
-		return 1;
-
-	abort();
+	return distanceA < distanceB ? 1 : -1;
 }
 
 void createGraphicsRenderData(

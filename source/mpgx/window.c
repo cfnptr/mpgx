@@ -4991,8 +4991,6 @@ size_t drawGraphicsMesh(
 {
 	assert(graphicsMesh);
 	assert(graphicsPipeline);
-	assert(!graphicsMesh->base.vertexBuffer->base.isMapped);
-	assert(!graphicsMesh->base.indexBuffer->base.isMapped);
 	assert(graphicsMesh->base.window->isRecording);
 
 	assert(graphicsMesh->base.window ==
@@ -5005,6 +5003,9 @@ size_t drawGraphicsMesh(
 	{
 		return 0;
 	}
+
+	assert(!graphicsMesh->base.vertexBuffer->base.isMapped);
+	assert(!graphicsMesh->base.indexBuffer->base.isMapped);
 
 	Window window = graphicsMesh->base.window;
 	GraphicsAPI api = window->api;

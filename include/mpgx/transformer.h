@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #pragma once
+#include "mpmt/thread_pool.h"
 #include "cmmt/quaternion.h"
+
 #include <stdint.h>
 
 typedef struct Transformer_T Transformer_T;
@@ -32,11 +34,16 @@ typedef enum RotationType_T
 
 typedef uint8_t RotationType;
 
-Transformer createTransformer(size_t capacity);
+Transformer createTransformer(
+	size_t capacity,
+	ThreadPool threadPool);
 void destroyTransformer(Transformer transformer);
 
+ThreadPool getTransformerThreadPool(
+	Transformer transformer);
 size_t getTransformerTransformCount(
 	Transformer transformer);
+
 void enumerateTransformer(
 	Transformer transformer,
 	void(*onItem)(Transform));

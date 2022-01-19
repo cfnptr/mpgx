@@ -20,7 +20,8 @@ GraphicsRenderer createTextRenderer(
 	GraphicsPipeline textPipeline,
 	GraphicsRenderSorting sorting,
 	bool useCulling,
-	size_t capacity);
+	size_t capacity,
+	ThreadPool threadPool);
 GraphicsRender createTextRender(
 	GraphicsRenderer textRenderer,
 	Transform transform,

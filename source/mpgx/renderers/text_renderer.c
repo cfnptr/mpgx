@@ -60,7 +60,8 @@ GraphicsRenderer createTextRenderer(
 	GraphicsPipeline textPipeline,
 	GraphicsRenderSorting sorting,
 	bool useCulling,
-	size_t capacity)
+	size_t capacity,
+	ThreadPool threadPool)
 {
 	assert(textPipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
@@ -76,7 +77,8 @@ GraphicsRenderer createTextRenderer(
 		useCulling,
 		onDestroy,
 		onDraw,
-		capacity);
+		capacity,
+		threadPool);
 }
 GraphicsRender createTextRender(
 	GraphicsRenderer textRenderer,

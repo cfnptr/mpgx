@@ -59,7 +59,8 @@ GraphicsRenderer createSpriteRenderer(
 	GraphicsPipeline spritePipeline,
 	GraphicsRenderSorting sorting,
 	bool useCulling,
-	size_t capacity)
+	size_t capacity,
+	ThreadPool threadPool)
 {
 	assert(spritePipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
@@ -75,7 +76,8 @@ GraphicsRenderer createSpriteRenderer(
 		useCulling,
 		onDestroy,
 		onDraw,
-		capacity);
+		capacity,
+		threadPool);
 }
 GraphicsRender createSpriteRender(
 	GraphicsRenderer spriteRenderer,

@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: add thread pool to the constructor
-// and update transformer acync using atomics
-
 #include "mpgx/transformer.h"
+
+#include "mpmt/atomic.h"
 #include "cmmt/matrix.h"
 
 #include <stdlib.h>
@@ -23,9 +22,11 @@
 
 struct Transformer_T
 {
+	ThreadPool threadPool;
 	Transform* transforms;
 	size_t transformCapacity;
 	size_t transformCount;
+	atomic_int64 transformIndex;
 #ifndef NDEBUG
 	bool isEnumerating;
 #endif
@@ -87,18 +88,9 @@ inline static void updateTransformModel(
 	transform->model = scaleMat4F(model, transform->scale);
 }
 
-void destroyTransformer(Transformer transformer)
-{
-	if (!transformer)
-		return;
-
-	assert(transformer->transformCount == 0);
-	assert(!transformer->isEnumerating);
-
-	free(transformer->transforms);
-	free(transformer);
-}
-Transformer createTransformer(size_t capacity)
+Transformer createTransformer(
+	size_t capacity,
+	ThreadPool threadPool)
 {
 	assert(capacity > 0);
 
@@ -107,6 +99,12 @@ Transformer createTransformer(size_t capacity)
 
 	if (!transformer)
 		return NULL;
+
+	transformer->threadPool = threadPool;
+	transformer->transformIndex = 0;
+#ifndef NDEBUG
+	transformer->isEnumerating = false;
+#endif
 
 	Transform* transforms = malloc(
 		sizeof(Transform) * capacity);
@@ -120,18 +118,33 @@ Transformer createTransformer(size_t capacity)
 	transformer->transforms = transforms;
 	transformer->transformCapacity = capacity;
 	transformer->transformCount = 0;
-#ifndef NDEBUG
-	transformer->isEnumerating = false;
-#endif
 	return transformer;
 }
+void destroyTransformer(Transformer transformer)
+{
+	if (!transformer)
+		return;
 
+	assert(transformer->transformCount == 0);
+	assert(!transformer->isEnumerating);
+
+	free(transformer->transforms);
+	free(transformer);
+}
+
+ThreadPool getTransformerThreadPool(
+	Transformer transformer)
+{
+	assert(transformer);
+	return transformer->threadPool;
+}
 size_t getTransformerTransformCount(
 	Transformer transformer)
 {
 	assert(transformer);
 	return transformer->transformCount;
 }
+
 void enumerateTransformer(
 	Transformer transformer,
 	void(*onItem)(Transform))
@@ -171,17 +184,21 @@ void destroyAllTransformerTransforms(
 	transformer->transformCount = 0;
 }
 
-void updateTransformer(Transformer transformer)
+static void onTransformUpdate(void* argument)
 {
-	assert(transformer);
-	assert(!transformer->isEnumerating);
-
-	size_t transformCount = transformer->transformCount;
+	Transformer transformer = argument;
 	Transform* transforms = transformer->transforms;
+	size_t transformCount = transformer->transformCount;
+	atomic_int64* transformIndex = &transformer->transformIndex;
 
-	for (size_t i = 0; i < transformCount; i++)
+	while (true)
 	{
-		Transform transform = transforms[i];
+		int64_t index = atomicFetchAdd64(transformIndex, 1);
+
+		if (index >= transformCount)
+			return;
+
+		Transform transform = transforms[index];
 
 		if (!transform->isActive | transform->isStatic)
 			continue;
@@ -189,6 +206,57 @@ void updateTransformer(Transformer transformer)
 		updateTransformModel(
 			transform,
 			true);
+	}
+}
+void updateTransformer(Transformer transformer)
+{
+	assert(transformer);
+	assert(!transformer->isEnumerating);
+
+	size_t transformCount = transformer->transformCount;
+
+	if (!transformCount)
+		return;
+
+	ThreadPool threadPool = transformer->threadPool;
+
+	if (threadPool && transformCount > getThreadPoolThreadCount(threadPool))
+	{
+		waitThreadPool(threadPool);
+		transformer->transformIndex = 0;
+
+		size_t threadCount = getThreadPoolThreadCount(threadPool);
+
+		bool result = true;
+
+		for (size_t i = 0; i < threadCount; i++)
+		{
+			result &= addThreadPoolTask(
+				threadPool,
+				onTransformUpdate,
+				transformer);
+		}
+
+		if (!result)
+			abort();
+
+		waitThreadPool(threadPool);
+	}
+	else
+	{
+		Transform* transforms = transformer->transforms;
+
+		for (size_t i = 0; i < transformCount; i++)
+		{
+			Transform transform = transforms[i];
+
+			if (!transform->isActive | transform->isStatic)
+				continue;
+
+			updateTransformModel(
+				transform,
+				true);
+		}
 	}
 }
 
@@ -232,6 +300,7 @@ Transform createTransform(
 	if (count == transformer->transformCapacity)
 	{
 		size_t capacity = transformer->transformCapacity * 2;
+		assert(capacity < INT64_MAX);
 
 		Transform* transforms = realloc(
 			transformer->transforms,

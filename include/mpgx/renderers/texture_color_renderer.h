@@ -20,7 +20,8 @@ GraphicsRenderer createTextureColorRenderer(
 	GraphicsPipeline textureColorPipeline,
 	GraphicsRenderSorting sortingType,
 	bool useCulling,
-	size_t capacity);
+	size_t capacity,
+	ThreadPool threadPool);
 GraphicsRender createTextureColorRender(
 	GraphicsRenderer textureColorRenderer,
 	Transform transform,

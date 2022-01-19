@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "mpgx/graphics_renderer.h"
+#include "mpmt/atomic.h"
 
 #include <assert.h>
 #include <string.h>
@@ -39,6 +40,10 @@ struct GraphicsRenderer_T
 	GraphicsRenderElement* renderElements;
 	size_t renderCapacity;
 	size_t renderCount;
+	const GraphicsRendererData* data;
+	ThreadPool threadPool;
+	atomic_int64 renderIndex;
+	atomic_int64 elementIndex;
 	GraphicsRenderSorting sorting;
 	bool useCulling;
 #ifndef NDEBUG
@@ -46,26 +51,14 @@ struct GraphicsRenderer_T
 #endif
 };
 
-void destroyGraphicsRenderer(
-	GraphicsRenderer graphicsRenderer)
-{
-	if (!graphicsRenderer)
-		return;
-
-	assert(graphicsRenderer->renderCount == 0);
-	assert(!graphicsRenderer->isEnumerating);
-
-	free(graphicsRenderer->renderElements);
-	free(graphicsRenderer->renders);
-	free(graphicsRenderer);
-}
 GraphicsRenderer createGraphicsRenderer(
 	GraphicsPipeline pipeline,
 	GraphicsRenderSorting sorting,
 	bool useCulling,
 	OnGraphicsRenderDestroy onDestroy,
 	OnGraphicsRenderDraw onDraw,
-	size_t capacity)
+	size_t capacity,
+	ThreadPool threadPool)
 {
 	assert(pipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
@@ -82,6 +75,10 @@ GraphicsRenderer createGraphicsRenderer(
 	graphicsRenderer->pipeline = pipeline;
 	graphicsRenderer->onDestroy = onDestroy;
 	graphicsRenderer->onDraw = onDraw;
+	graphicsRenderer->data = NULL;
+	graphicsRenderer->threadPool = threadPool;
+	graphicsRenderer->renderIndex = 0;
+	graphicsRenderer->elementIndex = 0;
 	graphicsRenderer->sorting = sorting;
 	graphicsRenderer->useCulling = useCulling;
 #ifndef NDEBUG
@@ -113,6 +110,19 @@ GraphicsRenderer createGraphicsRenderer(
 	graphicsRenderer->renderElements = renderElements;
 	return graphicsRenderer;
 }
+void destroyGraphicsRenderer(
+	GraphicsRenderer graphicsRenderer)
+{
+	if (!graphicsRenderer)
+		return;
+
+	assert(graphicsRenderer->renderCount == 0);
+	assert(!graphicsRenderer->isEnumerating);
+
+	free(graphicsRenderer->renderElements);
+	free(graphicsRenderer->renders);
+	free(graphicsRenderer);
+}
 
 GraphicsPipeline getGraphicsRendererPipeline(
 	GraphicsRenderer graphicsRenderer)
@@ -131,6 +141,12 @@ OnGraphicsRenderDraw getGraphicsRendererOnDraw(
 {
 	assert(graphicsRenderer);
 	return graphicsRenderer->onDraw;
+}
+ThreadPool getGraphicsRendererThreadPool(
+	GraphicsRenderer graphicsRenderer)
+{
+	assert(graphicsRenderer);
+	return graphicsRenderer->threadPool;
 }
 
 GraphicsRenderSorting getGraphicsRendererSorting(
@@ -415,6 +431,124 @@ void createGraphicsRenderData(
 	}
 }
 
+inline static bool isShouldDraw(
+	GraphicsRender render,
+	Plane3F leftPlane,
+	Plane3F rightPlane,
+	Plane3F bottomPlane,
+	Plane3F topPlane,
+	Plane3F backPlane,
+	Plane3F frontPlane,
+	Vec3F rendererPosition,
+	bool useCulling,
+	GraphicsRenderElement* element)
+{
+	Transform transform = render->transform;
+
+	if (!isTransformActive(transform))
+		return false;
+
+	Transform parent = getTransformParent(transform);
+
+	while (parent)
+	{
+		if (!isTransformActive(parent))
+			return false;
+		parent = getTransformParent(parent);
+	}
+
+	Mat4F model = getTransformModel(transform);
+	Vec3F renderPosition = getTranslationMat4F(model);
+
+	if (useCulling)
+	{
+		Vec3F renderScale = getTransformScale(transform);
+		Box3F renderBounding = getGraphicsRenderBounding(render);
+
+		renderBounding.minimum = mulVec3F(
+			renderBounding.minimum,
+			renderScale);
+		renderBounding.minimum = addVec3F(
+			renderBounding.minimum,
+			renderPosition);
+		renderBounding.maximum = mulVec3F(
+			renderBounding.maximum,
+			renderScale);
+		renderBounding.maximum = addVec3F(
+			renderBounding.maximum,
+			renderPosition);
+
+		bool isInFrustum = isBoxInFrustum(
+			leftPlane,
+			rightPlane,
+			bottomPlane,
+			topPlane,
+			backPlane,
+			frontPlane,
+			renderBounding);
+
+		if (!isInFrustum)
+			return false;
+	}
+
+	GraphicsRenderElement renderElement = {
+		render,
+		rendererPosition,
+		renderPosition,
+	};
+
+	*element = renderElement;
+	return true;
+}
+static void onRenderUpdate(void* argument)
+{
+	GraphicsRenderer renderer = argument;
+	GraphicsRender* renders = renderer->renders;
+	GraphicsRenderElement* renderElements =  renderer->renderElements;
+	bool useCulling = renderer->useCulling;
+	size_t renderCount = renderer->renderCount;
+	const GraphicsRendererData* data = renderer->data;
+	atomic_int64* renderIndex = &renderer->renderIndex;
+	atomic_int64* elementIndex = &renderer->elementIndex;
+
+	Vec3F rendererPosition = negVec3F(
+		getTranslationMat4F(data->view));
+	Plane3F leftPlane = data->leftPlane;
+	Plane3F rightPlane = data->rightPlane;
+	Plane3F bottomPlane = data->bottomPlane;
+	Plane3F topPlane = data->topPlane;
+	Plane3F backPlane = data->backPlane;
+	Plane3F frontPlane = data->frontPlane;
+
+	while (true)
+	{
+		int64_t index = atomicFetchAdd64(renderIndex, 1);
+
+		if (index >= renderCount)
+			return;
+
+		GraphicsRender render = renders[index];
+		GraphicsRenderElement element;
+
+		bool shouldDraw = isShouldDraw(
+			render,
+			leftPlane,
+			rightPlane,
+			bottomPlane,
+			topPlane,
+			backPlane,
+			frontPlane,
+			rendererPosition,
+			useCulling,
+			&element);
+
+		if (!shouldDraw)
+			continue;
+
+		index = atomicFetchAdd64(elementIndex, 1);
+		renderElements[index] = element;
+	}
+}
 GraphicsRenderResult drawGraphicsRenderer(
 	GraphicsRenderer graphicsRenderer,
 	const GraphicsRendererData* graphicsRendererData)
@@ -430,84 +564,75 @@ GraphicsRenderResult drawGraphicsRenderer(
 
 	size_t renderCount = graphicsRenderer->renderCount;
 
-	if (renderCount == 0)
+	if (!renderCount)
 		return result;
 
-	GraphicsRender* renders = graphicsRenderer->renders;
+	Vec3F rendererPosition = negVec3F(getTranslationMat4F(
+		graphicsRendererData->view));
+
 	GraphicsRenderElement* renderElements = graphicsRenderer->renderElements;
-	bool useCulling = graphicsRenderer->useCulling;
-
-	Vec3F rendererPosition = negVec3F(
-		getTranslationMat4F(graphicsRendererData->view));
-
-	Plane3F leftPlane = graphicsRendererData->leftPlane;
-	Plane3F rightPlane = graphicsRendererData->rightPlane;
-	Plane3F bottomPlane = graphicsRendererData->bottomPlane;
-	Plane3F topPlane = graphicsRendererData->topPlane;
-	Plane3F backPlane = graphicsRendererData->backPlane;
-	Plane3F frontPlane = graphicsRendererData->frontPlane;
+	ThreadPool threadPool = graphicsRenderer->threadPool;
 
 	size_t elementCount = 0;
 
-	for (size_t i = 0; i < renderCount; i++)
+	if (threadPool && renderCount > getThreadPoolThreadCount(threadPool))
 	{
-		GraphicsRender render = renders[i];
-		Transform transform = render->transform;
+		waitThreadPool(threadPool);
+		graphicsRenderer->data = graphicsRendererData;
+		graphicsRenderer->renderIndex = 0;
+		graphicsRenderer->elementIndex = 0;
 
-		if (!isTransformActive(transform))
-			continue;
+		size_t threadCount = getThreadPoolThreadCount(threadPool);
 
-		Transform parent = getTransformParent(transform);
+		bool addResult = true;
 
-		while (parent)
+		for (size_t i = 0; i < threadCount; i++)
 		{
-			if (!isTransformActive(parent))
-				goto CONTINUE;
-			parent = getTransformParent(parent);
+			addResult &= addThreadPoolTask(
+				threadPool,
+				onRenderUpdate,
+				graphicsRenderer);
 		}
 
-		Mat4F model = getTransformModel(transform);
-		Vec3F renderPosition = getTranslationMat4F(model);
+		if (!addResult)
+			abort();
 
-		if (useCulling)
+		waitThreadPool(threadPool);
+		elementCount = graphicsRenderer->elementIndex;
+	}
+	else
+	{
+		GraphicsRender* renders = graphicsRenderer->renders;
+		bool useCulling = graphicsRenderer->useCulling;
+		Plane3F leftPlane = graphicsRendererData->leftPlane;
+		Plane3F rightPlane = graphicsRendererData->rightPlane;
+		Plane3F bottomPlane = graphicsRendererData->bottomPlane;
+		Plane3F topPlane = graphicsRendererData->topPlane;
+		Plane3F backPlane = graphicsRendererData->backPlane;
+		Plane3F frontPlane = graphicsRendererData->frontPlane;
+
+		for (size_t i = 0; i < renderCount; i++)
 		{
-			Vec3F renderScale = getTransformScale(transform);
-			Box3F renderBounding = getGraphicsRenderBounding(render);
+			GraphicsRender render = renders[i];
+			GraphicsRenderElement element;
 
-			renderBounding.minimum = mulVec3F(
-				renderBounding.minimum,
-				renderScale);
-			renderBounding.minimum = addVec3F(
-				renderBounding.minimum,
-				renderPosition);
-			renderBounding.maximum = mulVec3F(
-				renderBounding.maximum,
-				renderScale);
-			renderBounding.maximum = addVec3F(
-				renderBounding.maximum,
-				renderPosition);
-
-			bool isInFrustum = isBoxInFrustum(
+			bool shouldDraw = isShouldDraw(
+				render,
 				leftPlane,
 				rightPlane,
 				bottomPlane,
 				topPlane,
 				backPlane,
 				frontPlane,
-				renderBounding);
+				rendererPosition,
+				useCulling,
+				&element);
 
-			if (!isInFrustum )
+			if (!shouldDraw)
 				continue;
+
+			renderElements[elementCount++] = element;
 		}
-
-		GraphicsRenderElement element;
-		element.render = render;
-		element.rendererPosition = rendererPosition;
-		element.renderPosition = renderPosition;
-		renderElements[elementCount++] = element;
-
-	CONTINUE:
-		continue;
 	}
 
 	if (elementCount == 0)
@@ -540,6 +665,9 @@ GraphicsRenderResult drawGraphicsRenderer(
 	Mat4F viewProj = graphicsRendererData->viewProj;
 	GraphicsPipeline pipeline = graphicsRenderer->pipeline;
 	OnGraphicsRenderDraw onDraw = graphicsRenderer->onDraw;
+
+	// TODO: also multi-thread this code,
+	// this is possible with Vulkan multiple command buffers
 
 	bindGraphicsPipeline(pipeline);
 

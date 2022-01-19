@@ -67,7 +67,8 @@ GraphicsRenderer createTextureSpriteRenderer(
 	GraphicsPipeline textureSpritePipeline,
 	GraphicsRenderSorting sorting,
 	bool useCulling,
-	size_t capacity)
+	size_t capacity,
+	ThreadPool threadPool)
 {
 	assert(textureSpritePipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
@@ -83,7 +84,8 @@ GraphicsRenderer createTextureSpriteRenderer(
 		useCulling,
 		onDestroy,
 		onDraw,
-		capacity);
+		capacity,
+		threadPool);
 }
 GraphicsRender createTextureSpriteRender(
 	GraphicsRenderer textureSpriteRenderer,

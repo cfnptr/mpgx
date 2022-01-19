@@ -67,7 +67,8 @@ GraphicsRenderer createTextureColorRenderer(
 	GraphicsPipeline textureColorPipeline,
 	GraphicsRenderSorting sorting,
 	bool useCulling,
-	size_t capacity)
+	size_t capacity,
+	ThreadPool threadPool)
 {
 	assert(textureColorPipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
@@ -83,7 +84,8 @@ GraphicsRenderer createTextureColorRenderer(
 		useCulling,
 		onDestroy,
 		onDraw,
-		capacity);
+		capacity,
+		threadPool);
 }
 GraphicsRender createTextureColorRender(
 	GraphicsRenderer textureColorRenderer,

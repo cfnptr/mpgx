@@ -23,6 +23,7 @@
 #include "mpio/file.h"
 #include "cmmt/common.h"
 #include "mpmt/thread.h"
+#include "mpmt/common.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H

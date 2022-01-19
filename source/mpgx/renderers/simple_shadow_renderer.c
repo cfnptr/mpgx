@@ -55,7 +55,8 @@ GraphicsRenderer createSimpleShadowRenderer(
 	GraphicsPipeline simpleShadowPipeline,
 	GraphicsRenderSorting sorting,
 	bool useCulling,
-	size_t capacity)
+	size_t capacity,
+	ThreadPool threadPool)
 {
 	assert(simpleShadowPipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
@@ -71,7 +72,8 @@ GraphicsRenderer createSimpleShadowRenderer(
 		useCulling,
 		onDestroy,
 		onDraw,
-		capacity);
+		capacity,
+		threadPool);
 }
 GraphicsRender createSimpleShadowRender(
 	GraphicsRenderer simpleShadowRenderer,

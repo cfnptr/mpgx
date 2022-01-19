@@ -60,7 +60,8 @@ GraphicsRenderer createDiffuseRenderer(
 	GraphicsPipeline diffusePipeline,
 	GraphicsRenderSorting sorting,
 	bool useCulling,
-	size_t capacity)
+	size_t capacity,
+	ThreadPool threadPool)
 {
 	assert(diffusePipeline);
 	assert(sorting < GRAPHICS_RENDER_SORTING_COUNT);
@@ -76,7 +77,8 @@ GraphicsRenderer createDiffuseRenderer(
 		useCulling,
 		onDestroy,
 		onDraw,
-		capacity);
+		capacity,
+		threadPool);
 }
 GraphicsRender createDiffuseRender(
 	GraphicsRenderer diffuseRenderer,

@@ -18,6 +18,7 @@
 #include "mpgx/transformer.h"
 
 #include "cmmt/camera.h"
+#include "mpmt/thread_pool.h"
 
 typedef struct GraphicsRenderer_T GraphicsRenderer_T;
 typedef GraphicsRenderer_T* GraphicsRenderer;
@@ -68,7 +69,8 @@ GraphicsRenderer createGraphicsRenderer(
 	bool useCulling,
 	OnGraphicsRenderDestroy onDestroy,
 	OnGraphicsRenderDraw onDraw,
-	size_t capacity);
+	size_t capacity,
+	ThreadPool threadPool);
 void destroyGraphicsRenderer(
 	GraphicsRenderer graphicsRenderer);
 
@@ -77,6 +79,8 @@ GraphicsPipeline getGraphicsRendererPipeline(
 OnGraphicsRenderDestroy getGraphicsRendererOnDestroy(
 	GraphicsRenderer graphicsRenderer);
 OnGraphicsRenderDraw getGraphicsRendererOnDraw(
+	GraphicsRenderer graphicsRenderer);
+ThreadPool getGraphicsRendererThreadPool(
 	GraphicsRenderer graphicsRenderer);
 
 GraphicsRenderSorting getGraphicsRendererSorting(

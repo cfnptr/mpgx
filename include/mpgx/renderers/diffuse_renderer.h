@@ -20,7 +20,8 @@ GraphicsRenderer createDiffuseRenderer(
 	GraphicsPipeline diffusePipeline,
 	GraphicsRenderSorting sorting,
 	bool useCulling,
-	size_t capacity);
+	size_t capacity,
+	ThreadPool threadPool);
 GraphicsRender createDiffuseRender(
 	GraphicsRenderer diffuseRenderer,
 	Transform transform,

@@ -170,7 +170,8 @@ inline static MpgxResult createDiffuseRendererInstance(
 		pipeline,
 		ASCENDING_GRAPHICS_RENDER_SORTING,
 		true,
-		MPGX_DEFAULT_CAPACITY);
+		MPGX_DEFAULT_CAPACITY,
+		NULL);
 
 	if (!renderer)
 	{
@@ -352,7 +353,8 @@ inline static Client createClient()
 	}
 
 	Transformer transformer = createTransformer(
-		MPGX_DEFAULT_CAPACITY);
+		MPGX_DEFAULT_CAPACITY,
+		NULL);
 
 	if (!transformer)
 	{

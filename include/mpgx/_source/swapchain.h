@@ -169,20 +169,6 @@ inline static bool getBestVkPresentMode(
 	*presentMode = bestPresentMode;
 	return true;
 }
-inline static bool getVkSurfaceCapabilities(
-	VkPhysicalDevice physicalDevice,
-	VkSurfaceKHR surface,
-	VkSurfaceCapabilitiesKHR* surfaceCapabilities)
-{
-	assert(physicalDevice);
-	assert(surface);
-	assert(surfaceCapabilities);
-
-	return vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-		physicalDevice,
-		surface,
-		surfaceCapabilities) == VK_SUCCESS;
-}
 inline static VkExtent2D getBestVkSurfaceExtent(
 	const VkSurfaceCapabilitiesKHR* surfaceCapabilities,
 	Vec2U framebufferSize)
@@ -326,20 +312,7 @@ inline static MpgxResult createVkSwapchainHandle(
 		&swapchainInstance);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_DEVICE_LOST)
-			return DEVICE_IS_LOST_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_SURFACE_LOST_KHR)
-			return SURFACE_IS_LOST_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_INITIALIZATION_FAILED)
-			return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	*swapchain = swapchainInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -474,14 +447,7 @@ inline static MpgxResult createVkDepthImage(
 		NULL);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	*depthImage = depthImageInstance;
 	*depthAllocation = depthAllocationInstance;
@@ -528,14 +494,7 @@ inline static MpgxResult createVkDepthImageView(
 		&imageViewInstance);
 
 	if(vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	*imageView = imageViewInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -626,14 +585,7 @@ inline static MpgxResult createVkRenderPass(
 		&renderPassInstance);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	*renderPass = renderPassInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -725,14 +677,7 @@ inline static MpgxResult createVkSwapchainBuffers(
 		NULL);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	VkImage* images = malloc(
 		imageCount * sizeof(VkImage));
@@ -749,13 +694,7 @@ inline static MpgxResult createVkSwapchainBuffers(
 	if (vkResult != VK_SUCCESS)
 	{
 		free(images);
-
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+		return vkToMpgxResult(vkResult);
 	}
 
 	VkSwapchainBuffer* bufferArray = malloc(
@@ -809,13 +748,7 @@ inline static MpgxResult createVkSwapchainBuffers(
 				bufferArray,
 				i);
 			free(images);
-
-			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
+			return vkToMpgxResult(vkResult);
 		}
 
 		VkImageView imageViews[2] = {
@@ -856,13 +789,7 @@ inline static MpgxResult createVkSwapchainBuffers(
 				bufferArray,
 				i);
 			free(images);
-
-			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
+			return vkToMpgxResult(vkResult);
 		}
 
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
@@ -898,13 +825,7 @@ inline static MpgxResult createVkSwapchainBuffers(
 				bufferArray,
 				i);
 			free(images);
-
-			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
+			return vkToMpgxResult(vkResult);
 		}
 
 		if (graphicsCommandPool != presentCommandPool)
@@ -938,13 +859,7 @@ inline static MpgxResult createVkSwapchainBuffers(
 					bufferArray,
 					i);
 				free(images);
-
-				if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-					return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-				else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-					return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-				else
-					return UNKNOWN_ERROR_MPGX_RESULT;
+				return vkToMpgxResult(vkResult);
 			}
 
 			VkCommandBufferBeginInfo commandBufferBeginInfo = {
@@ -985,13 +900,7 @@ inline static MpgxResult createVkSwapchainBuffers(
 					bufferArray,
 					i);
 				free(images);
-
-				if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-					return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-				else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-					return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-				else
-					return UNKNOWN_ERROR_MPGX_RESULT;
+				return vkToMpgxResult(vkResult);
 			}
 
 			VkImageMemoryBarrier imageMemoryBarrier = {
@@ -1054,13 +963,7 @@ inline static MpgxResult createVkSwapchainBuffers(
 					bufferArray,
 					i);
 				free(images);
-
-				if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-					return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-				else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-					return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-				else
-					return UNKNOWN_ERROR_MPGX_RESULT;
+				return vkToMpgxResult(vkResult);
 			}
 		}
 		else
@@ -1184,8 +1087,12 @@ inline static MpgxResult createVkSwapchain(
 
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
 
-	if (!getVkSurfaceCapabilities(physicalDevice,
-		surface, &surfaceCapabilities))
+	VkResult vkResult = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+		physicalDevice,
+		surface,
+		&surfaceCapabilities);
+
+	if (vkResult != VK_SUCCESS)
 	{
 		destroyVkSwapchain(
 			device,
@@ -1388,16 +1295,7 @@ inline static MpgxResult resizeVkSwapchain(
 	VkResult vkResult = vkDeviceWaitIdle(device);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_DEVICE_LOST)
-			return DEVICE_IS_LOST_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	VkSurfaceFormatKHR surfaceFormat;
 
@@ -1417,11 +1315,13 @@ inline static MpgxResult resizeVkSwapchain(
 
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
 
-	if (!getVkSurfaceCapabilities(physicalDevice,
-		surface, &surfaceCapabilities))
-	{
+	vkResult = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+		physicalDevice,
+		surface,
+		&surfaceCapabilities);
+
+	if (vkResult != VK_SUCCESS)
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
-	}
 
 	VkExtent2D surfaceExtent = getBestVkSurfaceExtent(
 		&surfaceCapabilities,

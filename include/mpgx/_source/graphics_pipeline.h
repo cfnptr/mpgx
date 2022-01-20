@@ -620,16 +620,7 @@ inline static MpgxResult createVkGraphicsPipelineHandle(
 	free(shaderStageCreateInfos);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_INVALID_SHADER_NV)
-			return BAD_SHADER_CODE_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	*handle = handleInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -789,13 +780,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 			device,
 			graphicsPipelineInstance,
 			false);
-
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+		return vkToMpgxResult(vkResult);
 	}
 
 	graphicsPipelineInstance->vk.cache = cache;
@@ -824,13 +809,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 			device,
 			graphicsPipelineInstance,
 			false);
-
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+		return vkToMpgxResult(vkResult);
 	}
 
 	graphicsPipelineInstance->vk.layout = layout;

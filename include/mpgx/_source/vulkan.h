@@ -19,34 +19,34 @@
 #include "vulkan/vulkan.h"
 #include "vk_mem_alloc.h"
 
-inline static MpgxResult beginVkOneTimeCommandBuffer(
-	VkCommandBuffer commandBuffer)
+inline static MpgxResult vkToMpgxResult(VkResult vkResult)
 {
-	assert(commandBuffer);
-
-	VkCommandBufferBeginInfo commandBufferBeginInfo = {
-		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		NULL,
-		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-		NULL,
-	};
-
-	VkResult vkResult = vkBeginCommandBuffer(
-		commandBuffer,
-		&commandBufferBeginInfo);
-
-	if (vkResult != VK_SUCCESS)
+	// TODO: handle other Vulkan results
+	switch (vkResult)
 	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+	default:
+		return UNKNOWN_ERROR_MPGX_RESULT;
+	case VK_ERROR_OUT_OF_HOST_MEMORY:
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+	case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+		return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+	case VK_ERROR_DEVICE_LOST:
+		return DEVICE_IS_LOST_MPGX_RESULT;
+	case VK_ERROR_SURFACE_LOST_KHR:
+		return SURFACE_IS_LOST_MPGX_RESULT;
+	case VK_ERROR_MEMORY_MAP_FAILED:
+		return FAILED_TO_MAP_MEMORY_MPGX_RESULT;
+	case VK_ERROR_INVALID_SHADER_NV:
+		return BAD_SHADER_CODE_MPGX_RESULT;
+	case VK_ERROR_INITIALIZATION_FAILED:
+		return FAILED_TO_INITIALIZE_VULKAN_MPGX_RESULT;
+	case VK_ERROR_LAYER_NOT_PRESENT:
+	case VK_ERROR_EXTENSION_NOT_PRESENT:
+	case VK_ERROR_FEATURE_NOT_PRESENT:
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
-
-	return SUCCESS_MPGX_RESULT;
 }
+
 inline static MpgxResult endSubmitWaitVkCommandBuffer(
 	VkDevice device,
 	VkQueue queue,
@@ -61,14 +61,7 @@ inline static MpgxResult endSubmitWaitVkCommandBuffer(
 	VkResult vkResult = vkEndCommandBuffer(commandBuffer);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	vkResult = vkResetFences(
 		device,
@@ -76,12 +69,7 @@ inline static MpgxResult endSubmitWaitVkCommandBuffer(
 		&fence);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	VkSubmitInfo submitInfo = {
 		VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -102,16 +90,7 @@ inline static MpgxResult endSubmitWaitVkCommandBuffer(
 		fence);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_DEVICE_LOST)
-			return DEVICE_IS_LOST_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	vkResult = vkWaitForFences(
 		device,
@@ -121,16 +100,7 @@ inline static MpgxResult endSubmitWaitVkCommandBuffer(
 		UINT64_MAX);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_DEVICE_LOST)
-			return DEVICE_IS_LOST_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	return SUCCESS_MPGX_RESULT;
 }
@@ -160,14 +130,7 @@ inline static MpgxResult allocateBeginVkCommandBuffer(
 		&commandBufferInstance);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	VkCommandBufferBeginInfo commandBufferBeginInfo = {
 		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -187,35 +150,10 @@ inline static MpgxResult allocateBeginVkCommandBuffer(
 			commandPool,
 			1,
 			&commandBufferInstance);
-
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+		return vkToMpgxResult(vkResult);
 	}
 
 	*commandBuffer = commandBufferInstance;
-	return SUCCESS_MPGX_RESULT;
-}
-inline static MpgxResult endVkCommandBuffer(
-	VkCommandBuffer commandBuffer)
-{
-	assert(commandBuffer);
-
-	VkResult vkResult = vkEndCommandBuffer(commandBuffer);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
-
 	return SUCCESS_MPGX_RESULT;
 }
 inline static MpgxResult submitVkCommandBuffer(
@@ -235,14 +173,7 @@ inline static MpgxResult submitVkCommandBuffer(
 			device,
 			1,
 			&fence);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
-		}
+		return vkToMpgxResult(vkResult);
 	}
 
 	VkSubmitInfo submitInfo = {
@@ -264,143 +195,11 @@ inline static MpgxResult submitVkCommandBuffer(
 		fence);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_DEVICE_LOST)
-			return DEVICE_IS_LOST_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	return SUCCESS_MPGX_RESULT;
 }
 
-inline static MpgxResult createVkDescriptorSetLayout(
-	VkDevice device,
-	VkDescriptorSetLayoutBinding* descriptorSetLayoutBindings,
-	uint32_t descriptorSetLayoutBindingCount,
-	VkDescriptorSetLayout* descriptorSetLayout)
-{
-	assert(device);
-	assert(descriptorSetLayout);
-
-	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		NULL,
-		0,
-		descriptorSetLayoutBindingCount,
-		descriptorSetLayoutBindings,
-	};
-
-	VkDescriptorSetLayout descriptorSetLayoutInstance;
-
-	VkResult vkResult = vkCreateDescriptorSetLayout(
-		device,
-		&descriptorSetLayoutCreateInfo,
-		NULL,
-		&descriptorSetLayoutInstance);
-
-	if(vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
-
-	*descriptorSetLayout = descriptorSetLayoutInstance;
-	return SUCCESS_MPGX_RESULT;
-}
-inline static MpgxResult createVkDescriptorPool(
-	VkDevice device,
-	uint32_t maxSetCount,
-	VkDescriptorPoolSize* descriptorPoolSizes,
-	uint32_t descriptorPoolSizeCount,
-	VkDescriptorPool* descriptorPool)
-{
-	assert(device);
-	assert(maxSetCount > 0);
-	assert(descriptorPoolSizes);
-	assert(descriptorPoolSizeCount > 0);
-	assert(descriptorPool);
-
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-		NULL,
-		0,
-		maxSetCount,
-		descriptorPoolSizeCount,
-		descriptorPoolSizes,
-	};
-
-	VkDescriptorPool descriptorPoolInstance;
-
-	VkResult vkResult = vkCreateDescriptorPool(
-		device,
-		&descriptorPoolCreateInfo,
-		NULL,
-		&descriptorPoolInstance);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
-
-	*descriptorPool = descriptorPoolInstance;
-	return SUCCESS_MPGX_RESULT;
-}
-
-inline static MpgxResult allocateVkDescriptorSet(
-	VkDevice device,
-	VkDescriptorSetLayout descriptorSetLayout,
-	VkDescriptorPool descriptorPool,
-	VkDescriptorSet* descriptorSet)
-{
-	assert(device);
-	assert(descriptorSetLayout);
-	assert(descriptorPool);
-	assert(descriptorSet);
-
-	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		NULL,
-		descriptorPool,
-		1,
-		&descriptorSetLayout,
-	};
-
-	VkDescriptorSet descriptorSetInstance;
-
-	VkResult vkResult = vkAllocateDescriptorSets(
-		device,
-		&descriptorSetAllocateInfo,
-		&descriptorSetInstance);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-
-		// TODO: handle VK_ERROR_FRAGMENTED_POOL, VK_ERROR_OUT_OF_POOL_MEMORY
-	}
-
-	*descriptorSet = descriptorSetInstance;
-	return SUCCESS_MPGX_RESULT;
-}
 inline static MpgxResult allocateVkDescriptorSets(
 	VkDevice device,
 	VkDescriptorSetLayout descriptorSetLayout,
@@ -450,123 +249,10 @@ inline static MpgxResult allocateVkDescriptorSets(
 	if (vkResult != VK_SUCCESS)
 	{
 		free(descriptorSets);
-
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-
-		// TODO: handle VK_ERROR_FRAGMENTED_POOL, VK_ERROR_OUT_OF_POOL_MEMORY
+		return vkToMpgxResult(vkResult);
 	}
 
 	*descriptorSets = descriptorSetArray;
-	return SUCCESS_MPGX_RESULT;
-}
-
-inline static MpgxResult createVkFence(
-	VkDevice device,
-	VkFenceCreateFlags flags,
-	VkFence* fence)
-{
-	assert(device);
-	assert(fence);
-
-	VkFenceCreateInfo createInfo = {
-		VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-		NULL,
-		flags,
-	};
-
-	VkFence fenceInstance;
-
-	VkResult vkResult = vkCreateFence(
-		device,
-		&createInfo,
-		NULL,
-		&fenceInstance);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
-
-	*fence = fenceInstance;
-	return SUCCESS_MPGX_RESULT;
-}
-inline static MpgxResult getVkFenceStatus(
-	VkDevice device,
-	VkFence fence,
-	bool* status)
-{
-	assert(device);
-	assert(fence);
-	assert(status);
-
-	VkResult vkResult = vkGetFenceStatus(
-		device, fence);
-
-	if (vkResult == VK_SUCCESS)
-	{
-		*status = true;
-		return SUCCESS_MPGX_RESULT;
-	}
-	else if (vkResult == VK_NOT_READY)
-	{
-		*status = false;
-		return SUCCESS_MPGX_RESULT;
-	}
-	else
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_DEVICE_LOST)
-			return DEVICE_IS_LOST_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
-}
-
-inline static MpgxResult createVkSemaphore(
-	VkDevice device,
-	VkSemaphore* semaphore)
-{
-	assert(device);
-	assert(semaphore);
-
-	VkSemaphoreCreateInfo createInfo = {
-		VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-		NULL,
-		0,
-	};
-
-	VkSemaphore semaphoreInstance;
-
-	VkResult vkResult = vkCreateSemaphore(
-		device,
-		&createInfo,
-		NULL,
-		&semaphoreInstance);
-
-	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
-
-	*semaphore = semaphoreInstance;
 	return SUCCESS_MPGX_RESULT;
 }
 

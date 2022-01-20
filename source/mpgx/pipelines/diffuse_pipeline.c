@@ -108,9 +108,9 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 	uint32_t bufferCount,
 	VkDescriptorPool* descriptorPool)
 {
-	assert(device != NULL);
-	assert(bufferCount != 0);
-	assert(descriptorPool != NULL);
+	assert(device);
+	assert(bufferCount > 0);
+	assert(descriptorPool);
 
 	VkDescriptorPoolSize descriptorPoolSizes[1] = {
 		{
@@ -118,18 +118,25 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 			bufferCount,
 		},
 	};
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		NULL,
+		0,
+		bufferCount,
+		1,
+		descriptorPoolSizes
+	};
 
 	VkDescriptorPool descriptorPoolInstance;
 
-	MpgxResult mpgxResult = createVkDescriptorPool(
+	VkResult vkResult = vkCreateDescriptorPool(
 		device,
-		bufferCount,
-		descriptorPoolSizes,
-		1,
+		&descriptorPoolCreateInfo,
+		NULL,
 		&descriptorPoolInstance);
 
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-		return mpgxResult;
+	if (vkResult != VK_SUCCESS)
+		return vkToMpgxResult(vkResult);
 
 	*descriptorPool = descriptorPoolInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -139,7 +146,7 @@ inline static void destroyVkUniformBuffers(
 	Buffer* uniformBuffers)
 {
 	assert(bufferCount == 0 ||
-		(bufferCount != 0 && uniformBuffers != NULL));
+		(bufferCount > 0 && uniformBuffers));
 
 	for (uint32_t i = 0; i < bufferCount; i++)
 		destroyBuffer(uniformBuffers[i]);
@@ -151,14 +158,14 @@ inline static MpgxResult createVkUniformBufferArray(
 	uint32_t bufferCount,
 	Buffer** buffers)
 {
-	assert(window != NULL);
-	assert(bufferCount != 0);
-	assert(buffers != NULL);
+	assert(window);
+	assert(bufferCount > 0);
+	assert(buffers);
 
 	Buffer* bufferArray = malloc(
 		bufferCount * sizeof(Buffer));
 
-	if (bufferArray == NULL)
+	if (!bufferArray)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	for (uint32_t i = 0; i < bufferCount; i++)
@@ -195,12 +202,12 @@ inline static MpgxResult createVkDescriptorSetArray(
 	Buffer* uniformBuffers,
 	VkDescriptorSet** descriptorSets)
 {
-	assert(device != NULL);
-	assert(descriptorSetLayout != NULL);
-	assert(descriptorPool != NULL);
-	assert(bufferCount != 0);
-	assert(uniformBuffers != NULL);
-	assert(descriptorSets != NULL);
+	assert(device);
+	assert(descriptorSetLayout);
+	assert(descriptorPool);
+	assert(bufferCount > 0);
+	assert(uniformBuffers);
+	assert(descriptorSets);
 
 	VkDescriptorSet* descriptorSetArray;
 
@@ -252,7 +259,7 @@ inline static MpgxResult createVkDescriptorSetArray(
 
 static void onVkBind(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -277,7 +284,7 @@ static void onVkBind(GraphicsPipeline graphicsPipeline)
 }
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -295,10 +302,10 @@ static MpgxResult onVkResize(
 	Vec2U newSize,
 	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createData != NULL);
+	assert(createData);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	Window window = handle->vk.window;
@@ -405,7 +412,7 @@ static void onVkDestroy(void* _handle)
 {
 	Handle handle = _handle;
 
-	if (handle == NULL)
+	if (!handle)
 		return;
 
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -433,12 +440,12 @@ inline static MpgxResult createVkPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	Window window = framebuffer->vk.window;
 	VkWindow vkWindow = getVkWindow(window);
@@ -453,19 +460,26 @@ inline static MpgxResult createVkPipeline(
 			NULL,
 		},
 	};
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		NULL,
+		0,
+		1,
+		descriptorSetLayoutBindings
+	};
 
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	MpgxResult mpgxResult = createVkDescriptorSetLayout(
+	VkResult vkResult = vkCreateDescriptorSetLayout(
 		device,
-		descriptorSetLayoutBindings,
-		1,
+		&descriptorSetLayoutCreateInfo,
+		NULL,
 		&descriptorSetLayout);
 
-	if(mpgxResult != SUCCESS_MPGX_RESULT)
+	if(vkResult != VK_SUCCESS)
 	{
 		onVkDestroy(handle);
-		return mpgxResult;
+		return vkToMpgxResult(vkResult);
 	}
 
 	handle->vk.descriptorSetLayout = descriptorSetLayout;
@@ -485,7 +499,7 @@ inline static MpgxResult createVkPipeline(
 
 	VkDescriptorPool descriptorPool;
 
-	mpgxResult = createVkDescriptorPoolInstance(
+	MpgxResult mpgxResult = createVkDescriptorPoolInstance(
 		device,
 		bufferCount,
 		&descriptorPool);
@@ -562,7 +576,7 @@ inline static MpgxResult createVkPipeline(
 #if MPGX_SUPPORT_OPENGL
 static void onGlBind(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->gl.handle;
 	Buffer uniformBuffer = handle->gl.uniformBuffer;
@@ -582,7 +596,7 @@ static void onGlBind(GraphicsPipeline graphicsPipeline)
 }
 static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->gl.handle;
 
@@ -622,10 +636,10 @@ static MpgxResult onGlResize(
 	Vec2U newSize,
 	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createData == NULL);
+	assert(!createData);
 
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
@@ -646,7 +660,7 @@ static void onGlDestroy(void* _handle)
 {
 	Handle handle = _handle;
 
-	if (handle == NULL)
+	if (!handle)
 		return;
 
 	destroyBuffer(handle->gl.uniformBuffer);
@@ -660,12 +674,12 @@ inline static MpgxResult createGlPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	Buffer uniformBuffer;
 
@@ -756,11 +770,11 @@ MpgxResult createDiffusePipelineExt(
 	const GraphicsPipelineState* state,
 	GraphicsPipeline* diffusePipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(state != NULL);
-	assert(diffusePipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(state);
+	assert(diffusePipeline);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -768,7 +782,7 @@ MpgxResult createDiffusePipelineExt(
 
 	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Vec3F lightDirection = normVec3F(
@@ -838,10 +852,10 @@ MpgxResult createDiffusePipeline(
 	Shader fragmentShader,
 	GraphicsPipeline* diffusePipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(diffusePipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(diffusePipeline);
 
 	Vec2U framebufferSize =
 		framebuffer->base.size;
@@ -889,7 +903,7 @@ MpgxResult createDiffusePipeline(
 Mat4F getDiffusePipelineMvp(
 	GraphicsPipeline diffusePipeline)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -899,7 +913,7 @@ void setDiffusePipelineMvp(
 	GraphicsPipeline diffusePipeline,
 	Mat4F mvp)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -909,7 +923,7 @@ void setDiffusePipelineMvp(
 Mat4F getDiffusePipelineNormal(
 	GraphicsPipeline diffusePipeline)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -919,7 +933,7 @@ void setDiffusePipelineNormal(
 	GraphicsPipeline diffusePipeline,
 	Mat4F normal)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -929,7 +943,7 @@ void setDiffusePipelineNormal(
 LinearColor getDiffusePipelineObjectColor(
 	GraphicsPipeline diffusePipeline)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -939,7 +953,7 @@ void setDiffusePipelineObjectColor(
 	GraphicsPipeline diffusePipeline,
 	LinearColor objectColor)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -949,7 +963,7 @@ void setDiffusePipelineObjectColor(
 LinearColor getDiffusePipelineAmbientColor(
 	GraphicsPipeline diffusePipeline)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -959,7 +973,7 @@ void setDiffusePipelineAmbientColor(
 	GraphicsPipeline diffusePipeline,
 	LinearColor ambientColor)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -969,7 +983,7 @@ void setDiffusePipelineAmbientColor(
 LinearColor getDiffusePipelineLightColor(
 	GraphicsPipeline diffusePipeline)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -979,7 +993,7 @@ void setDiffusePipelineLightColor(
 	GraphicsPipeline diffusePipeline,
 	LinearColor lightColor)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -989,7 +1003,7 @@ void setDiffusePipelineLightColor(
 Vec3F getDiffusePipelineLightDirection(
 	GraphicsPipeline diffusePipeline)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;
@@ -1003,7 +1017,7 @@ void setDiffusePipelineLightDirection(
 	GraphicsPipeline diffusePipeline,
 	Vec3F lightDirection)
 {
-	assert(diffusePipeline != NULL);
+	assert(diffusePipeline);
 	assert(strcmp(diffusePipeline->base.name,
 		DIFFUSE_PIPELINE_NAME) == 0);
 	Handle handle = diffusePipeline->base.handle;

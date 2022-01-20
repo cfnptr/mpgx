@@ -104,9 +104,9 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 	uint32_t bufferCount,
 	VkDescriptorPool* descriptorPool)
 {
-	assert(device != NULL);
-	assert(bufferCount != 0);
-	assert(descriptorPool != NULL);
+	assert(device);
+	assert(bufferCount > 0);
+	assert(descriptorPool);
 
 	VkDescriptorPoolSize descriptorPoolSizes[1] = {
 		{
@@ -115,17 +115,25 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 		},
 	};
 
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		NULL,
+		0,
+		bufferCount,
+		1,
+		descriptorPoolSizes
+	};
+
 	VkDescriptorPool descriptorPoolInstance;
 
-	MpgxResult mpgxResult = createVkDescriptorPool(
+	VkResult vkResult = vkCreateDescriptorPool(
 		device,
-		bufferCount,
-		descriptorPoolSizes,
-		1,
+		&descriptorPoolCreateInfo,
+		NULL,
 		&descriptorPoolInstance);
 
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-		return mpgxResult;
+	if (vkResult != VK_SUCCESS)
+		return vkToMpgxResult(vkResult);
 
 	*descriptorPool = descriptorPoolInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -139,13 +147,13 @@ inline static MpgxResult createVkDescriptorSetArray(
 	VkSampler sampler,
 	VkDescriptorSet** descriptorSets)
 {
-	assert(device != NULL);
-	assert(descriptorSetLayout != NULL);
-	assert(descriptorPool != NULL);
-	assert(bufferCount != 0);
-	assert(bufferImageView != NULL);
-	assert(sampler != NULL);
-	assert(descriptorSets != NULL);
+	assert(device);
+	assert(descriptorSetLayout);
+	assert(descriptorPool);
+	assert(bufferCount > 0);
+	assert(bufferImageView);
+	assert(sampler);
+	assert(descriptorSets);
 
 	VkDescriptorSet* descriptorSetArray;
 
@@ -198,7 +206,7 @@ inline static MpgxResult createVkDescriptorSetArray(
 
 static void onVkBind(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -216,7 +224,7 @@ static void onVkBind(GraphicsPipeline graphicsPipeline)
 }
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -234,10 +242,10 @@ static MpgxResult onVkResize(
 	Vec2U newSize,
 	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createData != NULL);
+	assert(createData);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -321,7 +329,7 @@ static void onVkDestroy(void* _handle)
 {
 	Handle handle = _handle;
 
-	if (handle == NULL)
+	if (!handle)
 		return;
 
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -348,14 +356,14 @@ inline static MpgxResult createVkPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(imageView != NULL);
-	assert(sampler != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(imageView);
+	assert(sampler);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
@@ -369,19 +377,26 @@ inline static MpgxResult createVkPipeline(
 			NULL,
 		},
 	};
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		NULL,
+		0,
+		1,
+		descriptorSetLayoutBindings
+	};
 
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	MpgxResult mpgxResult = createVkDescriptorSetLayout(
+	VkResult vkResult = vkCreateDescriptorSetLayout(
 		device,
-		descriptorSetLayoutBindings,
-		1,
+		&descriptorSetLayoutCreateInfo,
+		NULL,
 		&descriptorSetLayout);
 
-	if(mpgxResult != SUCCESS_MPGX_RESULT)
+	if(vkResult != VK_SUCCESS)
 	{
 		onVkDestroy(handle);
-		return mpgxResult;
+		return vkToMpgxResult(vkResult);
 	}
 
 	handle->vk.descriptorSetLayout = descriptorSetLayout;
@@ -401,7 +416,7 @@ inline static MpgxResult createVkPipeline(
 
 	VkDescriptorPool descriptorPool;
 
-	mpgxResult = createVkDescriptorPoolInstance(
+	MpgxResult mpgxResult = createVkDescriptorPoolInstance(
 		device,
 		bufferCount,
 		&descriptorPool);
@@ -464,7 +479,7 @@ inline static MpgxResult createVkPipeline(
 #if MPGX_SUPPORT_OPENGL
 static void onGlBind(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->gl.handle;
 
@@ -485,7 +500,7 @@ static void onGlBind(GraphicsPipeline graphicsPipeline)
 }
 static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->gl.handle;
 
@@ -521,12 +536,12 @@ static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 static MpgxResult onGlResize(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
-	void* createInfo)
+	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createInfo == NULL);
+	assert(!createData);
 
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
@@ -555,12 +570,12 @@ inline static MpgxResult createGlPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	GraphicsPipeline graphicsPipelineInstance;
 
@@ -639,13 +654,13 @@ MpgxResult createGaussianBlurPipelineExt(
 	const GraphicsPipelineState* state,
 	GraphicsPipeline* gaussianBlurPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(buffer != NULL);
-	assert(sampler != NULL);
-	assert(state != NULL);
-	assert(gaussianBlurPipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(buffer);
+	assert(sampler);
+	assert(state);
+	assert(gaussianBlurPipeline);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -655,7 +670,7 @@ MpgxResult createGaussianBlurPipelineExt(
 
 	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Window window = framebuffer->base.window;
@@ -716,12 +731,12 @@ MpgxResult createGaussianBlurPipeline(
 	Sampler sampler,
 	GraphicsPipeline* gaussianBlurPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(buffer != NULL);
-	assert(sampler != NULL);
-	assert(gaussianBlurPipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(buffer);
+	assert(sampler);
+	assert(gaussianBlurPipeline);
 
 	Vec2U framebufferSize =
 		framebuffer->base.size;
@@ -771,7 +786,7 @@ MpgxResult createGaussianBlurPipeline(
 Image getGaussianBlurPipelineBuffer(
 	GraphicsPipeline gaussianBlurPipeline)
 {
-	assert(gaussianBlurPipeline != NULL);
+	assert(gaussianBlurPipeline);
 	assert(strcmp(gaussianBlurPipeline->base.name,
 		GAUSSIAN_BLUR_PIPELINE_NAME) == 0);
 	Handle handle = gaussianBlurPipeline->base.handle;
@@ -780,7 +795,7 @@ Image getGaussianBlurPipelineBuffer(
 Sampler getGaussianBlurPipelineSampler(
 	GraphicsPipeline gaussianBlurPipeline)
 {
-	assert(gaussianBlurPipeline != NULL);
+	assert(gaussianBlurPipeline);
 	assert(strcmp(gaussianBlurPipeline->base.name,
 		GAUSSIAN_BLUR_PIPELINE_NAME) == 0);
 	Handle handle = gaussianBlurPipeline->base.handle;
@@ -790,7 +805,7 @@ Sampler getGaussianBlurPipelineSampler(
 int getGaussianBlurPipelineRadius(
 	GraphicsPipeline gaussianBlurPipeline)
 {
-	assert(gaussianBlurPipeline != NULL);
+	assert(gaussianBlurPipeline);
 	assert(strcmp(gaussianBlurPipeline->base.name,
 		GAUSSIAN_BLUR_PIPELINE_NAME) == 0);
 	Handle handle = gaussianBlurPipeline->base.handle;
@@ -800,7 +815,7 @@ void setGaussianBlurPipelineRadius(
 	GraphicsPipeline gaussianBlurPipeline,
 	int radius)
 {
-	assert(gaussianBlurPipeline != NULL);
+	assert(gaussianBlurPipeline);
 	assert(radius >= 0);
 	assert(radius <= 16);
 	assert(strcmp(gaussianBlurPipeline->base.name,

@@ -59,8 +59,8 @@ MpgxResult createSimpleShadowSampler(
 	Window window,
 	Sampler* simpleShadowSampler)
 {
-	assert(window != NULL);
-	assert(simpleShadowSampler != NULL);
+	assert(window);
+	assert(simpleShadowSampler);
 
 	return createSampler(
 		window,
@@ -104,7 +104,7 @@ static const VkPushConstantRange pushConstantRanges[1] = {
 
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -122,10 +122,10 @@ static MpgxResult onVkResize(
 	Vec2U newSize,
 	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createData != NULL);
+	assert(createData);
 
 	VkGraphicsPipelineCreateData _createData = {
 		1,
@@ -153,12 +153,12 @@ inline static MpgxResult createVkPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	VkGraphicsPipelineCreateData createData = {
 		1,
@@ -202,7 +202,7 @@ inline static MpgxResult createVkPipeline(
 static void onGlUniformsSet(
 	GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->gl.handle;
 
@@ -229,10 +229,10 @@ static MpgxResult onGlResize(
 	Vec2U newSize,
 	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createData == NULL);
+	assert(!createData);
 	return SUCCESS_MPGX_RESULT;
 }
 static void onGlDestroy(void* handle)
@@ -247,12 +247,12 @@ inline static MpgxResult createGlPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	GraphicsPipeline graphicsPipelineInstance;
 
@@ -309,11 +309,11 @@ MpgxResult createSimpleShadowPipelineExt(
 	const GraphicsPipelineState* state,
 	GraphicsPipeline* simpleShadowPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(state != NULL);
-	assert(simpleShadowPipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(state);
+	assert(simpleShadowPipeline);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -321,7 +321,7 @@ MpgxResult createSimpleShadowPipelineExt(
 
 	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Window window = framebuffer->base.window;
@@ -376,11 +376,11 @@ MpgxResult createSimpleShadowPipeline(
 	uint32_t shadowMapLength,
 	GraphicsPipeline* simpleShadowPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(shadowMapLength != 0);
-	assert(simpleShadowPipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(shadowMapLength > 0);
+	assert(simpleShadowPipeline);
 
 	Vec4U size = vec4U(0, 0,
 		shadowMapLength,
@@ -428,7 +428,7 @@ MpgxResult createSimpleShadowPipeline(
 Mat4F getSimpleShadowPipelineMvp(
 	GraphicsPipeline simpleShadowPipeline)
 {
-	assert(simpleShadowPipeline != NULL);
+	assert(simpleShadowPipeline);
 	assert(strcmp(simpleShadowPipeline->base.name,
 		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 	Handle handle = simpleShadowPipeline->base.handle;
@@ -438,7 +438,7 @@ void setSimpleShadowPipelineMvp(
 	GraphicsPipeline simpleShadowPipeline,
 	Mat4F mvp)
 {
-	assert(simpleShadowPipeline != NULL);
+	assert(simpleShadowPipeline);
 	assert(strcmp(simpleShadowPipeline->base.name,
 		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 	Handle handle = simpleShadowPipeline->base.handle;

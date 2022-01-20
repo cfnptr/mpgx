@@ -119,9 +119,9 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 	uint32_t bufferCount,
 	VkDescriptorPool* descriptorPool)
 {
-	assert(device != NULL);
-	assert(bufferCount != 0);
-	assert(descriptorPool != NULL);
+	assert(device);
+	assert(bufferCount > 0);
+	assert(descriptorPool);
 
 	VkDescriptorPoolSize descriptorPoolSizes[1] = {
 		{
@@ -130,17 +130,25 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 		},
 	};
 
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		NULL,
+		0,
+		bufferCount,
+		1,
+		descriptorPoolSizes
+	};
+
 	VkDescriptorPool descriptorPoolInstance;
 
-	MpgxResult mpgxResult = createVkDescriptorPool(
+	VkResult vkResult = vkCreateDescriptorPool(
 		device,
-		bufferCount,
-		descriptorPoolSizes,
-		1,
+		&descriptorPoolCreateInfo,
+		NULL,
 		&descriptorPoolInstance);
 
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-		return mpgxResult;
+	if (vkResult != VK_SUCCESS)
+		return vkToMpgxResult(vkResult);
 
 	*descriptorPool = descriptorPoolInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -154,13 +162,13 @@ inline static MpgxResult createVkDescriptorSetArray(
 	VkImageView imageView,
 	VkDescriptorSet** descriptorSets)
 {
-	assert(device != NULL);
-	assert(descriptorSetLayout != NULL);
-	assert(descriptorPool != NULL);
-	assert(bufferCount != 0);
-	assert(sampler != NULL);
-	assert(imageView != NULL);
-	assert(descriptorSets != NULL);
+	assert(device);
+	assert(descriptorSetLayout);
+	assert(descriptorPool);
+	assert(bufferCount > 0);
+	assert(sampler);
+	assert(imageView);
+	assert(descriptorSets);
 
 	VkDescriptorSet* descriptorSetArray;
 
@@ -212,7 +220,7 @@ inline static MpgxResult createVkDescriptorSetArray(
 
 static void onVkBind(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -230,7 +238,7 @@ static void onVkBind(GraphicsPipeline graphicsPipeline)
 }
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -257,10 +265,10 @@ static MpgxResult onVkResize(
 	Vec2U newSize,
 	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createData != NULL);
+	assert(createData);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -344,7 +352,7 @@ static void onVkDestroy(void* _handle)
 {
 	Handle handle = _handle;
 
-	if (handle == NULL)
+	if (!handle)
 		return;
 
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -371,14 +379,14 @@ inline static MpgxResult createVkPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(sampler != NULL);
-	assert(imageView != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(sampler);
+	assert(imageView);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	VkWindow vkWindow = getVkWindow(framebuffer->vk.window);
 	VkDevice device = vkWindow->device;
@@ -392,19 +400,26 @@ inline static MpgxResult createVkPipeline(
 			NULL,
 		},
 	};
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		NULL,
+		0,
+		1,
+		descriptorSetLayoutBindings
+	};
 
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	MpgxResult mpgxResult = createVkDescriptorSetLayout(
+	VkResult vkResult = vkCreateDescriptorSetLayout(
 		device,
-		descriptorSetLayoutBindings,
-		1,
+		&descriptorSetLayoutCreateInfo,
+		NULL,
 		&descriptorSetLayout);
 
-	if(mpgxResult != SUCCESS_MPGX_RESULT)
+	if(vkResult != VK_SUCCESS)
 	{
 		onVkDestroy(handle);
-		return mpgxResult;
+		return vkToMpgxResult(vkResult);
 	}
 
 	handle->vk.descriptorSetLayout = descriptorSetLayout;
@@ -424,7 +439,7 @@ inline static MpgxResult createVkPipeline(
 
 	VkDescriptorPool descriptorPool;
 
-	mpgxResult = createVkDescriptorPoolInstance(
+	MpgxResult mpgxResult = createVkDescriptorPoolInstance(
 		device,
 		bufferCount,
 		&descriptorPool);
@@ -487,7 +502,7 @@ inline static MpgxResult createVkPipeline(
 #if MPGX_SUPPORT_OPENGL
 static void onGlBind(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->gl.handle;
 
@@ -508,7 +523,7 @@ static void onGlBind(GraphicsPipeline graphicsPipeline)
 }
 static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->gl.handle;
 
@@ -555,10 +570,10 @@ static MpgxResult onGlResize(
 	Vec2U newSize,
 	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createData != NULL);
+	assert(!createData);
 
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
@@ -587,12 +602,12 @@ inline static MpgxResult createGlPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	GraphicsPipeline graphicsPipelineInstance;
 
@@ -672,13 +687,13 @@ MpgxResult createTextureSpritePipelineExt(
 	const GraphicsPipelineState* state,
 	GraphicsPipeline* textureSpritePipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(texture != NULL);
-	assert(sampler != NULL);
-	assert(state != NULL);
-	assert(textureSpritePipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(texture);
+	assert(sampler);
+	assert(state);
+	assert(textureSpritePipeline);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -688,7 +703,7 @@ MpgxResult createTextureSpritePipelineExt(
 
 	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Window window = framebuffer->base.window;
@@ -751,12 +766,12 @@ MpgxResult createTextureSpritePipeline(
 	Sampler sampler,
 	GraphicsPipeline* textureSpritePipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(texture != NULL);
-	assert(sampler != NULL);
-	assert(textureSpritePipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(texture);
+	assert(sampler);
+	assert(textureSpritePipeline);
 
 	Vec2U framebufferSize =
 		framebuffer->base.size;
@@ -806,7 +821,7 @@ MpgxResult createTextureSpritePipeline(
 Image getTextureSpritePipelineTexture(
 	GraphicsPipeline textureSpritePipeline)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(strcmp(textureSpritePipeline->base.name,
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 	Handle handle = textureSpritePipeline->base.handle;
@@ -815,7 +830,7 @@ Image getTextureSpritePipelineTexture(
 Sampler getTextureSpritePipelineSampler(
 	GraphicsPipeline textureSpritePipeline)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(strcmp(textureSpritePipeline->base.name,
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 	Handle handle = textureSpritePipeline->base.handle;
@@ -825,7 +840,7 @@ Sampler getTextureSpritePipelineSampler(
 Mat4F getTextureSpritePipelineMvp(
 	GraphicsPipeline textureSpritePipeline)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(strcmp(textureSpritePipeline->base.name,
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 	Handle handle = textureSpritePipeline->base.handle;
@@ -835,7 +850,7 @@ void setTextureSpritePipelineMvp(
 	GraphicsPipeline textureSpritePipeline,
 	Mat4F mvp)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(strcmp(textureSpritePipeline->base.name,
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 	Handle handle = textureSpritePipeline->base.handle;
@@ -845,7 +860,7 @@ void setTextureSpritePipelineMvp(
 Vec2F getTextureSpritePipelineSize(
 	GraphicsPipeline textureSpritePipeline)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(strcmp(textureSpritePipeline->base.name,
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 	Handle handle = textureSpritePipeline->base.handle;
@@ -855,7 +870,7 @@ void setTextureSpritePipelineSize(
 	GraphicsPipeline textureSpritePipeline,
 	Vec2F size)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(strcmp(textureSpritePipeline->base.name,
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 	Handle handle = textureSpritePipeline->base.handle;
@@ -865,7 +880,7 @@ void setTextureSpritePipelineSize(
 Vec2F getTextureSpritePipelineOffset(
 	GraphicsPipeline textureSpritePipeline)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(strcmp(textureSpritePipeline->base.name,
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 	Handle handle = textureSpritePipeline->base.handle;
@@ -875,7 +890,7 @@ void setTextureSpritePipelineOffset(
 	GraphicsPipeline textureSpritePipeline,
 	Vec2F offset)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(strcmp(textureSpritePipeline->base.name,
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 	Handle handle = textureSpritePipeline->base.handle;
@@ -885,7 +900,7 @@ void setTextureSpritePipelineOffset(
 LinearColor getTextureSpritePipelineColor(
 	GraphicsPipeline textureSpritePipeline)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(strcmp(textureSpritePipeline->base.name,
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 	Handle handle = textureSpritePipeline->base.handle;
@@ -895,7 +910,7 @@ void setTextureSpritePipelineColor(
 	GraphicsPipeline textureSpritePipeline,
 	LinearColor color)
 {
-	assert(textureSpritePipeline != NULL);
+	assert(textureSpritePipeline);
 	assert(strcmp(textureSpritePipeline->base.name,
 		TEXTURE_SPRITE_PIPELINE_NAME) == 0);
 	Handle handle = textureSpritePipeline->base.handle;

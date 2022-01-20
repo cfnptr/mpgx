@@ -1428,7 +1428,7 @@ void makeWindowContextCurrent(Window window)
 }
 void updateWindow(Window window)
 {
-	assert(window != NULL);
+	assert(window);
 	assert(window->isRecording == false);
 	assert(graphicsInitialized);
 
@@ -1591,16 +1591,7 @@ MpgxResult beginWindowRecord(Window window)
 			UINT64_MAX);
 
 		if (vkResult != VK_SUCCESS)
-		{
-			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_DEVICE_LOST)
-				return DEVICE_IS_LOST_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
-		}
+			return vkToMpgxResult(vkResult);
 
 		vkResult = vkResetFences(
 			device,
@@ -1699,14 +1690,7 @@ MpgxResult beginWindowRecord(Window window)
 			&commandBufferBeginInfo);
 
 		if (vkResult != VK_SUCCESS)
-		{
-			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
-		}
+			return vkToMpgxResult(vkResult);
 
 		vkWindow->bufferIndex = bufferIndex;
 		vkWindow->currenCommandBuffer = graphicsCommandBuffer;
@@ -3909,16 +3893,7 @@ MpgxResult setFramebufferAttachments(
 			vkWindow->graphicsQueue);
 
 		if (vkResult != VK_SUCCESS)
-		{
-			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_DEVICE_LOST)
-				return DEVICE_IS_LOST_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
-		}
+			return vkToMpgxResult(vkResult);
 
 		VkDevice device = vkWindow->device;
 
@@ -5014,7 +4989,7 @@ size_t drawGraphicsMesh(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		if (graphicsPipeline->base.onUniformsSet != NULL)
+		if (graphicsPipeline->base.onUniformsSet)
 			graphicsPipeline->base.onUniformsSet(graphicsPipeline);
 
 		drawVkGraphicsMesh(

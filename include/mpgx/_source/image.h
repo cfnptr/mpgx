@@ -321,13 +321,7 @@ inline static MpgxResult createVkImage(
 			device,
 			allocator,
 			imageInstance);
-
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+		return vkToMpgxResult(vkResult);
 	}
 
 	imageInstance->vk.handle = handle;
@@ -369,13 +363,7 @@ inline static MpgxResult createVkImage(
 			device,
 			allocator,
 			imageInstance);
-
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+		return vkToMpgxResult(vkResult);
 	}
 
 	imageInstance->vk.imageView = imageView;
@@ -418,13 +406,7 @@ inline static MpgxResult createVkImage(
 					device,
 					allocator,
 					imageInstance);
-
-				if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-					return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-				else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-					return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-				else
-					return UNKNOWN_ERROR_MPGX_RESULT;
+				return vkToMpgxResult(vkResult);
 			}
 
 			vmaDestroyBuffer(
@@ -461,13 +443,7 @@ inline static MpgxResult createVkImage(
 				device,
 				allocator,
 				imageInstance);
-
-			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
+			return vkToMpgxResult(vkResult);
 		}
 
 		imageInstance->vk.stagingBuffer = stagingBufferInstance;
@@ -483,16 +459,24 @@ inline static MpgxResult createVkImage(
 			bufferSize,
 			0);
 
-		MpgxResult mpgxResult = beginVkOneTimeCommandBuffer(
-			transferCommandBuffer);
+		VkCommandBufferBeginInfo commandBufferBeginInfo = {
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			NULL,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			NULL,
+		};
 
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		vkResult = vkBeginCommandBuffer(
+			transferCommandBuffer,
+			&commandBufferBeginInfo);
+
+		if (vkResult != VK_SUCCESS)
 		{
 			destroyVkImage(
 				device,
 				allocator,
 				imageInstance);
-			return mpgxResult;
+			return vkToMpgxResult(vkResult);
 		}
 
 		VkImageMemoryBarrier imageMemoryBarrier = {
@@ -569,7 +553,7 @@ inline static MpgxResult createVkImage(
 			1,
 			&imageMemoryBarrier);
 
-		mpgxResult = endSubmitWaitVkCommandBuffer(
+		MpgxResult mpgxResult = endSubmitWaitVkCommandBuffer(
 			device,
 			transferQueue,
 			transferFence,
@@ -586,16 +570,24 @@ inline static MpgxResult createVkImage(
 	}
 	else
 	{
-		MpgxResult mpgxResult = beginVkOneTimeCommandBuffer(
-			transferCommandBuffer);
+		VkCommandBufferBeginInfo commandBufferBeginInfo = {
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			NULL,
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			NULL,
+		};
 
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		vkResult = vkBeginCommandBuffer(
+			transferCommandBuffer,
+			&commandBufferBeginInfo);
+
+		if (vkResult != VK_SUCCESS)
 		{
 			destroyVkImage(
 				device,
 				allocator,
 				imageInstance);
-			return mpgxResult;
+			return vkToMpgxResult(vkResult);
 		}
 
 		VkImageMemoryBarrier imageMemoryBarrier = {
@@ -629,7 +621,7 @@ inline static MpgxResult createVkImage(
 			1,
 			&imageMemoryBarrier);
 
-		mpgxResult = endSubmitWaitVkCommandBuffer(
+		MpgxResult mpgxResult = endSubmitWaitVkCommandBuffer(
 			device,
 			transferQueue,
 			transferFence,
@@ -692,11 +684,19 @@ inline static MpgxResult setVkImageData(
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return mpgxResult;
 
-	mpgxResult = beginVkOneTimeCommandBuffer(
-		transferCommandBuffer);
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		NULL,
+		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+		NULL,
+	};
 
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-		return mpgxResult;
+	VkResult vkResult = vkBeginCommandBuffer(
+		transferCommandBuffer,
+		&commandBufferBeginInfo);
+
+	if (vkResult != VK_SUCCESS)
+		return vkToMpgxResult(vkResult);
 
 	VkImage handle = image->vk.handle;
 	VkImageAspectFlagBits aspect = image->vk.vkAspect;

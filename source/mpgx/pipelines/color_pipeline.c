@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: refactor left pipelines asserts and ifs
-
 #include "mpgx/pipelines/color_pipeline.h"
 #include "mpgx/_source/window.h"
 #include "mpgx/_source/graphics_pipeline.h"
@@ -96,7 +94,7 @@ static const VkPushConstantRange pushConstantRanges[2] = {
 
 static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -123,10 +121,10 @@ static MpgxResult onVkResize(
 	Vec2U newSize,
 	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createData != NULL);
+	assert(createData);
 
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
@@ -168,12 +166,12 @@ inline static MpgxResult createVkPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	VkGraphicsPipelineCreateData createData = {
 		1,
@@ -217,7 +215,7 @@ inline static MpgxResult createVkPipeline(
 static void onGlUniformsSet(
 	GraphicsPipeline graphicsPipeline)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 
 	Handle handle = graphicsPipeline->gl.handle;
 
@@ -248,10 +246,10 @@ static MpgxResult onGlResize(
 	Vec2U newSize,
 	void* createData)
 {
-	assert(graphicsPipeline != NULL);
+	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(createData == NULL);
+	assert(!createData);
 
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);
@@ -280,12 +278,12 @@ inline static MpgxResult createGlPipeline(
 	uint8_t shaderCount,
 	GraphicsPipeline* graphicsPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(state != NULL);
-	assert(handle != NULL);
-	assert(shaders != NULL);
-	assert(shaderCount != 0);
-	assert(graphicsPipeline != NULL);
+	assert(framebuffer);
+	assert(state);
+	assert(handle);
+	assert(shaders);
+	assert(shaderCount > 0);
+	assert(graphicsPipeline);
 
 	GraphicsPipeline graphicsPipelineInstance;
 
@@ -347,11 +345,11 @@ MpgxResult createColorPipelineExt(
 	const GraphicsPipelineState* state,
 	GraphicsPipeline* colorPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(state != NULL);
-	assert(colorPipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(state);
+	assert(colorPipeline);
 	assert(vertexShader->base.type == VERTEX_SHADER_TYPE);
 	assert(fragmentShader->base.type == FRAGMENT_SHADER_TYPE);
 	assert(vertexShader->base.window == framebuffer->base.window);
@@ -359,7 +357,7 @@ MpgxResult createColorPipelineExt(
 
 	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	Window window = framebuffer->base.window;
@@ -414,10 +412,10 @@ MpgxResult createColorPipeline(
 	Shader fragmentShader,
 	GraphicsPipeline* colorPipeline)
 {
-	assert(framebuffer != NULL);
-	assert(vertexShader != NULL);
-	assert(fragmentShader != NULL);
-	assert(colorPipeline != NULL);
+	assert(framebuffer);
+	assert(vertexShader);
+	assert(fragmentShader);
+	assert(colorPipeline);
 
 	Vec2U framebufferSize =
 		framebuffer->base.size;
@@ -465,7 +463,7 @@ MpgxResult createColorPipeline(
 Mat4F getColorPipelineMvp(
 	GraphicsPipeline colorPipeline)
 {
-	assert(colorPipeline != NULL);
+	assert(colorPipeline);
 	assert(strcmp(colorPipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
 	Handle handle = colorPipeline->base.handle;
@@ -475,7 +473,7 @@ void setColorPipelineMvp(
 	GraphicsPipeline colorPipeline,
 	Mat4F mvp)
 {
-	assert(colorPipeline != NULL);
+	assert(colorPipeline);
 	assert(strcmp(colorPipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
 	Handle handle = colorPipeline->base.handle;
@@ -485,7 +483,7 @@ void setColorPipelineMvp(
 LinearColor getColorPipelineColor(
 	GraphicsPipeline colorPipeline)
 {
-	assert(colorPipeline != NULL);
+	assert(colorPipeline);
 	assert(strcmp(colorPipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
 	Handle handle = colorPipeline->base.handle;
@@ -495,7 +493,7 @@ void setColorPipelineColor(
 	GraphicsPipeline colorPipeline,
 	LinearColor color)
 {
-	assert(colorPipeline != NULL);
+	assert(colorPipeline);
 	assert(strcmp(colorPipeline->base.name,
 		COLOR_PIPELINE_NAME) == 0);
 	Handle handle = colorPipeline->base.handle;

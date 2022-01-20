@@ -101,16 +101,7 @@ inline static MpgxResult mapVkBuffer(
 		&mappedData);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_MEMORY_MAP_FAILED)
-			return FAILED_TO_MAP_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	if (usage == GPU_TO_CPU_BUFFER_USAGE)
 	{
@@ -125,13 +116,7 @@ inline static MpgxResult mapVkBuffer(
 			vmaUnmapMemory(
 				allocator,
 				allocation);
-
-			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
+			return vkToMpgxResult(vkResult);
 		}
 	}
 
@@ -164,13 +149,7 @@ inline static MpgxResult unmapVkBuffer(
 			vmaUnmapMemory(
 				allocator,
 				allocation);
-
-			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
+			return vkToMpgxResult(vkResult);
 		}
 	}
 
@@ -200,16 +179,7 @@ inline static MpgxResult setVkBufferData(
 		&mappedData);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_MEMORY_MAP_FAILED)
-			return FAILED_TO_MAP_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	uint8_t* mappedBytes = mappedData;
 	memcpy(mappedBytes + offset, data, size);
@@ -225,14 +195,7 @@ inline static MpgxResult setVkBufferData(
 		allocation);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	return SUCCESS_MPGX_RESULT;
 }
@@ -396,13 +359,7 @@ inline static MpgxResult createVkBuffer(
 		destroyVkBuffer(
 			allocator,
 			bufferInstance);
-
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+		return vkToMpgxResult(vkResult);
 	}
 
 	bufferInstance->vk.handle = handle;
@@ -447,13 +404,7 @@ inline static MpgxResult createVkBuffer(
 					destroyVkBuffer(
 						allocator,
 						bufferInstance);
-
-					if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-						return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-					else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-						return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-					else
-						return UNKNOWN_ERROR_MPGX_RESULT;
+					return vkToMpgxResult(vkResult);
 				}
 
 				vmaDestroyBuffer(
@@ -473,15 +424,23 @@ inline static MpgxResult createVkBuffer(
 				size,
 				0);
 
-			MpgxResult mpgxResult = beginVkOneTimeCommandBuffer(
-				transferCommandBuffer);
+			VkCommandBufferBeginInfo commandBufferBeginInfo = {
+				VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+				NULL,
+				VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+				NULL,
+			};
 
-			if (mpgxResult != SUCCESS_MPGX_RESULT)
+			vkResult = vkBeginCommandBuffer(
+				transferCommandBuffer,
+				&commandBufferBeginInfo);
+
+			if (vkResult != VK_SUCCESS)
 			{
 				destroyVkBuffer(
 					allocator,
 					bufferInstance);
-				return mpgxResult;
+				return vkToMpgxResult(vkResult);
 			}
 
 			VkBufferCopy bufferCopy = {
@@ -497,7 +456,7 @@ inline static MpgxResult createVkBuffer(
 				1,
 				&bufferCopy);
 
-			mpgxResult = endSubmitWaitVkCommandBuffer(
+			MpgxResult mpgxResult = endSubmitWaitVkCommandBuffer(
 				device,
 				transferQueue,
 				transferFence,

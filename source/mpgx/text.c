@@ -1038,21 +1038,28 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 	VkDescriptorPoolSize descriptorPoolSizes[1] = {
 		{
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			bufferCount * 2,
+			bufferCount * 2, // TODO: why * 2 ?
 		},
+	};
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		NULL,
+		0,
+		bufferCount,
+		1,
+		descriptorPoolSizes
 	};
 
 	VkDescriptorPool descriptorPoolInstance;
 
-	MpgxResult mpgxResult = createVkDescriptorPool(
+	VkResult vkResult = vkCreateDescriptorPool(
 		device,
-		bufferCount,
-		descriptorPoolSizes,
-		1,
+		&descriptorPoolCreateInfo,
+		NULL,
 		&descriptorPoolInstance);
 
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-		return mpgxResult;
+	if (vkResult != VK_SUCCESS)
+		return vkToMpgxResult(vkResult);
 
 	*descriptorPool = descriptorPoolInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -2700,17 +2707,27 @@ inline static MpgxResult createVkPipeline(
 			NULL,
 		},
 	};
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		NULL,
+		0,
+		1,
+		descriptorSetLayoutBindings
+	};
 
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	MpgxResult mpgxResult = createVkDescriptorSetLayout(
+	VkResult vkResult = vkCreateDescriptorSetLayout(
 		device,
-		descriptorSetLayoutBindings,
-		1,
+		&descriptorSetLayoutCreateInfo,
+		NULL,
 		&descriptorSetLayout);
 
-	if(mpgxResult != SUCCESS_MPGX_RESULT)
-		return mpgxResult;
+	if(vkResult != VK_SUCCESS)
+	{
+		onVkDestroy(handle);
+		return vkToMpgxResult(vkResult);
+	}
 
 	VkGraphicsPipelineCreateData createData = {
 		1,
@@ -2795,12 +2812,12 @@ static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 static MpgxResult onGlResize(
 	GraphicsPipeline graphicsPipeline,
 	Vec2U newSize,
-	void* createInfo)
+	void* createData)
 {
 	assert(graphicsPipeline);
 	assert(newSize.x > 0);
 	assert(newSize.y > 0);
-	assert(!createInfo);
+	assert(!createData);
 
 	Vec4U size = vec4U(0, 0,
 		newSize.x, newSize.y);

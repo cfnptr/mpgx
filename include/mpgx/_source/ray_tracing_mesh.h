@@ -95,14 +95,7 @@ inline static MpgxResult createVkRayTracingBuffer(
 		NULL);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	uint8_t* mappedBuffer;
 
@@ -121,15 +114,7 @@ inline static MpgxResult createVkRayTracingBuffer(
 				allocator,
 				bufferInstance,
 				allocationInstance);
-
-			if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else if (vkResult == VK_ERROR_MEMORY_MAP_FAILED)
-				return FAILED_TO_MAP_MEMORY_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
+			return vkToMpgxResult(vkResult);
 		}
 
 		uint8_t* bufferMappedArray = bufferMappedData;
@@ -157,13 +142,7 @@ inline static MpgxResult createVkRayTracingBuffer(
 					allocator,
 					bufferInstance,
 					allocationInstance);
-
-				if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-					return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-				else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-					return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-				else
-					return UNKNOWN_ERROR_MPGX_RESULT;
+				return vkToMpgxResult(vkResult);
 			}
 		}
 	}
@@ -184,15 +163,7 @@ inline static MpgxResult createVkRayTracingBuffer(
 					allocator,
 					bufferInstance,
 					allocationInstance);
-
-				if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-					return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-				else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-					return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-				else if (vkResult == VK_ERROR_MEMORY_MAP_FAILED)
-					return FAILED_TO_MAP_MEMORY_MPGX_RESULT;
-				else
-					return UNKNOWN_ERROR_MPGX_RESULT;
+				return vkToMpgxResult(vkResult);
 			}
 
 			mappedBuffer = bufferMappedData;
@@ -258,14 +229,7 @@ inline static MpgxResult unmapVkRayTracingBuffer(
 		allocation);
 
 	if (vkResult != VK_SUCCESS)
-	{
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
-	}
+		return vkToMpgxResult(vkResult);
 
 	return SUCCESS_MPGX_RESULT;
 }
@@ -351,11 +315,7 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 			allocator,
 			bufferInstance,
 			allocationInstance);
-
-		if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
-			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+		return vkToMpgxResult(vkResult);
 	}
 
 	VkBuffer scratchBuffer;
@@ -400,10 +360,18 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 		&buildRangeInfo,
 	};
 
-	mpgxResult = beginVkOneTimeCommandBuffer(
-		transferCommandBuffer);
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		NULL,
+		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+		NULL,
+	};
 
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	vkResult = vkBeginCommandBuffer(
+		transferCommandBuffer,
+		&commandBufferBeginInfo);
+
+	if (vkResult != VK_SUCCESS)
 	{
 		vmaDestroyBuffer(
 			allocator,
@@ -417,7 +385,7 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 			device,
 			accelerationStructureInstance,
 			NULL);
-		return mpgxResult;
+		return vkToMpgxResult(vkResult);
 	}
 
 	rayTracing->vk.cmdBuildAccelerationStructures(

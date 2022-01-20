@@ -70,8 +70,8 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 	VkDevice device,
 	VkDescriptorPool* descriptorPool)
 {
-	assert(device != NULL);
-	assert(descriptorPool != NULL);
+	assert(device);
+	assert(descriptorPool);
 
 	VkDescriptorPoolSize descriptorPoolSizes[2] = {
 		{
@@ -84,17 +84,25 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 		},
 	};
 
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		NULL,
+		0,
+		1,
+		2,
+		descriptorPoolSizes
+	};
+
 	VkDescriptorPool descriptorPoolInstance;
 
-	MpgxResult mpgxResult = createVkDescriptorPool(
+	VkResult vkResult = vkCreateDescriptorPool(
 		device,
-		1,
-		descriptorPoolSizes,
-		2,
+		&descriptorPoolCreateInfo,
+		NULL,
 		&descriptorPoolInstance);
 
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-		return mpgxResult;
+	if (vkResult != VK_SUCCESS)
+		return vkToMpgxResult(vkResult);
 
 	*descriptorPool = descriptorPoolInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -107,23 +115,30 @@ inline static MpgxResult createVkDescriptorSetInstance(
 	VkImageView storageImageView,
 	VkDescriptorSet* descriptorSet)
 {
-	assert(device != NULL);
-	assert(descriptorSetLayout != NULL);
-	assert(descriptorPool != NULL);
-	assert(tlas != NULL);
-	assert(storageImageView != NULL);
-	assert(descriptorSet != NULL);
+	assert(device);
+	assert(descriptorSetLayout);
+	assert(descriptorPool);
+	assert(tlas);
+	assert(storageImageView);
+	assert(descriptorSet);
+
+	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		NULL,
+		descriptorPool,
+		1,
+		&descriptorSetLayout,
+	};
 
 	VkDescriptorSet descriptorSetInstance;
 
-	MpgxResult mpgxResult = allocateVkDescriptorSet(
+	VkResult vkResult = vkAllocateDescriptorSets(
 		device,
-		descriptorSetLayout,
-		descriptorPool,
+		&descriptorSetAllocateInfo,
 		&descriptorSetInstance);
 
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-		return mpgxResult;
+	if (vkResult != VK_SUCCESS)
+		return vkToMpgxResult(vkResult);
 
 	VkWriteDescriptorSetAccelerationStructureKHR writeAccelerationStructure[1] = {
 		{
@@ -181,7 +196,7 @@ inline static MpgxResult createVkDescriptorSetInstance(
 
 static void onVkBind(RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayTracingPipeline != NULL);
+	assert(rayTracingPipeline);
 
 	Handle handle = rayTracingPipeline->vk.handle;
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -354,7 +369,7 @@ static void onVkDestroy(void* _handle)
 {
 	Handle handle = _handle;
 
-	if (handle == NULL)
+	if (!handle)
 		return;
 
 	VkWindow vkWindow = getVkWindow(handle->vk.window);
@@ -384,11 +399,11 @@ inline static MpgxResult createVkPipeline(
 	size_t closestHitShaderCount,
 	RayTracingPipeline* rayTracingPipeline)
 {
-	assert(window != NULL);
-	assert(tlas != NULL);
-	assert(storageImageView != NULL);
-	assert(handle != NULL);
-	assert(rayTracingPipeline != NULL);
+	assert(window);
+	assert(tlas);
+	assert(storageImageView);
+	assert(handle);
+	assert(rayTracingPipeline);
 	// TODO: assert shaders
 
 	VkWindow vkWindow = getVkWindow(window);
@@ -410,19 +425,26 @@ inline static MpgxResult createVkPipeline(
 			NULL,
 		},
 	};
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		NULL,
+		0,
+		2,
+		descriptorSetLayoutBindings
+	};
 
 	VkDescriptorSetLayout descriptorSetLayout;
 
-	MpgxResult mpgxResult = createVkDescriptorSetLayout(
+	VkResult vkResult = vkCreateDescriptorSetLayout(
 		device,
-		descriptorSetLayoutBindings,
-		2,
+		&descriptorSetLayoutCreateInfo,
+		NULL,
 		&descriptorSetLayout);
 
-	if(mpgxResult != SUCCESS_MPGX_RESULT)
+	if(vkResult != VK_SUCCESS)
 	{
 		onVkDestroy(handle);
-		return mpgxResult;
+		return vkToMpgxResult(vkResult);
 	}
 
 	handle->vk.descriptorSetLayout = descriptorSetLayout;
@@ -436,7 +458,7 @@ inline static MpgxResult createVkPipeline(
 
 	VkDescriptorPool descriptorPool;
 
-	mpgxResult = createVkDescriptorPoolInstance(
+	MpgxResult mpgxResult = createVkDescriptorPoolInstance(
 		device,
 		&descriptorPool);
 
@@ -502,12 +524,12 @@ MpgxResult createRayTracingColorPipeline(
 	RayTracingScene scene,
 	RayTracingPipeline* rayTracingColorPipeline)
 {
-	assert(window != NULL);
-	assert(generationShader != NULL);
-	assert(missShader != NULL);
-	assert(closestHitShader != NULL);
-	assert(scene != NULL);
-	assert(rayTracingColorPipeline != NULL);
+	assert(window);
+	assert(generationShader);
+	assert(missShader);
+	assert(closestHitShader);
+	assert(scene);
+	assert(rayTracingColorPipeline);
 	assert(generationShader->base.type == RAY_GENERATION_SHADER_TYPE);
 	assert(missShader->base.type == RAY_MISS_SHADER_TYPE);
 	assert(closestHitShader->base.type == RAY_CLOSEST_HIT_SHADER_TYPE);
@@ -518,7 +540,7 @@ MpgxResult createRayTracingColorPipeline(
 
 	Handle handle = calloc(1, sizeof(Handle_T));
 
-	if (handle == NULL)
+	if (!handle)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	handle->base.window = window;
@@ -583,7 +605,7 @@ MpgxResult createRayTracingColorPipeline(
 RayTracingScene getRayTracingColorPipelineScene(
 	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayTracingPipeline != NULL);
+	assert(rayTracingPipeline);
 	assert(strcmp(rayTracingPipeline->base.name,
 		RAY_TRACING_COLOR_PIPELINE_NAME) == 0);
 	Handle handle = rayTracingPipeline->base.handle;
@@ -593,7 +615,7 @@ RayTracingScene getRayTracingColorPipelineScene(
 Mat4F getRayTracingColorPipelineInvView(
 	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayTracingPipeline != NULL);
+	assert(rayTracingPipeline);
 	assert(strcmp(rayTracingPipeline->base.name,
 		RAY_TRACING_COLOR_PIPELINE_NAME) == 0);
 	Handle handle = rayTracingPipeline->base.handle;
@@ -603,7 +625,7 @@ void setRayTracingColorPipelineInvView(
 	RayTracingPipeline rayTracingPipeline,
 	Mat4F invView)
 {
-	assert(rayTracingPipeline != NULL);
+	assert(rayTracingPipeline);
 	assert(strcmp(rayTracingPipeline->base.name,
 		RAY_TRACING_COLOR_PIPELINE_NAME) == 0);
 	Handle handle = rayTracingPipeline->base.handle;
@@ -613,7 +635,7 @@ void setRayTracingColorPipelineInvView(
 Mat4F getRayTracingColorPipelineInvProj(
 	RayTracingPipeline rayTracingPipeline)
 {
-	assert(rayTracingPipeline != NULL);
+	assert(rayTracingPipeline);
 	assert(strcmp(rayTracingPipeline->base.name,
 		RAY_TRACING_COLOR_PIPELINE_NAME) == 0);
 	Handle handle = rayTracingPipeline->base.handle;
@@ -623,7 +645,7 @@ void setRayTracingColorPipelineInvProj(
 	RayTracingPipeline rayTracingPipeline,
 	Mat4F invProj)
 {
-	assert(rayTracingPipeline != NULL);
+	assert(rayTracingPipeline);
 	assert(strcmp(rayTracingPipeline->base.name,
 		RAY_TRACING_COLOR_PIPELINE_NAME) == 0);
 	Handle handle = rayTracingPipeline->base.handle;

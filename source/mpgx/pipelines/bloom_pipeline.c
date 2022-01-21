@@ -112,7 +112,6 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 			bufferCount, // TODO: we can make only one descriptor set here?
 		},
 	};
-
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
 		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 		NULL,

@@ -465,12 +465,14 @@ inline static MpgxResult getVkQueueFamilyIndices(
 	VkSurfaceKHR surface,
 	uint32_t* graphicsQueueFamilyIndex,
 	uint32_t* presentQueueFamilyIndex,
+	uint32_t* transferQueueFamilyIndex,
 	uint32_t* computeQueueFamilyIndex)
 {
 	assert(physicalDevice);
 	assert(surface);
 	assert(graphicsQueueFamilyIndex);
 	assert(presentQueueFamilyIndex);
+	assert(transferQueueFamilyIndex);
 	assert(computeQueueFamilyIndex);
 
 	uint32_t propertyCount;
@@ -493,6 +495,7 @@ inline static MpgxResult getVkQueueFamilyIndices(
 
 	uint32_t graphicsIndex = UINT32_MAX,
 		presentIndex = UINT32_MAX,
+		transferIndex = UINT32_MAX,
 		computeIndex = UINT32_MAX;
 
 	for (uint32_t i = 0; i < propertyCount; i++)
@@ -501,15 +504,19 @@ inline static MpgxResult getVkQueueFamilyIndices(
 
 		if (property->queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
-			if (graphicsIndex == UINT32_MAX)
-				graphicsIndex = i;
+			graphicsIndex = i;
+			break;
 		}
-		if (property->queueFlags & VK_QUEUE_COMPUTE_BIT)
-		{
-			if (computeIndex == UINT32_MAX)
-				computeIndex = i;
-		}
+	}
 
+	if (graphicsIndex == UINT32_MAX) // TODO: possibly support processing only
+	{
+		free(properties);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	for (uint32_t i = 0; i < propertyCount; i++)
+	{
 		VkBool32 isSupported;
 
 		VkResult vkResult = vkGetPhysicalDeviceSurfaceSupportKHR(
@@ -517,9 +524,6 @@ inline static MpgxResult getVkQueueFamilyIndices(
 			i,
 			surface,
 			&isSupported);
-
-		// TESTING PURPOSE:
-		//if (graphicsIndex == i) continue;
 
 		if (vkResult != VK_SUCCESS)
 		{
@@ -529,25 +533,103 @@ inline static MpgxResult getVkQueueFamilyIndices(
 
 		if (isSupported == VK_TRUE)
 		{
-			if (presentIndex == UINT32_MAX)
-				presentIndex = i;
-		}
-
-		if (graphicsIndex != UINT32_MAX &&
-			presentIndex != UINT32_MAX &&
-			computeIndex != UINT32_MAX)
-		{
-			*graphicsQueueFamilyIndex = graphicsIndex;
-			*presentQueueFamilyIndex = presentIndex;
-			*computeQueueFamilyIndex = computeIndex;
-
-			free(properties);
-			return SUCCESS_MPGX_RESULT;
+			presentIndex = i;
+			break;
 		}
 	}
 
+	if (presentIndex == UINT32_MAX)
+	{
+		free(properties);
+		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	}
+
+	for (uint32_t i = 0; i < propertyCount; i++)
+	{
+		VkQueueFamilyProperties* property = &properties[i];
+
+		if (property->queueFlags & VK_QUEUE_TRANSFER_BIT &&
+			graphicsIndex != i)
+		{
+			transferIndex = i;
+			break;
+		}
+	}
+
+	if (transferIndex == UINT32_MAX)
+	{
+		for (uint32_t i = 0; i < propertyCount; i++)
+		{
+			VkQueueFamilyProperties* property = &properties[i];
+
+			if (property->queueFlags & VK_QUEUE_TRANSFER_BIT)
+			{
+				transferIndex = i;
+				break;
+			}
+		}
+
+		if (transferIndex == UINT32_MAX)
+		{
+			free(properties);
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		}
+	}
+
+	for (uint32_t i = 0; i < propertyCount; i++)
+	{
+		VkQueueFamilyProperties* property = &properties[i];
+
+		if (property->queueFlags & VK_QUEUE_COMPUTE_BIT &&
+			graphicsIndex != i && transferIndex != i)
+		{
+			computeIndex = i;
+			break;
+		}
+	}
+
+	if (computeIndex == UINT32_MAX)
+	{
+		for (uint32_t i = 0; i < propertyCount; i++)
+		{
+			VkQueueFamilyProperties* property = &properties[i];
+
+			if (property->queueFlags & VK_QUEUE_COMPUTE_BIT &&
+				graphicsIndex != i)
+			{
+				computeIndex = i;
+				break;
+			}
+		}
+
+		if (computeIndex == UINT32_MAX)
+		{
+			for (uint32_t i = 0; i < propertyCount; i++)
+			{
+				VkQueueFamilyProperties* property = &properties[i];
+
+				if (property->queueFlags & VK_QUEUE_COMPUTE_BIT)
+				{
+					computeIndex = i;
+					break;
+				}
+			}
+
+			if (computeIndex == UINT32_MAX)
+			{
+				free(properties);
+				return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+			}
+		}
+	}
+
+	*graphicsQueueFamilyIndex = graphicsIndex;
+	*presentQueueFamilyIndex = presentIndex;
+	*transferQueueFamilyIndex = transferIndex;
+	*computeQueueFamilyIndex = computeIndex;
+
 	free(properties);
-	return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	return SUCCESS_MPGX_RESULT;
 }
 
 inline static MpgxResult checkVkDeviceExtensions(
@@ -614,6 +696,8 @@ inline static MpgxResult createVkDevice(
 	VkPhysicalDevice physicalDevice,
 	uint32_t graphicsQueueFamilyIndex,
 	uint32_t presentQueueFamilyIndex,
+	uint32_t transferQueueFamilyIndex,
+	uint32_t computeQueueFamilyIndex,
 	bool useRayTracing,
 	const char** extensions,
 	uint32_t extensionCount,
@@ -626,42 +710,38 @@ inline static MpgxResult createVkDevice(
 
 	float priority = 1.0f;
 
-	VkDeviceQueueCreateInfo graphicsQueueCreateInfo = {
+	VkDeviceQueueCreateInfo queueCreateInfo = {
 		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 		NULL,
 		0,
-		graphicsQueueFamilyIndex,
-		1,
-		&priority,
-	};
-	VkDeviceQueueCreateInfo presentQueueCreateInfo = {
-		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-		NULL,
 		0,
-		presentQueueFamilyIndex,
 		1,
 		&priority,
 	};
-	const VkDeviceQueueCreateInfo oneCreateInfos[1] = {
-		graphicsQueueCreateInfo,
-	};
-	const VkDeviceQueueCreateInfo twoCreateInfos[2] = {
-		graphicsQueueCreateInfo,
-		presentQueueCreateInfo,
-	};
 
-	const VkDeviceQueueCreateInfo* queueCreateInfos;
-	uint32_t queueCreateInfoCount;
+	VkDeviceQueueCreateInfo queueCreateInfos[4];
+	size_t queueCreateInfoCount = 0;
 
-	if (graphicsQueueFamilyIndex == presentQueueFamilyIndex)
+	queueCreateInfo.queueFamilyIndex = graphicsQueueFamilyIndex;
+	queueCreateInfos[queueCreateInfoCount++] = queueCreateInfo;
+
+	if (presentQueueFamilyIndex != graphicsQueueFamilyIndex)
 	{
-		queueCreateInfos = oneCreateInfos;
-		queueCreateInfoCount = 1;
+		queueCreateInfo.queueFamilyIndex = presentQueueFamilyIndex;
+		queueCreateInfos[queueCreateInfoCount++] = queueCreateInfo;
 	}
-	else
+	if (transferQueueFamilyIndex != graphicsQueueFamilyIndex &&
+		transferQueueFamilyIndex != presentQueueFamilyIndex)
 	{
-		queueCreateInfos = twoCreateInfos;
-		queueCreateInfoCount = 2;
+		queueCreateInfo.queueFamilyIndex = transferQueueFamilyIndex;
+		queueCreateInfos[queueCreateInfoCount++] = queueCreateInfo;
+	}
+	if (computeQueueFamilyIndex != graphicsQueueFamilyIndex &&
+		computeQueueFamilyIndex != presentQueueFamilyIndex &&
+		computeQueueFamilyIndex != transferQueueFamilyIndex)
+	{
+		queueCreateInfo.queueFamilyIndex = computeQueueFamilyIndex;
+		queueCreateInfos[queueCreateInfoCount++] = queueCreateInfo;
 	}
 
 	VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures;
@@ -934,6 +1014,7 @@ inline static MpgxResult createVkWindow(
 
 	uint32_t graphicsQueueFamilyIndex,
 		presentQueueFamilyIndex,
+		transferQueueFamilyIndex,
 		computeQueueFamilyIndex;
 
 	mpgxResult = getVkQueueFamilyIndices(
@@ -941,6 +1022,7 @@ inline static MpgxResult createVkWindow(
 		surface,
 		&graphicsQueueFamilyIndex,
 		&presentQueueFamilyIndex,
+		&transferQueueFamilyIndex,
 		&computeQueueFamilyIndex);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -948,8 +1030,6 @@ inline static MpgxResult createVkWindow(
 		destroyVkWindow(instance, window);
 		return mpgxResult;
 	}
-
-	uint32_t transferQueueFamilyIndex = graphicsQueueFamilyIndex;
 
 	window->graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
 	window->presentQueueFamilyIndex = presentQueueFamilyIndex;
@@ -1048,6 +1128,8 @@ inline static MpgxResult createVkWindow(
 		physicalDevice,
 		graphicsQueueFamilyIndex,
 		presentQueueFamilyIndex,
+		transferQueueFamilyIndex,
+		computeQueueFamilyIndex,
 		useRayTracing,
 		extensions,
 		extensionCount,
@@ -1081,6 +1163,7 @@ inline static MpgxResult createVkWindow(
 
 	VkQueue graphicsQueue,
 		presentQueue,
+		transferQueue,
 		computeQueue;
 
 	vkGetDeviceQueue(
@@ -1095,11 +1178,14 @@ inline static MpgxResult createVkWindow(
 		&presentQueue);
 	vkGetDeviceQueue(
 		device,
+		transferQueueFamilyIndex,
+		0,
+		&transferQueue);
+	vkGetDeviceQueue(
+		device,
 		computeQueueFamilyIndex,
 		0,
 		&computeQueue);
-
-	VkQueue transferQueue = graphicsQueue;
 
 	window->graphicsQueue = graphicsQueue;
 	window->presentQueue = presentQueue;

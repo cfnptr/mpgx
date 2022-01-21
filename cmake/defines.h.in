@@ -57,12 +57,13 @@ typedef enum MpgxResult_T
 	BAD_SHADER_CODE_MPGX_RESULT = 14,
 	OUT_OF_HOST_MEMORY_MPGX_RESULT = 15,
 	OUT_OF_DEVICE_MEMORY_MPGX_RESULT = 16,
-	FAILED_TO_MAP_MEMORY_MPGX_RESULT = 17,
-	ZERO_FRAMEBUFFER_SIZE_MPGX_RESULT = 18,
-	DEVICE_IS_LOST_MPGX_RESULT = 19,
-	SURFACE_IS_LOST_MPGX_RESULT = 20,
-	UNKNOWN_ERROR_MPGX_RESULT = 21,
-	MPGX_RESULT_COUNT = 22,
+	OUT_OF_POOL_MEMORY_MPGX_RESULT = 17,
+	FAILED_TO_MAP_MEMORY_MPGX_RESULT = 18,
+	ZERO_FRAMEBUFFER_SIZE_MPGX_RESULT = 19,
+	DEVICE_IS_LOST_MPGX_RESULT = 20,
+	SURFACE_IS_LOST_MPGX_RESULT = 21,
+	UNKNOWN_ERROR_MPGX_RESULT = 22,
+	MPGX_RESULT_COUNT = 23,
 } MpgxResult_T;
 /*
  * Returns MPGX result as string.
@@ -91,6 +92,7 @@ static const char* const mpgxResultStrings[MPGX_RESULT_COUNT] = {
 	"Bad shader code",
 	"Out of host memory",
 	"Out of device memory",
+	"Out of pool memory",
 	"Failed to map memory",
 	"Zero framebuffer size",
 	"Device is lost",

@@ -30,6 +30,8 @@ inline static MpgxResult vkToMpgxResult(VkResult vkResult)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	case VK_ERROR_OUT_OF_DEVICE_MEMORY:
 		return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
+	case VK_ERROR_OUT_OF_POOL_MEMORY:
+		return OUT_OF_POOL_MEMORY_MPGX_RESULT;
 	case VK_ERROR_DEVICE_LOST:
 		return DEVICE_IS_LOST_MPGX_RESULT;
 	case VK_ERROR_SURFACE_LOST_KHR:
@@ -44,6 +46,8 @@ inline static MpgxResult vkToMpgxResult(VkResult vkResult)
 	case VK_ERROR_EXTENSION_NOT_PRESENT:
 	case VK_ERROR_FEATURE_NOT_PRESENT:
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+	case VK_SUCCESS:
+		return SUCCESS_MPGX_RESULT;
 	}
 }
 
@@ -173,7 +177,9 @@ inline static MpgxResult submitVkCommandBuffer(
 			device,
 			1,
 			&fence);
-		return vkToMpgxResult(vkResult);
+
+		if (vkResult != VK_SUCCESS)
+			return vkToMpgxResult(vkResult);
 	}
 
 	VkSubmitInfo submitInfo = {
@@ -248,7 +254,7 @@ inline static MpgxResult allocateVkDescriptorSets(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		free(descriptorSets);
+		free(descriptorSetArray);
 		return vkToMpgxResult(vkResult);
 	}
 

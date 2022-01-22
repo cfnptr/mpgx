@@ -46,6 +46,7 @@ typedef struct VkFramebuffer_T
 	uint8_t _alignment[6];
 	VkRenderPass renderPass;
 	VkFramebuffer handle;
+	VkClearAttachment* clearAttachments;
 } VkFramebuffer_T;
 #endif
 #if MPGX_SUPPORT_OPENGL
@@ -384,6 +385,9 @@ inline static void destroyVkFramebuffer(
 	if (!framebuffer)
 		return;
 
+	assert(framebuffer->vk.graphicsPipelineCount == 0);
+	free(framebuffer->vk.clearAttachments);
+
 	if (!framebuffer->vk.isDefault)
 	{
 		vkDestroyFramebuffer(
@@ -408,8 +412,6 @@ inline static void destroyVkFramebuffer(
 
 		free(framebuffer->vk.colorAttachments);
 	}
-
-	assert(framebuffer->vk.graphicsPipelineCount == 0);
 
 	free(framebuffer->vk.graphicsPipelines);
 	free(framebuffer);
@@ -444,6 +446,8 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	framebufferInstance->vk.size = size;
 	framebufferInstance->vk.isDefault = true;
 	framebufferInstance->vk.useBeginClear = true;
+	framebufferInstance->vk.renderPass = renderPass;
+	framebufferInstance->vk.handle = handle;
 
 	GraphicsPipeline* graphicsPipelines = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));
@@ -460,8 +464,20 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	framebufferInstance->vk.graphicsPipelines = graphicsPipelines;
 	framebufferInstance->vk.graphicsPipelineCapacity = MPGX_DEFAULT_CAPACITY;
 	framebufferInstance->vk.graphicsPipelineCount = 0;
-	framebufferInstance->vk.renderPass = renderPass;
-	framebufferInstance->vk.handle = handle;
+
+	VkClearAttachment* clearAttachments = malloc(
+		2 * sizeof(VkClearAttachment));
+
+	if (!clearAttachments)
+	{
+		destroyVkFramebuffer(
+			device,
+			framebufferInstance,
+			false);
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+	}
+
+	framebufferInstance->vk.clearAttachments = clearAttachments;
 
 	*framebuffer = framebufferInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -590,8 +606,22 @@ inline static MpgxResult createVkFramebuffer(
 		return mpgxResult;
 	}
 
-	framebufferInstance->vk.renderPass = renderPass;
 	framebufferInstance->vk.handle = handle;
+
+	VkClearAttachment* clearAttachments = malloc(
+		attachmentCount * sizeof(VkClearAttachment));
+
+	if (!clearAttachments)
+	{
+		destroyVkFramebuffer(
+			device,
+			framebufferInstance,
+			false);
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+	}
+
+	framebufferInstance->vk.clearAttachments = clearAttachments;
+	framebufferInstance->vk.renderPass = renderPass;
 
 	*framebuffer = framebufferInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -679,6 +709,20 @@ inline static MpgxResult setVkFramebufferAttachments(
 		return mpgxResult;
 	}
 
+	VkClearAttachment* clearAttachments = realloc(
+		framebuffer->vk.clearAttachments,
+		attachmentCount * sizeof(VkClearAttachment));
+
+	if (!clearAttachments)
+	{
+		vkDestroyFramebuffer(
+			device,
+			handle,
+			NULL);
+		free(colorAttachmentArray);
+		return mpgxResult;
+	}
+
 	GraphicsPipeline* graphicsPipelines = framebuffer->vk.graphicsPipelines;
 	size_t pipelineCount = framebuffer->vk.graphicsPipelineCount;
 
@@ -741,6 +785,7 @@ inline static MpgxResult setVkFramebufferAttachments(
 	framebuffer->vk.depthStencilAttachment = depthStencilAttachment;
 	framebuffer->vk.handle = handle;
 	framebuffer->vk.renderPass = renderPass;
+	framebuffer->vk.clearAttachments = clearAttachments;
 	return SUCCESS_MPGX_RESULT;
 }
 
@@ -784,11 +829,13 @@ inline static void endVkFramebufferRender(
 	assert(commandBuffer);
 	vkCmdEndRenderPass(commandBuffer);
 }
+
 inline static void clearVkFramebuffer(
 	VkCommandBuffer commandBuffer,
 	Vec2U framebufferSize,
 	bool hasDepthAttachment,
 	bool hasStencilAttachment,
+	VkClearAttachment* vkClearAttachments,
 	const bool* clearAttachments,
 	const FramebufferClear* clearValues,
 	size_t clearValueCount)
@@ -799,13 +846,6 @@ inline static void clearVkFramebuffer(
 	assert(clearAttachments);
 	assert(clearValues);
 	assert(clearValueCount > 0);
-
-	// TODO: move allocation to framebuffer object (cache it)
-	VkClearAttachment* clearAttachmentArray = malloc(
-		clearValueCount * sizeof(VkClearAttachment));
-
-	if (!clearAttachmentArray)
-		abort();
 
 	size_t clearAttachmentCount = 0;
 
@@ -832,7 +872,7 @@ inline static void clearVkFramebuffer(
 			clearValue,
 		};
 
-		clearAttachmentArray[clearAttachmentCount++] = clearAttachment;
+		vkClearAttachments[clearAttachmentCount++] = clearAttachment;
 	}
 
 	if ((hasDepthAttachment | hasStencilAttachment) &
@@ -858,7 +898,7 @@ inline static void clearVkFramebuffer(
 			clearValue,
 		};
 
-		clearAttachmentArray[clearAttachmentCount++] = clearAttachment;
+		vkClearAttachments[clearAttachmentCount++] = clearAttachment;
 	}
 
 	VkClearRect clearRect = {
@@ -874,10 +914,9 @@ inline static void clearVkFramebuffer(
 	vkCmdClearAttachments(
 		commandBuffer,
 		(uint32_t)clearAttachmentCount,
-		clearAttachmentArray,
+		vkClearAttachments,
 		1,
 		&clearRect);
-	free(clearAttachmentArray);
 }
 #endif
 

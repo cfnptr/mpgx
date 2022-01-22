@@ -3670,6 +3670,14 @@ MpgxResult createShadowFramebuffer(
 			depthAttachment,
 			pipelineCapacity,
 			&framebufferInstance);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		{
+			vkDestroyRenderPass(
+				device,
+				renderPass,
+				NULL);
+		}
 #else
 		abort();
 #endif
@@ -4204,6 +4212,7 @@ void clearFramebuffer(
 			framebuffer->vk.size,
 			hasDepthBuffer,
 			hasStencilBuffer,
+			framebuffer->vk.clearAttachments,
 			clearAttachments,
 			clearValues,
 			clearValueCount);

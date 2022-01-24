@@ -147,7 +147,7 @@ MpgxResult bakeText(
 	bool reuseBuffers);
 size_t drawText(
 	Text text,
-	Vec4U scissor);
+	Vec4I scissor);
 
 float getTextPlatformScale(
 	GraphicsPipeline textPipeline);

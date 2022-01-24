@@ -550,9 +550,9 @@ MpgxResult createRayTracingColorPipeline(
 
 	const void* data = NULL;
 
-	Vec2U framebufferSize = getFramebufferSize(
+	Vec2I framebufferSize = getFramebufferSize(
 		getWindowFramebuffer(window));
-	Vec3U size = vec3U(framebufferSize.x, framebufferSize.y, 1);
+	Vec3I size = vec3I(framebufferSize.x, framebufferSize.y, 1);
 
 	Image storageImage;
 

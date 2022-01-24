@@ -478,7 +478,7 @@ inline static bool isShouldDraw(
 			renderBounding.maximum,
 			renderPosition);
 
-		bool isInFrustum = isBoxInFrustum(
+		bool isInFrustum = isBoxInFrustum3F(
 			leftPlane,
 			rightPlane,
 			bottomPlane,

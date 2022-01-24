@@ -176,7 +176,7 @@ Camera createInterfaceCamera(
 {
 	assert(interface);
 
-	Vec2U windowSize = getWindowSize(interface->window);
+	Vec2I windowSize = getWindowSize(interface->window);
 	float scale = interface->scale;
 
 	Vec2F halfSize = vec2F(
@@ -202,7 +202,7 @@ void preUpdateInterface(Interface interface)
 		return;
 
 	InterfaceElement* elements = interface->elements;
-	Vec2U windowSize = getWindowSize(interface->window);
+	Vec2I windowSize = getWindowSize(interface->window);
 	float scale = interface->scale;
 
 	Vec2F halfSize = vec2F(
@@ -305,7 +305,7 @@ void updateInterface(Interface interface)
 		return;
 
 	float interfaceScale = interface->scale;
-	Vec2U windowSize = getWindowSize(window);
+	Vec2I windowSize = getWindowSize(window);
 	Vec2F cursor = getWindowCursorPosition(window);
 
 	Vec2F size = vec2F(

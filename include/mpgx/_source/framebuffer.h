@@ -26,7 +26,7 @@ typedef struct BaseFramebuffer_T
 	GraphicsPipeline* graphicsPipelines;
 	size_t graphicsPipelineCapacity;
 	size_t graphicsPipelineCount;
-	Vec2U size;
+	Vec2I size;
 	bool isDefault;
 	bool useBeginClear;
 } BaseFramebuffer_T;
@@ -40,7 +40,7 @@ typedef struct VkFramebuffer_T
 	GraphicsPipeline* graphicsPipelines;
 	size_t graphicsPipelineCapacity;
 	size_t graphicsPipelineCount;
-	Vec2U size;
+	Vec2I size;
 	bool isDefault;
 	bool useBeginClear;
 	uint8_t _alignment[6];
@@ -59,7 +59,7 @@ typedef struct GlFramebuffer_T
 	GraphicsPipeline* graphicsPipelines;
 	size_t graphicsPipelineCapacity;
 	size_t graphicsPipelineCount;
-	Vec2U size;
+	Vec2I size;
 	bool isDefault;
 	bool useBeginClear;
 	uint8_t _alignment[2];
@@ -337,7 +337,7 @@ inline static MpgxResult createVkFramebufferHandle(
 	VkRenderPass renderPass,
 	size_t attachmentCount,
 	VkImageView* imageViews,
-	Vec2U size,
+	Vec2I size,
 	VkFramebuffer* handle)
 {
 	assert(device);
@@ -422,7 +422,7 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	VkRenderPass renderPass,
 	VkFramebuffer handle,
 	Window window,
-	Vec2U size,
+	Vec2I size,
 	Framebuffer* framebuffer)
 {
 	assert(device);
@@ -486,7 +486,7 @@ inline static MpgxResult createVkFramebuffer(
 	VkDevice device,
 	VkRenderPass renderPass,
 	Window window,
-	Vec2U size,
+	Vec2I size,
 	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
@@ -513,6 +513,7 @@ inline static MpgxResult createVkFramebuffer(
 	framebufferInstance->vk.window = window;
 	framebufferInstance->vk.size = size;
 	framebufferInstance->vk.useBeginClear = useBeginClear;
+	framebufferInstance->vk.renderPass = renderPass;
 
 	size_t attachmentCount = depthStencilAttachment ?
 		colorAttachmentCount + 1 : colorAttachmentCount;
@@ -621,7 +622,6 @@ inline static MpgxResult createVkFramebuffer(
 	}
 
 	framebufferInstance->vk.clearAttachments = clearAttachments;
-	framebufferInstance->vk.renderPass = renderPass;
 
 	*framebuffer = framebufferInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -638,7 +638,7 @@ inline static MpgxResult setVkFramebufferAttachments(
 	VkDevice device,
 	VkRenderPass renderPass,
 	Framebuffer framebuffer,
-	Vec2U size,
+	Vec2I size,
 	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
@@ -793,7 +793,7 @@ inline static void beginVkFramebufferRender(
 	VkCommandBuffer commandBuffer,
 	VkRenderPass renderPass,
 	VkFramebuffer framebuffer,
-	Vec2U size,
+	Vec2I size,
 	const FramebufferClear* clearValues,
 	size_t clearValueCount)
 {
@@ -832,7 +832,7 @@ inline static void endVkFramebufferRender(
 
 inline static void clearVkFramebuffer(
 	VkCommandBuffer commandBuffer,
-	Vec2U framebufferSize,
+	Vec2I framebufferSize,
 	bool hasDepthAttachment,
 	bool hasStencilAttachment,
 	VkClearAttachment* vkClearAttachments,
@@ -959,7 +959,7 @@ inline static void destroyGlFramebuffer(
 
 inline static MpgxResult createGlDefaultFramebuffer(
 	Window window,
-	Vec2U size,
+	Vec2I size,
 	Framebuffer* framebuffer)
 {
 	assert(window);
@@ -1000,7 +1000,7 @@ inline static MpgxResult createGlDefaultFramebuffer(
 }
 inline static MpgxResult createGlFramebuffer(
 	Window window,
-	Vec2U size,
+	Vec2I size,
 	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
@@ -1221,7 +1221,7 @@ inline static MpgxResult createGlFramebuffer(
 
 inline static MpgxResult setGlFramebufferAttachments(
 	Framebuffer framebuffer,
-	Vec2U size,
+	Vec2I size,
 	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
@@ -1284,7 +1284,7 @@ inline static MpgxResult setGlFramebufferAttachments(
 
 inline static void beginGlFramebufferRender(
 	GLuint framebuffer,
-	Vec2U size,
+	Vec2I size,
 	size_t colorAttachmentCount,
 	bool hasDepthAttachment,
 	bool hasStencilAttachment,
@@ -1367,7 +1367,7 @@ inline static void endGlFramebufferRender()
 	assertOpenGL();
 }
 inline static void clearGlFramebuffer(
-	Vec2U size,
+	Vec2I size,
 	size_t colorAttachmentCount,
 	bool hasDepthAttachment,
 	bool hasStencilAttachment,

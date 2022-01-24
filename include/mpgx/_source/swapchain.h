@@ -171,9 +171,11 @@ inline static bool getBestVkPresentMode(
 }
 inline static VkExtent2D getBestVkSurfaceExtent(
 	const VkSurfaceCapabilitiesKHR* surfaceCapabilities,
-	Vec2U framebufferSize)
+	Vec2I framebufferSize)
 {
 	assert(surfaceCapabilities);
+	assert(framebufferSize.x > 0);
+	assert(framebufferSize.y > 0);
 
 	if (surfaceCapabilities->currentExtent.width == UINT32_MAX)
 	{
@@ -1038,7 +1040,7 @@ inline static MpgxResult createVkSwapchain(
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
 	bool useStencilBuffer,
-	Vec2U framebufferSize,
+	Vec2I framebufferSize,
 	VkSwapchain* vkSwapchain)
 {
 	assert(surface);
@@ -1280,7 +1282,7 @@ inline static MpgxResult resizeVkSwapchain(
 	VkCommandPool presentCommandPool,
 	VkSwapchain swapchain,
 	bool useStencilBuffer,
-	Vec2U framebufferSize)
+	Vec2I framebufferSize)
 {
 	assert(surface);
 	assert(physicalDevice);

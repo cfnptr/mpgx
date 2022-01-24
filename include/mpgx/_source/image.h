@@ -19,7 +19,7 @@
 typedef struct BaseImage_T
 {
 	Window window;
-	Vec3U size;
+	Vec3I size;
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
@@ -29,7 +29,7 @@ typedef struct BaseImage_T
 typedef struct VkImage_T
 {
 	Window window;
-	Vec3U size;
+	Vec3I size;
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
@@ -48,7 +48,7 @@ typedef struct VkImage_T
 typedef struct GlImage_T
 {
 	Window window;
-	Vec3U size;
+	Vec3I size;
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
@@ -110,7 +110,7 @@ inline static MpgxResult createVkImage(
 	ImageDimension dimension,
 	ImageFormat format,
 	const void** data,
-	Vec3U size,
+	Vec3I size,
 	uint8_t levelCount,
 	bool isConstant,
 	Image* image)
@@ -651,8 +651,8 @@ inline static MpgxResult setVkImageData(
 	VmaAllocation stagingAllocation,
 	Image image,
 	const void* data,
-	Vec3U size,
-	Vec3U offset)
+	Vec3I size,
+	Vec3I offset)
 {
 	assert(device);
 	assert(allocator);
@@ -666,6 +666,9 @@ inline static MpgxResult setVkImageData(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
+	assert(offset.x >= 0);
+	assert(offset.y >= 0);
+	assert(offset.z >= 0);
 
 	// TODO: properly add staging buffer image data offset
 	assert(offset.x == 0 && offset.y == 0 && offset.z == 0);
@@ -813,7 +816,7 @@ inline static MpgxResult createGlImage(
 	ImageDimension dimension,
 	ImageFormat format,
 	const void** data,
-	Vec3U size,
+	Vec3I size,
 	uint8_t levelCount,
 	bool isConstant,
 	Image* image)
@@ -953,7 +956,7 @@ inline static MpgxResult createGlImage(
 		}
 		else
 		{
-			Vec2U mipSize = vec2U(size.x, size.y);
+			Vec2I mipSize = vec2I(size.x, size.y);
 
 			for (uint8_t i = 0; i < levelCount; i++)
 			{
@@ -968,7 +971,7 @@ inline static MpgxResult createGlImage(
 					dataType,
 					data[i]);
 
-				mipSize = vec2U(
+				mipSize = vec2I(
 					mipSize.x / 2,
 					mipSize.y / 2);
 			}
@@ -1002,7 +1005,7 @@ inline static MpgxResult createGlImage(
 		}
 		else
 		{
-			Vec3U mipSize = size;
+			Vec3I mipSize = size;
 
 			for (uint8_t i = 0; i < levelCount; i++)
 			{
@@ -1018,7 +1021,7 @@ inline static MpgxResult createGlImage(
 					dataType,
 					data[i]);
 
-				mipSize = vec3U(
+				mipSize = vec3I(
 					mipSize.x / 2,
 					mipSize.y / 2,
 					mipSize.z / 2);
@@ -1054,14 +1057,17 @@ inline static MpgxResult createGlImage(
 inline static MpgxResult setGlImageData(
 	Image image,
 	const void* data,
-	Vec3U size,
-	Vec3U offset)
+	Vec3I size,
+	Vec3I offset)
 {
 	assert(image);
 	assert(data);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
+	assert(offset.x >= 0);
+	assert(offset.y >= 0);
+	assert(offset.z >= 0);
 
 	makeWindowContextCurrent(
 		image->gl.window);

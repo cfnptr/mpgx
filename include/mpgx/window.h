@@ -39,7 +39,7 @@
 // TODO: add window item enumerators and count getters
 // TODO: include static vulkan library on MacOS
 
-static const Vec2U defaultWindowSize = {
+static const Vec2I defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
 	DEFAULT_WINDOW_HEIGHT,
 };
@@ -481,8 +481,8 @@ typedef struct GraphicsPipelineState
 	bool restartPrimitive;
 	bool discardRasterizer;
 	float lineWidth;
-	Vec4U viewport;
-	Vec4U scissor;
+	Vec4I viewport;
+	Vec4I scissor;
 	Vec2F depthRange;
 	Vec2F depthBias;
 	Vec4F blendColor;
@@ -525,7 +525,7 @@ typedef void(*OnGraphicsPipelineUniformsSet)(
 	GraphicsPipeline graphicsPipeline);
 typedef MpgxResult(*OnGraphicsPipelineResize)(
 	GraphicsPipeline graphicsPipeline,
-	Vec2U newSize,
+	Vec2I newSize,
 	void* createData);
 
 typedef void(*OnComputePipelineDestroy)(void* handle);
@@ -548,7 +548,7 @@ void* getFtLibrary();
 
 MpgxResult createWindow(
 	GraphicsAPI api,
-	Vec2U size,
+	Vec2I size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
@@ -557,7 +557,7 @@ MpgxResult createWindow(
 	bool isVisible,
 	Window* window);
 MpgxResult createAnyWindow(
-	Vec2U size,
+	Vec2I size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
@@ -602,11 +602,11 @@ void setWindowClipboard(
 	Window window,
 	const char* clipboard);
 
-Vec2U getWindowSize(
+Vec2I getWindowSize(
 	Window window);
 void setWindowSize(
 	Window window,
-	Vec2U size);
+	Vec2I size);
 
 Vec2I getWindowPosition(
 	Window window);
@@ -699,7 +699,7 @@ MpgxResult createImageDataFromFile(
 void destroyImageData(ImageData imageData);
 
 const uint8_t* getImageDataPixels(ImageData imageData);
-Vec2U getImageDataSize(ImageData imageData);
+Vec2I getImageDataSize(ImageData imageData);
 uint8_t getImageDataChannelCount(ImageData imageData);
 
 // TODO: ImageUsage like buffer
@@ -709,7 +709,7 @@ MpgxResult createImage(
 	ImageDimension dimension,
 	ImageFormat format,
 	const void** data,
-	Vec3U size,
+	Vec3I size,
 	uint8_t levelCount,
 	bool isConstant,
 	Image* image);
@@ -734,17 +734,17 @@ void destroyImage(Image image);
 MpgxResult setImageData(
 	Image image,
 	const void* data,
-	Vec3U size,
-	Vec3U offset);
+	Vec3I size,
+	Vec3I offset);
 
 Window getImageWindow(Image image);
 ImageType getImageType(Image image);
 ImageDimension getImageDimension(Image image);
 ImageFormat getImageFormat(Image image);
-Vec3U getImageSize(Image image);
+Vec3I getImageSize(Image image);
 bool isImageConstant(Image image);
 
-uint8_t getImageLevelCount(Vec3U imageSize);
+uint8_t getImageLevelCount(Vec3I imageSize);
 
 MpgxResult createSampler(
 	Window window,
@@ -796,7 +796,7 @@ ShaderType getShaderType(Shader shader);
 
 MpgxResult createFramebuffer(
 	Window window,
-	Vec2U size,
+	Vec2I size,
 	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
@@ -805,7 +805,7 @@ MpgxResult createFramebuffer(
 	Framebuffer* framebuffer);
 MpgxResult createShadowFramebuffer(
 	Window window,
-	Vec2U size,
+	Vec2I size,
 	bool useBeginClear,
 	Image depthAttachment,
 	size_t pipelineCapacity,
@@ -815,7 +815,7 @@ void destroyFramebuffer(
 	bool destroyAttachments);
 
 Window getFramebufferWindow(Framebuffer framebuffer);
-Vec2U getFramebufferSize(Framebuffer framebuffer);
+Vec2I getFramebufferSize(Framebuffer framebuffer);
 bool isFramebufferUseBeginClear(Framebuffer framebuffer);
 Image* getFramebufferColorAttachments(Framebuffer framebuffer);
 size_t getFramebufferColorAttachmentCount(Framebuffer framebuffer);
@@ -824,7 +824,7 @@ bool isFramebufferDefault(Framebuffer framebuffer);
 
 MpgxResult setFramebufferAttachments(
 	Framebuffer framebuffer,
-	Vec2U size,
+	Vec2I size,
 	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,

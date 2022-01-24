@@ -38,7 +38,7 @@
 struct ImageData_T
 {
 	uint8_t* pixels;
-	Vec2U size;
+	Vec2I size;
 	uint8_t channelCount;
 };
 
@@ -415,7 +415,7 @@ void destroyWindow(Window window)
 }
 MpgxResult createWindow(
 	GraphicsAPI api,
-	Vec2U size,
+	Vec2I size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
@@ -691,8 +691,7 @@ MpgxResult createWindow(
 		&width,
 		&height);
 
-	Vec2U framebufferSize =
-		vec2U(width, height);
+	Vec2I framebufferSize = vec2I(width, height);
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -896,7 +895,7 @@ MpgxResult createWindow(
 	return SUCCESS_MPGX_RESULT;
 }
 MpgxResult createAnyWindow(
-	Vec2U size,
+	Vec2I size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
@@ -1150,7 +1149,7 @@ void setWindowClipboard(
 		clipboard);
 }
 
-Vec2U getWindowSize(
+Vec2I getWindowSize(
 	Window window)
 {
 	assert(window);
@@ -1163,13 +1162,15 @@ Vec2U getWindowSize(
 		&width,
 		&height);
 
-	return vec2U(width, height);
+	return vec2I(width, height);
 }
 void setWindowSize(
 	Window window,
-	Vec2U size)
+	Vec2I size)
 {
 	assert(window);
+	assert(size.x > 0);
+	assert(size.y > 0);
 	assert(graphicsInitialized);
 
 	glfwSetWindowSize(
@@ -1465,7 +1466,7 @@ static MpgxResult onVkResize(
 	VkDevice device,
 	VkSwapchain swapchain,
 	Framebuffer framebuffer,
-	Vec2U newSize)
+	Vec2I newSize)
 {
 	assert(device);
 	assert(swapchain);
@@ -1525,7 +1526,7 @@ MpgxResult beginWindowRecord(Window window)
 	if (width <= 0 || height <= 0)
 		return ZERO_FRAMEBUFFER_SIZE_MPGX_RESULT;
 
-	Vec2U newSize = vec2U(width, height);
+	Vec2I newSize = vec2I(width, height);
 	Framebuffer framebuffer = window->framebuffer;
 
 	GraphicsAPI api = window->api;
@@ -1550,7 +1551,7 @@ MpgxResult beginWindowRecord(Window window)
 		VkSwapchain swapchain = vkWindow->swapchain;
 		VkDevice device = vkWindow->device;
 
-		if (!compVec2U(newSize, framebuffer->vk.size))
+		if (!compVec2I(newSize, framebuffer->vk.size))
 		{
 			MpgxResult mpgxResult = resizeVkSwapchain(
 				vkWindow->surface,
@@ -1702,7 +1703,7 @@ MpgxResult beginWindowRecord(Window window)
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		if (!compVec2U(newSize, framebuffer->gl.size))
+		if (!compVec2I(newSize, framebuffer->gl.size))
 		{
 			framebuffer->gl.size = newSize;
 
@@ -1887,7 +1888,7 @@ void endWindowRecord(Window window)
 			if (width <= 0 || height <= 0)
 				return;
 
-			Vec2U newSize = vec2U(width, height);
+			Vec2I newSize = vec2I(width, height);
 			Framebuffer framebuffer = window->framebuffer;
 			VkDevice device = vkWindow->device;
 
@@ -2372,7 +2373,7 @@ MpgxResult createImageData(
 	}
 
 	imageDataInstance->pixels = pixels;
-	imageDataInstance->size = vec2U(width, height);
+	imageDataInstance->size = vec2I(width, height);
 	imageDataInstance->channelCount = channelCount;
 
 	*imageData = imageDataInstance;
@@ -2412,7 +2413,7 @@ MpgxResult createImageDataFromFile(
 	}
 
 	imageDataInstance->pixels = pixels;
-	imageDataInstance->size = vec2U(width, height);
+	imageDataInstance->size = vec2I(width, height);
 	imageDataInstance->channelCount = channelCount;
 
 	*imageData = imageDataInstance;
@@ -2425,7 +2426,7 @@ const uint8_t* getImageDataPixels(ImageData imageData)
 	assert(graphicsInitialized);
 	return imageData->pixels;
 }
-Vec2U getImageDataSize(ImageData imageData)
+Vec2I getImageDataSize(ImageData imageData)
 {
 	assert(imageData);
 	assert(graphicsInitialized);
@@ -2444,7 +2445,7 @@ MpgxResult createImage(
 	ImageDimension dimension,
 	ImageFormat format,
 	const void** data,
-	Vec3U size,
+	Vec3I size,
 	uint8_t levelCount,
 	bool isConstant,
 	Image* image)
@@ -2611,7 +2612,7 @@ MpgxResult createImageFromFile(
 		IMAGE_2D,
 		format,
 		(const void**)&pixels,
-		vec3U(width, height, 1),
+		vec3I(width, height, 1),
 		generateMipmap ? 0 : 1,
 		isConstant,
 		&imageInstance);
@@ -2666,7 +2667,7 @@ MpgxResult createImageFromData(
 		IMAGE_2D,
 		format,
 		(const void**)&pixels,
-		vec3U(width, height, 1),
+		vec3I(width, height, 1),
 		generateMipmap ? 0 : 1,
 		isConstant,
 		&imageInstance);
@@ -2744,14 +2745,17 @@ void destroyImage(Image image)
 MpgxResult setImageData(
 	Image image,
 	const void* data,
-	Vec3U size,
-	Vec3U offset)
+	Vec3I size,
+	Vec3I offset)
 {
 	assert(image);
 	assert(data);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
+	assert(offset.x >= 0);
+	assert(offset.y >= 0);
+	assert(offset.z >= 0);
 	assert(size.x + offset.x <= image->base.size.x);
 	assert(size.y + offset.y <= image->base.size.y);
 	assert(size.z + offset.z <= image->base.size.z);
@@ -2826,7 +2830,7 @@ ImageFormat getImageFormat(Image image)
 	assert(graphicsInitialized);
 	return image->base.format;
 }
-Vec3U getImageSize(Image image)
+Vec3I getImageSize(Image image)
 {
 	assert(image);
 	assert(graphicsInitialized);
@@ -2839,8 +2843,11 @@ bool isImageConstant(Image image)
 	return image->base.isConstant;
 }
 
-uint8_t getImageLevelCount(Vec3U imageSize)
+uint8_t getImageLevelCount(Vec3I imageSize)
 {
+	assert(imageSize.x > 0);
+	assert(imageSize.y > 0);
+	assert(imageSize.z > 0);
 	assert(graphicsInitialized);
 
 	uint32_t size = max(
@@ -3472,7 +3479,7 @@ inline static bool addWindowFramebuffer(
 }
 MpgxResult createFramebuffer(
 	Window window,
-	Vec2U size,
+	Vec2I size,
 	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
@@ -3620,7 +3627,7 @@ MpgxResult createFramebuffer(
 }
 MpgxResult createShadowFramebuffer(
 	Window window,
-	Vec2U size,
+	Vec2I size,
 	bool useClear,
 	Image depthAttachment,
 	size_t pipelineCapacity,
@@ -3814,7 +3821,7 @@ Window getFramebufferWindow(Framebuffer framebuffer)
 	assert(graphicsInitialized);
 	return framebuffer->base.window;
 }
-Vec2U getFramebufferSize(Framebuffer framebuffer)
+Vec2I getFramebufferSize(Framebuffer framebuffer)
 {
 	assert(framebuffer);
 	assert(graphicsInitialized);
@@ -3856,7 +3863,7 @@ bool isFramebufferDefault(Framebuffer framebuffer)
 
 MpgxResult setFramebufferAttachments(
 	Framebuffer framebuffer,
-	Vec2U size,
+	Vec2I size,
 	bool useBeginClear,
 	Image* colorAttachments,
 	size_t colorAttachmentCount,

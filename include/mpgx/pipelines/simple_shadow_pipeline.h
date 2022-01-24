@@ -31,7 +31,7 @@ MpgxResult createSimpleShadowPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	uint32_t shadowMapLength,
+	int32_t shadowMapLength,
 	GraphicsPipeline* simpleShadowPipeline);
 
 Mat4F getSimpleShadowPipelineMvp(

@@ -964,7 +964,7 @@ inline static MpgxResult createVkWindow(
 	GLFWwindow* handle,
 	bool useStencilBuffer,
 	bool useRayTracing,
-	Vec2U framebufferSize,
+	Vec2I framebufferSize,
 	VkWindow* vkWindow)
 {
 	assert(instance);

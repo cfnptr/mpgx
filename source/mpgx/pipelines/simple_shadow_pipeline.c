@@ -119,7 +119,7 @@ static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 }
 static MpgxResult onVkResize(
 	GraphicsPipeline graphicsPipeline,
-	Vec2U newSize,
+	Vec2I newSize,
 	void* createData)
 {
 	assert(graphicsPipeline);
@@ -226,7 +226,7 @@ static void onGlUniformsSet(
 }
 static MpgxResult onGlResize(
 	GraphicsPipeline graphicsPipeline,
-	Vec2U newSize,
+	Vec2I newSize,
 	void* createData)
 {
 	assert(graphicsPipeline);
@@ -373,7 +373,7 @@ MpgxResult createSimpleShadowPipeline(
 	Framebuffer framebuffer,
 	Shader vertexShader,
 	Shader fragmentShader,
-	uint32_t shadowMapLength,
+	int32_t shadowMapLength,
 	GraphicsPipeline* simpleShadowPipeline)
 {
 	assert(framebuffer);
@@ -382,7 +382,7 @@ MpgxResult createSimpleShadowPipeline(
 	assert(shadowMapLength > 0);
 	assert(simpleShadowPipeline);
 
-	Vec4U size = vec4U(0, 0,
+	Vec4I size = vec4I(0, 0,
 		shadowMapLength,
 		shadowMapLength);
 	Vec2F depthBias = vec2F(

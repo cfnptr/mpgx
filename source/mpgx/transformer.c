@@ -72,12 +72,12 @@ inline static void updateTransformModel(
 	{
 		model = dotMat4F(translateMat4F(
 			identMat4F, position),
-			getQuatMatF4(normQuat(rotation)));
+			getQuatMat4F(normQuat(rotation)));
 	}
 	else if (rotationType == ORBIT_ROTATION_TYPE)
 	{
 		model = translateMat4F(dotMat4F(
-			identMat4F,getQuatMatF4(
+			identMat4F, getQuatMat4F(
 			normQuat(rotation))),position);
 	}
 	else

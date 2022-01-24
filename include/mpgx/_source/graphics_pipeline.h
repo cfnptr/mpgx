@@ -1270,7 +1270,7 @@ inline static void bindGlGraphicsPipeline(
 {
 	assert(graphicsPipeline);
 
-	Vec4U viewport = graphicsPipeline->gl.state.viewport;
+	Vec4I viewport = graphicsPipeline->gl.state.viewport;
 
 	if (viewport.z + viewport.w > 0)
 	{
@@ -1287,7 +1287,7 @@ inline static void bindGlGraphicsPipeline(
 			depthRange.y);
 	}
 
-	Vec4U scissor = graphicsPipeline->gl.state.scissor;
+	Vec4I scissor = graphicsPipeline->gl.state.scissor;
 
 	if (scissor.z + scissor.w > 0)
 	{

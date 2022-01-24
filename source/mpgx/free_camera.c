@@ -339,7 +339,7 @@ Camera getFreeCamera(FreeCamera freeCamera)
 {
 	assert(freeCamera);
 
-	Vec2U framebufferSize = getFramebufferSize(
+	Vec2I framebufferSize = getFramebufferSize(
 		freeCamera->framebuffer);
 
 	return perspCamera(

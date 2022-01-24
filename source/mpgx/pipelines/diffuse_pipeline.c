@@ -299,7 +299,7 @@ static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 }
 static MpgxResult onVkResize(
 	GraphicsPipeline graphicsPipeline,
-	Vec2U newSize,
+	Vec2I newSize,
 	void* createData)
 {
 	assert(graphicsPipeline);
@@ -380,7 +380,7 @@ static MpgxResult onVkResize(
 		handle->vk.bufferCount = bufferCount;
 	}
 
-	Vec4U size = vec4U(0, 0,
+	Vec4I size = vec4I(0, 0,
 		newSize.x, newSize.y);
 
 	if (graphicsPipeline->vk.state.viewport.z +
@@ -633,7 +633,7 @@ static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 }
 static MpgxResult onGlResize(
 	GraphicsPipeline graphicsPipeline,
-	Vec2U newSize,
+	Vec2I newSize,
 	void* createData)
 {
 	assert(graphicsPipeline);
@@ -641,7 +641,7 @@ static MpgxResult onGlResize(
 	assert(newSize.y > 0);
 	assert(!createData);
 
-	Vec4U size = vec4U(0, 0,
+	Vec4I size = vec4I(0, 0,
 		newSize.x, newSize.y);
 
 	if (graphicsPipeline->gl.state.viewport.z +
@@ -857,9 +857,9 @@ MpgxResult createDiffusePipeline(
 	assert(fragmentShader);
 	assert(diffusePipeline);
 
-	Vec2U framebufferSize =
+	Vec2I framebufferSize =
 		framebuffer->base.size;
-	Vec4U size = vec4U(0, 0,
+	Vec4I size = vec4I(0, 0,
 		framebufferSize.x,
 		framebufferSize.y);
 

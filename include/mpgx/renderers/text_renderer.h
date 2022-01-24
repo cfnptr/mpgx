@@ -28,7 +28,7 @@ GraphicsRender createTextRender(
 	Box3F bounding,
 	LinearColor color,
 	Text text,
-	Vec4U scissor);
+	Vec4I scissor);
 
 LinearColor getTextRenderColor(
 	GraphicsRender render);

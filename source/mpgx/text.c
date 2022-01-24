@@ -1236,7 +1236,7 @@ MpgxResult createText32(
 		IMAGE_2D,
 		R8_UNORM_IMAGE_FORMAT,
 		(const void**)&pixels,
-		vec3U(pixelLength, pixelLength, 1),
+		vec3I(pixelLength, pixelLength, 1),
 		1,
 		isConstant,
 		&texture);
@@ -1967,7 +1967,7 @@ MpgxResult bakeText(
 				IMAGE_2D,
 				R8_UNORM_IMAGE_FORMAT,
 				(const void**)&pixels,
-				vec3U(pixelLength, pixelLength, 1),
+				vec3I(pixelLength, pixelLength, 1),
 				1,
 				false,
 				&texture);
@@ -2102,8 +2102,8 @@ MpgxResult bakeText(
 			MpgxResult mpgxResult = setImageData(
 				text->texture,
 				pixels,
-				vec3U(pixelLength, pixelLength, 1),
-				zeroVec3U);
+				vec3I(pixelLength, pixelLength, 1),
+				zeroVec3I);
 
 			free(pixels); // TODO: replace pixels with image data map
 
@@ -2230,7 +2230,7 @@ MpgxResult bakeText(
 			IMAGE_2D,
 			R8_UNORM_IMAGE_FORMAT,
 			(const void**)&pixels,
-			vec3U(pixelLength, pixelLength, 1),
+			vec3I(pixelLength, pixelLength, 1),
 			1,
 			false,
 			&texture);
@@ -2387,9 +2387,13 @@ MpgxResult bakeText(
 }
 size_t drawText(
 	Text text,
-	Vec4U scissor)
+	Vec4I scissor)
 {
 	assert(text);
+	assert(scissor.x >= 0);
+	assert(scissor.y >= 0);
+	assert(scissor.z >= 0);
+	assert(scissor.w >= 0);
 
 	GraphicsPipeline pipeline = text->pipeline;
 	Handle textPipeline = pipeline->base.handle;
@@ -2471,9 +2475,9 @@ float getTextPlatformScale(
 
 	Framebuffer framebuffer =
 		getGraphicsPipelineFramebuffer(textPipeline);
-	Vec2U framebufferSize =
+	Vec2I framebufferSize =
 		getFramebufferSize(framebuffer);
-	Vec2U windowSize = getWindowSize(
+	Vec2I windowSize = getWindowSize(
 		getFramebufferWindow(framebuffer));
 
 	return max(
@@ -2565,7 +2569,7 @@ static void onVkUniformsSet(GraphicsPipeline graphicsPipeline)
 }
 static MpgxResult onVkResize(
 	GraphicsPipeline graphicsPipeline,
-	Vec2U newSize,
+	Vec2I newSize,
 	void* createData)
 {
 	assert(graphicsPipeline);
@@ -2633,7 +2637,7 @@ static MpgxResult onVkResize(
 		handle->vk.bufferCount = bufferCount;
 	}
 
-	Vec4U size = vec4U(0, 0,
+	Vec4I size = vec4I(0, 0,
 		newSize.x, newSize.y);
 
 	if (graphicsPipeline->vk.state.viewport.z +
@@ -2811,7 +2815,7 @@ static void onGlUniformsSet(GraphicsPipeline graphicsPipeline)
 }
 static MpgxResult onGlResize(
 	GraphicsPipeline graphicsPipeline,
-	Vec2U newSize,
+	Vec2I newSize,
 	void* createData)
 {
 	assert(graphicsPipeline);
@@ -2819,7 +2823,7 @@ static MpgxResult onGlResize(
 	assert(newSize.y > 0);
 	assert(!createData);
 
-	Vec4U size = vec4U(0, 0,
+	Vec4I size = vec4I(0, 0,
 		newSize.x, newSize.y);
 
 	if (graphicsPipeline->gl.state.viewport.z +
@@ -3022,9 +3026,9 @@ MpgxResult createTextPipeline(
 	assert(textCapacity > 0);
 	assert(textPipeline);
 
-	Vec2U framebufferSize =
+	Vec2I framebufferSize =
 		framebuffer->base.size;
-	Vec4U size = vec4U(0, 0,
+	Vec4I size = vec4I(0, 0,
 		framebufferSize.x,
 		framebufferSize.y);
 
@@ -3051,7 +3055,7 @@ MpgxResult createTextPipeline(
 		false,
 		DEFAULT_LINE_WIDTH,
 		size,
-		useScissor ? zeroVec4U : size,
+		useScissor ? zeroVec4I : size,
 		defaultDepthRange,
 		defaultDepthBias,
 		defaultBlendColor,

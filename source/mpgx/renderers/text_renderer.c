@@ -21,7 +21,7 @@ typedef struct Handle_T
 {
 	LinearColor color;
 	Text text;
-	Vec4U scissor;
+	Vec4I scissor;
 } Handle_T;
 
 typedef Handle_T* Handle;
@@ -86,11 +86,15 @@ GraphicsRender createTextRender(
 	Box3F bounding,
 	LinearColor color,
 	Text text,
-	Vec4U scissor)
+	Vec4I scissor)
 {
 	assert(textRenderer);
 	assert(transform);
 	assert(text);
+	assert(scissor.x >= 0);
+	assert(scissor.y >= 0);
+	assert(scissor.z >= 0);
+	assert(scissor.w >= 0);
 
 	assert(getGraphicsPipelineWindow(
 		getGraphicsRendererPipeline(

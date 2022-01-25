@@ -26,6 +26,7 @@ struct Transformer_T
 	Transform* transforms;
 	size_t transformCapacity;
 	size_t transformCount;
+	Transform camera;
 	atomic_int64 threadIndex;
 #ifndef NDEBUG
 	bool isEnumerating;
@@ -41,20 +42,21 @@ struct Transform_T
 	Vec3F position;
 	RotationType rotationType;
 	bool isActive;
-	bool isStatic;
 };
 
 inline static void updateTransformModel(
 	Transform transform,
-	bool checkParentActive)
+	Vec3F cameraPosition)
 {
 	Vec3F position = transform->position;
 	Quat rotation = transform->rotation;
 	Transform parent = transform->parent;
 
+	position = addVec3F(position, cameraPosition);
+
 	while (parent)
 	{
-		if (!parent->isActive & checkParentActive)
+		if (!parent->isActive)
 			return;
 
 		rotation = normQuat(dotQuat(
@@ -101,6 +103,7 @@ Transformer createTransformer(
 		return NULL;
 
 	transformer->threadPool = threadPool;
+	transformer->camera = NULL;
 	transformer->threadIndex = 0;
 #ifndef NDEBUG
 	transformer->isEnumerating = false;
@@ -143,6 +146,20 @@ size_t getTransformerTransformCount(
 {
 	assert(transformer);
 	return transformer->transformCount;
+}
+
+Transform getTransformerCamera(
+	Transformer transformer)
+{
+	assert(transformer);
+	return transformer->camera;
+}
+void setTransformerCamera(
+	Transformer transformer,
+	Transform camera)
+{
+	assert(transformer);
+	transformer->camera = camera;
 }
 
 void enumerateTransformer(
@@ -189,6 +206,10 @@ static void onTransformUpdate(void* argument)
 	Transformer transformer = argument;
 	Transform* transforms = transformer->transforms;
 	size_t transformCount = transformer->transformCount;
+	Transform cameraTransform = transformer->camera;
+
+	Vec3F cameraPosition = cameraTransform ?
+		cameraTransform->position : zeroVec3F;
 
 	size_t threadCount = getThreadPoolThreadCount(
 		transformer->threadPool);
@@ -199,12 +220,19 @@ static void onTransformUpdate(void* argument)
 	{
 		Transform transform = transforms[i];
 
-		if (!transform->isActive | transform->isStatic)
+		if (!transform->isActive)
 			continue;
 
 		updateTransformModel(
 			transform,
-			true);
+			cameraPosition);
+	}
+
+	if (cameraTransform)
+	{
+		updateTransformModel(
+			cameraTransform,
+			negVec3F(cameraPosition));
 	}
 }
 void updateTransformer(Transformer transformer)
@@ -244,17 +272,28 @@ void updateTransformer(Transformer transformer)
 	else
 	{
 		Transform* transforms = transformer->transforms;
+		Transform cameraTransform = transformer->camera;
+
+		Vec3F cameraPosition = cameraTransform ?
+			cameraTransform->position : zeroVec3F;
 
 		for (size_t i = 0; i < transformCount; i++)
 		{
 			Transform transform = transforms[i];
 
-			if (!transform->isActive | transform->isStatic)
+			if (!transform->isActive)
 				continue;
 
 			updateTransformModel(
 				transform,
-				true);
+				cameraPosition);
+		}
+
+		if (cameraTransform)
+		{
+			updateTransformModel(
+				cameraTransform,
+				negVec3F(cameraPosition));
 		}
 	}
 }
@@ -266,8 +305,7 @@ Transform createTransform(
 	Quat rotation,
 	RotationType rotationType,
 	Transform parent,
-	bool isActive,
-	bool isStatic)
+	bool isActive)
 {
 	assert(transformer);
 	assert(rotationType < ROTATION_TYPE_COUNT);
@@ -288,11 +326,15 @@ Transform createTransform(
 	transform->position = position;
 	transform->rotationType = rotationType;
 	transform->isActive = isActive;
-	transform->isStatic = isStatic;
+
+	Transform cameraTransform = transformer->camera;
+
+	Vec3F cameraPosition = cameraTransform ?
+		cameraTransform->position : zeroVec3F;
 
 	updateTransformModel(
 		transform,
-		false);
+		cameraPosition);
 
 	size_t count = transformer->transformCount;
 
@@ -346,35 +388,6 @@ void destroyTransform(Transform transform)
 	abort();
 }
 
-void updateTransform(
-	Transform transform,
-	Vec3F position,
-	Vec3F scale,
-	Quat rotation,
-	RotationType rotationType,
-	Transform parent,
-	bool isActive,
-	bool isStatic)
-{
-	assert(transform);
-	assert(rotationType < ROTATION_TYPE_COUNT);
-
-	assert(!parent || (parent &&
-		transform->transformer == parent->transformer));
-
-	transform->parent = parent;
-	transform->rotation = rotation;
-	transform->scale = scale;
-	transform->position = position;
-	transform->rotationType = rotationType;
-	transform->isActive = isActive;
-	transform->isStatic = isStatic;
-
-	updateTransformModel(
-		transform,
-		false);
-}
-
 Transformer getTransformTransformer(
 	Transform transform)
 {
@@ -393,7 +406,6 @@ void setTransformPosition(
 	Vec3F position)
 {
 	assert(transform);
-	assert(!transform->isStatic);
 	transform->position = position;
 }
 
@@ -408,7 +420,6 @@ void setTransformScale(
 	Vec3F scale)
 {
 	assert(transform);
-	assert(!transform->isStatic);
 	transform->scale = scale;
 }
 
@@ -423,7 +434,6 @@ void setTransformRotation(
 	Quat rotation)
 {
 	assert(transform);
-	assert(!transform->isStatic);
 	transform->rotation = rotation;
 }
 
@@ -439,7 +449,6 @@ void setTransformRotationType(
 {
 	assert(transform);
 	assert(rotationType < ROTATION_TYPE_COUNT);
-	assert(!transform->isStatic);
 	transform->rotationType = rotationType;
 }
 
@@ -456,7 +465,6 @@ void setTransformParent(
 	assert(!parent || (parent &&
 		transform->transformer ==
 		parent->transformer));
-	assert(!transform->isStatic);
 	transform->parent = parent;
 }
 
@@ -474,11 +482,6 @@ void setTransformActive(
 	transform->isActive = isActive;
 }
 
-bool isTransformStatic(Transform transform)
-{
-	assert(transform);
-	return transform->isStatic;
-}
 Mat4F getTransformModel(Transform transform)
 {
 	assert(transform);

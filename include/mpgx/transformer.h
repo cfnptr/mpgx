@@ -44,6 +44,12 @@ ThreadPool getTransformerThreadPool(
 size_t getTransformerTransformCount(
 	Transformer transformer);
 
+Transform getTransformerCamera(
+	Transformer transformer);
+void setTransformerCamera(
+	Transformer transformer,
+	Transform camera);
+
 void enumerateTransformer(
 	Transformer transformer,
 	void(*onItem)(Transform));
@@ -59,19 +65,8 @@ Transform createTransform(
 	Quat rotation,
 	RotationType rotationType,
 	Transform parent,
-	bool isActive,
-	bool isStatic);
+	bool isActive);
 void destroyTransform(Transform transform);
-
-void updateTransform(
-	Transform transform,
-	Vec3F position,
-	Vec3F scale,
-	Quat rotation,
-	RotationType rotationType,
-	Transform parent,
-	bool isActive,
-	bool isStatic);
 
 Transformer getTransformTransformer(
 	Transform transform);
@@ -112,5 +107,4 @@ void setTransformActive(
 	Transform transform,
 	bool isActive);
 
-bool isTransformStatic(Transform transform);
 Mat4F getTransformModel(Transform transform);

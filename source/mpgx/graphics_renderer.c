@@ -42,7 +42,7 @@ struct GraphicsRenderer_T
 	size_t renderCount;
 	const GraphicsRendererData* data;
 	ThreadPool threadPool;
-	atomic_int64 renderIndex;
+	atomic_int64 threadIndex;
 	atomic_int64 elementIndex;
 	GraphicsRenderSorting sorting;
 	bool useCulling;
@@ -77,7 +77,7 @@ GraphicsRenderer createGraphicsRenderer(
 	graphicsRenderer->onDraw = onDraw;
 	graphicsRenderer->data = NULL;
 	graphicsRenderer->threadPool = threadPool;
-	graphicsRenderer->renderIndex = 0;
+	graphicsRenderer->threadIndex = 0;
 	graphicsRenderer->elementIndex = 0;
 	graphicsRenderer->sorting = sorting;
 	graphicsRenderer->useCulling = useCulling;
@@ -508,8 +508,6 @@ static void onRenderUpdate(void* argument)
 	bool useCulling = renderer->useCulling;
 	size_t renderCount = renderer->renderCount;
 	const GraphicsRendererData* data = renderer->data;
-	atomic_int64* renderIndex = &renderer->renderIndex;
-	atomic_int64* elementIndex = &renderer->elementIndex;
 
 	Vec3F rendererPosition = negVec3F(
 		getTranslationMat4F(data->view));
@@ -520,14 +518,15 @@ static void onRenderUpdate(void* argument)
 	Plane3F backPlane = data->backPlane;
 	Plane3F frontPlane = data->frontPlane;
 
-	while (true)
+	size_t threadCount = getThreadPoolThreadCount(
+		renderer->threadPool);
+	atomic_int64 threadIndex = atomicFetchAdd64(
+		&renderer->threadIndex, 1);
+	atomic_int64* elementIndex = &renderer->elementIndex;
+
+	for (size_t i = threadIndex; i < renderCount; i += threadCount)
 	{
-		int64_t index = atomicFetchAdd64(renderIndex, 1);
-
-		if (index >= renderCount)
-			return;
-
-		GraphicsRender render = renders[index];
+		GraphicsRender render = renders[i];
 		GraphicsRenderElement element;
 
 		bool shouldDraw = isShouldDraw(
@@ -545,7 +544,7 @@ static void onRenderUpdate(void* argument)
 		if (!shouldDraw)
 			continue;
 
-		index = atomicFetchAdd64(elementIndex, 1);
+		atomic_int64 index = atomicFetchAdd64(elementIndex, 1);
 		renderElements[index] = element;
 	}
 }
@@ -579,7 +578,7 @@ GraphicsRenderResult drawGraphicsRenderer(
 	{
 		waitThreadPool(threadPool);
 		graphicsRenderer->data = graphicsRendererData;
-		graphicsRenderer->renderIndex = 0;
+		graphicsRenderer->threadIndex = 0;
 		graphicsRenderer->elementIndex = 0;
 
 		size_t threadCount = getThreadPoolThreadCount(threadPool);

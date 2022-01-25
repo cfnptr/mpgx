@@ -26,7 +26,7 @@ struct Transformer_T
 	Transform* transforms;
 	size_t transformCapacity;
 	size_t transformCount;
-	atomic_int64 transformIndex;
+	atomic_int64 threadIndex;
 #ifndef NDEBUG
 	bool isEnumerating;
 #endif
@@ -101,7 +101,7 @@ Transformer createTransformer(
 		return NULL;
 
 	transformer->threadPool = threadPool;
-	transformer->transformIndex = 0;
+	transformer->threadIndex = 0;
 #ifndef NDEBUG
 	transformer->isEnumerating = false;
 #endif
@@ -189,16 +189,15 @@ static void onTransformUpdate(void* argument)
 	Transformer transformer = argument;
 	Transform* transforms = transformer->transforms;
 	size_t transformCount = transformer->transformCount;
-	atomic_int64* transformIndex = &transformer->transformIndex;
 
-	while (true)
+	size_t threadCount = getThreadPoolThreadCount(
+		transformer->threadPool);
+	atomic_int64 threadIndex = atomicFetchAdd64(
+		&transformer->threadIndex, 1);
+
+	for (size_t i = threadIndex; i < transformCount; i += threadCount)
 	{
-		int64_t index = atomicFetchAdd64(transformIndex, 1);
-
-		if (index >= transformCount)
-			return;
-
-		Transform transform = transforms[index];
+		Transform transform = transforms[i];
 
 		if (!transform->isActive | transform->isStatic)
 			continue;
@@ -223,7 +222,7 @@ void updateTransformer(Transformer transformer)
 	if (threadPool && transformCount > getThreadPoolThreadCount(threadPool))
 	{
 		waitThreadPool(threadPool);
-		transformer->transformIndex = 0;
+		transformer->threadIndex = 0;
 
 		size_t threadCount = getThreadPoolThreadCount(threadPool);
 

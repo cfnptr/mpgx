@@ -45,9 +45,10 @@ struct ImageData_T
 struct Window_T
 {
 	GraphicsAPI api;
-	uint8_t useStencilBuffer;
-	uint8_t useRayTracing;
-	uint8_t _alignment[5];
+	bool useVerticalSync;
+	bool useStencilBuffer;
+	bool useRayTracing;
+	uint8_t _alignment[4];
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
@@ -86,7 +87,6 @@ struct Window_T
 	ComputePipeline* computePipelines;
 	size_t computePipelineCapacity;
 	size_t computePipelineCount;
-	double targetFPS;
 	double updateTime;
 	double deltaTime;
 	Framebuffer renderFramebuffer;
@@ -336,89 +336,13 @@ static void onWindowChar(
 	window->inputLength = length + 1;
 }
 
-void destroyWindow(Window window)
-{
-	if (!window)
-		return;
-
-	assert(window->bufferCount == 0);
-	assert(window->imageCount == 0);
-	assert(window->samplerCount == 0);
-	assert(window->framebufferCount == 0);
-	assert(window->shaderCount == 0);
-	assert(window->graphicsMeshCount == 0);
-	assert(window->computePipelineCount == 0);
-	assert(graphicsInitialized);
-
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		VkWindow vkWindow = window->vkWindow;
-
-		if (vkWindow)
-		{
-			VkDevice device = vkWindow->device;
-			VkResult result = vkDeviceWaitIdle(device);
-
-			if (result != VK_SUCCESS)
-				abort();
-
-			destroyVkFramebuffer(
-				device,
-				window->framebuffer,
-				false);
-			destroyVkRayTracing(
-				window->rayTracing);
-			destroyVkWindow(
-				vkInstance,
-				vkWindow);
-		}
-#else
-		abort();
-#endif
-	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_OPENGL
-		destroyGlFramebuffer(
-			window->framebuffer,
-			false);
-#else
-		abort();
-#endif
-	}
-	else
-	{
-		abort();
-	}
-
-	free(window->computePipelines);
-	free(window->graphicsMeshes);
-	free(window->shaders);
-	free(window->framebuffers);
-	free(window->samplers);
-	free(window->images);
-	free(window->buffers);
-	free(window->inputBuffer);
-
-	glfwDestroyCursor(window->vresizeCursor);
-	glfwDestroyCursor(window->hresizeCursor);
-	glfwDestroyCursor(window->handCursor);
-	glfwDestroyCursor(window->crosshairCursor);
-	glfwDestroyCursor(window->ibeamCursor);
-	glfwDestroyWindow(window->handle);
-
-	free(window);
-}
 MpgxResult createWindow(
 	GraphicsAPI api,
 	Vec2I size,
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
+	bool useVerticalSync,
 	bool useStencilBuffer,
 	bool useRayTracing,
 	bool isVisible,
@@ -569,6 +493,7 @@ MpgxResult createWindow(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	windowInstance->api = api;
+	windowInstance->useVerticalSync = useVerticalSync;
 	windowInstance->useStencilBuffer = useStencilBuffer;
 	windowInstance->useRayTracing = useRayTracing;
 	windowInstance->onUpdate = onUpdate;
@@ -610,6 +535,13 @@ MpgxResult createWindow(
 	glfwSetCharCallback(
 		handle,
 		onWindowChar);
+
+	if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+		// TODO: check for the GLX_EXT_swap_control_tear and set -1
+		glfwSwapInterval(useVerticalSync ? 1 : 0);
+	}
 
 	GLFWcursor* ibeamCursor = glfwCreateStandardCursor(
 		GLFW_IBEAM_CURSOR);
@@ -699,6 +631,7 @@ MpgxResult createWindow(
 		MpgxResult mpgxResult = createVkWindow(
 			vkInstance,
 			handle,
+			useVerticalSync,
 			useStencilBuffer,
 			useRayTracing,
 			framebufferSize,
@@ -882,7 +815,6 @@ MpgxResult createWindow(
 	windowInstance->computePipelineCapacity = MPGX_DEFAULT_CAPACITY;
 	windowInstance->computePipelineCount = 0;
 
-	windowInstance->targetFPS = 60.0;
 	windowInstance->updateTime = 0.0;
 	windowInstance->deltaTime = 0.0;
 	windowInstance->renderFramebuffer = NULL;
@@ -899,6 +831,7 @@ MpgxResult createAnyWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
+	bool useVerticalSync,
 	bool useStencilBuffer,
 	bool useRayTracing,
 	bool isVisible,
@@ -919,6 +852,7 @@ MpgxResult createAnyWindow(
 		title,
 		onUpdate,
 		updateArgument,
+		useVerticalSync,
 		useStencilBuffer,
 		useRayTracing,
 		isVisible,
@@ -935,6 +869,7 @@ MpgxResult createAnyWindow(
 		title,
 		onUpdate,
 		updateArgument,
+		useVerticalSync,
 		useStencilBuffer,
 		useRayTracing,
 		isVisible,
@@ -949,6 +884,7 @@ MpgxResult createAnyWindow(
 		title,
 		onUpdate,
 		updateArgument,
+		useVerticalSync,
 		useStencilBuffer,
 		useRayTracing,
 		isVisible,
@@ -957,12 +893,95 @@ MpgxResult createAnyWindow(
 
 	return mpgxResult;
 }
+void destroyWindow(Window window)
+{
+	if (!window)
+		return;
+
+	assert(window->bufferCount == 0);
+	assert(window->imageCount == 0);
+	assert(window->samplerCount == 0);
+	assert(window->framebufferCount == 0);
+	assert(window->shaderCount == 0);
+	assert(window->graphicsMeshCount == 0);
+	assert(window->computePipelineCount == 0);
+	assert(graphicsInitialized);
+
+	GraphicsAPI api = window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = window->vkWindow;
+
+		if (vkWindow)
+		{
+			VkDevice device = vkWindow->device;
+			VkResult result = vkDeviceWaitIdle(device);
+
+			if (result != VK_SUCCESS)
+				abort();
+
+			destroyVkFramebuffer(
+				device,
+				window->framebuffer,
+				false);
+			destroyVkRayTracing(
+				window->rayTracing);
+			destroyVkWindow(
+				vkInstance,
+				vkWindow);
+		}
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+			 api == OPENGL_ES_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_OPENGL
+		destroyGlFramebuffer(
+			window->framebuffer,
+			false);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+
+	free(window->computePipelines);
+	free(window->graphicsMeshes);
+	free(window->shaders);
+	free(window->framebuffers);
+	free(window->samplers);
+	free(window->images);
+	free(window->buffers);
+	free(window->inputBuffer);
+
+	glfwDestroyCursor(window->vresizeCursor);
+	glfwDestroyCursor(window->hresizeCursor);
+	glfwDestroyCursor(window->handCursor);
+	glfwDestroyCursor(window->crosshairCursor);
+	glfwDestroyCursor(window->ibeamCursor);
+	glfwDestroyWindow(window->handle);
+
+	free(window);
+}
 
 GraphicsAPI getWindowGraphicsAPI(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
 	return window->api;
+}
+bool isWindowUseVerticalSync(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+	return window->useVerticalSync;
 }
 bool isWindowUseStencilBuffer(Window window)
 {
@@ -1087,23 +1106,6 @@ bool isVkDeviceIntegrated(Window window)
 #else
 	abort();
 #endif
-}
-
-double getWindowTargetFPS(
-	Window window)
-{
-	assert(window);
-	assert(graphicsInitialized);
-	return window->targetFPS;
-}
-void setWindowTargetFPS(
-	Window window,
-	double fps)
-{
-	assert(window);
-	assert(fps >= 0.0);
-	assert(graphicsInitialized);
-	window->targetFPS = fps;
 }
 
 bool getWindowKeyboardKey(
@@ -1445,19 +1447,7 @@ void updateWindow(Window window)
 		double startTime = getCurrentClock();
 		window->deltaTime = startTime - window->updateTime;
 		window->updateTime = startTime;
-
 		onUpdate(updateArgument);
-
-		if (window->targetFPS > 0.0)
-		{
-			double frameTime = 1.0 / window->targetFPS;
-
-			double delayTime = frameTime -
-				(getCurrentClock() - startTime) - 0.001;
-
-			if (delayTime > 0.0)
-				sleepThread(delayTime);
-		}
 	}
 }
 
@@ -1563,6 +1553,7 @@ MpgxResult beginWindowRecord(Window window)
 				vkWindow->graphicsCommandPool,
 				vkWindow->presentCommandPool,
 				swapchain,
+				window->useVerticalSync,
 				window->useStencilBuffer,
 				newSize);
 
@@ -1635,6 +1626,7 @@ MpgxResult beginWindowRecord(Window window)
 					vkWindow->graphicsCommandPool,
 					vkWindow->presentCommandPool,
 					swapchain,
+					window->useVerticalSync,
 					window->useStencilBuffer,
 					newSize);
 
@@ -1902,6 +1894,7 @@ void endWindowRecord(Window window)
 				vkWindow->graphicsCommandPool,
 				vkWindow->presentCommandPool,
 				swapchain,
+				window->useVerticalSync,
 				window->useStencilBuffer,
 				newSize);
 
@@ -4848,8 +4841,8 @@ void setGraphicsMeshIndexCount(
 		else if (graphicsMesh->base.indexType == UINT32_INDEX_TYPE)
 		{
 			assert(indexCount * sizeof(uint32_t) +
-			graphicsMesh->base.indexOffset * sizeof(uint32_t) <=
-			graphicsMesh->base.indexBuffer->base.size);
+				graphicsMesh->base.indexOffset * sizeof(uint32_t) <=
+				graphicsMesh->base.indexBuffer->base.size);
 		}
 		else
 		{
@@ -4898,7 +4891,35 @@ void setGraphicsMeshIndexOffset(
 	}
 #endif
 
-	graphicsMesh->base.indexOffset = indexOffset;
+	GraphicsAPI api = graphicsMesh->base.window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		setVkGraphicsMeshIndexOffset(
+			graphicsMesh,
+			graphicsMesh->vk.indexType,
+			indexOffset);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_OPENGL
+		setGlGraphicsMeshIndexOffset(
+			graphicsMesh,
+			graphicsMesh->gl.indexType,
+			indexOffset);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
 }
 
 Buffer getGraphicsMeshVertexBuffer(
@@ -4971,10 +4992,44 @@ void setGraphicsMeshIndexBuffer(
 	}
 #endif
 
-	graphicsMesh->base.indexType = indexType;
 	graphicsMesh->base.indexCount = indexCount;
-	graphicsMesh->base.indexOffset = indexOffset;
 	graphicsMesh->base.indexBuffer = indexBuffer;
+
+	GraphicsAPI api = graphicsMesh->base.window->api;
+
+	if (api == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		setVkGraphicsMeshIndexType(
+			graphicsMesh,
+			indexType);
+		setVkGraphicsMeshIndexOffset(
+			graphicsMesh,
+			indexType,
+			indexOffset);
+#else
+		abort();
+#endif
+	}
+	else if (api == OPENGL_GRAPHICS_API ||
+		api == OPENGL_ES_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_OPENGL
+		setGlGraphicsMeshIndexType(
+			graphicsMesh,
+			indexType);
+		setGlGraphicsMeshIndexOffset(
+			graphicsMesh,
+			graphicsMesh->gl.indexType,
+			indexOffset);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
 }
 
 size_t drawGraphicsMesh(
@@ -5005,11 +5060,9 @@ size_t drawGraphicsMesh(
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		if (graphicsPipeline->base.onUniformsSet)
-			graphicsPipeline->base.onUniformsSet(graphicsPipeline);
-
 		drawVkGraphicsMesh(
 			window->vkWindow->currenCommandBuffer,
+			graphicsPipeline,
 			graphicsMesh);
 #else
 		abort();

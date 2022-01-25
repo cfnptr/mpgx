@@ -552,6 +552,7 @@ MpgxResult createWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
+	bool useVerticalSync,
 	bool useStencilBuffer,
 	bool useRayTracing,
 	bool isVisible,
@@ -561,6 +562,7 @@ MpgxResult createAnyWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
+	bool useVerticalSync,
 	bool useStencilBuffer,
 	bool useRayTracing,
 	bool isVisible,
@@ -568,6 +570,7 @@ MpgxResult createAnyWindow(
 void destroyWindow(Window window);
 
 GraphicsAPI getWindowGraphicsAPI(Window window);
+bool isWindowUseVerticalSync(Window window);
 bool isWindowUseStencilBuffer(Window window);
 bool isWindowUseRayTracing(Window window);
 OnWindowUpdate getWindowOnUpdate(Window window);
@@ -582,12 +585,6 @@ const char* getWindowGpuName(Window window);
 
 void* getVkWindow(Window window);
 bool isVkDeviceIntegrated(Window window);
-
-double getWindowTargetFPS(
-	Window window);
-void setWindowTargetFPS(
-	Window window,
-	double fps);
 
 bool getWindowKeyboardKey(
 	Window window,

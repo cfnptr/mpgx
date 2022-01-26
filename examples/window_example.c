@@ -43,8 +43,8 @@ inline static void rotateRender(
 	GraphicsRender graphicsRender)
 {
 	Quat rotation = eulerQuat(vec3F(
-		sinf((float)time),
-		cosf((float)time),
+		(float)sin(time),
+		(float)cos(time),
 		0.0f));
 	Transform transform = getGraphicsRenderTransform(
 		graphicsRender);
@@ -58,8 +58,7 @@ static void onWindowUpdate(void* handle)
 	Window window = client->window;
 	FreeCamera freeCamera = client->freeCamera;
 
-	rotateRender(
-		getWindowUpdateTime(window),
+	rotateRender(getWindowUpdateTime(window),
 		client->diffuseRender);
 
 	updateFreeCamera(freeCamera);
@@ -213,8 +212,7 @@ inline static MpgxResult createDiffuseRenderInstance(
 		oneQuat,
 		SPIN_ROTATION_TYPE,
 		NULL,
-		true,
-		false);
+		true);
 
 	if (!transform)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -339,6 +337,7 @@ inline static Client createClient()
 		APPLICATION_NAME,
 		onWindowUpdate,
 		client,
+		true,
 		false,
 		false,
 		false,

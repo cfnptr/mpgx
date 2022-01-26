@@ -68,6 +68,7 @@ typedef struct VkWindow_T
 	VkBuffer stagingBuffer;
 	VmaAllocation stagingAllocation;
 	size_t stagingSize;
+	VkPhysicalDeviceProperties deviceProperties;
 	bool isDeviceIntegrated;
 } VkWindow_T;
 
@@ -372,12 +373,14 @@ inline static void destroyVkDebugUtilsMessenger(
 
 inline static MpgxResult getBestVkPhysicalDevice(
 	VkInstance instance,
-	bool* isIntegrated,
-	VkPhysicalDevice* physicalDevice)
+	VkPhysicalDevice* physicalDevice,
+	VkPhysicalDeviceProperties* deviceProperties,
+	bool* isIntegrated)
 {
 	assert(instance);
-	assert(isIntegrated);
 	assert(physicalDevice);
+	assert(deviceProperties);
+	assert(isIntegrated);
 
 	uint32_t deviceCount;
 
@@ -406,17 +409,15 @@ inline static MpgxResult getBestVkPhysicalDevice(
 		return vkToMpgxResult(vkResult);
 	}
 
-	VkPhysicalDevice targetDevice = NULL;
+	uint32_t targetDeviceIndex = 0;
 	uint32_t targetScore = 0;
-	bool integrated = false;
+
+	VkPhysicalDeviceProperties properties;
 
 	for (uint32_t i = 0; i < deviceCount; i++)
 	{
-		VkPhysicalDevice device = devices[i];
-		VkPhysicalDeviceProperties properties;
-
 		vkGetPhysicalDeviceProperties(
-			device,
+			devices[i],
 			&properties);
 
 		uint32_t score = 0;
@@ -446,18 +447,17 @@ inline static MpgxResult getBestVkPhysicalDevice(
 
 		if (score > targetScore)
 		{
-			targetDevice = device;
+			targetDeviceIndex = i;
 			targetScore = score;
-
-			integrated = properties.deviceType ==
-				VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
 		}
 	}
 
-	free(devices);
+	*physicalDevice = devices[targetDeviceIndex];
+	*deviceProperties = properties;
+	*isIntegrated = properties.deviceType ==
+		VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
 
-	*isIntegrated = integrated;
-	*physicalDevice = targetDevice;
+	free(devices);
 	return SUCCESS_MPGX_RESULT;
 }
 inline static MpgxResult getVkQueueFamilyIndices(
@@ -998,11 +998,13 @@ inline static MpgxResult createVkWindow(
 	bool isDeviceIntegrated;
 
 	VkPhysicalDevice physicalDevice;
+	VkPhysicalDeviceProperties deviceProperties;
 
 	MpgxResult mpgxResult = getBestVkPhysicalDevice(
 		instance,
-		&isDeviceIntegrated,
-		&physicalDevice);
+		&physicalDevice,
+		&deviceProperties,
+		&isDeviceIntegrated);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
@@ -1011,6 +1013,7 @@ inline static MpgxResult createVkWindow(
 	}
 
 	window->physicalDevice = physicalDevice;
+	window->deviceProperties = deviceProperties;
 	window->isDeviceIntegrated = isDeviceIntegrated;
 
 	uint32_t graphicsQueueFamilyIndex,

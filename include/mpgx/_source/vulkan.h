@@ -299,16 +299,4 @@ inline static bool getVkCompareOperator(
 		return true;
 	}
 }
-
-static VkPhysicalDeviceProperties physicalDeviceProperties;
-
-inline static const char* getVkWindowGpuName(
-	VkPhysicalDevice physicalDevice)
-{
-	assert(physicalDevice);
-	vkGetPhysicalDeviceProperties(
-		physicalDevice,
-		&physicalDeviceProperties);
-	return physicalDeviceProperties.deviceName;
-}
 #endif

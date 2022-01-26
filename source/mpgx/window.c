@@ -1062,8 +1062,7 @@ const char* getWindowGpuName(Window window)
 	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		return getVkWindowGpuName(
-			window->vkWindow->physicalDevice);
+		return window->vkWindow->deviceProperties.deviceName;
 #else
 		abort();
 #endif
@@ -1072,7 +1071,7 @@ const char* getWindowGpuName(Window window)
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		return getGlWindowGpuName();
+		return (const char*)glGetString(GL_RENDERER);
 #else
 		abort();
 #endif

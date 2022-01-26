@@ -341,7 +341,6 @@ Transform createTransform(
 	if (count == transformer->transformCapacity)
 	{
 		size_t capacity = transformer->transformCapacity * 2;
-		assert(capacity < INT64_MAX);
 
 		Transform* transforms = realloc(
 			transformer->transforms,

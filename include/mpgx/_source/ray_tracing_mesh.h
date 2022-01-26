@@ -420,7 +420,7 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 
 	// TODO: compact acceleration structure
 
-	if (!deviceAddress)
+	if (deviceAddress)
 	{
 		VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo = {
 			VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,

@@ -220,12 +220,6 @@ inline static MpgxResult createVkRayTracingPipelineHandle(
 	return SUCCESS_MPGX_RESULT;
 }
 
-inline static uint32_t alignVkSbt(
-	uint32_t handleSize,
-	uint32_t handleAlignment)
-{
-	return (handleSize + (handleAlignment - 1)) & ~(handleAlignment - 1);
-}
 inline static MpgxResult createVkSbt(
 	VkDevice device,
 	VmaAllocator allocator,
@@ -260,7 +254,7 @@ inline static MpgxResult createVkSbt(
 		rayTracingPipelineProperties.shaderGroupHandleAlignment;
 	uint32_t baseAlignment = rayTracing->vk.
 		rayTracingPipelineProperties.shaderGroupBaseAlignment;
-	uint32_t handleSizeAligned = alignVkSbt(handleSize, handleAlignment);
+	uint32_t handleSizeAligned = alignVkMemory(handleSize, handleAlignment);
 
 	uint32_t handleCount = (uint32_t)(
 		generationShaderCount +
@@ -287,7 +281,7 @@ inline static MpgxResult createVkSbt(
 		return vkToMpgxResult(vkResult);
 	}
 
-	size_t bufferSize = alignVkSbt((uint32_t)
+	size_t bufferSize = alignVkMemory((uint32_t)
 		generationShaderCount * handleSizeAligned,
 		baseAlignment);
 	uint8_t* mappedData;
@@ -339,7 +333,7 @@ inline static MpgxResult createVkSbt(
 		return mpgxResult;
 	}
 
-	bufferSize = alignVkSbt((uint32_t)
+	bufferSize = alignVkMemory((uint32_t)
 		missShaderCount * handleSizeAligned,
 		baseAlignment);
 
@@ -396,7 +390,7 @@ inline static MpgxResult createVkSbt(
 		return mpgxResult;
 	}
 
-	bufferSize = alignVkSbt((uint32_t)
+	bufferSize = alignVkMemory((uint32_t)
 		closestHitShaderCount * handleSizeAligned,
 		baseAlignment);
 
@@ -805,9 +799,9 @@ inline static void traceVkPipelineRays(
 		rayTracingPipelineProperties.shaderGroupHandleAlignment;
 	uint32_t baseAlignment = rayTracing->vk.
 		rayTracingPipelineProperties.shaderGroupBaseAlignment;
-	uint32_t handleSizeAligned = alignVkSbt(handleSize, handleAlignment);
+	uint32_t handleSizeAligned = alignVkMemory(handleSize, handleAlignment);
 
-	VkDeviceSize size = alignVkSbt((uint32_t)
+	VkDeviceSize size = alignVkMemory((uint32_t)
 		rayTracingPipeline->vk.generationShaderCount * handleSizeAligned,
 		baseAlignment);
 	VkStridedDeviceAddressRegionKHR generationSbt = {
@@ -818,14 +812,14 @@ inline static void traceVkPipelineRays(
 
 	VkStridedDeviceAddressRegionKHR missSbt = {
 		rayTracingPipeline->vk.missSbtAddress,
-		alignVkSbt((uint32_t)
+		alignVkMemory((uint32_t)
 			rayTracingPipeline->vk.missShaderCount *
 			handleSizeAligned, baseAlignment),
 		handleSizeAligned,
 	};
 	VkStridedDeviceAddressRegionKHR closestHitSbt = {
 		rayTracingPipeline->vk.closestHitSbtAddress,
-		alignVkSbt((uint32_t)
+		alignVkMemory((uint32_t)
 			rayTracingPipeline->vk.closestHitShaderCount *
 			handleSizeAligned, baseAlignment),
 		handleSizeAligned,

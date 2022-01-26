@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef SHADOW_H
+#define SHADOW_H
+
 float calcShadow(vec3 shadowCoords, sampler2DShadow shadowMap)
 {
     if(shadowCoords.z > 1.0)
@@ -33,3 +36,5 @@ float calcShadow(vec3 shadowCoords, sampler2DShadow shadowMap)
     const float multiplier = 1 / 9.0;
     return shadow * multiplier;
 }
+
+#endif

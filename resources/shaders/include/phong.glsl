@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef PHONG_H
+#define PHONG_H
+
 float calcDiffuse(vec3 normal, vec3 lightDirection)
 {
     return max(dot(normal, -lightDirection), 0.0);
@@ -31,3 +34,5 @@ float calcSpecular(
     vec3 reflDir = reflect(lightDir, normal);
     return pow(max(dot(viewDir, reflDir), 0.0), specular);
 }
+
+#endif

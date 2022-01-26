@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef COLOR_H
+#define COLOR_H
+
 vec3 srgbToLinear(vec3 srgb)
 {
     bvec3 cutoff = lessThanEqual(srgb, vec3(0.04045));
@@ -41,3 +44,5 @@ vec4 linearToSrgb(vec4 linear)
     vec3 lower = linear.rgb * vec3(12.92);
     return vec4(mix(higher, lower, cutoff), linear.a);
 }
+
+#endif

@@ -15,6 +15,9 @@
 // Authors: Ian McEwan, Ashima Arts.
 // Distributed under the MIT License.
 
+#ifndef NOISE_H
+#define NOISE_H
+
 float mod289(float x)
 {
     const float d = 1.0 / 289.0;
@@ -174,8 +177,7 @@ float calcSimplex3D(vec3 v)
         dot(p0, x0), dot(p1, x1),
         dot(p2, x2), dot(p3, x3)));
 }
-
-float snoise(vec4 v)
+float calcSimplex4D(vec4 v)
 {
     const vec4 C = vec4(
         0.138196601125011,
@@ -183,7 +185,7 @@ float snoise(vec4 v)
         0.414589803375032,
         -0.447213595499958);
 
-    const F4 = 0.309016994374947451;
+    const float F4 = 0.309016994374947451;
     vec4 i = floor(v + dot(v, vec4(F4)));
     vec4 x0 = v - i + dot(i, C.xxxx);
     vec4 i0;
@@ -243,3 +245,5 @@ float snoise(vec4 v)
         dot(p0, x0), dot(p1, x1), dot(p2, x2)))
         + dot(m1 * m1, vec2(dot(p3, x3), dot(p4, x4))));
 }
+
+#endif

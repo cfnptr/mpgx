@@ -314,7 +314,7 @@ inline static void setGlGraphicsMeshIndexType(
 	else
 		abort();
 
-	graphicsMesh->vk.indexType = indexType;
+	graphicsMesh->gl.indexType = indexType;
 }
 inline static void setGlGraphicsMeshIndexOffset(
 	GraphicsMesh graphicsMesh,
@@ -328,6 +328,6 @@ inline static void setGlGraphicsMeshIndexOffset(
 	else
 		abort();
 
-	graphicsMesh->vk.indexOffset = indexOffset;
+	graphicsMesh->gl.indexOffset = indexOffset;
 }
 #endif

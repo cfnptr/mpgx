@@ -24,7 +24,6 @@ typedef struct BaseBuffer_T
 	size_t size;
 	BufferType type;
 	BufferUsage usage;
-	BufferFlag flags;
 #ifndef NDEBUG
 	bool isMapped;
 #endif
@@ -36,7 +35,6 @@ typedef struct VkBuffer_T
 	size_t size;
 	BufferType type;
 	BufferUsage usage;
-	BufferFlag flags;
 #ifndef NDEBUG
 	bool isMapped;
 #endif
@@ -54,7 +52,6 @@ typedef struct GlBuffer_T
 	size_t size;
 	BufferType type;
 	BufferUsage usage;
-	BufferFlag flags;
 #ifndef NDEBUG
 	bool isMapped;
 #endif
@@ -221,11 +218,9 @@ inline static MpgxResult createVkBuffer(
 	VkBuffer* stagingBuffer,
 	VmaAllocation* stagingAllocation,
 	size_t* stagingSize,
-	VkBufferUsageFlags vkUsage,
 	Window window,
 	BufferType type,
 	BufferUsage usage,
-	BufferFlag flags,
 	const void* data,
 	size_t size,
 	bool useRayTracing,
@@ -240,7 +235,7 @@ inline static MpgxResult createVkBuffer(
 	assert(stagingAllocation);
 	assert(stagingSize);
 	assert(window);
-	assert(type < BUFFER_TYPE_COUNT);
+	assert(type > 0);
 	assert(usage < BUFFER_USAGE_COUNT);
 	assert(size > 0);
 	assert(buffer);
@@ -263,43 +258,32 @@ inline static MpgxResult createVkBuffer(
 	bufferInstance->vk.mapSize = 0;
 	bufferInstance->vk.mapOffset = 0;
 
-	switch (type)
-	{
-	default:
-		destroyVkBuffer(
-			allocator,
-			bufferInstance);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
-	case VERTEX_BUFFER_TYPE:
+	bool isIntegrated = isVkDeviceIntegrated(window);
+
+	VkBufferUsageFlags vkUsage = 0;
+
+	if (type & VERTEX_BUFFER_TYPE)
 		vkUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		break;
-	case INDEX_BUFFER_TYPE:
+	if (type & INDEX_BUFFER_TYPE)
 		vkUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		break;
-	case UNIFORM_BUFFER_TYPE:
+	if (type & UNIFORM_BUFFER_TYPE)
 		vkUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-		break;
-	case STORAGE_BUFFER_TYPE:
+	if (type & STORAGE_BUFFER_TYPE)
 		vkUsage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		break;
+	if (type & TRANSFER_SOURCE_BUFFER_TYPE)
+		vkUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	if ((type & TRANSFER_DESTINATION_BUFFER_TYPE) ||
+		(data && !isIntegrated && usage == GPU_ONLY_BUFFER_USAGE))
+	{
+		vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	}
 
-	if (data && usage == GPU_ONLY_BUFFER_USAGE)
-		flags |= TRANSFER_DESTINATION_BUFFER_FLAG;
-
-	bufferInstance->vk.flags = flags;
-
-	// TODO: move this to the usage
+	// TODO: move this to the type
 	if (useRayTracing)
 	{
 		vkUsage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
 			VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 	}
-
-	if (flags & TRANSFER_SOURCE_BUFFER_FLAG)
-		vkUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	if (flags & TRANSFER_DESTINATION_BUFFER_FLAG)
-		vkUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 	VkBufferCreateInfo bufferCreateInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -317,8 +301,6 @@ inline static MpgxResult createVkBuffer(
 
 	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
-
-	bool isIntegrated = isVkDeviceIntegrated(window);
 
 	switch (usage)
 	{
@@ -490,13 +472,13 @@ inline static MpgxResult createVkBuffer(
 inline static MpgxResult mapGlBuffer(
 	GLenum type,
 	GLuint handle,
-	BufferType usage,
+	BufferUsage usage,
 	size_t size,
 	size_t offset,
 	void** map)
 {
 	assert(handle != GL_ZERO);
-	assert(usage < BUFFER_TYPE_COUNT);
+	assert(usage < BUFFER_USAGE_COUNT);
 	assert(size > 0);
 	assert(map);
 
@@ -599,13 +581,12 @@ inline static MpgxResult createGlBuffer(
 	Window window,
 	BufferType type,
 	BufferUsage usage,
-	BufferFlag flags,
 	const void* data,
 	size_t size,
 	Buffer* buffer)
 {
 	assert(window);
-	assert(type < BUFFER_TYPE_COUNT);
+	assert(type > 0);
 	assert(usage < BUFFER_USAGE_COUNT);
 	assert(size > 0);
 	assert(buffer);
@@ -622,22 +603,21 @@ inline static MpgxResult createGlBuffer(
 	bufferInstance->gl.size = size;
 	bufferInstance->gl.type = type;
 	bufferInstance->gl.usage = usage;
-	bufferInstance->gl.flags = flags;
 #ifndef NDEBUG
 	bufferInstance->gl.isMapped = false;
 #endif
 
 	GLenum glType;
 
-	if (type == VERTEX_BUFFER_TYPE)
+	if (type & VERTEX_BUFFER_TYPE)
 	{
 		glType = GL_ARRAY_BUFFER;
 	}
-	else if (type == INDEX_BUFFER_TYPE)
+	else if (type & INDEX_BUFFER_TYPE)
 	{
 		glType = GL_ELEMENT_ARRAY_BUFFER;
 	}
-	else if (type == UNIFORM_BUFFER_TYPE)
+	else if (type & UNIFORM_BUFFER_TYPE)
 	{
 		glType = GL_UNIFORM_BUFFER;
 	}

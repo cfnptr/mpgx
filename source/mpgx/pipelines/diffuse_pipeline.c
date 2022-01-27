@@ -176,7 +176,6 @@ inline static MpgxResult createVkUniformBufferArray(
 			window,
 			UNIFORM_BUFFER_TYPE,
 			CPU_TO_GPU_BUFFER_USAGE,
-			NO_BUFFER_FLAG,
 			NULL,
 			sizeof(UniformBuffer),
 			&buffer);
@@ -687,7 +686,6 @@ inline static MpgxResult createGlPipeline(
 		framebuffer->gl.window,
 		UNIFORM_BUFFER_TYPE,
 		CPU_TO_GPU_BUFFER_USAGE,
-		NO_BUFFER_FLAG,
 		NULL,
 		sizeof(UniformBuffer),
 		&uniformBuffer);

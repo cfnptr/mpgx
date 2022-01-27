@@ -228,11 +228,12 @@ typedef uint8_t CursorType;
 
 typedef enum BufferType_T
 {
-	VERTEX_BUFFER_TYPE = 0,
-	INDEX_BUFFER_TYPE = 1,
-	UNIFORM_BUFFER_TYPE = 2,
-	STORAGE_BUFFER_TYPE = 3,
-	BUFFER_TYPE_COUNT = 4,
+	VERTEX_BUFFER_TYPE = 0b00000001,
+	INDEX_BUFFER_TYPE = 0b00000010,
+	UNIFORM_BUFFER_TYPE = 0b00000100,
+	STORAGE_BUFFER_TYPE = 0b00001000,
+	TRANSFER_SOURCE_BUFFER_TYPE = 0b00010000,
+	TRANSFER_DESTINATION_BUFFER_TYPE = 0b00100000,
 } BufferType_T;
 
 typedef uint8_t BufferType;
@@ -246,17 +247,7 @@ typedef enum BufferUsage_T
 	BUFFER_USAGE_COUNT = 4,
 } BufferUsage_T;
 
-typedef uint8_t BufferUsage;
-
-typedef enum BufferFlag_T
-{
-	NO_BUFFER_FLAG = 0b00000000,
-	TRANSFER_SOURCE_BUFFER_FLAG = 0b00000001,
-	TRANSFER_DESTINATION_BUFFER_FLAG = 0b00000010,
-} BufferFlag_T;
-
-typedef uint8_t BufferFlag;
-#define BUFFER_FLAG_COUNT 2
+typedef uint8_t BufferUsage;;
 
 typedef enum ImageDimension_T
 {
@@ -270,10 +261,12 @@ typedef uint8_t ImageDimension;
 
 typedef enum ImageType_T
 {
-	GENERAL_IMAGE_TYPE = 0,
-	ATTACHMENT_IMAGE_TYPE = 1,
-	STORAGE_IMAGE_TYPE = 2,
-	IMAGE_TYPE_COUNT = 3,
+	SAMPLED_IMAGE_TYPE = 0b00000001,
+	COLOR_ATTACHMENT_IMAGE_TYPE = 0b00000010,
+	DEPTH_STENCIL_ATTACHMENT_IMAGE_TYPE = 0b00000100,
+	STORAGE_IMAGE_TYPE = 0b00001000,
+	TRANSFER_SOURCE_IMAGE_TYPE = 0b00010000,
+	TRANSFER_DESTINATION_IMAGE_TYPE = 0b00100000,
 } ImageType_T;
 
 typedef uint8_t ImageType;
@@ -281,15 +274,16 @@ typedef uint8_t ImageType;
 typedef enum ImageFormat_T
 {
 	R8_UNORM_IMAGE_FORMAT = 0,
-	R8G8B8A8_UNORM_IMAGE_FORMAT = 1,
-	R8G8B8A8_SRGB_IMAGE_FORMAT = 2,
-	R16G16B16A16_SFLOAT_IMAGE_FORMAT = 3,
-	D16_UNORM_IMAGE_FORMAT = 4,
-	D32_SFLOAT_IMAGE_FORMAT = 5,
-	D16_UNORM_S8_UINT_IMAGE_FORMAT = 6,
-	D24_UNORM_S8_UINT_IMAGE_FORMAT = 7,
-	D32_SFLOAT_S8_UINT_IMAGE_FORMAT = 8,
-	IMAGE_FORMAT_COUNT = 9,
+	R8_SRGB_IMAGE_FORMAT = 1,
+	R8G8B8A8_UNORM_IMAGE_FORMAT = 2,
+	R8G8B8A8_SRGB_IMAGE_FORMAT = 3,
+	R16G16B16A16_SFLOAT_IMAGE_FORMAT = 4,
+	D16_UNORM_IMAGE_FORMAT = 5,
+	D32_SFLOAT_IMAGE_FORMAT = 6,
+	D16_UNORM_S8_UINT_IMAGE_FORMAT = 7,
+	D24_UNORM_S8_UINT_IMAGE_FORMAT = 8,
+	D32_SFLOAT_S8_UINT_IMAGE_FORMAT = 9,
+	IMAGE_FORMAT_COUNT = 10,
 } ImageFormat_T;
 
 typedef uint8_t ImageFormat;
@@ -660,7 +654,6 @@ MpgxResult createBuffer(
 	Window window,
 	BufferType type,
 	BufferUsage usage,
-	BufferFlag flags,
 	const void* data,
 	size_t size,
 	Buffer* buffer);
@@ -699,7 +692,6 @@ const uint8_t* getImageDataPixels(ImageData imageData);
 Vec2I getImageDataSize(ImageData imageData);
 uint8_t getImageDataChannelCount(ImageData imageData);
 
-// TODO: ImageUsage like buffer
 MpgxResult createImage(
 	Window window,
 	ImageType type,
@@ -712,6 +704,7 @@ MpgxResult createImage(
 	Image* image);
 MpgxResult createImageFromFile(
 	Window window,
+	ImageType type,
 	ImageFormat format,
 	const char* filePath,
 	bool generateMipmap,
@@ -719,6 +712,7 @@ MpgxResult createImageFromFile(
 	Image* image);
 MpgxResult createImageFromData(
 	Window window,
+	ImageType type,
 	ImageFormat format,
 	const void* data,
 	size_t size,

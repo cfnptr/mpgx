@@ -223,7 +223,6 @@ inline static MpgxResult createDiffuseRenderInstance(
 		window,
 		VERTEX_BUFFER_TYPE,
 		GPU_ONLY_BUFFER_USAGE,
-		NO_BUFFER_FLAG,
 		cubeTriangleVerticesNormals,
 		sizeof(cubeTriangleVerticesNormals),
 		&vertexBuffer);
@@ -240,7 +239,6 @@ inline static MpgxResult createDiffuseRenderInstance(
 		window,
 		INDEX_BUFFER_TYPE,
 		GPU_ONLY_BUFFER_USAGE,
-		NO_BUFFER_FLAG,
 		cubeTriangleIndices,
 		sizeof(cubeTriangleIndices),
 		&indexBuffer);

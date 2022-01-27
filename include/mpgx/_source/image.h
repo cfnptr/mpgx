@@ -124,7 +124,7 @@ inline static MpgxResult createVkImage(
 	assert(stagingAllocation);
 	assert(stagingSize);
 	assert(window);
-	assert(type < IMAGE_TYPE_COUNT);
+	assert(type > 0);
 	assert(dimension < IMAGE_DIMENSION_COUNT);
 	assert(format < IMAGE_FORMAT_COUNT);
 	assert(data);
@@ -179,13 +179,20 @@ inline static MpgxResult createVkImage(
 	VkImageAspectFlags vkAspect;
 	uint8_t sizeMultiplier;
 
-	VkImageUsageFlagBits vkUsage = VK_IMAGE_USAGE_SAMPLED_BIT;
+	VkImageUsageFlagBits vkUsage = 0;
 
-	if (type == STORAGE_IMAGE_TYPE)
-	{
-		vkUsage |= VK_IMAGE_USAGE_STORAGE_BIT |
-			VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-	}
+	if (type & SAMPLED_IMAGE_TYPE)
+		vkUsage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+	if (type & COLOR_ATTACHMENT_IMAGE_TYPE)
+		vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	if (type & DEPTH_STENCIL_ATTACHMENT_IMAGE_TYPE)
+		vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	if (type & STORAGE_IMAGE_TYPE)
+		vkUsage |= VK_IMAGE_USAGE_STORAGE_BIT;
+	if (type & TRANSFER_SOURCE_IMAGE_TYPE)
+		vkUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	if (type & TRANSFER_DESTINATION_IMAGE_TYPE || data[0])
+		vkUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	switch (format)
 	{
@@ -199,78 +206,53 @@ inline static MpgxResult createVkImage(
 		vkFormat = VK_FORMAT_R8_UNORM;
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 1;
-
-		if (type == ATTACHMENT_IMAGE_TYPE)
-			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		break;
+	case R8_SRGB_IMAGE_FORMAT:
+		vkFormat = VK_FORMAT_R8_SRGB;
+		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+		sizeMultiplier = 1;
 		break;
 	case R8G8B8A8_UNORM_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 4;
-
-		if (type == ATTACHMENT_IMAGE_TYPE)
-			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		break;
 	case R8G8B8A8_SRGB_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_R8G8B8A8_SRGB;
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 4;
-
-		if (type == ATTACHMENT_IMAGE_TYPE)
-			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		break;
 	case R16G16B16A16_SFLOAT_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		sizeMultiplier = 8;
-
-		if (type == ATTACHMENT_IMAGE_TYPE)
-			vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		break;
 	case D16_UNORM_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_D16_UNORM;
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 2;
-
-		if (type == ATTACHMENT_IMAGE_TYPE)
-			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D32_SFLOAT_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_D32_SFLOAT;
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 4;
-
-		if (type == ATTACHMENT_IMAGE_TYPE)
-			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D16_UNORM_S8_UINT_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_D16_UNORM_S8_UINT;
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 3; // TODO: correct?
-
-		if (type == ATTACHMENT_IMAGE_TYPE)
-			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D24_UNORM_S8_UINT_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 4;
-
-		if (type == ATTACHMENT_IMAGE_TYPE)
-			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
 		vkAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 		sizeMultiplier = 5; // TODO: correct?
-
-		if (type == ATTACHMENT_IMAGE_TYPE)
-			vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		break;
 	}
-
-	if (data[0])
-		vkUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	imageInstance->vk.vkFormat = vkFormat;
 	imageInstance->vk.vkAspect = vkAspect;
@@ -301,8 +283,11 @@ inline static MpgxResult createVkImage(
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 	// TODO: VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED on mobiles
 
-	if (type == ATTACHMENT_IMAGE_TYPE)
+	if (type & COLOR_ATTACHMENT_IMAGE_TYPE ||
+		type & DEPTH_STENCIL_ATTACHMENT_IMAGE_TYPE)
+	{
 		allocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+	}
 
 	VkImage handle;
 	VmaAllocation allocation;
@@ -822,7 +807,7 @@ inline static MpgxResult createGlImage(
 	Image* image)
 {
 	assert(window);
-	assert(type < IMAGE_TYPE_COUNT);
+	assert(type > 0);
 	assert(dimension < IMAGE_DIMENSION_COUNT);
 	assert(format < IMAGE_FORMAT_COUNT);
 	assert(data);
@@ -832,8 +817,9 @@ inline static MpgxResult createGlImage(
 	assert(levelCount <= getImageLevelCount(size));
 	assert(image);
 
-	if (type != GENERAL_IMAGE_TYPE &&
-		type != ATTACHMENT_IMAGE_TYPE)
+	if (!(type & SAMPLED_IMAGE_TYPE) &&
+		!(type & COLOR_ATTACHMENT_IMAGE_TYPE) &&
+		!(type & DEPTH_STENCIL_ATTACHMENT_IMAGE_TYPE))
 	{
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}

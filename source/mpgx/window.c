@@ -1944,13 +1944,12 @@ MpgxResult createBuffer(
 	Window window,
 	BufferType type,
 	BufferUsage usage,
-	BufferFlag flags,
 	const void* data,
 	size_t size,
 	Buffer* buffer)
 {
 	assert(window);
-	assert(type < BUFFER_TYPE_COUNT);
+	assert(type > 0);
 	assert(usage < BUFFER_USAGE_COUNT);
 	assert(size > 0);
 	assert(buffer);
@@ -1979,11 +1978,9 @@ MpgxResult createBuffer(
 			&vkWindow->stagingBuffer,
 			&vkWindow->stagingAllocation,
 			&vkWindow->stagingSize,
-			0,
 			window,
 			type,
 			usage,
-			flags,
 			data,
 			size,
 			window->useRayTracing,
@@ -2000,7 +1997,6 @@ MpgxResult createBuffer(
 			window,
 			type,
 			usage,
-			flags,
 			data,
 			size,
 			&bufferInstance);
@@ -2318,16 +2314,6 @@ MpgxResult setBufferData(
 	}
 }
 
-void destroyImageData(ImageData imageData)
-{
-	assert(graphicsInitialized);
-
-	if (!imageData)
-		return;
-
-	stbi_image_free(imageData->pixels);
-	free(imageData);
-}
 MpgxResult createImageData(
 	const void* data,
 	size_t size,
@@ -2348,17 +2334,17 @@ MpgxResult createImageData(
 
 	stbi_set_flip_vertically_on_load(true);
 
-	int width, height, channels;
+	int width, height, count;
 
 	stbi_uc* pixels = stbi_load_from_memory(
 		data,
 		(int)size,
 		&width,
 		&height,
-		&channels,
+		&count,
 		channelCount);
 
-	if (!pixels || channels != channelCount)
+	if (!pixels)
 	{
 		destroyImageData(imageDataInstance);
 		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle stbi error
@@ -2389,16 +2375,16 @@ MpgxResult createImageDataFromFile(
 
 	stbi_set_flip_vertically_on_load(true);
 
-	int width, height, channels;
+	int width, height, count;
 
 	stbi_uc* pixels = stbi_load(
 		filePath,
 		&width,
 		&height,
-		&channels,
+		&count,
 		channelCount);
 
-	if (!pixels || channels != channelCount)
+	if (!pixels)
 	{
 		destroyImageData(imageDataInstance);
 		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle stbi error
@@ -2410,6 +2396,16 @@ MpgxResult createImageDataFromFile(
 
 	*imageData = imageDataInstance;
 	return SUCCESS_MPGX_RESULT;
+}
+void destroyImageData(ImageData imageData)
+{
+	assert(graphicsInitialized);
+
+	if (!imageData)
+		return;
+
+	stbi_image_free(imageData->pixels);
+	free(imageData);
 }
 
 const uint8_t* getImageDataPixels(ImageData imageData)
@@ -2443,7 +2439,7 @@ MpgxResult createImage(
 	Image* image)
 {
 	assert(window);
-	assert(type < IMAGE_TYPE_COUNT);
+	assert(type > 0);
 	assert(dimension < IMAGE_DIMENSION_COUNT);
 	assert(format < IMAGE_FORMAT_COUNT);
 	assert(data);
@@ -2567,6 +2563,7 @@ MpgxResult createImage(
 }
 MpgxResult createImageFromFile(
 	Window window,
+	ImageType type,
 	ImageFormat format,
 	const char* filePath,
 	bool generateMipmap,
@@ -2574,33 +2571,47 @@ MpgxResult createImageFromFile(
 	Image* image)
 {
 	assert(window);
+	assert(type > 0);
 	assert(format < IMAGE_FORMAT_COUNT);
 	assert(filePath);
 	assert(image);
-
-	assert(format == R8G8B8A8_UNORM_IMAGE_FORMAT ||
-		format == R8G8B8A8_SRGB_IMAGE_FORMAT);
 	assert(graphicsInitialized);
+
+	int requestComponentCount;
+
+	switch (format)
+	{
+	default:
+		abort();
+	case R8_UNORM_IMAGE_FORMAT:
+	case R8_SRGB_IMAGE_FORMAT:
+		requestComponentCount = 1;
+		break;
+	case R8G8B8A8_UNORM_IMAGE_FORMAT:
+	case R8G8B8A8_SRGB_IMAGE_FORMAT:
+		requestComponentCount = 4;
+		break;
+	}
 
 	stbi_set_flip_vertically_on_load(true);
 
-	int width, height, components;
+	int width, height, componentCount;
 
 	stbi_uc* pixels = stbi_load(
 		filePath,
 		&width,
 		&height,
-		&components,
-		4);
+		&componentCount,
+		requestComponentCount);
 
-	if (!pixels || components != 4)
+	if (!pixels)
 		return FAILED_TO_READ_FILE_MPGX_RESULT;
 
 	Image imageInstance;
 
 	MpgxResult mpgxResult = createImage(
 		window,
-		GENERAL_IMAGE_TYPE,
+		type,
 		IMAGE_2D,
 		format,
 		(const void**)&pixels,
@@ -2619,6 +2630,7 @@ MpgxResult createImageFromFile(
 }
 MpgxResult createImageFromData(
 	Window window,
+	ImageType type,
 	ImageFormat format,
 	const void* data,
 	size_t size,
@@ -2627,35 +2639,49 @@ MpgxResult createImageFromData(
 	Image* image)
 {
 	assert(window);
+	assert(type > 0);
 	assert(format < IMAGE_FORMAT_COUNT);
 	assert(data);
 	assert(size > 0);
 	assert(image);
-
-	assert(format == R8G8B8A8_UNORM_IMAGE_FORMAT ||
-		format == R8G8B8A8_SRGB_IMAGE_FORMAT);
 	assert(graphicsInitialized);
+
+	int requestComponentCount;
+
+	switch (format)
+	{
+	default:
+		abort();
+	case R8_UNORM_IMAGE_FORMAT:
+	case R8_SRGB_IMAGE_FORMAT:
+		requestComponentCount = 1;
+		break;
+	case R8G8B8A8_UNORM_IMAGE_FORMAT:
+	case R8G8B8A8_SRGB_IMAGE_FORMAT:
+		requestComponentCount = 4;
+		break;
+	}
 
 	stbi_set_flip_vertically_on_load(true);
 
-	int width, height, components;
+	int width, height, componentCount;
 
 	stbi_uc* pixels = stbi_load_from_memory(
 		data,
 		(int)size,
 		&width,
 		&height,
-		&components,
-		4);
+		&componentCount,
+		requestComponentCount);
 
-	if (!pixels || components != 4)
+	if (!pixels)
 		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle stbi error
 
 	Image imageInstance;
 
 	MpgxResult mpgxResult = createImage(
 		window,
-		GENERAL_IMAGE_TYPE,
+		type,
 		IMAGE_2D,
 		format,
 		(const void**)&pixels,
@@ -3497,7 +3523,8 @@ MpgxResult createFramebuffer(
 	}
 	if (depthStencilAttachment)
 	{
-		assert(depthStencilAttachment->base.type == ATTACHMENT_IMAGE_TYPE);
+		assert(depthStencilAttachment->base.type &
+			DEPTH_STENCIL_ATTACHMENT_IMAGE_TYPE);
 		assert(depthStencilAttachment->base.size.x == size.x &&
 			depthStencilAttachment->base.size.y == size.y);
 		assert(depthStencilAttachment->base.window == window);
@@ -3506,7 +3533,8 @@ MpgxResult createFramebuffer(
 		{
 			Image image = colorAttachments[i];
 
-			assert(image->base.type == ATTACHMENT_IMAGE_TYPE);
+			assert(image->base.type &
+				COLOR_ATTACHMENT_IMAGE_TYPE);
 			assert(image->base.size.x  == size.x &&
 				image->base.size.y == size.y);
 			assert(image->base.window == window);
@@ -4622,12 +4650,12 @@ MpgxResult createGraphicsMesh(
 	if (vertexBuffer)
 	{
 		assert(vertexBuffer->base.window == window);
-		assert(vertexBuffer->base.type == VERTEX_BUFFER_TYPE);
+		assert(vertexBuffer->base.type & VERTEX_BUFFER_TYPE);
 	}
 	if (indexBuffer)
 	{
 		assert(indexBuffer->base.window == window);
-		assert(indexBuffer->base.type == INDEX_BUFFER_TYPE);
+		assert(indexBuffer->base.type & INDEX_BUFFER_TYPE);
 
 		if (indexType == UINT16_INDEX_TYPE)
 		{
@@ -4940,7 +4968,7 @@ void setGraphicsMeshVertexBuffer(
 	if (vertexBuffer)
 	{
 		assert(graphicsMesh->base.window == vertexBuffer->base.window);
-		assert(vertexBuffer->base.type == VERTEX_BUFFER_TYPE);
+		assert(vertexBuffer->base.type & VERTEX_BUFFER_TYPE);
 	}
 #endif
 
@@ -4970,7 +4998,7 @@ void setGraphicsMeshIndexBuffer(
 	if (indexBuffer)
 	{
 		assert(graphicsMesh->base.window == indexBuffer->base.window);
-		assert(indexBuffer->base.type == INDEX_BUFFER_TYPE);
+		assert(indexBuffer->base.type & INDEX_BUFFER_TYPE);
 
 		if (indexType == UINT16_INDEX_TYPE)
 		{
@@ -5695,8 +5723,8 @@ MpgxResult createRayTracingMesh(
 	assert(vertexBuffer);
 	assert(indexBuffer);
 	assert(rayTracingMesh);
-	assert(vertexBuffer->base.type == VERTEX_BUFFER_TYPE);
-	assert(indexBuffer->base.type == INDEX_BUFFER_TYPE);
+	assert(vertexBuffer->base.type & VERTEX_BUFFER_TYPE);
+	assert(indexBuffer->base.type & INDEX_BUFFER_TYPE);
 	assert(vertexBuffer->base.window == window);
 	assert(indexBuffer->base.window == window);
 	assert(!vertexBuffer->base.isMapped);

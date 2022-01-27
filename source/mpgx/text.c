@@ -1232,7 +1232,7 @@ MpgxResult createText32(
 
 	MpgxResult mpgxResult = createImage(
 		window,
-		GENERAL_IMAGE_TYPE,
+		SAMPLED_IMAGE_TYPE,
 		IMAGE_2D,
 		R8_UNORM_IMAGE_FORMAT,
 		(const void**)&pixels,
@@ -1284,7 +1284,6 @@ MpgxResult createText32(
 		isConstant ?
 			GPU_ONLY_BUFFER_USAGE :
 			CPU_TO_GPU_BUFFER_USAGE,
-		NO_BUFFER_FLAG,
 		vertices,
 		vertexCount * sizeof(float),
 		&vertexBuffer);
@@ -1324,7 +1323,6 @@ MpgxResult createText32(
 		isConstant ?
 			GPU_ONLY_BUFFER_USAGE :
 			CPU_TO_GPU_BUFFER_USAGE,
-		NO_BUFFER_FLAG,
 		indices,
 		indexCount * sizeof(uint32_t),
 		&indexBuffer);
@@ -1963,7 +1961,7 @@ MpgxResult bakeText(
 		{
 			MpgxResult mpgxResult = createImage(
 				window,
-				GENERAL_IMAGE_TYPE,
+				SAMPLED_IMAGE_TYPE,
 				IMAGE_2D,
 				R8_UNORM_IMAGE_FORMAT,
 				(const void**)&pixels,
@@ -2047,7 +2045,6 @@ MpgxResult bakeText(
 				window,
 				VERTEX_BUFFER_TYPE,
 				CPU_TO_GPU_BUFFER_USAGE,
-				NO_BUFFER_FLAG,
 				vertices,
 				vertexCount * sizeof(float),
 				&vertexBuffer);
@@ -2081,7 +2078,6 @@ MpgxResult bakeText(
 				window,
 				INDEX_BUFFER_TYPE,
 				CPU_TO_GPU_BUFFER_USAGE,
-				NO_BUFFER_FLAG,
 				indices,
 				indexCount * sizeof(uint32_t),
 				&indexBuffer);
@@ -2226,7 +2222,7 @@ MpgxResult bakeText(
 
 		MpgxResult mpgxResult = createImage(
 			window,
-			GENERAL_IMAGE_TYPE,
+			SAMPLED_IMAGE_TYPE,
 			IMAGE_2D,
 			R8_UNORM_IMAGE_FORMAT,
 			(const void**)&pixels,
@@ -2272,7 +2268,6 @@ MpgxResult bakeText(
 			window,
 			VERTEX_BUFFER_TYPE,
 			CPU_TO_GPU_BUFFER_USAGE,
-			NO_BUFFER_FLAG,
 			vertices,
 			vertexCount * sizeof(float),
 			&vertexBuffer);
@@ -2306,7 +2301,6 @@ MpgxResult bakeText(
 			window,
 			INDEX_BUFFER_TYPE,
 			CPU_TO_GPU_BUFFER_USAGE,
-			NO_BUFFER_FLAG,
 			indices,
 			indexCount * sizeof(uint32_t),
 			&indexBuffer);

@@ -83,16 +83,14 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	assert(callbackData);
 
 #if __APPLE__
-	/*if (callbackData->messageIdNumber == 0x6bbb14 ||
-		callbackData->messageIdNumber == 0xf467460 ||
+	if (callbackData->messageIdNumber == 0x6bbb14 ||
 		strcmp(callbackData->pMessage, "Unrecognized "
 		"CreateInstance->pCreateInfo->pApplicationInfo->apiVersion "
 		"number (0x00402000). Assuming MoltenVK 1.1 version.") == 0)
 	{
 		// TODO: fix MoltenVK Vulkan 1.2 shader error logs
 		return VK_FALSE;
-	}*/
-	// TODO:
+	}
 #endif
 
 	const char* severity;
@@ -745,6 +743,20 @@ inline static MpgxResult createVkDevice(
 		queueCreateInfos[queueCreateInfoCount++] = queueCreateInfo;
 	}
 
+	VkPhysicalDeviceFeatures2 features;
+	memset(&features, 0, sizeof(VkPhysicalDeviceFeatures2));
+	features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+
+#if __APPLE__
+	VkPhysicalDevicePortabilitySubsetFeaturesKHR portabilitySubsetFeatures;
+	memset(&portabilitySubsetFeatures, 0,
+		sizeof(VkPhysicalDevicePortabilitySubsetFeaturesKHR));
+	features.pNext = &portabilitySubsetFeatures;
+	portabilitySubsetFeatures.sType =
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR;
+	portabilitySubsetFeatures.mutableComparisonSamplers = VK_TRUE;
+#endif
+
 	VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures;
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures;
@@ -758,6 +770,11 @@ inline static MpgxResult createVkDevice(
 		memset(&rayTracingPipelineFeatures, 0,
 			sizeof(VkPhysicalDeviceRayTracingPipelineFeaturesKHR));
 
+#if __APPLE__
+		portabilitySubsetFeatures.pNext = &bufferDeviceAddressFeatures;
+#else
+		features.pNext = &bufferDeviceAddressFeatures;
+#endif
 		bufferDeviceAddressFeatures.sType =
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
 		bufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
@@ -773,7 +790,7 @@ inline static MpgxResult createVkDevice(
 
 	VkDeviceCreateInfo deviceCreateInfo = {
 		VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-		useRayTracing ? &bufferDeviceAddressFeatures : NULL,
+		&features,
 		0,
 		queueCreateInfoCount,
 		queueCreateInfos,

@@ -16,6 +16,11 @@
 #include "mpgx/defines.h"
 
 #if MPGX_SUPPORT_VULKAN
+
+#if __APPLE__
+#define VK_ENABLE_BETA_EXTENSIONS
+#endif
+
 #include "vulkan/vulkan.h"
 #include "vk_mem_alloc.h"
 

@@ -548,6 +548,7 @@ MpgxResult createWindow(
 	void* updateArgument,
 	bool useVerticalSync,
 	bool useStencilBuffer,
+	bool useBeginClear,
 	bool useRayTracing,
 	bool isVisible,
 	Window* window);
@@ -558,6 +559,7 @@ MpgxResult createAnyWindow(
 	void* updateArgument,
 	bool useVerticalSync,
 	bool useStencilBuffer,
+	bool useBeginClear,
 	bool useRayTracing,
 	bool isVisible,
 	Window* window);

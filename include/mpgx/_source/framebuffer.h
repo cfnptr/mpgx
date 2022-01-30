@@ -251,6 +251,7 @@ inline static MpgxResult createVkGeneralRenderPass(
 inline static MpgxResult createVkShadowRenderPass(
 	VkDevice device,
 	VkFormat format,
+	bool useBeginClear,
 	VkRenderPass* renderPass)
 {
 	assert(device);
@@ -260,7 +261,9 @@ inline static MpgxResult createVkShadowRenderPass(
 		0,
 		format,
 		VK_SAMPLE_COUNT_1_BIT,
-		VK_ATTACHMENT_LOAD_OP_CLEAR,
+		useBeginClear ?
+			VK_ATTACHMENT_LOAD_OP_CLEAR :
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 		VK_ATTACHMENT_STORE_OP_STORE,
 		VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 		VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -423,6 +426,7 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	VkFramebuffer handle,
 	Window window,
 	Vec2I size,
+	bool useBeginClear,
 	Framebuffer* framebuffer)
 {
 	assert(device);
@@ -445,7 +449,7 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	framebufferInstance->vk.depthStencilAttachment = NULL;
 	framebufferInstance->vk.size = size;
 	framebufferInstance->vk.isDefault = true;
-	framebufferInstance->vk.useBeginClear = true;
+	framebufferInstance->vk.useBeginClear = useBeginClear;
 	framebufferInstance->vk.renderPass = renderPass;
 	framebufferInstance->vk.handle = handle;
 
@@ -802,8 +806,6 @@ inline static void beginVkFramebufferRender(
 	assert(framebuffer);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(clearValues);
-	assert(clearValueCount > 0);
 
 	VkRenderPassBeginInfo renderPassBeginInfo = {
 		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -960,6 +962,7 @@ inline static void destroyGlFramebuffer(
 inline static MpgxResult createGlDefaultFramebuffer(
 	Window window,
 	Vec2I size,
+	bool useBeginClear,
 	Framebuffer* framebuffer)
 {
 	assert(window);
@@ -979,7 +982,7 @@ inline static MpgxResult createGlDefaultFramebuffer(
 	framebufferInstance->gl.depthStencilAttachment = NULL;
 	framebufferInstance->gl.size = size;
 	framebufferInstance->gl.isDefault = true;
-	framebufferInstance->gl.useBeginClear = true;
+	framebufferInstance->gl.useBeginClear = useBeginClear;
 
 	GraphicsPipeline* graphicsPipelines = malloc(
 		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));
@@ -1294,8 +1297,6 @@ inline static void beginGlFramebufferRender(
 	assert(framebuffer != GL_ZERO);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(clearValues);
-	assert(clearValueCount > 0);
 
 	glBindFramebuffer(
 		GL_FRAMEBUFFER,

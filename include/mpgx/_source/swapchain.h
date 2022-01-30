@@ -200,10 +200,10 @@ inline static VkExtent2D getBestVkSurfaceExtent(
 	if (surfaceCapabilities->currentExtent.width == UINT32_MAX)
 	{
 		VkExtent2D surfaceExtent = {
-			clamp(framebufferSize.x,
+			clamp((uint32_t)framebufferSize.x,
 				surfaceCapabilities->minImageExtent.width,
 				surfaceCapabilities->maxImageExtent.width),
-			clamp(framebufferSize.y,
+			clamp((uint32_t)framebufferSize.y,
 				surfaceCapabilities->minImageExtent.height,
 				surfaceCapabilities->maxImageExtent.height),
 		};
@@ -526,6 +526,7 @@ inline static MpgxResult createVkRenderPass(
 	VkDevice device,
 	VkFormat colorFormat,
 	VkFormat depthFormat,
+	bool useBeginClear,
 	VkRenderPass* renderPass)
 {
 	assert(device);
@@ -536,7 +537,9 @@ inline static MpgxResult createVkRenderPass(
 			0,
 			colorFormat,
 			VK_SAMPLE_COUNT_1_BIT,
-			VK_ATTACHMENT_LOAD_OP_CLEAR,
+			useBeginClear ?
+				VK_ATTACHMENT_LOAD_OP_CLEAR :
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			VK_ATTACHMENT_STORE_OP_STORE,
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -547,7 +550,9 @@ inline static MpgxResult createVkRenderPass(
 			0,
 			depthFormat,
 			VK_SAMPLE_COUNT_1_BIT,
-			VK_ATTACHMENT_LOAD_OP_CLEAR,
+			useBeginClear ?
+				VK_ATTACHMENT_LOAD_OP_CLEAR :
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -1061,6 +1066,7 @@ inline static MpgxResult createVkSwapchain(
 	VkCommandPool presentCommandPool,
 	bool useVerticalSync,
 	bool useStencilBuffer,
+	bool useBeginClear,
 	Vec2I framebufferSize,
 	VkSwapchain* vkSwapchain)
 {
@@ -1242,6 +1248,7 @@ inline static MpgxResult createVkSwapchain(
 		device,
 		surfaceFormat.format,
 		depthFormat,
+		useBeginClear,
 		&renderPass);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -1304,6 +1311,7 @@ inline static MpgxResult resizeVkSwapchain(
 	VkSwapchain swapchain,
 	bool useVerticalSync,
 	bool useStencilBuffer,
+	bool useBeginClear,
 	Vec2I framebufferSize)
 {
 	assert(surface);
@@ -1440,6 +1448,7 @@ inline static MpgxResult resizeVkSwapchain(
 		device,
 		surfaceFormat.format,
 		depthFormat,
+		useBeginClear,
 		&renderPass);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)

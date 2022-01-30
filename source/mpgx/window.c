@@ -47,6 +47,7 @@ struct Window_T
 	GraphicsAPI api;
 	bool useVerticalSync;
 	bool useStencilBuffer;
+	bool useBeginClear;
 	bool useRayTracing;
 	uint8_t _alignment[4];
 	OnWindowUpdate onUpdate;
@@ -344,6 +345,7 @@ MpgxResult createWindow(
 	void* updateArgument,
 	bool useVerticalSync,
 	bool useStencilBuffer,
+	bool useBeginClear,
 	bool useRayTracing,
 	bool isVisible,
 	Window* window)
@@ -495,6 +497,7 @@ MpgxResult createWindow(
 	windowInstance->api = api;
 	windowInstance->useVerticalSync = useVerticalSync;
 	windowInstance->useStencilBuffer = useStencilBuffer;
+	windowInstance->useBeginClear = useBeginClear;
 	windowInstance->useRayTracing = useRayTracing;
 	windowInstance->onUpdate = onUpdate;
 	windowInstance->updateArgument = updateArgument;
@@ -633,6 +636,7 @@ MpgxResult createWindow(
 			handle,
 			useVerticalSync,
 			useStencilBuffer,
+			useBeginClear,
 			useRayTracing,
 			framebufferSize,
 			&vkWindow);
@@ -678,6 +682,7 @@ MpgxResult createWindow(
 			firstBuffer.framebuffer,
 			windowInstance,
 			framebufferSize,
+			useBeginClear,
 			&framebuffer);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -710,6 +715,7 @@ MpgxResult createWindow(
 		MpgxResult mpgxResult = createGlDefaultFramebuffer(
 			windowInstance,
 			framebufferSize,
+			useBeginClear,
 			&framebuffer);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -833,6 +839,7 @@ MpgxResult createAnyWindow(
 	void* updateArgument,
 	bool useVerticalSync,
 	bool useStencilBuffer,
+	bool useBeginClear,
 	bool useRayTracing,
 	bool isVisible,
 	Window* window)
@@ -854,6 +861,7 @@ MpgxResult createAnyWindow(
 		updateArgument,
 		useVerticalSync,
 		useStencilBuffer,
+		useBeginClear,
 		useRayTracing,
 		isVisible,
 		window);
@@ -871,6 +879,7 @@ MpgxResult createAnyWindow(
 		updateArgument,
 		useVerticalSync,
 		useStencilBuffer,
+		useBeginClear,
 		useRayTracing,
 		isVisible,
 		window);
@@ -886,6 +895,7 @@ MpgxResult createAnyWindow(
 		updateArgument,
 		useVerticalSync,
 		useStencilBuffer,
+		useBeginClear,
 		useRayTracing,
 		isVisible,
 		window);
@@ -1554,6 +1564,7 @@ MpgxResult beginWindowRecord(Window window)
 				swapchain,
 				window->useVerticalSync,
 				window->useStencilBuffer,
+				window->framebuffer->base.useBeginClear,
 				newSize);
 
 			if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -1627,6 +1638,7 @@ MpgxResult beginWindowRecord(Window window)
 					swapchain,
 					window->useVerticalSync,
 					window->useStencilBuffer,
+					window->framebuffer->base.useBeginClear,
 					newSize);
 
 				if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -1895,6 +1907,7 @@ void endWindowRecord(Window window)
 				swapchain,
 				window->useVerticalSync,
 				window->useStencilBuffer,
+				window->framebuffer->base.useBeginClear,
 				newSize);
 
 			if (!result)
@@ -3681,6 +3694,7 @@ MpgxResult createShadowFramebuffer(
 		mpgxResult = createVkShadowRenderPass(
 			device,
 			depthAttachment->vk.vkFormat,
+			useBeginClear,
 			&renderPass);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -3999,7 +4013,7 @@ void beginFramebufferRender(
 	assert((clearValues && clearValueCount > 0 &&
 		framebuffer->base.useBeginClear) ||
 		(!clearValues && clearValueCount == 0 &&
-		framebuffer->base.useBeginClear));
+		!framebuffer->base.useBeginClear));
 	assert(framebuffer->base.window->isRecording);
 	assert(!framebuffer->base.window->renderFramebuffer);
 	assert(graphicsInitialized);

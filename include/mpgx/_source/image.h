@@ -579,9 +579,9 @@ inline static MpgxResult createVkImage(
 			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 			NULL,
 			VK_ACCESS_NONE_KHR,
-			VK_ACCESS_SHADER_READ_BIT,
+			VK_ACCESS_NONE_KHR,
 			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // TODO: possibly detect for depth/stencil type
 			VK_QUEUE_FAMILY_IGNORED,
 			VK_QUEUE_FAMILY_IGNORED,
 			handle,
@@ -597,7 +597,7 @@ inline static MpgxResult createVkImage(
 		vkCmdPipelineBarrier(
 			transferCommandBuffer,
 			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 			0,
 			0,
 			NULL,

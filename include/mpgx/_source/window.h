@@ -719,7 +719,7 @@ inline static MpgxResult createVkDevice(
 	};
 
 	VkDeviceQueueCreateInfo queueCreateInfos[4];
-	size_t queueCreateInfoCount = 0;
+	uint32_t queueCreateInfoCount = 0;
 
 	queueCreateInfo.queueFamilyIndex = graphicsQueueFamilyIndex;
 	queueCreateInfos[queueCreateInfoCount++] = queueCreateInfo;
@@ -982,6 +982,7 @@ inline static MpgxResult createVkWindow(
 	GLFWwindow* handle,
 	bool useVerticalSync,
 	bool useStencilBuffer,
+	bool useBeginClear,
 	bool useRayTracing,
 	Vec2I framebufferSize,
 	VkWindow* vkWindow)
@@ -1458,6 +1459,7 @@ inline static MpgxResult createVkWindow(
 		presentCommandPool,
 		useVerticalSync,
 		useStencilBuffer,
+		useBeginClear,
 		framebufferSize,
 		&swapchain);
 

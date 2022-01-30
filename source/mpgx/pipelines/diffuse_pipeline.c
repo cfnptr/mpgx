@@ -545,8 +545,6 @@ inline static MpgxResult createVkPipeline(
 
 	handle->vk.descriptorSets = descriptorSets;
 
-	GraphicsPipeline graphicsPipelineInstance;
-
 	mpgxResult = createGraphicsPipeline(
 		framebuffer,
 		DIFFUSE_PIPELINE_NAME,
@@ -559,7 +557,7 @@ inline static MpgxResult createVkPipeline(
 		&createData,
 		shaders,
 		shaderCount,
-		&graphicsPipelineInstance);
+		graphicsPipeline);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
@@ -567,7 +565,6 @@ inline static MpgxResult createVkPipeline(
 		return mpgxResult;
 	}
 
-	*graphicsPipeline = graphicsPipelineInstance;
 	return SUCCESS_MPGX_RESULT;
 }
 #endif

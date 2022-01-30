@@ -123,7 +123,7 @@ GraphicsMesh getSimpleShadowRenderMesh(
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
-			simpleShadowRender))),
+		simpleShadowRender))),
 		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 	Handle handle = getGraphicsRenderHandle(
 		simpleShadowRender);
@@ -138,7 +138,7 @@ void setSimpleShadowRenderMesh(
 	assert(strcmp(getGraphicsPipelineName(
 		getGraphicsRendererPipeline(
 		getGraphicsRenderRenderer(
-			simpleShadowRender))),
+		simpleShadowRender))),
 		SIMPLE_SHADOW_PIPELINE_NAME) == 0);
 	Handle handle = getGraphicsRenderHandle(
 		simpleShadowRender);

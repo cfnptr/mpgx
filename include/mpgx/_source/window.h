@@ -83,7 +83,7 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	assert(callbackData);
 
 #if __APPLE__
-	if (callbackData->messageIdNumber == 0x6bbb14 ||
+	/*if (callbackData->messageIdNumber == 0x6bbb14 ||
 		callbackData->messageIdNumber == 0xf467460 ||
 		strcmp(callbackData->pMessage, "Unrecognized "
 		"CreateInstance->pCreateInfo->pApplicationInfo->apiVersion "
@@ -91,7 +91,8 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	{
 		// TODO: fix MoltenVK Vulkan 1.2 shader error logs
 		return VK_FALSE;
-	}
+	}*/
+	// TODO:
 #endif
 
 	const char* severity;

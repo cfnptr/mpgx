@@ -1,4 +1,4 @@
-// Copyright 2020-2021 Nikita Fediuchin. All rights reserved.
+// Copyright 2020-2022 Nikita Fediuchin. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,8 +33,7 @@ float calcShadow(vec3 shadowCoords, sampler2DShadow shadowMap)
         }
     }
     
-    const float multiplier = 1 / 9.0;
-    return shadow * multiplier;
+    return shadow * (1.0 / 9.0);
 }
 
 #endif

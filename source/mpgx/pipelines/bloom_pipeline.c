@@ -109,7 +109,7 @@ inline static MpgxResult createVkDescriptorPoolInstance(
 	VkDescriptorPoolSize descriptorPoolSizes[1] = {
 		{
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			bufferCount, // TODO: we can make only one descriptor set here?
+			bufferCount,
 		},
 	};
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
@@ -411,13 +411,6 @@ inline static MpgxResult createVkPipeline(
 
 	uint32_t bufferCount = vkWindow->swapchain->bufferCount;
 
-	VkDescriptorPoolSize descriptorPoolSizes[1] = {
-		{
-			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			bufferCount,
-		},
-	};
-
 	VkDescriptorPool descriptorPool;
 
 	MpgxResult mpgxResult = createVkDescriptorPoolInstance(
@@ -453,8 +446,6 @@ inline static MpgxResult createVkPipeline(
 	handle->vk.descriptorSets = descriptorSets;
 	handle->vk.bufferCount = bufferCount;
 
-	GraphicsPipeline graphicsPipelineInstance;
-
 	mpgxResult = createGraphicsPipeline(
 		framebuffer,
 		BLOOM_PIPELINE_NAME,
@@ -467,7 +458,7 @@ inline static MpgxResult createVkPipeline(
 		&createData,
 		shaders,
 		shaderCount,
-		&graphicsPipelineInstance);
+		graphicsPipeline);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
@@ -475,7 +466,6 @@ inline static MpgxResult createVkPipeline(
 		return mpgxResult;
 	}
 
-	*graphicsPipeline = graphicsPipelineInstance;
 	return SUCCESS_MPGX_RESULT;
 }
 #endif

@@ -3648,7 +3648,7 @@ MpgxResult createFramebuffer(
 MpgxResult createShadowFramebuffer(
 	Window window,
 	Vec2I size,
-	bool useClear,
+	bool useBeginClear,
 	Image depthAttachment,
 	size_t pipelineCapacity,
 	Framebuffer* framebuffer)
@@ -3691,7 +3691,7 @@ MpgxResult createShadowFramebuffer(
 			renderPass,
 			window,
 			size,
-			useClear,
+			useBeginClear,
 			NULL,
 			0,
 			depthAttachment,
@@ -3716,7 +3716,7 @@ MpgxResult createShadowFramebuffer(
 		mpgxResult = createGlFramebuffer(
 			window,
 			size,
-			useClear,
+			useBeginClear,
 			NULL,
 			0,
 			depthAttachment,

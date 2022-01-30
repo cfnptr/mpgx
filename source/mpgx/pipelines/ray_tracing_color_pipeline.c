@@ -488,8 +488,6 @@ inline static MpgxResult createVkPipeline(
 
 	handle->vk.descriptorSet = descriptorSet;
 
-	RayTracingPipeline rayTracingPipelineInstance;
-
 	mpgxResult = createRayTracingPipeline(
 		window,
 		RAY_TRACING_COLOR_PIPELINE_NAME,
@@ -503,7 +501,7 @@ inline static MpgxResult createVkPipeline(
 		missShaderCount,
 		closestHitShaders,
 		closestHitShaderCount,
-		&rayTracingPipelineInstance);
+		rayTracingPipeline);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
@@ -511,7 +509,6 @@ inline static MpgxResult createVkPipeline(
 		return mpgxResult;
 	}
 
-	*rayTracingPipeline = rayTracingPipelineInstance;
 	return SUCCESS_MPGX_RESULT;
 }
 #endif

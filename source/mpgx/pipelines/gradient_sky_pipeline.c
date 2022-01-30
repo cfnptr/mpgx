@@ -582,8 +582,6 @@ inline static MpgxResult createVkPipeline(
 	handle->vk.descriptorSets = descriptorSets;
 	handle->vk.bufferCount = bufferCount;
 
-	GraphicsPipeline graphicsPipelineInstance;
-
 	mpgxResult = createGraphicsPipeline(
 		framebuffer,
 		GRADIENT_SKY_PIPELINE_NAME,
@@ -596,7 +594,7 @@ inline static MpgxResult createVkPipeline(
 		&createData,
 		shaders,
 		shaderCount,
-		&graphicsPipelineInstance);
+		graphicsPipeline);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
@@ -604,7 +602,6 @@ inline static MpgxResult createVkPipeline(
 		return mpgxResult;
 	}
 
-	*graphicsPipeline = graphicsPipelineInstance;
 	return SUCCESS_MPGX_RESULT;
 }
 #endif

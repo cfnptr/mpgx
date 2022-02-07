@@ -140,6 +140,5 @@ static const uint16_t cubeTriangleIndices[] = {
 static const uint16_t cubeLineIndices[] = {
 	0, 1, 1, 2, 2, 3, 3, 0,
 	4, 5, 5, 6, 6, 7, 7, 4,
-	3, 4, 7, 0,
- 	1, 6, 5, 2,
+	3, 4, 7, 0, 1, 6, 5, 2,
 };

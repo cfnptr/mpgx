@@ -746,6 +746,7 @@ inline static MpgxResult createVkDevice(
 	VkPhysicalDeviceFeatures2 features;
 	memset(&features, 0, sizeof(VkPhysicalDeviceFeatures2));
 	features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	features.features.fillModeNonSolid = VK_TRUE;
 
 #if __APPLE__
 	VkPhysicalDevicePortabilitySubsetFeaturesKHR portabilitySubsetFeatures;

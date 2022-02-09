@@ -45,7 +45,7 @@ struct ImageData_T
 struct Window_T
 {
 	GraphicsAPI api;
-	bool useVerticalSync;
+	bool useVsync;
 	bool useStencilBuffer;
 	bool useBeginClear;
 	bool useRayTracing;
@@ -343,7 +343,7 @@ MpgxResult createWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool useVerticalSync,
+	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
 	bool useRayTracing,
@@ -495,7 +495,7 @@ MpgxResult createWindow(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	windowInstance->api = api;
-	windowInstance->useVerticalSync = useVerticalSync;
+	windowInstance->useVsync = useVsync;
 	windowInstance->useStencilBuffer = useStencilBuffer;
 	windowInstance->useBeginClear = useBeginClear;
 	windowInstance->useRayTracing = useRayTracing;
@@ -543,7 +543,7 @@ MpgxResult createWindow(
 		api == OPENGL_ES_GRAPHICS_API)
 	{
 		// TODO: check for the GLX_EXT_swap_control_tear and set -1
-		glfwSwapInterval(useVerticalSync ? 1 : 0);
+		glfwSwapInterval(useVsync ? 1 : 0);
 	}
 
 	GLFWcursor* ibeamCursor = glfwCreateStandardCursor(
@@ -634,7 +634,7 @@ MpgxResult createWindow(
 		MpgxResult mpgxResult = createVkWindow(
 			vkInstance,
 			handle,
-			useVerticalSync,
+			useVsync,
 			useStencilBuffer,
 			useBeginClear,
 			useRayTracing,
@@ -837,7 +837,7 @@ MpgxResult createAnyWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool useVerticalSync,
+	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
 	bool useRayTracing,
@@ -859,7 +859,7 @@ MpgxResult createAnyWindow(
 		title,
 		onUpdate,
 		updateArgument,
-		useVerticalSync,
+		useVsync,
 		useStencilBuffer,
 		useBeginClear,
 		useRayTracing,
@@ -877,7 +877,7 @@ MpgxResult createAnyWindow(
 		title,
 		onUpdate,
 		updateArgument,
-		useVerticalSync,
+		useVsync,
 		useStencilBuffer,
 		useBeginClear,
 		useRayTracing,
@@ -893,7 +893,7 @@ MpgxResult createAnyWindow(
 		title,
 		onUpdate,
 		updateArgument,
-		useVerticalSync,
+		useVsync,
 		useStencilBuffer,
 		useBeginClear,
 		useRayTracing,
@@ -987,11 +987,11 @@ GraphicsAPI getWindowGraphicsAPI(Window window)
 	assert(graphicsInitialized);
 	return window->api;
 }
-bool isWindowUseVerticalSync(Window window)
+bool isWindowUseVsync(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
-	return window->useVerticalSync;
+	return window->useVsync;
 }
 bool isWindowUseStencilBuffer(Window window)
 {
@@ -1562,7 +1562,7 @@ MpgxResult beginWindowRecord(Window window)
 				vkWindow->graphicsCommandPool,
 				vkWindow->presentCommandPool,
 				swapchain,
-				window->useVerticalSync,
+				window->useVsync,
 				window->useStencilBuffer,
 				window->framebuffer->base.useBeginClear,
 				newSize);
@@ -1636,7 +1636,7 @@ MpgxResult beginWindowRecord(Window window)
 					vkWindow->graphicsCommandPool,
 					vkWindow->presentCommandPool,
 					swapchain,
-					window->useVerticalSync,
+					window->useVsync,
 					window->useStencilBuffer,
 					window->framebuffer->base.useBeginClear,
 					newSize);
@@ -1905,7 +1905,7 @@ void endWindowRecord(Window window)
 				vkWindow->graphicsCommandPool,
 				vkWindow->presentCommandPool,
 				swapchain,
-				window->useVerticalSync,
+				window->useVsync,
 				window->useStencilBuffer,
 				window->framebuffer->base.useBeginClear,
 				newSize);

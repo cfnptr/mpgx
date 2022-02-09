@@ -110,7 +110,7 @@ inline static bool getBestVkSurfaceFormat(
 inline static bool getBestVkPresentMode(
 	VkPhysicalDevice physicalDevice,
 	VkSurfaceKHR surface,
-	bool useVerticalSync,
+	bool useVsync,
 	VkPresentModeKHR* presentMode)
 {
 	assert(physicalDevice);
@@ -148,7 +148,7 @@ inline static bool getBestVkPresentMode(
 
 	VkPresentModeKHR bestPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-	if (!useVerticalSync)
+	if (!useVsync)
 	{
 		for (uint32_t i = 0; i < modeCount; i++)
 		{
@@ -1064,7 +1064,7 @@ inline static MpgxResult createVkSwapchain(
 	VmaAllocator allocator,
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
-	bool useVerticalSync,
+	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
 	Vec2I framebufferSize,
@@ -1103,7 +1103,7 @@ inline static MpgxResult createVkSwapchain(
 	VkPresentModeKHR presentMode;
 
 	if (!getBestVkPresentMode(physicalDevice,
-		surface, useVerticalSync, &presentMode))
+		surface, useVsync, &presentMode))
 	{
 		destroyVkSwapchain(
 			device,
@@ -1309,7 +1309,7 @@ inline static MpgxResult resizeVkSwapchain(
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
 	VkSwapchain swapchain,
-	bool useVerticalSync,
+	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
 	Vec2I framebufferSize)
@@ -1340,7 +1340,7 @@ inline static MpgxResult resizeVkSwapchain(
 	VkPresentModeKHR presentMode;
 
 	if (!getBestVkPresentMode(physicalDevice,
-		surface, useVerticalSync, &presentMode))
+		surface, useVsync, &presentMode))
 	{
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}

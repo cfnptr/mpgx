@@ -339,6 +339,7 @@ inline static Client createClient()
 		false,
 		false,
 		false,
+		false,
 		&window);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)

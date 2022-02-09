@@ -546,7 +546,7 @@ MpgxResult createWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool useVerticalSync,
+	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
 	bool useRayTracing,
@@ -557,7 +557,7 @@ MpgxResult createAnyWindow(
 	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool useVerticalSync,
+	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
 	bool useRayTracing,
@@ -566,7 +566,7 @@ MpgxResult createAnyWindow(
 void destroyWindow(Window window);
 
 GraphicsAPI getWindowGraphicsAPI(Window window);
-bool isWindowUseVerticalSync(Window window);
+bool isWindowUseVsync(Window window);
 bool isWindowUseStencilBuffer(Window window);
 bool isWindowUseRayTracing(Window window);
 OnWindowUpdate getWindowOnUpdate(Window window);

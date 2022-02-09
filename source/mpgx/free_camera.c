@@ -107,7 +107,7 @@ FreeCamera createDefaultFreeCamera(
 		1.0f,
 		degToRadF(60.0f),
 		0.01f,
-		1000.0f);
+		100.0f);
 }
 
 Framebuffer getFreeCameraFramebuffer(

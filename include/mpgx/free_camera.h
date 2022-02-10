@@ -39,12 +39,6 @@ Framebuffer getFreeCameraFramebuffer(
 Vec3F getFreeCameraViewDirection(
 	FreeCamera freeCamera);
 
-Transform getFreeCameraTransform(
-	FreeCamera freeCamera);
-void setFreeCameraTransform(
-	FreeCamera freeCamera,
-	Transform transform);
-
 Vec3F getFreeCameraPosition(
 	FreeCamera freeCamera);
 void setFreeCameraPosition(

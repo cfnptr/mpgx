@@ -20,8 +20,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-// TODO: make camera movement smooth
-
 struct FreeCamera_T
 {
 	Framebuffer framebuffer;
@@ -63,12 +61,9 @@ FreeCamera createFreeCamera(
 	if (!freeCamera)
 		return NULL;
 
-	Vec2F lasCursorPosition = getWindowCursorPosition(
-		getFramebufferWindow(framebuffer));
-
 	freeCamera->framebuffer = framebuffer;
 	freeCamera->rotation = zeroVec2F;
-	freeCamera->lastCursorPosition = lasCursorPosition;
+	freeCamera->lastCursorPosition = zeroVec2F;
 	freeCamera->moveSpeed = moveSpeed;
 	freeCamera->viewSpeed = viewSpeed;
 	freeCamera->fieldOfView = fieldOfView;
@@ -125,21 +120,6 @@ Vec3F getFreeCameraViewDirection(
 		freeCamera->transform);
 	return normVec3F(dotVecQuat3F(
 		frontVec3F, rotation));
-}
-
-Transform getFreeCameraTransform(
-	FreeCamera freeCamera)
-{
-	assert(freeCamera);
-	return freeCamera->transform;
-}
-void setFreeCameraTransform(
-	FreeCamera freeCamera,
-	Transform transform)
-{
-	assert(freeCamera);
-	assert(transform);
-	freeCamera->transform = transform;
 }
 
 Vec3F getFreeCameraPosition(

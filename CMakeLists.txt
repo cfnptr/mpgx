@@ -22,7 +22,6 @@ if (TARGET mpgx)
 	return()
 endif ()
 
-option(MPGX_BUILD_EXAMPLES "Build MPGX usage examples" ON)
 option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
 option(MPGX_USE_OPENGL "Use legacy OpenGL library" ON)
 
@@ -127,37 +126,3 @@ target_include_directories(mpgx-static PUBLIC
 	${PROJECT_BINARY_DIR}
 	${PROJECT_SOURCE_DIR}/include
 	${PROJECT_SOURCE_DIR}/libraries/stb)
-
-if (MPGX_BUILD_EXAMPLES)
-	add_executable(mpgx-window-example
-		examples/window_example.c)
-	target_link_libraries(mpgx-window-example PRIVATE
-		mpgx-static)
-	target_include_directories(mpgx-window-example PRIVATE
-		${PROJECT_BINARY_DIR}
-		${PROJECT_SOURCE_DIR}/include)
-
-	#add_executable(mpgx-ray-tracing-example
-	#	examples/ray_tracing_example.c)
-	#target_link_libraries(mpgx-ray-tracing-example PRIVATE
-	#	mpgx-static)
-	#target_include_directories(mpgx-ray-tracing-example PRIVATE
-	#	${PROJECT_BINARY_DIR}
-	#	${PROJECT_SOURCE_DIR}/include)
-
-	set(EXAMPLE_RESOURCES
-		shaders/vulkan/diffuse.frag.spv
-		shaders/vulkan/diffuse.vert.spv
-		shaders/opengl/diffuse.frag
-		shaders/opengl/diffuse.vert
-
-		shaders/vulkan/color.rchit.spv
-		shaders/vulkan/color.rgen.spv
-		shaders/vulkan/color.rmiss.spv)
-
-	foreach (FILE ${EXAMPLE_RESOURCES})
-		configure_file(
-			resources/${FILE}
-			resources/${FILE} COPYONLY)
-	endforeach (FILE)
-endif ()

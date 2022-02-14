@@ -58,32 +58,32 @@ set(MPMT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(libraries/mpmt)
 
 set(MPGX_SOURCES
-	source/mpgx/pipelines/bloom_pipeline.c
-	source/mpgx/pipelines/color_pipeline.c
-	source/mpgx/pipelines/diffuse_pipeline.c
-	source/mpgx/pipelines/gaussian_blur_pipeline.c
-	source/mpgx/pipelines/gradient_sky_pipeline.c
-	source/mpgx/pipelines/ray_tracing_color_pipeline.c
-	source/mpgx/pipelines/simple_shadow_pipeline.c
-	source/mpgx/pipelines/sprite_pipeline.c
-	source/mpgx/pipelines/texture_color_pipeline.c
-	source/mpgx/pipelines/texture_sprite_pipeline.c
+	source/pipelines/bloom_pipeline.c
+	source/pipelines/color_pipeline.c
+	source/pipelines/diffuse_pipeline.c
+	source/pipelines/gaussian_blur_pipeline.c
+	source/pipelines/gradient_sky_pipeline.c
+	source/pipelines/ray_tracing_color_pipeline.c
+	source/pipelines/simple_shadow_pipeline.c
+	source/pipelines/sprite_pipeline.c
+	source/pipelines/texture_color_pipeline.c
+	source/pipelines/texture_sprite_pipeline.c
 
-	source/mpgx/renderers/color_renderer.c
-	source/mpgx/renderers/diffuse_renderer.c
-	source/mpgx/renderers/simple_shadow_renderer.c
-	source/mpgx/renderers/sprite_renderer.c
-	source/mpgx/renderers/texture_color_renderer.c
-	source/mpgx/renderers/texture_sprite_renderer.c
-	source/mpgx/renderers/text_renderer.c
+	source/renderers/color_renderer.c
+	source/renderers/diffuse_renderer.c
+	source/renderers/simple_shadow_renderer.c
+	source/renderers/sprite_renderer.c
+	source/renderers/texture_color_renderer.c
+	source/renderers/texture_sprite_renderer.c
+	source/renderers/text_renderer.c
 
-	source/mpgx/free_camera.c
-	source/mpgx/graphics_renderer.c
-	source/mpgx/interface.c
-	source/mpgx/md5.c
-	source/mpgx/text.c
-	source/mpgx/transformer.c
-	source/mpgx/window.c)
+	source/free_camera.c
+	source/graphics_renderer.c
+	source/interface.c
+	source/md5.c
+	source/text.c
+	source/transformer.c
+	source/window.c)
 
 set(MPGX_LINK_LIBRARIES
 	cmmt freetype glfw mpio mpmt)

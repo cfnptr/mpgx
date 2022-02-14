@@ -61,7 +61,7 @@ set(MPGX_SOURCES
 	source/mpgx/pipelines/bloom_pipeline.c
 	source/mpgx/pipelines/color_pipeline.c
 	source/mpgx/pipelines/diffuse_pipeline.c
-    source/mpgx/pipelines/gaussian_blur_pipeline.c
+	source/mpgx/pipelines/gaussian_blur_pipeline.c
 	source/mpgx/pipelines/gradient_sky_pipeline.c
 	source/mpgx/pipelines/ray_tracing_color_pipeline.c
 	source/mpgx/pipelines/simple_shadow_pipeline.c

@@ -27,16 +27,16 @@ Work in Progress!
 * C++11 compiler
 * [Vulkan SDK 1.2+](https://vulkan.lunarg.com/)
 
+### X11 installation
+
+* Ubuntu: sudo apt install xorg-dev
+
 ### CMake options
 
 | Name                | Description                   | Default value |
 |---------------------|-------------------------------|---------------|
 | MPGX_USE_VULKAN     | Use modern Vulkan API library | `ON`          |
 | MPGX_USE_OPENGL     | Use legacy OpenGL library     | `ON`          |
-
-## X11 installation
-
-* Ubuntu: sudo apt install xorg-dev
 
 ## Cloning
 

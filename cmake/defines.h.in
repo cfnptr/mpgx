@@ -36,7 +36,7 @@
 #define MPGX_DEFAULT_CAPACITY 4
 
 /*
- * MPGX result strings.
+ * MPGX results.
  */
 typedef enum MpgxResult_T
 {
@@ -66,8 +66,7 @@ typedef enum MpgxResult_T
 	MPGX_RESULT_COUNT = 23,
 } MpgxResult_T;
 /*
- * Returns MPGX result as string.
- * result - MPGX result.
+ * MPGX result type.
  */
 typedef uint8_t MpgxResult;
 

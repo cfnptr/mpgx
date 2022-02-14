@@ -26,33 +26,25 @@ struct FreeCamera_T
 	Transform transform;
 	Vec2F rotation;
 	Vec2F lastCursorPosition;
-	float moveSpeed;
-	float viewSpeed;
-	float fieldOfView;
-	float nearClipPlane;
-	float farClipPlane;
+	cmmt_float_t moveSpeed;
+	cmmt_float_t viewSpeed;
+	cmmt_float_t fieldOfView;
+	cmmt_float_t nearClipPlane;
+	cmmt_float_t farClipPlane;
 };
 
-void destroyFreeCamera(FreeCamera freeCamera)
-{
-	if (!freeCamera)
-		return;
-
-	destroyTransform(freeCamera->transform);
-	free(freeCamera);
-}
 FreeCamera createFreeCamera(
 	Framebuffer framebuffer,
 	Transformer transformer,
-	float moveSpeed,
-	float viewSpeed,
-	float fieldOfView,
-	float nearClipPlane,
-	float farClipPlane)
+	cmmt_float_t moveSpeed,
+	cmmt_float_t viewSpeed,
+	cmmt_float_t fieldOfView,
+	cmmt_float_t nearClipPlane,
+	cmmt_float_t farClipPlane)
 {
 	assert(framebuffer);
 	assert(transformer);
-	assert(fieldOfView > 0.0f);
+	assert(fieldOfView > 0.0);
 	assert(nearClipPlane < farClipPlane);
 
 	FreeCamera freeCamera = calloc(1,
@@ -88,6 +80,14 @@ FreeCamera createFreeCamera(
 	freeCamera->transform = transform;
 	return freeCamera;
 }
+void destroyFreeCamera(FreeCamera freeCamera)
+{
+	if (!freeCamera)
+		return;
+
+	destroyTransform(freeCamera->transform);
+	free(freeCamera);
+}
 FreeCamera createDefaultFreeCamera(
 	Framebuffer framebuffer,
 	Transformer transformer)
@@ -98,11 +98,11 @@ FreeCamera createDefaultFreeCamera(
 	return createFreeCamera(
 		framebuffer,
 		transformer,
-		1.0f,
-		1.0f,
-		degToRadF(60.0f),
-		0.01f,
-		100.0f);
+		(cmmt_float_t)1.0,
+		(cmmt_float_t)1.0,
+		degToRad((cmmt_float_t)60.0),
+		(cmmt_float_t)0.01,
+		(cmmt_float_t)100.0);
 }
 
 Framebuffer getFreeCameraFramebuffer(
@@ -153,15 +153,15 @@ void setFreeCameraRotation(
 {
 	assert(freeCamera);
 
-	if (rotation.y > degToRadF(89.9f))
-		rotation.y = degToRadF(89.9f);
-	else if (rotation.y < degToRadF(-89.9f))
-		rotation.y = degToRadF(-89.9f);
+	if (rotation.y > degToRad((cmmt_float_t)89.99))
+		rotation.y = degToRad((cmmt_float_t)89.99);
+	else if (rotation.y < degToRad((cmmt_float_t)-89.99))
+		rotation.y = degToRad((cmmt_float_t)-89.99);
 
 	freeCamera->rotation = rotation;
 }
 
-float getFreeCameraMoveSpeed(
+cmmt_float_t getFreeCameraMoveSpeed(
 	FreeCamera freeCamera)
 {
 	assert(freeCamera);
@@ -169,13 +169,13 @@ float getFreeCameraMoveSpeed(
 }
 void setFreeCameraMoveSpeed(
 	FreeCamera freeCamera,
-	float moveSpeed)
+	cmmt_float_t moveSpeed)
 {
 	assert(freeCamera);
 	freeCamera->moveSpeed = moveSpeed;
 }
 
-float getFreeCameraViewSpeed(
+cmmt_float_t getFreeCameraViewSpeed(
 	FreeCamera freeCamera)
 {
 	assert(freeCamera);
@@ -183,13 +183,13 @@ float getFreeCameraViewSpeed(
 }
 void setFreeCameraViewSpeed(
 	FreeCamera freeCamera,
-	float viewSpeed)
+	cmmt_float_t viewSpeed)
 {
 	assert(freeCamera);
 	freeCamera->viewSpeed = viewSpeed;
 }
 
-float getFreeCameraFieldOfView(
+cmmt_float_t getFreeCameraFieldOfView(
 	FreeCamera freeCamera)
 {
 	assert(freeCamera);
@@ -197,13 +197,13 @@ float getFreeCameraFieldOfView(
 }
 void setFreeCameraFieldOfView(
 	FreeCamera freeCamera,
-	float fieldOfView)
+	cmmt_float_t fieldOfView)
 {
 	assert(freeCamera);
 	freeCamera->fieldOfView = fieldOfView;
 }
 
-float getFreeCameraNearClipPlane(
+cmmt_float_t getFreeCameraNearClipPlane(
 	FreeCamera freeCamera)
 {
 	assert(freeCamera);
@@ -211,13 +211,13 @@ float getFreeCameraNearClipPlane(
 }
 void setFreeCameraNearClipPlane(
 	FreeCamera freeCamera,
-	float nearClipPlane)
+	cmmt_float_t nearClipPlane)
 {
 	assert(freeCamera);
 	freeCamera->nearClipPlane = nearClipPlane;
 }
 
-float getFreeCameraFarClipPlane(
+cmmt_float_t getFreeCameraFarClipPlane(
 	FreeCamera freeCamera)
 {
 	assert(freeCamera);
@@ -225,7 +225,7 @@ float getFreeCameraFarClipPlane(
 }
 void setFreeCameraFarClipPlane(
 	FreeCamera freeCamera,
-	float farClipPlane)
+	cmmt_float_t farClipPlane)
 {
 	assert(freeCamera);
 	freeCamera->farClipPlane = farClipPlane;
@@ -247,12 +247,12 @@ void updateFreeCamera(FreeCamera freeCamera)
 			window,
 			LOCKED_CURSOR_MODE);
 
-		float deltaTime = (float)getWindowDeltaTime(window);
+		cmmt_float_t deltaTime = (cmmt_float_t)getWindowDeltaTime(window);
 		Transform transform = freeCamera->transform;
 		Vec2F rotation = freeCamera->rotation;
 		Vec2F lastCursorPosition = freeCamera->lastCursorPosition;
-		float moveSpeed = freeCamera->moveSpeed * 2.0f;
-		float viewSpeed = freeCamera->viewSpeed / 200.0f;
+		cmmt_float_t moveSpeed = freeCamera->moveSpeed * (cmmt_float_t)2.0;
+		cmmt_float_t viewSpeed = freeCamera->viewSpeed / (cmmt_float_t)200.0;
 		Vec2F cursorPosition = getWindowCursorPosition(window);
 
 		if (lastCursorPosition.x == 0 && lastCursorPosition.y == 0)
@@ -263,8 +263,8 @@ void updateFreeCamera(FreeCamera freeCamera)
 
 		rotation.x = clamp(
 			rotation.x,
-			degToRadF(-89.9f),
-			degToRadF(89.9f));
+			degToRad((cmmt_float_t)-89.99),
+			degToRad((cmmt_float_t)89.99));
 
 		freeCamera->rotation = rotation;
 		freeCamera->lastCursorPosition = cursorPosition;
@@ -323,7 +323,8 @@ Camera getFreeCamera(FreeCamera freeCamera)
 
 	return perspCamera(
 		freeCamera->fieldOfView,
-		(float)framebufferSize.x / (float)framebufferSize.y,
+		(cmmt_float_t)framebufferSize.x /
+			(cmmt_float_t)framebufferSize.y,
 		freeCamera->nearClipPlane,
 		freeCamera->farClipPlane);
 }

@@ -24,11 +24,11 @@ typedef FreeCamera_T* FreeCamera;
 FreeCamera createFreeCamera(
 	Framebuffer framebuffer,
 	Transformer transformer,
-	float moveSpeed,
-	float viewSpeed,
-	float fieldOfView,
-	float nearClipPlane,
-	float farClipPlane);
+	cmmt_float_t moveSpeed,
+	cmmt_float_t viewSpeed,
+	cmmt_float_t fieldOfView,
+	cmmt_float_t nearClipPlane,
+	cmmt_float_t farClipPlane);
 FreeCamera createDefaultFreeCamera(
 	Framebuffer framebuffer,
 	Transformer transformer);
@@ -51,35 +51,35 @@ void setFreeCameraRotation(
 	FreeCamera freeCamera,
 	Vec2F rotation);
 
-float getFreeCameraMoveSpeed(
+cmmt_float_t getFreeCameraMoveSpeed(
 	FreeCamera freeCamera);
 void setFreeCameraMoveSpeed(
 	FreeCamera freeCamera,
-	float moveSpeed);
+	cmmt_float_t moveSpeed);
 
-float getFreeCameraViewSpeed(
+cmmt_float_t getFreeCameraViewSpeed(
 	FreeCamera freeCamera);
 void setFreeCameraViewSpeed(
 	FreeCamera freeCamera,
-	float viewSpeed);
+	cmmt_float_t viewSpeed);
 
-float getFreeCameraFieldOfView(
+cmmt_float_t getFreeCameraFieldOfView(
 	FreeCamera freeCamera);
 void setFreeCameraFieldOfView(
 	FreeCamera freeCamera,
-	float fieldOfView);
+	cmmt_float_t fieldOfView);
 
-float getFreeCameraNearClipPlane(
+cmmt_float_t getFreeCameraNearClipPlane(
 	FreeCamera freeCamera);
 void setFreeCameraNearClipPlane(
 	FreeCamera freeCamera,
-	float nearClipPlane);
+	cmmt_float_t nearClipPlane);
 
-float getFreeCameraFarClipPlane(
+cmmt_float_t getFreeCameraFarClipPlane(
 	FreeCamera freeCamera);
 void setFreeCameraFarClipPlane(
 	FreeCamera freeCamera,
-	float farClipPlane);
+	cmmt_float_t farClipPlane);
 
 void updateFreeCamera(FreeCamera freeCamera);
 Camera getFreeCamera(FreeCamera freeCamera);

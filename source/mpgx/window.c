@@ -1052,14 +1052,13 @@ Vec2F getWindowContentScale(Window window)
 	assert(window);
 	assert(graphicsInitialized);
 
-	Vec2F scale;
+	float x, y;
 
 	glfwGetWindowContentScale(
 		window->handle,
-		&scale.x,
-		&scale.y);
+		&x,&y);
 
-	return scale;
+	return vec2F(x, y);
 }
 
 const char* getWindowGpuName(Window window)

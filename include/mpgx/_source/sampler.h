@@ -401,7 +401,7 @@ inline static void destroyGlSampler(
 	if (!sampler)
 		return;
 
-	makeWindowContextCurrent(
+	makeGlWindowContextCurrent(
 		sampler->gl.window);
 
 	glDeleteSamplers(
@@ -454,7 +454,7 @@ inline static MpgxResult createGlSampler(
 	samplerInstance->gl.mipmapLodRange = mipmapLodRange;
 	samplerInstance->gl.mipmapLodBias = 0.0f;
 
-	makeWindowContextCurrent(window);
+	makeGlWindowContextCurrent(window);
 
 	GLuint handle = GL_ZERO;
 

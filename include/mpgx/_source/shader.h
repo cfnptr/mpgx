@@ -217,7 +217,7 @@ inline static void destroyGlShader(
 	if (!shader)
 		return;
 
-	makeWindowContextCurrent(
+	makeGlWindowContextCurrent(
 		shader->gl.window);
 
 	glDeleteShader(shader->gl.handle);
@@ -277,7 +277,7 @@ inline static MpgxResult createGlShader(
 	sources[1] = (const char*)code;
 	lengths[1] = (GLint)size;
 
-	makeWindowContextCurrent(window);
+	makeGlWindowContextCurrent(window);
 
 	GLuint handle = glCreateShader(glType);
 	shaderInstance->gl.handle = handle;

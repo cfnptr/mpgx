@@ -717,7 +717,7 @@ MpgxResult createTextureColorPipelineExt(
 		fragmentShader,
 	};
 
-	GraphicsAPI api = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getGraphicsAPI();
 
 	if (api == VULKAN_GRAPHICS_API)
 	{

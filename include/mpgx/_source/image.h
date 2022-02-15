@@ -785,7 +785,7 @@ inline static void destroyGlImage(
 	if (!image)
 		return;
 
-	makeWindowContextCurrent(
+	makeGlWindowContextCurrent(
 		image->gl.window);
 
 	glDeleteTextures(
@@ -910,7 +910,7 @@ inline static MpgxResult createGlImage(
 	imageInstance->gl.dataType = dataType;
 	imageInstance->gl.dataFormat = dataFormat;
 
-	makeWindowContextCurrent(window);
+	makeGlWindowContextCurrent(window);
 
 	GLuint handle = GL_ZERO;
 
@@ -1055,7 +1055,7 @@ inline static MpgxResult setGlImageData(
 	assert(offset.y >= 0);
 	assert(offset.z >= 0);
 
-	makeWindowContextCurrent(
+	makeGlWindowContextCurrent(
 		image->gl.window);
 
 	glBindTexture(

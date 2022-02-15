@@ -31,7 +31,6 @@
 #include "GLFW/glfw3.h"
 #include <stdio.h>
 
-#define ENGINE_NAME "MPGX"
 #define VK_VERSION VK_API_VERSION_1_2
 #define VK_FRAME_LAG 2
 
@@ -222,6 +221,10 @@ inline static MpgxResult checkVkInstanceExtensions(
 	return SUCCESS_MPGX_RESULT;
 }
 inline static MpgxResult createVkInstance(
+	const char* engineName,
+	uint8_t engineVersionMajor,
+	uint8_t engineVersionMinor,
+	uint8_t engineVersionPatch,
 	const char* appName,
 	uint8_t appVersionMajor,
 	uint8_t appVersionMinor,
@@ -232,6 +235,7 @@ inline static MpgxResult createVkInstance(
 	uint32_t extensionCount,
 	VkInstance* instance)
 {
+	assert(engineName);
 	assert(appName);
 	assert(layers);
 	assert(layerCount > 0);
@@ -244,19 +248,18 @@ inline static MpgxResult createVkInstance(
 		appVersionMinor,
 		appVersionPatch);
 	const uint32_t engineVersion = VK_MAKE_API_VERSION(0,
-		MPGX_VERSION_MAJOR,
-		MPGX_VERSION_MINOR,
-		MPGX_VERSION_PATCH);
+		engineVersionMajor,
+		engineVersionMinor,
+		engineVersionPatch);
 	VkApplicationInfo applicationInfo = {
 		VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		NULL,
 		appName,
 		appVersion,
-		ENGINE_NAME,
+		engineName,
 		engineVersion,
 		VK_VERSION,
 	};
-
 	VkInstanceCreateInfo instanceCreateInfo = {
 		VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 		NULL,
@@ -744,9 +747,12 @@ inline static MpgxResult createVkDevice(
 	}
 
 	VkPhysicalDeviceFeatures2 features;
-	memset(&features, 0, sizeof(VkPhysicalDeviceFeatures2));
 	features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-	features.features.fillModeNonSolid = VK_TRUE;
+	features.pNext = NULL;
+
+	vkGetPhysicalDeviceFeatures2(
+		physicalDevice,
+		&features);
 
 #if __APPLE__
 	VkPhysicalDevicePortabilitySubsetFeaturesKHR portabilitySubsetFeatures;

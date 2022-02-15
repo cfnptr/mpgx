@@ -44,7 +44,7 @@ struct ImageData_T
 
 struct Window_T
 {
-	GraphicsAPI api;
+	Window parent;
 	bool useVsync;
 	bool useStencilBuffer;
 	bool useBeginClear;
@@ -95,24 +95,22 @@ struct Window_T
 };
 
 static bool graphicsInitialized = false;
+static GraphicsAPI graphicsAPI = VULKAN_GRAPHICS_API;
 static FT_Library ftLibrary = NULL;
 static Window currentWindow = NULL;
 
 #if MPGX_SUPPORT_VULKAN
 static VkInstance vkInstance = NULL;
+#ifndef NDEBUG
 static VkDebugUtilsMessengerEXT vkDebugUtilsMessenger = NULL;
+#endif
 #endif
 
 static void glfwErrorCallback(
-	int error,
-	const char* description)
+	int code, const char* description)
 {
-	assert(description);
-
-	fprintf(stdout,
-		"GLFW ERROR: %d, %s\n",
-		error,
-		description);
+	printf("GLFW ERROR [%d]: %s\n",
+		code, description);
 }
 
 inline static void terminateFreeTypeLibrary(
@@ -122,11 +120,17 @@ inline static void terminateFreeTypeLibrary(
 		abort();
 }
 MpgxResult initializeGraphics(
+	GraphicsAPI api,
+	const char* engineName,
+	uint8_t engineVersionMajor,
+	uint8_t engineVersionMinor,
+	uint8_t engineVersionPatch,
 	const char* appName,
 	uint8_t appVersionMajor,
 	uint8_t appVersionMinor,
 	uint8_t appVersionPatch)
 {
+	assert(engineName);
 	assert(appName);
 
 	if (graphicsInitialized)
@@ -143,133 +147,145 @@ MpgxResult initializeGraphics(
 		return FAILED_TO_INITIALIZE_FREETYPE_MPGX_RESULT;
 	}
 
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
+	{
 #if MPGX_SUPPORT_VULKAN
-	uint32_t glfwExtensionCount;
+		uint32_t glfwExtensionCount;
 
-	const char** glfwExtensions =
-		glfwGetRequiredInstanceExtensions(
-		&glfwExtensionCount);
+		const char** glfwExtensions =
+			glfwGetRequiredInstanceExtensions(
+				&glfwExtensionCount);
 
-	if (!glfwExtensions)
-	{
-		terminateFreeTypeLibrary(ftLibrary);
-		glfwTerminate();
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
-	}
+		if (!glfwExtensions)
+		{
+			terminateFreeTypeLibrary(ftLibrary);
+			glfwTerminate();
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		}
 
-	const char* layers[1];
-	const char* targetLayers[1];
-	bool isLayerSupported[1];
-	uint32_t layerCount = 0;
-	uint32_t targetLayerCount = 0;
+		const char* layers[1];
+		const char* targetLayers[1];
+		bool isLayerSupported[1];
+		uint32_t layerCount = 0;
+		uint32_t targetLayerCount = 0;
 
 #ifndef NDEBUG
-	targetLayers[targetLayerCount] =
-		"VK_LAYER_KHRONOS_validation";
-	uint32_t validationLayerIndex = targetLayerCount++;
+		targetLayers[targetLayerCount] =
+			"VK_LAYER_KHRONOS_validation";
+		uint32_t validationLayerIndex = targetLayerCount++;
 #endif
 
-	MpgxResult mpgxResult = checkVkInstanceLayers(
-		targetLayers,
-		isLayerSupported,
-		targetLayerCount);
+		MpgxResult mpgxResult = checkVkInstanceLayers(
+			targetLayers,
+			isLayerSupported,
+			targetLayerCount);
 
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-	{
-		terminateFreeTypeLibrary(ftLibrary);
-		glfwTerminate();
-		return mpgxResult;
-	}
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		{
+			terminateFreeTypeLibrary(ftLibrary);
+			glfwTerminate();
+			return mpgxResult;
+		}
 
 #ifndef NDEBUG
-	if (isLayerSupported[validationLayerIndex])
-		layers[layerCount++] = targetLayers[validationLayerIndex];
+		if (isLayerSupported[validationLayerIndex])
+			layers[layerCount++] = targetLayers[validationLayerIndex];
 #endif
 
-	const char* targetExtensions[1];
-	bool isExtensionSupported[1];
-	uint32_t extensionCount = glfwExtensionCount;
-	uint32_t targetExtensionCount = 0;
+		const char* targetExtensions[1];
+		bool isExtensionSupported[1];
+		uint32_t extensionCount = glfwExtensionCount;
+		uint32_t targetExtensionCount = 0;
 
-	const char** extensions = malloc(
-		(1 + glfwExtensionCount) * sizeof(const char*));
+		const char** extensions = malloc(
+			(1 + glfwExtensionCount) * sizeof(const char*));
 
-	if (!extensions)
-	{
-		terminateFreeTypeLibrary(ftLibrary);
-		glfwTerminate();
-		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
-	}
+		if (!extensions)
+		{
+			terminateFreeTypeLibrary(ftLibrary);
+			glfwTerminate();
+			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+		}
 
-	for (uint32_t i = 0; i < glfwExtensionCount; i++)
-		extensions[i] = glfwExtensions[i];
+		for (uint32_t i = 0; i < glfwExtensionCount; i++)
+			extensions[i] = glfwExtensions[i];
 
 #ifndef NDEBUG
-	extensions[extensionCount++] =
+		extensions[extensionCount++] =
 		targetExtensions[targetExtensionCount] =
-		VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
-	uint32_t debugUtilsExtIndex = targetExtensionCount++;
+			VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+		uint32_t debugUtilsExtIndex = targetExtensionCount++;
 #endif
 
-	mpgxResult = checkVkInstanceExtensions(
-		targetExtensions,
-		isExtensionSupported,
-		targetExtensionCount);
+		mpgxResult = checkVkInstanceExtensions(
+			targetExtensions,
+			isExtensionSupported,
+			targetExtensionCount);
 
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-	{
-		free((void*)extensions);
-		terminateFreeTypeLibrary(ftLibrary);
-		glfwTerminate();
-		return mpgxResult;
-	}
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		{
+			free((void*)extensions);
+			terminateFreeTypeLibrary(ftLibrary);
+			glfwTerminate();
+			return mpgxResult;
+		}
 
 #ifndef NDEBUG
-	if (!isExtensionSupported[debugUtilsExtIndex])
-	{
+		if (!isExtensionSupported[debugUtilsExtIndex])
+		{
+			free((void*)extensions);
+			terminateFreeTypeLibrary(ftLibrary);
+			glfwTerminate();
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		}
+#endif
+
+		mpgxResult = createVkInstance(
+			engineName,
+			engineVersionMajor,
+			engineVersionMinor,
+			engineVersionPatch,
+			appName,
+			appVersionMajor,
+			appVersionMinor,
+			appVersionPatch,
+			layers,
+			layerCount,
+			extensions,
+			extensionCount,
+			&vkInstance);
+
 		free((void*)extensions);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		{
+			terminateFreeTypeLibrary(ftLibrary);
+			glfwTerminate();
+			return mpgxResult;
+		}
+
+#ifndef NDEBUG
+		mpgxResult = createVkDebugUtilsMessenger(
+			vkInstance,
+			&vkDebugUtilsMessenger);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		{
+			vkDestroyInstance(
+				vkInstance,
+				NULL);
+			terminateFreeTypeLibrary(ftLibrary);
+			glfwTerminate();
+			return mpgxResult;
+		}
+#endif
+
+#else
 		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
-	}
 #endif
-
-	mpgxResult = createVkInstance(
-		appName,
-		appVersionMajor,
-		appVersionMinor,
-		appVersionPatch,
-		layers,
-		layerCount,
-		extensions,
-		extensionCount,
-		&vkInstance);
-
-	free((void*)extensions);
-
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-	{
-		terminateFreeTypeLibrary(ftLibrary);
-		glfwTerminate();
-		return mpgxResult;
 	}
-
-#ifndef NDEBUG
-	mpgxResult = createVkDebugUtilsMessenger(
-		vkInstance,
-		&vkDebugUtilsMessenger);
-
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-	{
-		vkDestroyInstance(
-			vkInstance,
-			NULL);
-		terminateFreeTypeLibrary(ftLibrary);
-		glfwTerminate();
-		return mpgxResult;
-	}
-#endif
-#endif
 
 	graphicsInitialized = true;
 	return SUCCESS_MPGX_RESULT;
@@ -280,26 +296,42 @@ void terminateGraphics()
 		return;
 
 #if MPGX_SUPPORT_VULKAN
-
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
+	{
 #ifndef NDEBUG
-	destroyVkDebugUtilsMessenger(
-		vkInstance,
-		vkDebugUtilsMessenger);
+		destroyVkDebugUtilsMessenger(
+			vkInstance,
+			vkDebugUtilsMessenger);
 #endif
-
-	vkDestroyInstance(
-		vkInstance,
-		NULL);
+		vkDestroyInstance(
+			vkInstance,
+			NULL);
+	}
 #endif
 
 	terminateFreeTypeLibrary(ftLibrary);
 	glfwTerminate();
 
 	graphicsInitialized = false;
+	graphicsAPI = VULKAN_GRAPHICS_API;
+	ftLibrary = NULL;
+	currentWindow = NULL;
+
+#if MPGX_SUPPORT_VULKAN
+	vkInstance = NULL;
+#ifndef NDEBUG
+	vkDebugUtilsMessenger = NULL;
+#endif
+#endif
 }
 bool isGraphicsInitialized()
 {
 	return graphicsInitialized;
+}
+GraphicsAPI getGraphicsAPI()
+{
+	assert(graphicsInitialized);
+	return graphicsAPI;
 }
 
 void* getFtLibrary()
@@ -337,24 +369,101 @@ static void onWindowChar(
 	window->inputLength = length + 1;
 }
 
+inline static void assertGLFW()
+{
+#ifndef NDEBUG
+	const char* description;
+	int code = glfwGetError(&description);
+
+	if (code != GLFW_NO_ERROR)
+	{
+		printf("GLFW ERROR [%d]: %s\n",
+			code, description);
+	}
+#endif
+}
+
+#if MPGX_SUPPORT_VULKAN
+inline static MpgxResult onVkResize(
+	Window window,
+	Vec2I newSize)
+{
+	assert(window);
+	assert(newSize.x > 0);
+	assert(newSize.y > 0);
+
+	VkWindow vkWindow = window->vkWindow;
+	VkDevice device = vkWindow->device;
+	VkSwapchain swapchain = vkWindow->swapchain;
+
+	MpgxResult mpgxResult = resizeVkSwapchain(
+		vkWindow->surface,
+		vkWindow->physicalDevice,
+		vkWindow->graphicsQueueFamilyIndex,
+		vkWindow->presentQueueFamilyIndex,
+		device,
+		vkWindow->allocator,
+		vkWindow->graphicsCommandPool,
+		vkWindow->presentCommandPool,
+		vkWindow->swapchain,
+		window->useVsync,
+		window->useStencilBuffer,
+		window->framebuffer->base.useBeginClear,
+		newSize);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
+
+	Framebuffer framebuffer = window->framebuffer;
+
+	VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
+	framebuffer->vk.size = newSize;
+	framebuffer->vk.renderPass = swapchain->renderPass;
+	framebuffer->vk.handle = firstBuffer.framebuffer;
+
+	GraphicsPipeline* graphicsPipelines = framebuffer->vk.graphicsPipelines;
+	size_t graphicsPipelineCount = framebuffer->vk.graphicsPipelineCount;
+
+	for (size_t i = 0; i < graphicsPipelineCount; i++)
+	{
+		GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
+		VkGraphicsPipelineCreateData createData;
+
+		mpgxResult = graphicsPipeline->vk.onResize(
+			graphicsPipeline,
+			newSize,
+			&createData);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+			return mpgxResult;
+
+		mpgxResult = recreateVkGraphicsPipelineHandle(
+			device,
+			framebuffer->vk.renderPass,
+			graphicsPipeline,
+			framebuffer->vk.colorAttachmentCount,
+			&createData);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+			return mpgxResult;
+	}
+
+	vkWindow->frameIndex = 0;
+	return SUCCESS_MPGX_RESULT;
+}
+#endif
+
 MpgxResult createWindow(
-	GraphicsAPI api,
-	Vec2I size,
-	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
 	bool useRayTracing,
-	bool isVisible,
+	Window parent,
 	Window* window)
 {
-	assert(api < GRAPHICS_API_COUNT);
-	assert(size.x > 0);
-	assert(size.y > 0);
-	assert(title);
 	assert(onUpdate);
+	assert(updateArgument);
 	assert(window);
 
 	if (!graphicsInitialized)
@@ -362,7 +471,7 @@ MpgxResult createWindow(
 
 	glfwDefaultWindowHints();
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		glfwWindowHint(
@@ -372,7 +481,7 @@ MpgxResult createWindow(
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		if (useRayTracing)
@@ -429,7 +538,7 @@ MpgxResult createWindow(
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 #endif
 	}
-	else if (api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		if (useRayTracing)
@@ -485,8 +594,7 @@ MpgxResult createWindow(
 		abort();
 	}
 
-	glfwWindowHint(GLFW_VISIBLE,
-		isVisible ? GLFW_TRUE : GLFW_FALSE);
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
 	Window windowInstance = calloc(1,
 		sizeof(Window_T));
@@ -494,25 +602,28 @@ MpgxResult createWindow(
 	if (!windowInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
-	windowInstance->api = api;
-	windowInstance->useVsync = useVsync;
+	windowInstance->parent = parent;
+	windowInstance->useVsync = true;
 	windowInstance->useStencilBuffer = useStencilBuffer;
 	windowInstance->useBeginClear = useBeginClear;
 	windowInstance->useRayTracing = useRayTracing;
 	windowInstance->onUpdate = onUpdate;
 	windowInstance->updateArgument = updateArgument;
 
+	GLFWwindow* shareWindow = parent ? parent->handle : NULL;
+
 	GLFWwindow* handle = glfwCreateWindow(
-		(int)size.x,
-		(int)size.y,
-		title,
-		NULL,
-		NULL);
+		(int)DEFAULT_WINDOW_WIDTH,
+		(int)DEFAULT_WINDOW_HEIGHT,
+		DEFAULT_WINDOW_TITLE,
+		NULL, // TODO: add monitor support
+		shareWindow);
 
 	if (!handle)
 	{
+		assertGLFW();
 		destroyWindow(windowInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	windowInstance->handle = handle;
@@ -539,20 +650,14 @@ MpgxResult createWindow(
 		handle,
 		onWindowChar);
 
-	if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
-	{
-		// TODO: check for the GLX_EXT_swap_control_tear and set -1
-		glfwSwapInterval(useVsync ? 1 : 0);
-	}
-
 	GLFWcursor* ibeamCursor = glfwCreateStandardCursor(
 		GLFW_IBEAM_CURSOR);
 
 	if (!ibeamCursor)
 	{
+		assertGLFW();
 		destroyWindow(windowInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	windowInstance->cursorType = DEFAULT_CURSOR_TYPE;
@@ -563,8 +668,9 @@ MpgxResult createWindow(
 
 	if (!crosshairCursor)
 	{
+		assertGLFW();
 		destroyWindow(windowInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	windowInstance->crosshairCursor = crosshairCursor;
@@ -574,8 +680,9 @@ MpgxResult createWindow(
 
 	if (!handCursor)
 	{
+		assertGLFW();
 		destroyWindow(windowInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	windowInstance->handCursor = handCursor;
@@ -585,8 +692,9 @@ MpgxResult createWindow(
 
 	if (!hresizeCursor)
 	{
+		assertGLFW();
 		destroyWindow(windowInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	windowInstance->hresizeCursor = hresizeCursor;
@@ -596,8 +704,9 @@ MpgxResult createWindow(
 
 	if (!vresizeCursor)
 	{
+		assertGLFW();
 		destroyWindow(windowInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT; // TODO: handle GLFW error
+		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
 	windowInstance->vresizeCursor = vresizeCursor;
@@ -628,13 +737,13 @@ MpgxResult createWindow(
 
 	Vec2I framebufferSize = vec2I(width, height);
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		MpgxResult mpgxResult = createVkWindow(
 			vkInstance,
 			handle,
-			useVsync,
+			true,
 			useStencilBuffer,
 			useBeginClear,
 			useRayTracing,
@@ -696,8 +805,8 @@ MpgxResult createWindow(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		glfwMakeContextCurrent(handle);
@@ -708,6 +817,7 @@ MpgxResult createWindow(
 			return FAILED_TO_INITIALIZE_OPENGL_MPGX_RESULT;
 		}
 
+		glfwSwapInterval(1);
 		glEnable(GL_FRAMEBUFFER_SRGB);
 
 		Framebuffer framebuffer;
@@ -832,77 +942,6 @@ MpgxResult createWindow(
 	*window = windowInstance;
 	return SUCCESS_MPGX_RESULT;
 }
-MpgxResult createAnyWindow(
-	Vec2I size,
-	const char* title,
-	OnWindowUpdate onUpdate,
-	void* updateArgument,
-	bool useVsync,
-	bool useStencilBuffer,
-	bool useBeginClear,
-	bool useRayTracing,
-	bool isVisible,
-	Window* window)
-{
-	assert(size.x > 0);
-	assert(size.y > 0);
-	assert(title);
-	assert(onUpdate);
-	assert(window);
-
-	MpgxResult mpgxResult;
-
-#if MPGX_SUPPORT_VULKAN
-	mpgxResult = createWindow(
-		VULKAN_GRAPHICS_API,
-		size,
-		title,
-		onUpdate,
-		updateArgument,
-		useVsync,
-		useStencilBuffer,
-		useBeginClear,
-		useRayTracing,
-		isVisible,
-		window);
-
-	if (mpgxResult == SUCCESS_MPGX_RESULT)
-		return SUCCESS_MPGX_RESULT;
-#endif
-
-#if MPGX_SUPPORT_OPENGL
-	mpgxResult = createWindow(
-		OPENGL_GRAPHICS_API,
-		size,
-		title,
-		onUpdate,
-		updateArgument,
-		useVsync,
-		useStencilBuffer,
-		useBeginClear,
-		useRayTracing,
-		isVisible,
-		window);
-
-	if (mpgxResult == SUCCESS_MPGX_RESULT)
-		return SUCCESS_MPGX_RESULT;
-
-	mpgxResult = createWindow(
-		OPENGL_ES_GRAPHICS_API,
-		size,
-		title,
-		onUpdate,
-		updateArgument,
-		useVsync,
-		useStencilBuffer,
-		useBeginClear,
-		useRayTracing,
-		isVisible,
-		window);
-#endif
-
-	return mpgxResult;
-}
 void destroyWindow(Window window)
 {
 	if (!window)
@@ -917,9 +956,7 @@ void destroyWindow(Window window)
 	assert(window->computePipelineCount == 0);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -946,8 +983,8 @@ void destroyWindow(Window window)
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-			 api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		destroyGlFramebuffer(
@@ -981,17 +1018,11 @@ void destroyWindow(Window window)
 	free(window);
 }
 
-GraphicsAPI getWindowGraphicsAPI(Window window)
+Window getWindowParent(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
-	return window->api;
-}
-bool isWindowUseVsync(Window window)
-{
-	assert(window);
-	assert(graphicsInitialized);
-	return window->useVsync;
+	return window->parent;
 }
 bool isWindowUseStencilBuffer(Window window)
 {
@@ -1066,9 +1097,7 @@ const char* getWindowGpuName(Window window)
 	assert(window);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		return window->vkWindow->deviceProperties.deviceName;
@@ -1076,8 +1105,8 @@ const char* getWindowGpuName(Window window)
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		return (const char*)glGetString(GL_RENDERER);
@@ -1094,7 +1123,7 @@ const char* getWindowGpuName(Window window)
 void* getVkWindow(Window window)
 {
 	assert(window);
-	assert(window->api == VULKAN_GRAPHICS_API);
+	assert(graphicsAPI == VULKAN_GRAPHICS_API);
 	assert(graphicsInitialized);
 
 #if MPGX_SUPPORT_VULKAN
@@ -1106,7 +1135,7 @@ void* getVkWindow(Window window)
 bool isVkDeviceIntegrated(Window window)
 {
 	assert(window);
-	assert(window->api == VULKAN_GRAPHICS_API);
+	assert(graphicsAPI == VULKAN_GRAPHICS_API);
 	assert(graphicsInitialized);
 
 #if MPGX_SUPPORT_VULKAN
@@ -1137,6 +1166,44 @@ bool getWindowMouseButton(
 	return glfwGetMouseButton(
 		window->handle,
 		button) == GLFW_PRESS;
+}
+
+bool isWindowUseVsync(
+	Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+	return window->useVsync;
+}
+void setWindowUseVsync(
+	Window window,
+	bool useVsync)
+{
+	assert(window);
+	assert(graphicsInitialized);
+
+	if (useVsync == window->useVsync)
+		return;
+
+	window->useVsync = useVsync;
+
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
+	{
+		Vec2I newSize = getFramebufferSize(window->framebuffer);
+		MpgxResult mpgxResult = onVkResize(window, newSize);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+			abort(); // TODO: possibly return result?
+	}
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	{
+		glfwSwapInterval(useVsync ? 1 : 0);
+	}
+	else
+	{
+		abort();
+	}
 }
 
 const char* getWindowClipboard(
@@ -1257,7 +1324,7 @@ CursorMode getWindowCursorMode(
 }
 void setWindowCursorMode(
 	Window window,
-	CursorMode cursorMode)
+	CursorMode mode)
 {
 	assert(window);
 	assert(graphicsInitialized);
@@ -1265,7 +1332,7 @@ void setWindowCursorMode(
 	glfwSetInputMode(
 		window->handle,
 		GLFW_CURSOR,
-		cursorMode);
+		mode);
 }
 
 CursorType getWindowCursorType(
@@ -1277,13 +1344,13 @@ CursorType getWindowCursorType(
 }
 void setWindowCursorType(
 	Window window,
-	CursorType cursorType)
+	CursorType type)
 {
 	assert(window);
-	assert(cursorType < CURSOR_TYPE_COUNT);
+	assert(type < CURSOR_TYPE_COUNT);
 	assert(graphicsInitialized);
 
-	switch (cursorType)
+	switch (type)
 	{
 	default:
 		abort();
@@ -1419,11 +1486,11 @@ void requestWindowAttention(Window window)
 	glfwRequestWindowAttention(window->handle);
 }
 
-void makeWindowContextCurrent(Window window)
+void makeGlWindowContextCurrent(Window window)
 {
 	assert(window);
-	assert(window->api == OPENGL_GRAPHICS_API ||
-		window->api == OPENGL_ES_GRAPHICS_API);
+	assert(graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API);
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
 
@@ -1437,7 +1504,7 @@ void makeWindowContextCurrent(Window window)
 	abort();
 #endif
 }
-void updateWindow(Window window)
+void joinWindow(Window window)
 {
 	assert(window);
 	assert(window->isRecording == false);
@@ -1459,55 +1526,6 @@ void updateWindow(Window window)
 	}
 }
 
-#if MPGX_SUPPORT_VULKAN
-static MpgxResult onVkResize(
-	VkDevice device,
-	VkSwapchain swapchain,
-	Framebuffer framebuffer,
-	Vec2I newSize)
-{
-	assert(device);
-	assert(swapchain);
-	assert(framebuffer);
-	assert(newSize.x > 0);
-	assert(newSize.y > 0);
-
-	VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
-	framebuffer->vk.size = newSize;
-	framebuffer->vk.renderPass = swapchain->renderPass;
-	framebuffer->vk.handle = firstBuffer.framebuffer;
-
-	GraphicsPipeline* graphicsPipelines = framebuffer->vk.graphicsPipelines;
-	size_t graphicsPipelineCount = framebuffer->vk.graphicsPipelineCount;
-
-	for (size_t i = 0; i < graphicsPipelineCount; i++)
-	{
-		GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
-		VkGraphicsPipelineCreateData createData;
-
-		MpgxResult mpgxResult = graphicsPipeline->vk.onResize(
-			graphicsPipeline,
-			newSize,
-			&createData);
-
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
-			return mpgxResult;
-
-		mpgxResult = recreateVkGraphicsPipelineHandle(
-			device,
-			framebuffer->vk.renderPass,
-			graphicsPipeline,
-			framebuffer->vk.colorAttachmentCount,
-			&createData);
-
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
-			return mpgxResult;
-	}
-
-	return SUCCESS_MPGX_RESULT;
-}
-#endif
-
 MpgxResult beginWindowRecord(Window window)
 {
 	assert(window);
@@ -1527,9 +1545,7 @@ MpgxResult beginWindowRecord(Window window)
 	Vec2I newSize = vec2I(width, height);
 	Framebuffer framebuffer = window->framebuffer;
 
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -1546,41 +1562,15 @@ MpgxResult beginWindowRecord(Window window)
 			vkWindow->stagingSize = 0;
 		}
 
-		VkSwapchain swapchain = vkWindow->swapchain;
-		VkDevice device = vkWindow->device;
-
 		if (!compVec2I(newSize, framebuffer->vk.size))
 		{
-			MpgxResult mpgxResult = resizeVkSwapchain(
-				vkWindow->surface,
-				vkWindow->physicalDevice,
-				vkWindow->graphicsQueueFamilyIndex,
-				vkWindow->presentQueueFamilyIndex,
-				device,
-				allocator,
-				vkWindow->graphicsCommandPool,
-				vkWindow->presentCommandPool,
-				swapchain,
-				window->useVsync,
-				window->useStencilBuffer,
-				window->framebuffer->base.useBeginClear,
-				newSize);
-
-			if (mpgxResult != SUCCESS_MPGX_RESULT)
-				return mpgxResult;
-
-			vkWindow->frameIndex = 0;
-
-			mpgxResult = onVkResize(
-				device,
-				swapchain,
-				framebuffer,
-				newSize);
+			MpgxResult mpgxResult = onVkResize(window, newSize);
 
 			if (mpgxResult != SUCCESS_MPGX_RESULT)
 				return mpgxResult;
 		}
 
+		VkDevice device = vkWindow->device;
 		uint32_t frameIndex = vkWindow->frameIndex;
 		VkFence fence = vkWindow->fences[frameIndex];
 
@@ -1609,6 +1599,7 @@ MpgxResult beginWindowRecord(Window window)
 
 		VkSemaphore* imageAcquiredSemaphores =
 			vkWindow->imageAcquiredSemaphores;
+		VkSwapchain swapchain = vkWindow->swapchain;
 		VkSwapchainKHR handle = swapchain->handle;
 
 		uint32_t bufferIndex;
@@ -1625,31 +1616,7 @@ MpgxResult beginWindowRecord(Window window)
 
 			if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
 			{
-				MpgxResult mpgxResult = resizeVkSwapchain(
-					vkWindow->surface,
-					vkWindow->physicalDevice,
-					vkWindow->graphicsQueueFamilyIndex,
-					vkWindow->presentQueueFamilyIndex,
-					device,
-					allocator,
-					vkWindow->graphicsCommandPool,
-					vkWindow->presentCommandPool,
-					swapchain,
-					window->useVsync,
-					window->useStencilBuffer,
-					window->framebuffer->base.useBeginClear,
-					newSize);
-
-				if (mpgxResult != SUCCESS_MPGX_RESULT)
-					return mpgxResult;
-
-				vkWindow->frameIndex = 0;
-
-				mpgxResult = onVkResize(
-					device,
-					swapchain,
-					framebuffer,
-					newSize);
+				MpgxResult mpgxResult = onVkResize(window, newSize);
 
 				if (mpgxResult != SUCCESS_MPGX_RESULT)
 					return mpgxResult;
@@ -1701,8 +1668,8 @@ MpgxResult beginWindowRecord(Window window)
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		if (!compVec2I(newSize, framebuffer->gl.size))
@@ -1747,9 +1714,7 @@ void endWindowRecord(Window window)
 	assert(!window->renderFramebuffer);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -1891,36 +1856,9 @@ void endWindowRecord(Window window)
 				return;
 
 			Vec2I newSize = vec2I(width, height);
-			Framebuffer framebuffer = window->framebuffer;
-			VkDevice device = vkWindow->device;
+			MpgxResult mpgxResult = onVkResize(window, newSize);
 
-			bool result = resizeVkSwapchain(
-				vkWindow->surface,
-				vkWindow->physicalDevice,
-				graphicsQueueFamilyIndex,
-				presentQueueFamilyIndex,
-				device,
-				vkWindow->allocator,
-				vkWindow->graphicsCommandPool,
-				vkWindow->presentCommandPool,
-				swapchain,
-				window->useVsync,
-				window->useStencilBuffer,
-				window->framebuffer->base.useBeginClear,
-				newSize);
-
-			if (!result)
-				abort();
-
-			vkWindow->frameIndex = 0;
-
-			result = onVkResize(
-				device,
-				swapchain,
-				framebuffer,
-				newSize);
-
-			if (!result)
+			if (mpgxResult != SUCCESS_MPGX_RESULT)
 				abort();
 		}
 		else if (vkResult != VK_SUCCESS &&
@@ -1933,8 +1871,8 @@ void endWindowRecord(Window window)
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		glfwSwapBuffers(window->handle);
@@ -1971,12 +1909,10 @@ MpgxResult createBuffer(
 		(usage == GPU_TO_CPU_BUFFER_USAGE && !data));
 	assert(!window->isRecording);
 
-	GraphicsAPI api = window->api;
-
 	MpgxResult mpgxResult;
 	Buffer bufferInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -2001,8 +1937,8 @@ MpgxResult createBuffer(
 	abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlBuffer(
@@ -2036,7 +1972,7 @@ MpgxResult createBuffer(
 
 		if (!buffers)
 		{
-			if (api == VULKAN_GRAPHICS_API)
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				destroyVkBuffer(
@@ -2046,8 +1982,8 @@ MpgxResult createBuffer(
 				abort();
 #endif
 			}
-			else if (api == OPENGL_GRAPHICS_API ||
-				api == OPENGL_ES_GRAPHICS_API)
+			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+				graphicsAPI == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlBuffer(bufferInstance);
@@ -2091,9 +2027,7 @@ void destroyBuffer(Buffer buffer)
 		if (buffer != buffers[i])
 			continue;
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
@@ -2111,8 +2045,8 @@ void destroyBuffer(Buffer buffer)
 			abort();
 #endif
 		}
-		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlBuffer(buffer);
@@ -2178,13 +2112,11 @@ MpgxResult mapBuffer(
 	assert(!buffer->base.isMapped);
 
 	size_t mapSize = size > 0 ? size : buffer->base.size;
-
 	Window window = buffer->base.window;
-	GraphicsAPI api = window->api;
 
 	MpgxResult mpgxResult;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		mpgxResult = mapVkBuffer(
@@ -2201,8 +2133,8 @@ MpgxResult mapBuffer(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = mapGlBuffer(
@@ -2236,11 +2168,10 @@ MpgxResult unmapBuffer(Buffer buffer)
 	assert(graphicsInitialized);
 
 	Window window = buffer->base.window;
-	GraphicsAPI api = window->api;
 
 	MpgxResult mpgxResult;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		mpgxResult = unmapVkBuffer(
@@ -2253,8 +2184,8 @@ MpgxResult unmapBuffer(Buffer buffer)
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = unmapGlBuffer(
@@ -2291,9 +2222,8 @@ MpgxResult setBufferData(
 	assert(graphicsInitialized);
 
 	Window window = buffer->base.window;
-	GraphicsAPI api = window->api;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		return setVkBufferData(
@@ -2306,8 +2236,8 @@ MpgxResult setBufferData(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		return setGlBufferData(
@@ -2463,12 +2393,10 @@ MpgxResult createImage(
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = window->api;
-
 	MpgxResult mpgxResult;
 	Image imageInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -2495,8 +2423,8 @@ MpgxResult createImage(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlImage(
@@ -2533,7 +2461,7 @@ MpgxResult createImage(
 
 		if (!images)
 		{
-			if (api == VULKAN_GRAPHICS_API)
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				VkWindow vkWindow = window->vkWindow;
@@ -2546,8 +2474,8 @@ MpgxResult createImage(
 				abort();
 #endif
 			}
-			else if (api == OPENGL_GRAPHICS_API ||
-				api == OPENGL_ES_GRAPHICS_API)
+			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+				graphicsAPI == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlImage(imageInstance);
@@ -2727,9 +2655,7 @@ void destroyImage(Image image)
 		if (image != images[i])
 			continue;
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
@@ -2748,8 +2674,8 @@ void destroyImage(Image image)
 			abort();
 #endif
 		}
-		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlImage(image);
@@ -2793,9 +2719,7 @@ MpgxResult setImageData(
 	assert(!image->base.window->isRecording);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = image->base.window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow =
@@ -2817,8 +2741,8 @@ MpgxResult setImageData(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		return setGlImageData(
@@ -2913,12 +2837,10 @@ MpgxResult createSampler(
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = window->api;
-
 	MpgxResult mpgxResult;
 	Sampler samplerInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		mpgxResult = createVkSampler(
@@ -2940,8 +2862,8 @@ MpgxResult createSampler(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		if (mipmapLodBias != 0.0f)
@@ -2984,7 +2906,7 @@ MpgxResult createSampler(
 
 		if (!samplers)
 		{
-			if (api == VULKAN_GRAPHICS_API)
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				destroyVkSampler(
@@ -2994,8 +2916,8 @@ MpgxResult createSampler(
 				abort();
 #endif
 			}
-			else if (api == OPENGL_GRAPHICS_API ||
-				api == OPENGL_ES_GRAPHICS_API)
+			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+				graphicsAPI == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlSampler(samplerInstance);
@@ -3038,9 +2960,7 @@ void destroySampler(Sampler sampler)
 		if (sampler != samplers[i])
 			continue;
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
@@ -3058,8 +2978,8 @@ void destroySampler(Sampler sampler)
 			abort();
 #endif
 		}
-		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlSampler(sampler);
@@ -3170,12 +3090,10 @@ MpgxResult createShader(
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = window->api;
-
 	MpgxResult mpgxResult;
 	Shader shaderInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		mpgxResult = createVkShader(
@@ -3189,8 +3107,8 @@ MpgxResult createShader(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlShader(
@@ -3198,7 +3116,7 @@ MpgxResult createShader(
 			type,
 			code,
 			size,
-			window->api,
+			graphicsAPI,
 			&shaderInstance);
 #else
 		abort();
@@ -3255,7 +3173,7 @@ MpgxResult createShader(
 
 		if (!shaders)
 		{
-			if (api == VULKAN_GRAPHICS_API)
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				destroyVkShader(
@@ -3265,8 +3183,8 @@ MpgxResult createShader(
 				abort();
 #endif
 			}
-			else if (api == OPENGL_GRAPHICS_API ||
-				api == OPENGL_ES_GRAPHICS_API)
+			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+				graphicsAPI == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlShader(shaderInstance);
@@ -3341,12 +3259,10 @@ MpgxResult createShaderFromFile(
 		return FAILED_TO_SEEK_FILE_MPGX_RESULT;
 	}
 
-	GraphicsAPI api = window->api;
-
 	char* code;
 	size_t readSize;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 		code = malloc(fileSize);
 
@@ -3362,8 +3278,8 @@ MpgxResult createShaderFromFile(
 			fileSize,
 			file);
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 		code = malloc(fileSize + 1);
 
@@ -3427,9 +3343,7 @@ void destroyShader(Shader shader)
 		if (shader != shaders[i])
 			continue;
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			destroyVkShader(
@@ -3439,8 +3353,8 @@ void destroyShader(Shader shader)
 			abort();
 #endif
 		}
-		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlShader(shader);
@@ -3558,12 +3472,10 @@ MpgxResult createFramebuffer(
 	assert(hasSomeAttachments);
 #endif
 
-	GraphicsAPI api = window->api;
-
 	MpgxResult mpgxResult;
 	Framebuffer framebufferInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -3597,8 +3509,8 @@ MpgxResult createFramebuffer(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlFramebuffer(
@@ -3624,7 +3536,7 @@ MpgxResult createFramebuffer(
 
 	if (!addWindowFramebuffer(window, framebufferInstance))
 	{
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			destroyVkFramebuffer(
@@ -3635,8 +3547,8 @@ MpgxResult createFramebuffer(
 			abort();
 #endif
 		}
-		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(
@@ -3677,12 +3589,10 @@ MpgxResult createShadowFramebuffer(
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = window->api;
-
 	MpgxResult mpgxResult;
 	Framebuffer framebufferInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -3722,8 +3632,8 @@ MpgxResult createShadowFramebuffer(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlFramebuffer(
@@ -3749,7 +3659,7 @@ MpgxResult createShadowFramebuffer(
 
 	if (!addWindowFramebuffer(window, framebufferInstance))
 	{
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			destroyVkFramebuffer(
@@ -3760,8 +3670,8 @@ MpgxResult createShadowFramebuffer(
 			abort();
 #endif
 		}
-		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(
@@ -3801,9 +3711,7 @@ void destroyFramebuffer(
 		if (framebuffer != framebuffers[i])
 			continue;
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
@@ -3822,8 +3730,8 @@ void destroyFramebuffer(
 			abort();
 #endif
 		}
-		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(
@@ -3930,9 +3838,8 @@ MpgxResult setFramebufferAttachments(
 #endif
 
 	Window window = framebuffer->base.window;
-	GraphicsAPI api = window->api;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -3982,8 +3889,8 @@ MpgxResult setFramebufferAttachments(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		return setGlFramebufferAttachments(
@@ -4081,9 +3988,7 @@ void beginFramebufferRender(
 		}
 	}
 
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -4099,8 +4004,8 @@ void beginFramebufferRender(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		bool hasDepthStencilAttachment =
@@ -4136,9 +4041,8 @@ void endFramebufferRender(
 	assert(graphicsInitialized);
 
 	Window window = framebuffer->base.window;
-	GraphicsAPI api = window->api;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		endVkFramebufferRender(
@@ -4147,8 +4051,8 @@ void endFramebufferRender(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		endGlFramebufferRender();
@@ -4242,9 +4146,7 @@ void clearFramebuffer(
 		}
 	}
 
-	GraphicsAPI api = window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		clearVkFramebuffer(
@@ -4260,8 +4162,8 @@ void clearFramebuffer(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		clearGlFramebuffer(
@@ -4339,12 +4241,11 @@ MpgxResult createGraphicsPipeline(
 #endif
 
 	Window window = framebuffer->base.window;
-	GraphicsAPI api = window->api;
 
 	MpgxResult mpgxResult;
 	GraphicsPipeline graphicsPipelineInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		assert(createData);
@@ -4367,8 +4268,8 @@ MpgxResult createGraphicsPipeline(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		assert(!createData);
@@ -4412,7 +4313,7 @@ MpgxResult createGraphicsPipeline(
 
 		if (!graphicsPipelines)
 		{
-			if (api == VULKAN_GRAPHICS_API)
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				destroyVkGraphicsPipeline(
@@ -4423,8 +4324,8 @@ MpgxResult createGraphicsPipeline(
 				abort();
 #endif
 			}
-			else if (api == OPENGL_GRAPHICS_API ||
-				api == OPENGL_ES_GRAPHICS_API)
+			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+				graphicsAPI == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlGraphicsPipeline(
@@ -4476,9 +4377,7 @@ void destroyGraphicsPipeline(
 		graphicsPipeline->base.onDestroy(
 			graphicsPipeline->base.handle);
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
@@ -4497,8 +4396,8 @@ void destroyGraphicsPipeline(
 			abort();
 #endif
 		}
-		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlGraphicsPipeline(
@@ -4617,9 +4516,8 @@ void bindGraphicsPipeline(GraphicsPipeline graphicsPipeline)
 	assert(graphicsInitialized);
 
 	Window window = graphicsPipeline->base.framebuffer->base.window;
-	GraphicsAPI api = window->api;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		bindVkGraphicsPipeline(
@@ -4629,8 +4527,8 @@ void bindGraphicsPipeline(GraphicsPipeline graphicsPipeline)
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		bindGlGraphicsPipeline(graphicsPipeline);
@@ -4689,12 +4587,10 @@ MpgxResult createGraphicsMesh(
 	}
 #endif
 
-	GraphicsAPI api = window->api;
-
 	MpgxResult mpgxResult;
 	GraphicsMesh graphicsMeshInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		mpgxResult = createVkGraphicsMesh(
@@ -4709,8 +4605,8 @@ MpgxResult createGraphicsMesh(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlGraphicsMesh(
@@ -4745,7 +4641,7 @@ MpgxResult createGraphicsMesh(
 
 		if (!graphicsMeshes)
 		{
-			if (api == VULKAN_GRAPHICS_API)
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				destroyVkGraphicsMesh(
@@ -4755,8 +4651,8 @@ MpgxResult createGraphicsMesh(
 				abort();
 #endif
 			}
-			else if (api == OPENGL_GRAPHICS_API ||
-				api == OPENGL_ES_GRAPHICS_API)
+			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+				graphicsAPI == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlGraphicsMesh(
@@ -4803,9 +4699,7 @@ void destroyGraphicsMesh(
 		if (graphicsMesh != graphicsMeshes[i])
 			continue;
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			destroyVkGraphicsMesh(
@@ -4815,8 +4709,8 @@ void destroyGraphicsMesh(
 			abort();
 #endif
 		}
-		else if (api == OPENGL_GRAPHICS_API ||
-			api == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlGraphicsMesh(
@@ -4931,9 +4825,7 @@ void setGraphicsMeshIndexOffset(
 	}
 #endif
 
-	GraphicsAPI api = graphicsMesh->base.window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		setVkGraphicsMeshIndexOffset(
@@ -4944,8 +4836,8 @@ void setGraphicsMeshIndexOffset(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		setGlGraphicsMeshIndexOffset(
@@ -5035,9 +4927,7 @@ void setGraphicsMeshIndexBuffer(
 	graphicsMesh->base.indexCount = indexCount;
 	graphicsMesh->base.indexBuffer = indexBuffer;
 
-	GraphicsAPI api = graphicsMesh->base.window->api;
-
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		setVkGraphicsMeshIndexType(
@@ -5051,8 +4941,8 @@ void setGraphicsMeshIndexBuffer(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		setGlGraphicsMeshIndexType(
@@ -5095,9 +4985,8 @@ size_t drawGraphicsMesh(
 	assert(!graphicsMesh->base.indexBuffer->base.isMapped);
 
 	Window window = graphicsMesh->base.window;
-	GraphicsAPI api = window->api;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		drawVkGraphicsMesh(
@@ -5108,8 +4997,8 @@ size_t drawGraphicsMesh(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		drawGlGraphicsMesh(
@@ -5148,12 +5037,10 @@ MpgxResult createComputePipeline(
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = window->api;
-
 	MpgxResult mpgxResult;
 	ComputePipeline computePipelineInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		assert(createData);
@@ -5172,8 +5059,8 @@ MpgxResult createComputePipeline(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
@@ -5197,7 +5084,7 @@ MpgxResult createComputePipeline(
 
 		if (!computePipelines)
 		{
-			if (api == VULKAN_GRAPHICS_API)
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				destroyVkComputePipeline(
@@ -5248,9 +5135,7 @@ void destroyComputePipeline(
 		computePipeline->base.onDestroy(
 			computePipeline->base.handle);
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
@@ -5339,9 +5224,8 @@ void bindComputePipeline(
 	assert(graphicsInitialized);
 
 	Window window = computePipeline->base.window;
-	GraphicsAPI api = window->api;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		bindVkComputePipeline(
@@ -5368,9 +5252,8 @@ void dispatchComputePipeline(
 	assert(graphicsInitialized);
 
 	Window window = computePipeline->base.window;
-	GraphicsAPI api = window->api;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		dispatchVkComputePipeline(
@@ -5440,13 +5323,12 @@ MpgxResult createRayTracingPipeline(
 	}
 #endif
 
-	GraphicsAPI api = window->api;
 	RayTracing rayTracing = window->rayTracing;
 
 	MpgxResult mpgxResult;
 	RayTracingPipeline rayTracingPipelineInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -5472,8 +5354,8 @@ MpgxResult createRayTracingPipeline(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
@@ -5497,7 +5379,7 @@ MpgxResult createRayTracingPipeline(
 
 		if (!pipelines)
 		{
-			if (api == VULKAN_GRAPHICS_API)
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				VkWindow vkWindow = window->vkWindow;
@@ -5552,9 +5434,7 @@ void destroyRayTracingPipeline(
 		rayTracingPipeline->base.onDestroy(
 			rayTracingPipeline->base.handle);
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
@@ -5678,9 +5558,8 @@ void bindRayTracingPipeline(RayTracingPipeline rayTracingPipeline)
 	assert(graphicsInitialized);
 
 	Window window = rayTracingPipeline->base.window;
-	GraphicsAPI api = window->api;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		bindVkRayTracingPipeline(
@@ -5703,9 +5582,8 @@ void traceRayTracingPipeline(RayTracingPipeline rayTracingPipeline)
 	assert(graphicsInitialized);
 
 	Window window = rayTracingPipeline->base.window;
-	GraphicsAPI api = window->api;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		traceVkPipelineRays(
@@ -5746,13 +5624,12 @@ MpgxResult createRayTracingMesh(
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = window->api;
 	RayTracing rayTracing = window->rayTracing;
 
 	MpgxResult mpgxResult;
 	RayTracingMesh rayTracingMeshInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -5774,8 +5651,8 @@ MpgxResult createRayTracingMesh(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
@@ -5799,7 +5676,7 @@ MpgxResult createRayTracingMesh(
 
 		if (!meshes)
 		{
-			if (api == VULKAN_GRAPHICS_API)
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				VkWindow vkWindow = window->vkWindow;
@@ -5852,9 +5729,7 @@ void destroyRayTracingMesh(
 		if (rayTracingMesh != meshes[i])
 			continue;
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;
@@ -5935,13 +5810,12 @@ MpgxResult createRayTracingScene(
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
 
-	GraphicsAPI api = window->api;
 	RayTracing rayTracing = window->rayTracing;
 
 	MpgxResult mpgxResult;
 	RayTracingScene rayTracingSceneInstance;
 
-	if (api == VULKAN_GRAPHICS_API)
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
@@ -5961,8 +5835,8 @@ MpgxResult createRayTracingScene(
 		abort();
 #endif
 	}
-	else if (api == OPENGL_GRAPHICS_API ||
-		api == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
@@ -5986,7 +5860,7 @@ MpgxResult createRayTracingScene(
 
 		if (!scenes)
 		{
-			if (api == VULKAN_GRAPHICS_API)
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
 				VkWindow vkWindow = window->vkWindow;
@@ -6036,9 +5910,7 @@ void destroyRayTracingScene(RayTracingScene rayTracingScene)
 		if (rayTracingScene != scenes[i])
 			continue;
 
-		GraphicsAPI api = window->api;
-
-		if (api == VULKAN_GRAPHICS_API)
+		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
 			VkWindow vkWindow = window->vkWindow;

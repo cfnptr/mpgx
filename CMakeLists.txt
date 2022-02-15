@@ -22,6 +22,7 @@ if (TARGET mpgx)
 	return()
 endif ()
 
+option(MPGX_BUILD_SHARED "Build MPGX shared library" ON)
 option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
 option(MPGX_USE_OPENGL "Use legacy OpenGL library" ON)
 
@@ -69,20 +70,8 @@ set(MPGX_SOURCES
 	source/pipelines/texture_color_pipeline.c
 	source/pipelines/texture_sprite_pipeline.c
 
-	source/renderers/color_renderer.c
-	source/renderers/diffuse_renderer.c
-	source/renderers/simple_shadow_renderer.c
-	source/renderers/sprite_renderer.c
-	source/renderers/texture_color_renderer.c
-	source/renderers/texture_sprite_renderer.c
-	source/renderers/text_renderer.c
-
-	source/free_camera.c
-	source/graphics_renderer.c
-	source/interface.c
 	source/md5.c
 	source/text.c
-	source/transformer.c
 	source/window.c)
 
 set(MPGX_LINK_LIBRARIES
@@ -126,3 +115,17 @@ target_include_directories(mpgx-static PUBLIC
 	${PROJECT_BINARY_DIR}
 	${PROJECT_SOURCE_DIR}/include
 	${PROJECT_SOURCE_DIR}/libraries/stb)
+
+if (MPGX_BUILD_SHARED)
+	add_library(mpgx-shared SHARED
+		${MPGX_SOURCES})
+	set_target_properties(mpgx-shared PROPERTIES
+		OUTPUT_NAME "mpgx"
+		WINDOWS_EXPORT_ALL_SYMBOLS ON)
+	target_link_libraries(mpgx-shared PUBLIC
+		${MPGX_LINK_LIBRARIES})
+	target_include_directories(mpgx-shared PUBLIC
+		${PROJECT_BINARY_DIR}
+		${PROJECT_SOURCE_DIR}/include
+		${PROJECT_SOURCE_DIR}/libraries/stb)
+endif ()

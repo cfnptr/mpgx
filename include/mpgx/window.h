@@ -22,8 +22,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#define DEFAULT_WINDOW_TITLE \
+	"MPGX (v" MPGX_VERSION_STRING ")"
 #define DEFAULT_WINDOW_WIDTH 1280
 #define DEFAULT_WINDOW_HEIGHT 720
+
 #define DEFAULT_MIN_MIPMAP_LOD -1000
 #define DEFAULT_MAX_MIPMAP_LOD 1000
 #define DEFAULT_MIPMAP_LOD_BIAS 0
@@ -34,7 +37,6 @@
 #define DEFAULT_DEPTH_BIAS_SLOPE 0
 #define DEFAULT_BLEND_COLOR 0
 
-// TODO: possibly switch to the ktx texture format
 // TODO: add ability to store and load shader cache
 // TODO: add window item enumerators and count getters
 // TODO: include static vulkan library on MacOS
@@ -62,7 +64,10 @@ static const Vec4F defaultBlendColor = {
 	DEFAULT_BLEND_COLOR,
 };
 
-typedef enum KeyboardKey
+/*
+ * Keyboard key types.
+ */
+typedef enum KeyboardKey_T
 {
 	UNKNOWN_KEYBOARD_KEY = -1,
 	SPACE_KEYBOARD_KEY = 32,
@@ -186,8 +191,15 @@ typedef enum KeyboardKey
 	RIGHT_SUPER_KEYBOARD_KEY = 347,
 	MENU_KEYBOARD_KEY = 348,
 	LAST_KEYBOARD_KEY = MENU_KEYBOARD_KEY,
-} KeyboardKey;
+} KeyboardKey_T;
+/*
+ * Keyboard key type.
+ */
+typedef int KeyboardKey;
 
+/*
+ * Mouse button types.
+ */
 typedef enum MouseButton_T
 {
 	N1_MOUSE_BUTTON = 0,
@@ -203,16 +215,28 @@ typedef enum MouseButton_T
 	RIGHT_MOUSE_BUTTON = N2_MOUSE_BUTTON,
 	MIDDLE_MOUSE_BUTTON = N3_MOUSE_BUTTON,
 } MouseButton_T;
+/*
+ * Mouse button type.
+ */
+typedef int MouseButton;
 
-typedef uint8_t MouseButton;
-
-typedef enum CursorMode
+/*
+ * Cursor modes.
+ */
+typedef enum CursorMode_T
 {
 	DEFAULT_CURSOR_MODE = 0x00034001,
 	HIDDEN_CURSOR_MODE = 0x00034002,
 	LOCKED_CURSOR_MODE = 0x00034003,
-} CursorMode;
+} CursorMode_T;
+/*
+ * Cursor mode mask.
+ */
+typedef int CursorMode;
 
+/*
+ * Cursor types.
+ */
 typedef enum CursorType_T
 {
 	DEFAULT_CURSOR_TYPE = 0,
@@ -223,9 +247,14 @@ typedef enum CursorType_T
 	VRESIZE_CURSOR_TYPE = 5,
 	CURSOR_TYPE_COUNT = 6,
 } CursorType_T;
-
+/*
+ * Cursor type.
+ */
 typedef uint8_t CursorType;
 
+/*
+ * Buffer types.
+ */
 typedef enum BufferType_T
 {
 	VERTEX_BUFFER_TYPE = 0b00000001,
@@ -235,9 +264,14 @@ typedef enum BufferType_T
 	TRANSFER_SOURCE_BUFFER_TYPE = 0b00010000,
 	TRANSFER_DESTINATION_BUFFER_TYPE = 0b00100000,
 } BufferType_T;
-
+/*
+ * Buffer type mask.
+ */
 typedef uint8_t BufferType;
 
+/*
+ * Buffer usage types.
+ */
 typedef enum BufferUsage_T
 {
 	CPU_ONLY_BUFFER_USAGE = 0,
@@ -246,9 +280,14 @@ typedef enum BufferUsage_T
 	GPU_TO_CPU_BUFFER_USAGE = 3,
 	BUFFER_USAGE_COUNT = 4,
 } BufferUsage_T;
+/*
+ * Buffer usage type.
+ */
+typedef uint8_t BufferUsage;
 
-typedef uint8_t BufferUsage;;
-
+/*
+ * Image dimension types.
+ */
 typedef enum ImageDimension_T
 {
 	IMAGE_1D = 0,
@@ -256,9 +295,14 @@ typedef enum ImageDimension_T
 	IMAGE_3D = 2,
 	IMAGE_DIMENSION_COUNT = 3,
 } ImageDimension_T;
-
+/*
+ * Image dimension type.
+ */
 typedef uint8_t ImageDimension;
 
+/*
+ * Image types.
+ */
 typedef enum ImageType_T
 {
 	SAMPLED_IMAGE_TYPE = 0b00000001,
@@ -268,9 +312,14 @@ typedef enum ImageType_T
 	TRANSFER_SOURCE_IMAGE_TYPE = 0b00010000,
 	TRANSFER_DESTINATION_IMAGE_TYPE = 0b00100000,
 } ImageType_T;
-
+/*
+ * Image type mask.
+ */
 typedef uint8_t ImageType;
 
+/*
+ * Image format types.
+ */
 typedef enum ImageFormat_T
 {
 	R8_UNORM_IMAGE_FORMAT = 0,
@@ -285,18 +334,28 @@ typedef enum ImageFormat_T
 	D32_SFLOAT_S8_UINT_IMAGE_FORMAT = 9,
 	IMAGE_FORMAT_COUNT = 10,
 } ImageFormat_T;
-
+/*
+ * Image format type.
+ */
 typedef uint8_t ImageFormat;
 
+/*
+ * Image filter types.
+ */
 typedef enum ImageFilter_T
 {
 	LINEAR_IMAGE_FILTER = 0,
 	NEAREST_IMAGE_FILTER = 1,
 	IMAGE_FILTER_COUNT = 2,
 } ImageFilter_T;
-
+/*
+ * Image filter type.
+ */
 typedef uint8_t ImageFilter;
 
+/*
+ * Image wrap types.
+ */
 typedef enum ImageWrap_T
 {
 	REPEAT_IMAGE_WRAP = 0,
@@ -306,9 +365,14 @@ typedef enum ImageWrap_T
 	MIRROR_CLAMP_TO_EDGE_IMAGE_WRAP = 4,
 	IMAGE_WRAP_COUNT = 5,
 } ImageWrap_T;
-
+/*
+ * Image wrap type.
+ */
 typedef uint8_t ImageWrap;
 
+/*
+ * Shader types.
+ */
 typedef enum ShaderType_T
 {
 	VERTEX_SHADER_TYPE = 0,
@@ -324,9 +388,14 @@ typedef enum ShaderType_T
 	// TODO: any hit, intersection, callable,
 	// task mesh shaders
 } ShaderType_T;
-
+/*
+ * Shader type.
+ */
 typedef uint8_t ShaderType;
 
+/*
+ * Draw mode types.
+ */
 typedef enum DrawMode_T
 {
 	POINT_LIST_DRAW_MODE = 0,
@@ -343,9 +412,14 @@ typedef enum DrawMode_T
 	PATCH_LIST_DRAW_MODE = 11,
 	DRAW_MODE_COUNT = 12,
 } DrawMode_T;
-
+/*
+ * Draw mode type.
+ */
 typedef uint8_t DrawMode;
 
+/*
+ * Polygon mode types.
+ */
 typedef enum PolygonMode_T
 {
 	POINT_POLYGON_MODE = 0,
@@ -353,9 +427,14 @@ typedef enum PolygonMode_T
 	FILL_POLYGON_MODE = 2,
 	POLYGON_MODE_COUNT = 3,
 } PolygonMode_T;
-
+/*
+ * Polygon mode type.
+ */
 typedef uint8_t PolygonMode;
 
+/*
+ * Cull mode types.
+ */
 typedef enum CullMode_T
 {
 	FRONT_CULL_MODE = 0,
@@ -363,9 +442,14 @@ typedef enum CullMode_T
 	FRONT_AND_BACK_CULL_MODE = 2,
 	CULL_MODE_COUNT = 3,
 } CullMode_T;
-
+/*
+ * Cull mode type.
+ */
 typedef uint8_t CullMode;
 
+/*
+ * Compare operator types.
+ */
 typedef enum CompareOperator_T
 {
 	LESS_OR_EQUAL_COMPARE_OPERATOR = 0,
@@ -378,9 +462,14 @@ typedef enum CompareOperator_T
 	NEVER_COMPARE_OPERATOR = 7,
 	COMPARE_OPERATOR_COUNT = 8,
 } CompareOperator_T;
-
+/*
+ * Compare operator type.
+ */
 typedef uint8_t CompareOperator;
 
+/*
+ * Color component types.
+ */
 typedef enum ColorComponent_T
 {
 	NONE_COLOR_COMPONENT = 0b0000,
@@ -390,10 +479,15 @@ typedef enum ColorComponent_T
 	ALPHA_COLOR_COMPONENT = 0b1000,
 	ALL_COLOR_COMPONENT = 0b1111,
 } ColorComponent_T;
-
+/*
+ * Color component mask.
+ */
 typedef uint8_t ColorComponent;
 #define COLOR_COMPONENT_COUNT 5
 
+/*
+ * Blend factor types.
+ */
 typedef enum BlendFactor_T
 {
 	ZERO_BLEND_FACTOR = 0,
@@ -417,9 +511,14 @@ typedef enum BlendFactor_T
 	ONE_MINUS_SOURCE_ONE_ALPHA_BLEND_FACTOR = 18,
 	BLEND_FACTOR_COUNT = 19,
 } BlendFactor_T;
-
+/*
+ * Blend factor type.
+ */
 typedef uint8_t BlendFactor;
 
+/*
+ * Blend operator types.
+ */
 typedef enum BlendOperator_T
 {
 	ADD_BLEND_OPERATOR = 0,
@@ -430,28 +529,45 @@ typedef enum BlendOperator_T
 	BLEND_OPERATOR_COUNT = 5,
 } BlendOperator_T;
 
+/*
+ * Blend operator type.
+ */
 typedef uint8_t BlendOperator;
 
+/*
+ * Buffer index types.
+ */
 typedef enum IndexType_T
 {
 	UINT16_INDEX_TYPE = 0,
 	UINT32_INDEX_TYPE = 1,
 	INDEX_TYPE_COUNT = 2,
 } IndexType_T;
-
+/*
+ * Buffer index type.
+ */
 typedef uint8_t IndexType;
 
+/*
+ * Framebuffer depth stencil clear data structure.
+ */
 typedef struct DepthStencilClear
 {
 	float depth;
 	uint32_t stencil;
 } DepthStencilClear;
+/*
+ * Framebuffer clear data structure.
+ */
 typedef union FramebufferClear
 {
 	LinearColor color;
 	DepthStencilClear depthStencil;
 } FramebufferClear;
 
+/*
+ * Graphics pipeline state structure.
+ */
 typedef struct GraphicsPipelineState
 {
 	DrawMode drawMode;
@@ -482,171 +598,519 @@ typedef struct GraphicsPipelineState
 	Vec4F blendColor;
 } GraphicsPipelineState;
 
+/*
+ * Window structure.
+ */
 typedef struct Window_T Window_T;
+/*
+ * Window instance.
+ */
 typedef Window_T* Window;
+/*
+ * Buffer structure.
+ */
 typedef union Buffer_T Buffer_T;
+/*
+ * Buffer instance.
+ */
 typedef Buffer_T* Buffer;
+/*
+ * Image structure.
+ */
 typedef union Image_T Image_T;
+/*
+ * Image instance.
+ */
 typedef Image_T* Image;
+/*
+ * Sampler structure.
+ */
 typedef union Sampler_T Sampler_T;
+/*
+ * Sampler instance.
+ */
 typedef Sampler_T* Sampler;
+/*
+ * Graphics pipeline structure.
+ */
 typedef union GraphicsPipeline_T GraphicsPipeline_T;
+/*
+ * Graphics pipeline instance.
+ */
 typedef GraphicsPipeline_T* GraphicsPipeline;
+/*
+ * Framebuffer structure.
+ */
 typedef union Framebuffer_T Framebuffer_T;
+/*
+ * Framebuffer instance.
+ */
 typedef Framebuffer_T* Framebuffer;
+/*
+ * Shader structure.
+ */
 typedef union Shader_T Shader_T;
+/*
+ * Shader instance.
+ */
 typedef Shader_T* Shader;
+/*
+ * Graphics mesh structure.
+ */
 typedef union GraphicsMesh_T GraphicsMesh_T;
+/*
+ * Graphics mesh instance.
+ */
 typedef GraphicsMesh_T* GraphicsMesh;
+/*
+ * Compute pipeline structure.
+ */
 typedef union ComputePipeline_T ComputePipeline_T;
+/*
+ * Compute pipeline instance.
+ */
 typedef ComputePipeline_T* ComputePipeline;
+/*
+ * Ray tracing pipeline structure.
+ */
 typedef union RayTracingPipeline_T RayTracingPipeline_T;
+/*
+ * Ray tracing pipeline instance.
+ */
 typedef RayTracingPipeline_T* RayTracingPipeline;
+/*
+ * Ray tracing mesh structure.
+ */
 typedef union RayTracingMesh_T RayTracingMesh_T;
+/*
+ * Ray tracing mesh instance.
+ */
 typedef RayTracingMesh_T* RayTracingMesh;
+/*
+ * Ray tracing scene structure.
+ */
 typedef union RayTracingScene_T RayTracingScene_T;
+/*
+ * Ray tracing scene instance.
+ */
 typedef RayTracingScene_T* RayTracingScene;
 
+// TODO: remove.
 typedef struct ImageData_T ImageData_T;
 typedef ImageData_T* ImageData;
 
+/*
+ * Window update function.
+ */
 typedef void(*OnWindowUpdate)(void* argument);
 
+/*
+ * Graphics pipeline destroy function.
+ */
 typedef void(*OnGraphicsPipelineDestroy)(void* handle);
+/*
+ * Graphics pipeline bind function.
+ */
 typedef void(*OnGraphicsPipelineBind)(
 	GraphicsPipeline graphicsPipeline);
+/*
+ * Graphics pipeline uniforms set function.
+ */
 typedef void(*OnGraphicsPipelineUniformsSet)(
 	GraphicsPipeline graphicsPipeline);
+/*
+ * Graphics pipeline resize function.
+ */
 typedef MpgxResult(*OnGraphicsPipelineResize)(
 	GraphicsPipeline graphicsPipeline,
 	Vec2I newSize,
 	void* createData);
 
+/*
+ * Compute pipeline destroy function.
+ */
 typedef void(*OnComputePipelineDestroy)(void* handle);
+/*
+ * Compute pipeline bind function.
+ */
 typedef void(*OnComputePipelineBind)(
 	ComputePipeline computePipeline);
 
+/*
+ * Ray tracing pipeline destroy function.
+ */
 typedef void(*OnRayTracingPipelineDestroy)(void* handle);
+/*
+ * Ray tracing pipeline bind function.
+ */
 typedef void(*OnRayTracingPipelineBind)(
 	RayTracingPipeline rayTracingPipeline);
 
+/*
+ * Initialize graphics subsystems.
+ * Returns operation MPGX result.
+ *
+ * Provided information can be used to optimize rendering.
+ *
+ * engineName - engine name string.
+ * engineVersionMajor - major engine version.
+ * engineVersionMinor - minor engine version.
+ * engineVersionPatch - patch engine version.
+ * appName - application name string.
+ * appVersionMajor - major application version.
+ * appVersionMinor - minor application version.
+ * appVersionPatch - patch application version.
+ */
 MpgxResult initializeGraphics(
+	GraphicsAPI api,
+	const char* engineName,
+	uint8_t engineVersionMajor,
+	uint8_t engineVersionMinor,
+	uint8_t engineVersionPatch,
 	const char* appName,
 	uint8_t appVersionMajor,
 	uint8_t appVersionMinor,
 	uint8_t appVersionPatch);
+/*
+ * Terminates graphics subsystems.
+ */
 void terminateGraphics();
+/*
+ * Returns true if graphics subsystems are initialized.
+ */
 bool isGraphicsInitialized();
+/*
+ * Returns graphics subsystem API.
+ */
+GraphicsAPI getGraphicsAPI();
 
+/*
+ * Returns Free Type library instance.
+ */
 void* getFtLibrary();
 
+/*
+ * Create a new window instance.
+ * Returns operation MPGX result.
+ *
+ * onUpdate - on window update function.
+ * updateArgument - onUpdate function argument.
+ * useStencilBuffer - use stencil buffer in the framebuffer.
+ * useRayTracing - use ray tracing extension.
+ * parent - window parent or NULL.
+ * window - pointer to the window.
+ */
 MpgxResult createWindow(
-	GraphicsAPI api,
-	Vec2I size,
-	const char* title,
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
-	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
 	bool useRayTracing,
-	bool isVisible,
+	Window parent,
 	Window* window);
-MpgxResult createAnyWindow(
-	Vec2I size,
-	const char* title,
-	OnWindowUpdate onUpdate,
-	void* updateArgument,
-	bool useVsync,
-	bool useStencilBuffer,
-	bool useBeginClear,
-	bool useRayTracing,
-	bool isVisible,
-	Window* window);
+/*
+ * Destroys window instance.
+ * window - pointer to the window or NULL.
+ */
 void destroyWindow(Window window);
 
-GraphicsAPI getWindowGraphicsAPI(Window window);
-bool isWindowUseVsync(Window window);
+/*
+ * Returns window parent.
+ * window - window instance.
+ */
+Window getWindowParent(Window window);
+/*
+ * Returns true if window uses stencil buffer.
+ * window - window instance.
+ */
 bool isWindowUseStencilBuffer(Window window);
+/*
+ * Returns true if window uses ray tracing extension.
+ * window - window instance.
+ */
 bool isWindowUseRayTracing(Window window);
+/*
+ * Returns window on update function.
+ * window - window instance.
+ */
 OnWindowUpdate getWindowOnUpdate(Window window);
+/*
+ * Returns window on update function argument.
+ * window - window instance.
+ */
 void* getWindowUpdateArgument(Window window);
+/*
+ * Returns current frame window input character buffer.
+ * window - window instance.
+ */
 const uint32_t* getWindowInputBuffer(Window window);
+/*
+ * Returns current window frame character
+ * count in the input buffer.
+ *
+ * window - window instance.
+ */
 size_t getWindowInputLength(Window window);
+/*
+ * Returns default window framebuffer.
+ * window - window instance.
+ */
 Framebuffer getWindowFramebuffer(Window window);
+/*
+ * Returns current window frame time.
+ * window - window instance.
+ */
 double getWindowUpdateTime(Window window);
+/*
+ * Returns current window frame delta time.
+ * window - window instance.
+ */
 double getWindowDeltaTime(Window window);
+/*
+ * Returns window content scale.
+ * window - window instance.
+ */
 Vec2F getWindowContentScale(Window window);
+/*
+ * Returns window GPU name.
+ * window - window instance.
+ */
 const char* getWindowGpuName(Window window);
 
+/*
+ * Returns Vulkan window instance.
+ * window - window instance.
+ */
 void* getVkWindow(Window window);
+/*
+ * Returns true if Vulkan window device is integrated.
+ * window - window instance.
+ */
 bool isVkDeviceIntegrated(Window window);
 
+/*
+ * Returns true if specified window keyboard key is pressed.
+ *
+ * window - window instance.
+ * key - keyboard key type.
+ */
 bool getWindowKeyboardKey(
 	Window window,
 	KeyboardKey key);
+/*
+ * Returns true if specified window mouse button is pressed.
+ *
+ * window - window instance.
+ * button - mouse button type.
+ */
 bool getWindowMouseButton(
 	Window window,
 	MouseButton button);
 
+/*
+ * Returns true if window use VSync.
+ * window - window instance.
+ */
+bool isWindowUseVsync(
+	Window window);
+/*
+ * Sets window VSync use value.
+ *
+ * window - window instance.
+ * useVsync - use VSync value.
+ */
+void setWindowUseVsync(
+	Window window,
+	bool useVsync);
+
+/*
+ * Returns current window clipboard data.
+ * window - window instance.
+ */
 const char* getWindowClipboard(
 	Window window);
+/*
+ * Sets window clipboard data.
+ *
+ * window - window instance.
+ * clipboard - clipboard data.
+ */
 void setWindowClipboard(
 	Window window,
 	const char* clipboard);
 
+/*
+ * Returns current window size.
+ * window - window instance.
+ */
 Vec2I getWindowSize(
 	Window window);
+/*
+ * Sets window size.
+ *
+ * window - window instance.
+ * size - window size.
+ */
 void setWindowSize(
 	Window window,
 	Vec2I size);
 
+/*
+ * Returns current window position.
+ * window - window instance.
+ */
 Vec2I getWindowPosition(
 	Window window);
+/*
+ * Sets window position.
+ *
+ * window - window instance.
+ * position - window position.
+ */
 void setWindowPosition(
 	Window window,
 	Vec2I position);
 
+/*
+ * Returns current window cursor position.
+ * window - window instance.
+ */
 Vec2F getWindowCursorPosition(
 	Window window);
+/*
+ * Sets window cursor position.
+ *
+ * window - window instance.
+ * position - cursor position.
+ */
 void setWindowCursorPosition(
 	Window window,
 	Vec2F position);
 
+/*
+ * Returns window cursor mode.
+ * window - window instance.
+ */
 CursorMode getWindowCursorMode(
 	Window window);
+/*
+ * Sets window cursor mode.
+ *
+ * window - window instance.
+ * mode - cursor mode type.
+ */
 void setWindowCursorMode(
 	Window window,
-	CursorMode cursorMode);
+	CursorMode mode);
 
+/*
+ * Returns window cursor type.
+ * window - window instance.
+ */
 CursorType getWindowCursorType(
 	Window window);
+/*
+ * Sets window cursor type.
+ *
+ * window - window instance.
+ * type - cursor type.
+ */
 void setWindowCursorType(
 	Window window,
-	CursorType cursorType);
+	CursorType type);
 
+/*
+ * Sets window title.
+ *
+ * window - window instance.
+ * type - window title string.
+ */
 void setWindowTitle(
 	Window window,
 	const char* title);
 
+/*
+ * Returns true if window is focused.
+ * window - window instance.
+ */
 bool isWindowFocused(Window window);
+/*
+ * Returns true if window is iconified.
+ * window - window instance.
+ */
 bool isWindowIconified(Window window);
+/*
+ * Returns true if window is maximized.
+ * window - window instance.
+ */
 bool isWindowMaximized(Window window);
+/*
+ * Returns true if window is visible.
+ * window - window instance.
+ */
 bool isWindowVisible(Window window);
+/*
+ * Returns true if window is hovered.
+ * window - window instance.
+ */
 bool isWindowHovered(Window window);
 
+/*
+ * Iconifies window.
+ * window - window instance.
+ */
 void iconifyWindow(Window window);
+/*
+ * Maximizes window.
+ * window - window instance.
+ */
 void maximizeWindow(Window window);
+/*
+ * Restores window.
+ * window - window instance.
+ */
 void restoreWindow(Window window);
+/*
+ * Shows window.
+ * window - window instance.
+ */
 void showWindow(Window window);
+/*
+ * Hides window.
+ * window - window instance.
+ */
 void hideWindow(Window window);
+/*
+ * Focuses window.
+ * window - window instance.
+ */
 void focusWindow(Window window);
+/*
+ * Request window attention window.
+ * window - window instance.
+ */
 void requestWindowAttention(Window window);
 
-void makeWindowContextCurrent(Window window);
-void updateWindow(Window window);
+/*
+ * Makes OpenGL window context current.
+ * window - window instance.
+ */
+void makeGlWindowContextCurrent(Window window);
+/*
+ * Joins window update loop.
+ * window - window instance.
+ */
+void joinWindow(Window window);
 
+/*
+ * Begins window rendering command record.
+ * window - window instance.
+ */
 MpgxResult beginWindowRecord(Window window);
+/*
+ * Ends window rendering command record.
+ * window - window instance.
+ */
 void endWindowRecord(Window window);
 
 // TODO: make create buffer/image/ray mesh batching system. (Vulkan)

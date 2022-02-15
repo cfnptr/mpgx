@@ -932,7 +932,7 @@ inline static void destroyGlFramebuffer(
 
 	if (framebuffer->gl.isDefault == false)
 	{
-		makeWindowContextCurrent(
+		makeGlWindowContextCurrent(
 			framebuffer->gl.window);
 		glDeleteFramebuffers(
 			GL_ONE,
@@ -1029,7 +1029,7 @@ inline static MpgxResult createGlFramebuffer(
 	framebufferInstance->gl.isDefault = false;
 	framebufferInstance->gl.useBeginClear = useBeginClear;
 
-	makeWindowContextCurrent(window);
+	makeGlWindowContextCurrent(window);
 
 	GLuint handle = GL_ZERO;
 

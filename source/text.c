@@ -1359,7 +1359,7 @@ MpgxResult createText32(
 		return mpgxResult;
 	}
 
-	GraphicsAPI api = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getGraphicsAPI();
 
 #if MPGX_SUPPORT_VULKAN
 	if (api == VULKAN_GRAPHICS_API)
@@ -1536,9 +1536,7 @@ void destroyText(Text text)
 
 #if MPGX_SUPPORT_VULKAN
 		GraphicsPipeline pipeline = text->pipeline;
-
-		GraphicsAPI api = getWindowGraphicsAPI(
-			pipeline->base.framebuffer->base.window);
+		GraphicsAPI api = getGraphicsAPI();
 
 		if (api == VULKAN_GRAPHICS_API)
 		{
@@ -1891,7 +1889,7 @@ MpgxResult bakeText(
 
 	GraphicsPipeline pipeline = text->pipeline;
 	Window window = pipeline->base.framebuffer->base.window;
-	GraphicsAPI api = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getGraphicsAPI();
 
 	uint32_t* data = text->data;
 	size_t dataLength = text->dataLength;
@@ -2396,7 +2394,7 @@ size_t drawText(
 	bool dynamicScissor = scissor.z + scissor.w != 0;
 
 	Window window = pipeline->base.framebuffer->base.window;
-	GraphicsAPI api = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getGraphicsAPI();
 
 	if (api == VULKAN_GRAPHICS_API)
 	{
@@ -2968,7 +2966,7 @@ MpgxResult createTextPipelineExt(
 		fragmentShader,
 	};
 
-	GraphicsAPI api = getWindowGraphicsAPI(window);
+	GraphicsAPI api = getGraphicsAPI();
 
 	if (api == VULKAN_GRAPHICS_API)
 	{

@@ -1043,7 +1043,7 @@ inline static void destroyGlGraphicsPipeline(
 	if (!graphicsPipeline)
 		return;
 
-	makeWindowContextCurrent(
+	makeGlWindowContextCurrent(
 		graphicsPipeline->gl.framebuffer->gl.window);
 
 	glDeleteProgram(graphicsPipeline->gl.glHandle);
@@ -1182,7 +1182,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 		state.clockwiseFrontFace ? GL_CW : GL_CCW;
 
 	Window window = framebuffer->gl.window;
-	makeWindowContextCurrent(window);
+	makeGlWindowContextCurrent(window);
 
 	GLuint glHandle = glCreateProgram();
 	graphicsPipelineInstance->gl.glHandle = glHandle;

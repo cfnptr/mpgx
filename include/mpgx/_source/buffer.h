@@ -567,7 +567,7 @@ inline static void destroyGlBuffer(
 	if (!buffer)
 		return;
 
-	makeWindowContextCurrent(
+	makeGlWindowContextCurrent(
 		buffer->gl.window);
 
 	glDeleteBuffers(
@@ -629,7 +629,7 @@ inline static MpgxResult createGlBuffer(
 
 	bufferInstance->gl.glType = glType;
 
-	makeWindowContextCurrent(window);
+	makeGlWindowContextCurrent(window);
 
 	GLuint handle = GL_ZERO;
 

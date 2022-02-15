@@ -195,7 +195,7 @@ inline static void destroyGlGraphicsMesh(
 	if (!graphicsMesh)
 		return;
 
-	makeWindowContextCurrent(
+	makeGlWindowContextCurrent(
 		graphicsMesh->gl.window);
 
 	glDeleteVertexArrays(
@@ -252,7 +252,7 @@ inline static MpgxResult createGlGraphicsMesh(
 		abort();
 	}
 
-	makeWindowContextCurrent(window);
+	makeGlWindowContextCurrent(window);
 
 	GLuint handle = GL_ZERO;
 

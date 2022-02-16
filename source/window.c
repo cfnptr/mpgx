@@ -1184,16 +1184,24 @@ void setWindowUseVsync(
 
 	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_VULKAN
 		Vec2I newSize = getFramebufferSize(window->framebuffer);
 		MpgxResult mpgxResult = onVkResize(window, newSize);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 			abort(); // TODO: possibly return result?
+#else
+		abort();
+#endif
 	}
 	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
 		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
+#if MPGX_SUPPORT_OPENGL
 		glfwSwapInterval(useVsync ? 1 : 0);
+#else
+		abort();
+#endif
 	}
 	else
 	{

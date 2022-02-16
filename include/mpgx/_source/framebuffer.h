@@ -989,7 +989,7 @@ inline static MpgxResult createGlDefaultFramebuffer(
 
 	if (!graphicsPipelines)
 	{
-		free(framebuffer);
+		free(framebufferInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 

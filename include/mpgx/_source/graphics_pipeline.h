@@ -388,7 +388,7 @@ inline static MpgxResult createVkGraphicsPipelineHandle(
 	if (!result)
 	{
 		free(shaderStageCreateInfos);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	VkFrontFace vkFrontFace = state.clockwiseFrontFace ?
@@ -1164,7 +1164,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 		destroyGlGraphicsPipeline(
 			graphicsPipelineInstance,
 			false);
-		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	graphicsPipelineInstance->gl.drawMode = drawMode;

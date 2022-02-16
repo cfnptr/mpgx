@@ -168,7 +168,7 @@ inline static MpgxResult createVkGeneralRenderPass(
 		default:
 			free(colorReferences);
 			free(attachmentDescriptions);
-			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+			return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 		case D16_UNORM_IMAGE_FORMAT:
 		case D32_SFLOAT_IMAGE_FORMAT:
 			stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -989,7 +989,9 @@ inline static MpgxResult createGlDefaultFramebuffer(
 
 	if (!graphicsPipelines)
 	{
-		free(framebufferInstance);
+		destroyGlFramebuffer(
+			framebufferInstance,
+			false);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -1083,7 +1085,7 @@ inline static MpgxResult createGlFramebuffer(
 				destroyGlFramebuffer(
 					framebufferInstance,
 					false);
-				return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+				return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 			case R8_UNORM_IMAGE_FORMAT:
 			case R8G8B8A8_UNORM_IMAGE_FORMAT:
 			case R8G8B8A8_SRGB_IMAGE_FORMAT:
@@ -1127,7 +1129,7 @@ inline static MpgxResult createGlFramebuffer(
 			destroyGlFramebuffer(
 				framebufferInstance,
 				false);
-			return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+			return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 		case D16_UNORM_IMAGE_FORMAT:
 		case D32_SFLOAT_IMAGE_FORMAT:
 			glFramebufferTexture2D(

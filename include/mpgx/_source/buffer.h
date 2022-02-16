@@ -308,7 +308,7 @@ inline static MpgxResult createVkBuffer(
 		destroyVkBuffer(
 			allocator,
 			bufferInstance);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	case CPU_ONLY_BUFFER_USAGE:
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 		break;
@@ -624,7 +624,7 @@ inline static MpgxResult createGlBuffer(
 	else
 	{
 		destroyGlBuffer(bufferInstance);
-		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	bufferInstance->gl.glType = glType;
@@ -645,7 +645,7 @@ inline static MpgxResult createGlBuffer(
 	{
 	default:
 		destroyGlBuffer(bufferInstance);
-		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	case CPU_ONLY_BUFFER_USAGE:
 		glUsage = GL_STATIC_COPY;
 		break;

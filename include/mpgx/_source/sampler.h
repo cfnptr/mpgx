@@ -254,7 +254,7 @@ inline static MpgxResult createVkSampler(
 		destroyVkSampler(
 			device,
 			samplerInstance);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	VkSamplerCreateInfo createInfo = {
@@ -493,7 +493,7 @@ inline static MpgxResult createGlSampler(
 	if (!result)
 	{
 		destroyGlSampler(samplerInstance);
-		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	GLint compareMode = useCompare ?

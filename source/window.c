@@ -2620,7 +2620,7 @@ MpgxResult createSampler(
 	{
 #if MPGX_SUPPORT_OPENGL
 		if (mipmapLodBias != 0.0f)
-			return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+			return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 
 		mpgxResult = createGlSampler(
 			window,
@@ -3912,7 +3912,7 @@ MpgxResult createGraphicsPipeline(
 		assert(!createData);
 
 		if (state->discardRasterizer)
-			return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+			return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 
 		mpgxResult = createGlGraphicsPipeline(
 			framebuffer,

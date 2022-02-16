@@ -542,7 +542,7 @@ inline static MpgxResult createVkRayTracingMesh(
 			rayTracing,
 			rayTracingMeshInstance,
 			false);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	VkBufferDeviceAddressInfo bufferDeviceAddressInfo = {

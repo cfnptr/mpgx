@@ -172,7 +172,7 @@ inline static MpgxResult createVkImage(
 			device,
 			allocator,
 			imageInstance);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	VkFormat vkFormat;
@@ -201,7 +201,7 @@ inline static MpgxResult createVkImage(
 			device,
 			allocator,
 			imageInstance);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	case R8_UNORM_IMAGE_FORMAT:
 		vkFormat = VK_FORMAT_R8_UNORM;
 		vkAspect = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -821,7 +821,7 @@ inline static MpgxResult createGlImage(
 		!(type & COLOR_ATTACHMENT_IMAGE_TYPE) &&
 		!(type & DEPTH_STENCIL_ATTACHMENT_IMAGE_TYPE))
 	{
-		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	// TODO: use isAttachment for renderbuffer optimization
@@ -851,7 +851,7 @@ inline static MpgxResult createGlImage(
 	else
 	{
 		destroyGlImage(imageInstance);
-		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	imageInstance->gl.glType = glType;
@@ -864,7 +864,7 @@ inline static MpgxResult createGlImage(
 	{
 	default:
 		destroyGlImage(imageInstance);
-		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	case R8_UNORM_IMAGE_FORMAT:
 		glFormat = GL_R8;
 		dataFormat = GL_RED;

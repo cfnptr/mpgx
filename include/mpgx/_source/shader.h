@@ -119,7 +119,7 @@ inline static MpgxResult createVkShader(
 		destroyVkShader(
 			device,
 			shaderInstance);
-		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	case VERTEX_SHADER_TYPE:
 		stage = VK_SHADER_STAGE_VERTEX_BIT;
 		break;
@@ -253,7 +253,7 @@ inline static MpgxResult createGlShader(
 	if (!getGlShaderType(type, &glType))
 	{
 		destroyGlShader(shaderInstance);
-		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
+		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
 	const char* sources[2];

@@ -253,7 +253,6 @@ MpgxResult initializeGraphics(
 #endif
 
 #else
-		terminateFreeTypeLibrary(ftLibrary);
 		glfwTerminate();
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 #endif

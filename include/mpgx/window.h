@@ -1457,3 +1457,5 @@ size_t getRayTracingSceneMeshCount(RayTracingScene rayTracingScene);
 
 // TODO: add functions:
 // create group: buffer, image, ray mesh
+
+// TODO: add hash checking system for the images and pipelines.

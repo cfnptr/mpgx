@@ -13,12 +13,6 @@
 [submodule "libraries/glad"]
 	path = libraries/glad
 	url = https://github.com/cfnptr/glad
-[submodule "libraries/stb"]
-	path = libraries/stb
-	url = https://github.com/nothings/stb
 [submodule "libraries/mpmt"]
 	path = libraries/mpmt
 	url = https://github.com/cfnptr/mpmt
-[submodule "libraries/mpio"]
-	path = libraries/mpio
-	url = https://github.com/cfnptr/mpio

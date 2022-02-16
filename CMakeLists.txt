@@ -22,7 +22,6 @@ if (TARGET mpgx)
 	return()
 endif ()
 
-option(MPGX_BUILD_SHARED "Build MPGX shared library" ON)
 option(MPGX_USE_VULKAN "Use modern Vulkan API library" ON)
 option(MPGX_USE_OPENGL "Use legacy OpenGL library" ON)
 
@@ -45,7 +44,6 @@ project(mpgx
 
 add_subdirectory(libraries/cmmt)
 add_subdirectory(libraries/glad)
-add_subdirectory(libraries/mpio)
 
 set(CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz ON CACHE BOOL "" FORCE)
 add_subdirectory(libraries/freetype)
@@ -75,7 +73,7 @@ set(MPGX_SOURCES
 	source/window.c)
 
 set(MPGX_LINK_LIBRARIES
-	cmmt freetype glfw mpio mpmt)
+	cmmt freetype glfw mpmt)
 
 if (MPGX_USE_VULKAN)
 	find_package(Vulkan)
@@ -113,19 +111,4 @@ target_link_libraries(mpgx-static PUBLIC
 	${MPGX_LINK_LIBRARIES})
 target_include_directories(mpgx-static PUBLIC
 	${PROJECT_BINARY_DIR}
-	${PROJECT_SOURCE_DIR}/include
-	${PROJECT_SOURCE_DIR}/libraries/stb)
-
-if (MPGX_BUILD_SHARED)
-	add_library(mpgx-shared SHARED
-		${MPGX_SOURCES})
-	set_target_properties(mpgx-shared PROPERTIES
-		OUTPUT_NAME "mpgx"
-		WINDOWS_EXPORT_ALL_SYMBOLS ON)
-	target_link_libraries(mpgx-shared PUBLIC
-		${MPGX_LINK_LIBRARIES})
-	target_include_directories(mpgx-shared PUBLIC
-		${PROJECT_BINARY_DIR}
-		${PROJECT_SOURCE_DIR}/include
-		${PROJECT_SOURCE_DIR}/libraries/stb)
-endif ()
+	${PROJECT_SOURCE_DIR}/include)

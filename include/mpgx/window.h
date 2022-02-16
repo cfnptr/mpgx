@@ -695,10 +695,6 @@ typedef union RayTracingScene_T RayTracingScene_T;
  */
 typedef RayTracingScene_T* RayTracingScene;
 
-// TODO: remove.
-typedef struct ImageData_T ImageData_T;
-typedef ImageData_T* ImageData;
-
 /*
  * Window update function.
  */
@@ -1143,21 +1139,6 @@ MpgxResult setBufferData(
 	size_t size,
 	size_t offset);
 
-MpgxResult createImageData(
-	const void* data,
-	size_t size,
-	uint8_t channelCount,
-	ImageData* imageData);
-MpgxResult createImageDataFromFile(
-	const char* filePath,
-	uint8_t channelCount,
-	ImageData* imageData);
-void destroyImageData(ImageData imageData);
-
-const uint8_t* getImageDataPixels(ImageData imageData);
-Vec2I getImageDataSize(ImageData imageData);
-uint8_t getImageDataChannelCount(ImageData imageData);
-
 MpgxResult createImage(
 	Window window,
 	ImageType type,
@@ -1166,23 +1147,6 @@ MpgxResult createImage(
 	const void** data,
 	Vec3I size,
 	uint8_t levelCount,
-	bool isConstant,
-	Image* image);
-MpgxResult createImageFromFile(
-	Window window,
-	ImageType type,
-	ImageFormat format,
-	const char* filePath,
-	bool generateMipmap,
-	bool isConstant,
-	Image* image);
-MpgxResult createImageFromData(
-	Window window,
-	ImageType type,
-	ImageFormat format,
-	const void* data,
-	size_t size,
-	bool generateMipmap,
 	bool isConstant,
 	Image* image);
 void destroyImage(Image image);
@@ -1237,11 +1201,6 @@ MpgxResult createShader(
 	ShaderType type,
 	const void* code,
 	size_t size,
-	Shader* shader);
-MpgxResult createShaderFromFile(
-	Window window,
-	ShaderType type,
-	const char* filePath,
 	Shader* shader);
 void destroyShader(Shader shader);
 

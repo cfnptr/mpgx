@@ -1,6 +1,6 @@
 # MPGX ![CI](https://github.com/cfnptr/mpgx/actions/workflows/cmake.yml/badge.svg)
 
-Work in Progress!
+A library providing generic interface for realtime **graphics** rendering across different platforms.
 
 ## Features
 
@@ -50,9 +50,7 @@ git clone --recursive https://github.com/cfnptr/mpgx
 * [freetype](https://www.freetype.org/) (FreeType License)
 * [glad](https://glad.dav1d.de/) (MIT License)
 * [glfw](https://www.glfw.org/) (Zlib License)
-* [mpio](https://github.com/cfnptr/mpio/) (Apache-2.0 License)
 * [mpmt](https://github.com/cfnptr/mpmt/) (Apache-2.0 License)
-* [stb](https://nothings.org/) (MIT License)
 * [VulkanMemoryAllocator](https://gpuopen.com/vulkan-memory-allocator/) (MIT License)
 
 ## Examples

@@ -18,19 +18,6 @@
 
 #define GRADIENT_SKY_PIPELINE_NAME "GradientSky"
 
-typedef struct GradientSkyAmbient_T GradientSkyAmbient_T;
-typedef GradientSkyAmbient_T* GradientSkyAmbient;
-
-MpgxResult createGradientSkyAmbient(
-	ImageData gradient,
-	GradientSkyAmbient* gradientSkyAmbient);
-void destroyGradientSkyAmbient(
-	GradientSkyAmbient gradientSkyAmbient);
-
-LinearColor getGradientSkyAmbientColor(
-	GradientSkyAmbient gradientSkyAmbient,
-	float dayTime);
-
 MpgxResult createGradientSkySampler(
 	Window window,
 	Sampler* gradientSkySampler);

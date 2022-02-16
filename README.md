@@ -6,7 +6,6 @@ A library providing generic interface for realtime **graphics** rendering across
 
 * Vulkan API and OpenGL rendering backends
 * Window creation, manipulation (using GLFW)
-* Optimized text rendering (using FreeType)
 * Implemented shaders (Vulkan API, OpenGL)
 
 ## Supported operating systems
@@ -47,7 +46,6 @@ git clone --recursive https://github.com/cfnptr/mpgx
 ## Third-party
 
 * [cmmt](https://github.com/cfnptr/cmmt/) (Apache-2.0 License)
-* [freetype](https://www.freetype.org/) (FreeType License)
 * [glad](https://glad.dav1d.de/) (MIT License)
 * [glfw](https://www.glfw.org/) (Zlib License)
 * [mpmt](https://github.com/cfnptr/mpmt/) (Apache-2.0 License)

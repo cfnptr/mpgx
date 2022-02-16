@@ -1,9 +1,6 @@
 [submodule "libraries/glfw"]
 	path = libraries/glfw
 	url = https://github.com/glfw/glfw
-[submodule "libraries/freetype"]
-	path = libraries/freetype
-	url = https://github.com/cfnptr/freetype
 [submodule "libraries/cmmt"]
 	path = libraries/cmmt
 	url = https://github.com/cfnptr/cmmt

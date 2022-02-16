@@ -23,9 +23,6 @@
 #include "cmmt/common.h"
 #include "mpmt/common.h"
 
-#include "ft2build.h"
-#include FT_FREETYPE_H
-
 #include <stdio.h>
 
 // TODO: add VMA defragmentation
@@ -91,7 +88,6 @@ struct Window_T
 
 static bool graphicsInitialized = false;
 static GraphicsAPI graphicsAPI = VULKAN_GRAPHICS_API;
-static FT_Library ftLibrary = NULL;
 static Window currentWindow = NULL;
 
 #if MPGX_SUPPORT_VULKAN
@@ -108,12 +104,6 @@ static void glfwErrorCallback(
 		code, description);
 }
 
-inline static void terminateFreeTypeLibrary(
-	FT_Library freeTypeLibrary)
-{
-	if (FT_Done_FreeType(freeTypeLibrary) != 0)
-		abort();
-}
 MpgxResult initializeGraphics(
 	GraphicsAPI api,
 	const char* engineName,
@@ -136,12 +126,6 @@ MpgxResult initializeGraphics(
 
 	glfwSetErrorCallback(glfwErrorCallback);
 
-	if (FT_Init_FreeType(&ftLibrary))
-	{
-		glfwTerminate();
-		return FAILED_TO_INITIALIZE_FREETYPE_MPGX_RESULT;
-	}
-
 	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
@@ -149,11 +133,10 @@ MpgxResult initializeGraphics(
 
 		const char** glfwExtensions =
 			glfwGetRequiredInstanceExtensions(
-				&glfwExtensionCount);
+			&glfwExtensionCount);
 
 		if (!glfwExtensions)
 		{
-			terminateFreeTypeLibrary(ftLibrary);
 			glfwTerminate();
 			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 		}
@@ -177,7 +160,6 @@ MpgxResult initializeGraphics(
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
-			terminateFreeTypeLibrary(ftLibrary);
 			glfwTerminate();
 			return mpgxResult;
 		}
@@ -197,7 +179,6 @@ MpgxResult initializeGraphics(
 
 		if (!extensions)
 		{
-			terminateFreeTypeLibrary(ftLibrary);
 			glfwTerminate();
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
@@ -220,7 +201,6 @@ MpgxResult initializeGraphics(
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
 			free((void*)extensions);
-			terminateFreeTypeLibrary(ftLibrary);
 			glfwTerminate();
 			return mpgxResult;
 		}
@@ -229,7 +209,6 @@ MpgxResult initializeGraphics(
 		if (!isExtensionSupported[debugUtilsExtIndex])
 		{
 			free((void*)extensions);
-			terminateFreeTypeLibrary(ftLibrary);
 			glfwTerminate();
 			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 		}
@@ -254,7 +233,6 @@ MpgxResult initializeGraphics(
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
-			terminateFreeTypeLibrary(ftLibrary);
 			glfwTerminate();
 			return mpgxResult;
 		}
@@ -269,7 +247,6 @@ MpgxResult initializeGraphics(
 			vkDestroyInstance(
 				vkInstance,
 				NULL);
-			terminateFreeTypeLibrary(ftLibrary);
 			glfwTerminate();
 			return mpgxResult;
 		}
@@ -304,12 +281,10 @@ void terminateGraphics()
 	}
 #endif
 
-	terminateFreeTypeLibrary(ftLibrary);
 	glfwTerminate();
 
 	graphicsInitialized = false;
 	graphicsAPI = VULKAN_GRAPHICS_API;
-	ftLibrary = NULL;
 	currentWindow = NULL;
 
 #if MPGX_SUPPORT_VULKAN
@@ -327,12 +302,6 @@ GraphicsAPI getGraphicsAPI()
 {
 	assert(graphicsInitialized);
 	return graphicsAPI;
-}
-
-void* getFtLibrary()
-{
-	assert(graphicsInitialized);
-	return ftLibrary;
 }
 
 static void onWindowChar(

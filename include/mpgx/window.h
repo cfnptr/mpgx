@@ -781,11 +781,6 @@ bool isGraphicsInitialized();
 GraphicsAPI getGraphicsAPI();
 
 /*
- * Returns Free Type library instance.
- */
-void* getFtLibrary();
-
-/*
  * Create a new window instance.
  * Returns operation MPGX result.
  *

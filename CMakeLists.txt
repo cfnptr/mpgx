@@ -45,9 +45,6 @@ project(mpgx
 add_subdirectory(libraries/cmmt)
 add_subdirectory(libraries/glad)
 
-set(CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz ON CACHE BOOL "" FORCE)
-add_subdirectory(libraries/freetype)
-
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -57,23 +54,11 @@ set(MPMT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(libraries/mpmt)
 
 set(MPGX_SOURCES
-	source/pipelines/bloom_pipeline.c
-	source/pipelines/color_pipeline.c
-	source/pipelines/diffuse_pipeline.c
-	source/pipelines/gaussian_blur_pipeline.c
-	source/pipelines/gradient_sky_pipeline.c
-	source/pipelines/ray_tracing_color_pipeline.c
-	source/pipelines/simple_shadow_pipeline.c
-	source/pipelines/sprite_pipeline.c
-	source/pipelines/texture_color_pipeline.c
-	source/pipelines/texture_sprite_pipeline.c
-
 	source/md5.c
-	source/text.c
 	source/window.c)
 
 set(MPGX_LINK_LIBRARIES
-	cmmt freetype glfw mpmt)
+	cmmt glfw mpmt)
 
 if (MPGX_USE_VULKAN)
 	find_package(Vulkan)

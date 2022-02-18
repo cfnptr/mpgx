@@ -414,60 +414,69 @@ inline static MpgxResult getBestVkPhysicalDevice(
 	uint64_t targetDeviceIndex = 0;
 	uint64_t targetScore = 0;
 
+	VkPhysicalDevice device;
 	VkPhysicalDeviceProperties properties;
 
-	for (uint32_t i = 0; i < deviceCount; i++)
+	if (deviceCount > 1)
 	{
-		VkPhysicalDevice device = devices[i];
-
-		vkGetPhysicalDeviceProperties(
-			device,
-			&properties);
-
-		uint64_t score;
-
-		if (properties.deviceType ==
-			VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		for (uint32_t i = 0; i < deviceCount; i++)
 		{
-			score = 100000;
-		}
-		else if (properties.deviceType ==
-			VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
-		{
-			score = 90000;
-		}
-		else if (properties.deviceType ==
-			VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
-		{
-			score = 80000;
-		}
-		else if (properties.deviceType ==
-			VK_PHYSICAL_DEVICE_TYPE_CPU)
-		{
-			score = 70000;
-		}
-		else
-		{
-			score = 0;
-		}
+			device = devices[i];
 
-		score += properties.limits.maxImageDimension2D;
+			vkGetPhysicalDeviceProperties(
+				device,
+				&properties);
 
-		// TODO: add other tests
+			uint64_t score;
 
-		if (score > targetScore)
-		{
-			targetDeviceIndex = i;
-			targetScore = score;
+			if (properties.deviceType ==
+				VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+			{
+				score = 100000;
+			}
+			else if (properties.deviceType ==
+				VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
+			{
+				score = 90000;
+			}
+			else if (properties.deviceType ==
+				VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+			{
+				score = 80000;
+			}
+			else if (properties.deviceType ==
+				VK_PHYSICAL_DEVICE_TYPE_CPU)
+			{
+				score = 70000;
+			}
+			else
+			{
+				score = 0;
+			}
+
+			score += properties.limits.maxImageDimension2D;
+
+			// TODO: add other tests
+
+			if (score > targetScore)
+			{
+				targetDeviceIndex = i;
+				targetScore = score;
+			}
 		}
 	}
 
-	*physicalDevice = devices[targetDeviceIndex];
+	device = devices[targetDeviceIndex];
+	free(devices);
+
+	vkGetPhysicalDeviceProperties(
+		device,
+		&properties);
+
+	*physicalDevice = device;
 	*deviceProperties = properties;
 	*isIntegrated = properties.deviceType ==
 		VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
-
-	free(devices);
 	return SUCCESS_MPGX_RESULT;
 }
 inline static MpgxResult getVkQueueFamilyIndices(

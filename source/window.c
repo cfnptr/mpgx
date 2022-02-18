@@ -1265,10 +1265,11 @@ Vec2F getWindowCursorPosition(
 
 	glfwGetCursorPos(
 		window->handle,
-		&x,
-		&y);
+		&x, &y);
 
-	return vec2F((float)x, (float)y);
+	return vec2F(
+		(cmmt_float_t)x,
+		(cmmt_float_t)y);
 }
 void setWindowCursorPosition(
 	Window window,

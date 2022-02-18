@@ -411,39 +411,47 @@ inline static MpgxResult getBestVkPhysicalDevice(
 		return vkToMpgxResult(vkResult);
 	}
 
-	uint32_t targetDeviceIndex = 0;
-	uint32_t targetScore = 0;
+	uint64_t targetDeviceIndex = 0;
+	uint64_t targetScore = 0;
 
 	VkPhysicalDeviceProperties properties;
 
 	for (uint32_t i = 0; i < deviceCount; i++)
 	{
+		VkPhysicalDevice device = devices[i];
+
 		vkGetPhysicalDeviceProperties(
-			devices[i],
+			device,
 			&properties);
 
-		uint32_t score = 0;
+		uint64_t score;
 
 		if (properties.deviceType ==
 			VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
-			score += 1000;
+			score = 100000;
 		}
 		else if (properties.deviceType ==
 			VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
 		{
-			score += 750;
+			score = 90000;
 		}
 		else if (properties.deviceType ==
 			VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 		{
-			score += 500;
+			score = 80000;
 		}
 		else if (properties.deviceType ==
 			VK_PHYSICAL_DEVICE_TYPE_CPU)
 		{
-			score += 250;
+			score = 70000;
 		}
+		else
+		{
+			score = 0;
+		}
+
+		score += properties.limits.maxImageDimension2D;
 
 		// TODO: add other tests
 

@@ -22,8 +22,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define DEFAULT_WINDOW_TITLE \
-	"MPGX (v" MPGX_VERSION_STRING ")"
+#define DEFAULT_WINDOW_TITLE "MPGX (v" MPGX_VERSION_STRING ")"
 #define DEFAULT_WINDOW_WIDTH 1280
 #define DEFAULT_WINDOW_HEIGHT 720
 
@@ -40,6 +39,13 @@
 // TODO: add ability to store and load shader cache
 // TODO: add window item enumerators and count getters
 // TODO: include static vulkan library on MacOS
+// TODO: add buffer/image array creation function with shared resources.
+// TODO: set buffer and image multiple data arrays in one call
+// TODO: add any hit, intersection, callable, task mesh shaders
+// TODO: add/remove ray scene mesh
+// TODO: get/set ray mesh transform matrix
+// TODO: add hash checking system for the images and pipelines.
+// TODO: add deferred rendering framebuffer constructor, utilize vulkan subpass optimization
 
 static const Vec2I defaultWindowSize = {
 	DEFAULT_WINDOW_WIDTH,
@@ -385,8 +391,6 @@ typedef enum ShaderType_T
 	RAY_MISS_SHADER_TYPE = 7,
 	RAY_CLOSEST_HIT_SHADER_TYPE = 8,
 	SHADER_TYPE_COUNT = 9,
-	// TODO: any hit, intersection, callable,
-	// task mesh shaders
 } ShaderType_T;
 /*
  * Shader type.
@@ -1104,9 +1108,17 @@ MpgxResult beginWindowRecord(Window window);
  */
 void endWindowRecord(Window window);
 
-// TODO: make create buffer/image/ray mesh batching system. (Vulkan)
-// Add option createNow or batch and create with shared cmd buffer
-
+/*
+ * Create a new buffer instance.
+ * Returns operation MPGX result.
+ *
+ * window - window instance.
+ * type - buffer type mask.
+ * usage - buffer usage type.
+ * data - buffer binary data or NULL.
+ * size - buffer size in bytes.
+ * buffer - pointer to the buffer instance.
+ */
 MpgxResult createBuffer(
 	Window window,
 	BufferType type,
@@ -1114,26 +1126,84 @@ MpgxResult createBuffer(
 	const void* data,
 	size_t size,
 	Buffer* buffer);
+/*
+ * Destroys buffer instance.
+ * buffer - buffer instance or NULL.
+ */
 void destroyBuffer(Buffer buffer);
 
+/*
+ * Returns buffer window instance.
+ * buffer - buffer instance.
+ */
 Window getBufferWindow(Buffer buffer);
+/*
+ * Returns buffer type mask.
+ * buffer - buffer instance.
+ */
 BufferType getBufferType(Buffer buffer);
+/*
+ * Returns buffer usage type.
+ * buffer - buffer instance.
+ */
 BufferUsage getBufferUsage(Buffer buffer);
+/*
+ * Returns buffer size in bytes.
+ * buffer - buffer instance.
+ */
 size_t getBufferSize(Buffer buffer);
 
+/*
+ * Map buffer instance memory.
+ * Returns operation MPGX result.
+ *
+ * buffer - buffer instance.
+ * size - map size in bytes.
+ * offset - map offset in bytes.
+ * map - pointer to the map.
+ */
 MpgxResult mapBuffer(
 	Buffer buffer,
 	size_t size,
 	size_t offset,
 	void** map);
+/*
+ * Unmap buffer instance memory.
+ * Returns operation MPGX result.
+ *
+ * buffer - buffer instance.
+ */
 MpgxResult unmapBuffer(Buffer buffer);
 
+/*
+ * Set buffer data.
+ * Returns operation MPGX result.
+ *
+ * buffer - buffer instance.
+ * data - data array.
+ * size - data size in bytes.
+ * size - buffer data offset in bytes.
+ */
 MpgxResult setBufferData(
 	Buffer buffer,
 	const void* data,
 	size_t size,
 	size_t offset);
 
+/*
+ * Create a new image instance.
+ * Returns operation MPGX result.
+ *
+ * window - window instance.
+ * type - image type mask
+ * dimension - image dimension type.
+ * format image format type.
+ * data - image pixel data array.
+ * size - image size in pixels.
+ * levelCount - image level count.
+ * isConstant - is image constant.
+ * image - pointer to the image.
+ */
 MpgxResult createImage(
 	Window window,
 	ImageType type,
@@ -1144,24 +1214,82 @@ MpgxResult createImage(
 	uint8_t levelCount,
 	bool isConstant,
 	Image* image);
+/*
+ * Destroys image instance.
+ * image - image instance or NULL.
+ */
 void destroyImage(Image image);
 
-// TODO: set data[].
+/*
+ * Set image pixels data.
+ * Returns operation MPGX result.
+ *
+ * image - image instance.
+ * data - pixels array.
+ * size - data size in pixels.
+ * offset - image data offset in pixels.
+ */
 MpgxResult setImageData(
 	Image image,
 	const void* data,
 	Vec3I size,
 	Vec3I offset);
 
+/*
+ * Returns image window instance.
+ * image - image instance.
+ */
 Window getImageWindow(Image image);
+/*
+ * Returns image type mask.
+ * image - image instance.
+ */
 ImageType getImageType(Image image);
+/*
+ * Returns image dimension type.
+ * image - image instance.
+ */
 ImageDimension getImageDimension(Image image);
+/*
+ * Returns image format type.
+ * image - image instance.
+ */
 ImageFormat getImageFormat(Image image);
+/*
+ * Returns image size in pixels.
+ * image - image instance.
+ */
 Vec3I getImageSize(Image image);
+/*
+ * Returns true if image instance window.
+ * image - image instance.
+ */
 bool isImageConstant(Image image);
 
-uint8_t getImageLevelCount(Vec3I imageSize);
+/*
+ * Calculates image level cont based on size.
+ * size - image size in pixels.
+ */
+uint8_t getImageLevelCount(Vec3I size);
 
+/*
+ * Create a new sampler instance.
+ * Returns operation MPGX result.
+ *
+ * window - window instance.
+ * minImageFilter - minification image filter type.
+ * magImageFilter - magnification image filter type.
+ * minMipmapFilter - minification mipmap filter type.
+ * useMipmapping - use image mipmapping.
+ * imageWrapX - X-axis image wrap type.
+ * imageWrapY - Y-axis image wrap type.
+ * imageWrapZ - Z-axis image wrap type.
+ * depthCompare - depth compare operator type.
+ * useCompare - use image depth compare.
+ * mipmapLodRange - image mipmap level of detail range.
+ * mipmapLodBias - image mipmap level of detail bias.
+ * sampler - pointer to the sampler instance.
+ */
 MpgxResult createSampler(
 	Window window,
 	ImageFilter minImageFilter,
@@ -1171,40 +1299,124 @@ MpgxResult createSampler(
 	ImageWrap imageWrapX,
 	ImageWrap imageWrapY,
 	ImageWrap imageWrapZ,
-	CompareOperator compareOperator,
+	CompareOperator depthCompare,
 	bool useCompare,
 	Vec2F mipmapLodRange,
 	float mipmapLodBias,
 	Sampler* sampler);
+/*
+ * Destroys sampler instance.
+ * sampler - sampler instance or NULL.
+ */
 void destroySampler(Sampler sampler);
 
+/*
+ * Returns sampler window instance.
+ * sampler - sampler instance.
+ */
 Window getSamplerWindow(Sampler sampler);
+/*
+ * Returns sampler minification image filter type.
+ * sampler - sampler instance.
+ */
 ImageFilter getSamplerMinImageFilter(Sampler sampler);
+/*
+ * Returns sampler magnification image filter type.
+ * sampler - sampler instance.
+ */
 ImageFilter getSamplerMagImageFilter(Sampler sampler);
+/*
+ * Returns sampler minification mipmap filter type.
+ * sampler - sampler instance.
+ */
 ImageFilter getSamplerMinMipmapFilter(Sampler sampler);
+/*
+ * Returns true if sampler use mipmapping.
+ * sampler - sampler instance.
+ */
 bool isSamplerUseMipmapping(Sampler sampler);
+/*
+ * Returns sampler X-axis image wrap type.
+ * sampler - sampler instance.
+ */
 ImageWrap getSamplerImageWrapX(Sampler sampler);
+/*
+ * Returns sampler Y-axis image wrap type.
+ * sampler - sampler instance.
+ */
 ImageWrap getSamplerImageWrapY(Sampler sampler);
+/*
+ * Returns sampler Z-axis image wrap type.
+ * sampler - sampler instance.
+ */
 ImageWrap getSamplerImageWrapZ(Sampler sampler);
-CompareOperator getSamplerCompareOperator(Sampler sampler);
+/*
+ * Returns sampler depth compare operator type.
+ * sampler - sampler instance.
+ */
+CompareOperator getSamplerDepthCompare(Sampler sampler);
+/*
+ * Returns true if sampler is use depth compare.
+ * sampler - sampler instance.
+ */
 bool isSamplerUseCompare(Sampler sampler);
+/*
+ * Returns sampler mipmap level of detail range.
+ * sampler - sampler instance.
+ */
 Vec2F getSamplerMipmapLodRange(Sampler sampler);
+/*
+ * Returns sampler mipmap level of detail bias.
+ * sampler - sampler instance.
+ */
 float getSamplerMipmapLodBias(Sampler sampler);
 
+/*
+ * Create a new shader instance.
+ * Returns operation MPGX result.
+ *
+ * window - window instance.
+ * type - shader type.
+ * code - shader program code.
+ * size - shader code size in bytes.
+ * shader - pointer to the shader instance.
+ */
 MpgxResult createShader(
 	Window window,
 	ShaderType type,
 	const void* code,
 	size_t size,
 	Shader* shader);
+/*
+ * Destroys shader instance.
+ * shader - shader instance or NULL.
+ */
 void destroyShader(Shader shader);
 
+/*
+ * Returns shader window instance.
+ * shader - shader instance.
+ */
 Window getShaderWindow(Shader shader);
+/*
+ * Returns shader type
+ * shader - shader instance.
+ */
 ShaderType getShaderType(Shader shader);
 
-// TODO: add deferred rendering framebuffer constructor
-// utilize vulkan subpass optimization
-
+/*
+ * Create a new framebuffer instance.
+ * Returns operation MPGX result.
+ *
+ * window - window instance.
+ * size - framebuffer size in pixels.
+ * useBeginClear - use begin function clear values.
+ * colorAttachments - color attachment instance array or NULL.
+ * colorAttachmentCount - color attachment count or 0.
+ * depthStencilAttachment - depth/stencil attachment instance or NULL.
+ * pipelineCapacity - initial pipeline array capacity.
+ * framebuffer - pointer to the framebuffer instance.
+ */
 MpgxResult createFramebuffer(
 	Window window,
 	Vec2I size,
@@ -1214,6 +1426,17 @@ MpgxResult createFramebuffer(
 	Image depthStencilAttachment,
 	size_t pipelineCapacity,
 	Framebuffer* framebuffer);
+/*
+ * Create a new shadow framebuffer instance.
+ * Returns operation MPGX result.
+ *
+ * window - window instance.
+ * size - framebuffer size in pixels.
+ * useBeginClear - use begin function clear values.
+ * depthAttachment - depth attachment instance.
+ * pipelineCapacity - initial pipeline array capacity.
+ * framebuffer - pointer to the framebuffer instance.
+ */
 MpgxResult createShadowFramebuffer(
 	Window window,
 	Vec2I size,
@@ -1221,18 +1444,63 @@ MpgxResult createShadowFramebuffer(
 	Image depthAttachment,
 	size_t pipelineCapacity,
 	Framebuffer* framebuffer);
+/*
+ * Destroys framebuffer instance.
+ *
+ * framebuffer - framebuffer instance or NULL.
+ * destroyAttachments - destroy color/depth/stencil attachments.
+ */
 void destroyFramebuffer(
 	Framebuffer framebuffer,
 	bool destroyAttachments);
 
+/*
+ * Returns framebuffer window instance.
+ * framebuffer - framebuffer instance.
+ */
 Window getFramebufferWindow(Framebuffer framebuffer);
+/*
+ * Returns framebuffer size in pixels.
+ * framebuffer - framebuffer instance.
+ */
 Vec2I getFramebufferSize(Framebuffer framebuffer);
+/*
+ * Returns true if framebuffer is use begin function clear values.
+ * framebuffer - framebuffer instance.
+ */
 bool isFramebufferUseBeginClear(Framebuffer framebuffer);
+/*
+ * Returns framebuffer color attachment array.
+ * framebuffer - framebuffer instance.
+ */
 Image* getFramebufferColorAttachments(Framebuffer framebuffer);
+/*
+ * Returns framebuffer color attachment count.
+ * framebuffer - framebuffer instance.
+ */
 size_t getFramebufferColorAttachmentCount(Framebuffer framebuffer);
+/*
+ * Returns framebuffer depth/stencil attachment instance.
+ * framebuffer - framebuffer instance.
+ */
 Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer);
+/*
+ * Returns true if framebuffer is created by the window.
+ * framebuffer - framebuffer instance.
+ */
 bool isFramebufferDefault(Framebuffer framebuffer);
 
+/*
+ * Set framebuffer attachments.
+ * Returns operation MPGX result.
+ *
+ * framebuffer - framebuffer instance.
+ * size - framebuffer size in pixels.
+ * useBeginClear - use begin function clear values.
+ * colorAttachments - color attachment instance array or NULL.
+ * colorAttachmentCount - color attachment count or 0.
+ * depthStencilAttachment - depth/stencil attachment instance or NULL.
+ */
 MpgxResult setFramebufferAttachments(
 	Framebuffer framebuffer,
 	Vec2I size,
@@ -1241,19 +1509,54 @@ MpgxResult setFramebufferAttachments(
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment);
 
+/*
+ * Begin framebuffer render command recording.
+ *
+ * framebuffer - framebuffer instance.
+ * clearValues - attachment clear values or NULL.
+ * clearValueCount - clear values count or 0.
+ */
 void beginFramebufferRender(
 	Framebuffer framebuffer,
 	const FramebufferClear* clearValues,
 	size_t clearValueCount);
-void endFramebufferRender(
-	Framebuffer framebuffer);
+/*
+ * End framebuffer render command recording.
+ * framebuffer - framebuffer instance.
+ */
+void endFramebufferRender(Framebuffer framebuffer);
 
+/*
+ * Clears framebuffer attachments.
+ *
+ * framebuffer - framebuffer instance.
+ * clearAttachments - target clear attachment array.
+ * clearValues - attachment clear value array.
+ * clearValueCount - clear value count.
+ */
 void clearFramebuffer(
 	Framebuffer framebuffer,
 	const bool* clearAttachments,
 	const FramebufferClear* clearValues,
 	size_t clearValueCount);
 
+/*
+ * Create a new graphics pipeline instance.
+ * Returns operation MPGX result.
+ *
+ * framebuffer - framebuffer instance.
+ * name - name string. (for debugging)
+ * state - graphics pipeline state.
+ * onBind - on graphics pipeline bind function or NULL.
+ * onUniformsSet - on graphics pipeline uniforms set function or NULL.
+ * onResize - on graphics pipeline resize function.
+ * onDestroy - on graphics pipeline destroy function.
+ * handle - graphics pipeline handle.
+ * createData - Vulkan create data. (NULL in OpenGL)
+ * shaders - shader instance array.
+ * shaderCount - shader count.
+ * graphicsPipeline - pointer to the graphics pipeline.
+ */
 MpgxResult createGraphicsPipeline(
 	Framebuffer framebuffer,
 	const char* name,
@@ -1267,36 +1570,90 @@ MpgxResult createGraphicsPipeline(
 	Shader* shaders,
 	size_t shaderCount,
 	GraphicsPipeline* graphicsPipeline);
+/*
+ * Destroys graphics pipeline instance.
+ *
+ * pipeline - graphics pipeline instance or NULL.
+ * destroyShaders - destroy shader instances.
+ */
 void destroyGraphicsPipeline(
-	GraphicsPipeline graphicsPipeline,
+	GraphicsPipeline pipeline,
 	bool destroyShaders);
 
-Framebuffer getGraphicsPipelineFramebuffer(
-	GraphicsPipeline graphicsPipeline);
-const char* getGraphicsPipelineName(
-	GraphicsPipeline graphicsPipeline);
-const GraphicsPipelineState* getGraphicsPipelineState(
-	GraphicsPipeline graphicsPipeline);
-OnGraphicsPipelineBind getGraphicsPipelineOnBind(
-	GraphicsPipeline graphicsPipeline);
-OnGraphicsPipelineUniformsSet getGraphicsPipelineOnUniformsSet(
-	GraphicsPipeline graphicsPipeline);
-OnGraphicsPipelineResize getGraphicsPipelineOnResize(
-	GraphicsPipeline graphicsPipeline);
-OnGraphicsPipelineDestroy getGraphicsPipelineOnDestroy(
-	GraphicsPipeline graphicsPipeline);
-void* getGraphicsPipelineHandle(
-	GraphicsPipeline graphicsPipeline);
-Shader* getGraphicsPipelineShaders(
-	GraphicsPipeline graphicsPipeline);
-size_t getGraphicsPipelineShaderCount(
-	GraphicsPipeline graphicsPipeline);
-Window getGraphicsPipelineWindow(
-	GraphicsPipeline graphicsPipeline);
+/*
+ * Returns graphics pipeline framebuffer instance.
+ * pipeline - graphics pipeline instance.
+ */
+Framebuffer getGraphicsPipelineFramebuffer(GraphicsPipeline pipeline);
+/*
+ * Returns graphics pipeline name string. (for debugging)
+ * pipeline - graphics pipeline instance.
+ */
+const char* getGraphicsPipelineName(GraphicsPipeline pipeline);
+/*
+ * Returns graphics pipeline state.
+ * pipeline - graphics pipeline instance.
+ */
+const GraphicsPipelineState* getGraphicsPipelineState(GraphicsPipeline pipeline);
+/*
+ * Returns graphics pipeline on bind function.
+ * pipeline - graphics pipeline instance.
+ */
+OnGraphicsPipelineBind getGraphicsPipelineOnBind(GraphicsPipeline pipeline);
+/*
+ * Returns graphics pipeline on uniforms set function.
+ * pipeline - graphics pipeline instance.
+ */
+OnGraphicsPipelineUniformsSet getGraphicsPipelineOnUniformsSet(GraphicsPipeline pipeline);
+/*
+ * Returns graphics pipeline on resize function.
+ * pipeline - graphics pipeline instance.
+ */
+OnGraphicsPipelineResize getGraphicsPipelineOnResize(GraphicsPipeline pipeline);
+/*
+ * Returns graphics pipeline on destroy function.
+ * pipeline - graphics pipeline instance.
+ */
+OnGraphicsPipelineDestroy getGraphicsPipelineOnDestroy(GraphicsPipeline pipeline);
+/*
+ * Returns graphics pipeline handle.
+ * pipeline - graphics pipeline instance.
+ */
+void* getGraphicsPipelineHandle(GraphicsPipeline pipeline);
+/*
+ * Returns graphics pipeline shader instance array.
+ * pipeline - graphics pipeline instance.
+ */
+Shader* getGraphicsPipelineShaders(GraphicsPipeline pipeline);
+/*
+ * Returns graphics pipeline shader count.
+ * pipeline - graphics pipeline instance.
+ */
+size_t getGraphicsPipelineShaderCount(GraphicsPipeline pipeline);
+/*
+ * Returns graphics pipeline window instance.
+ * pipeline - graphics pipeline instance.
+ */
+Window getGraphicsPipelineWindow(GraphicsPipeline pipeline);
 
-void bindGraphicsPipeline(
-	GraphicsPipeline graphicsPipeline);
+/*
+ * Binds graphics pipeline. (rendering command)
+ * pipeline - graphics pipeline instance.
+ */
+void bindGraphicsPipeline(GraphicsPipeline pipeline);
 
+/*
+ * Create a new graphics mesh instance.
+ * Returns operation MPGX result.
+ *
+ * window - window instance.
+ * indexType - index type.
+ * indexCount - index count or 0.
+ * indexOffset - index offset.
+ * vertexBuffer - vertex buffer instance or NULL.
+ * indexBuffer - index buffer instance or NULL.
+ * graphicsMesh - pointer to the graphics mesh instance.
+ */
 MpgxResult createGraphicsMesh(
 	Window window,
 	IndexType indexType,
@@ -1305,44 +1662,121 @@ MpgxResult createGraphicsMesh(
 	Buffer vertexBuffer,
 	Buffer indexBuffer,
 	GraphicsMesh* graphicsMesh);
+/*
+ * Destroys graphics mesh instance.
+ *
+ * mesh - graphics mesh instance or NULL.
+ * destroyBuffers - destroy buffer instances.
+ */
 void destroyGraphicsMesh(
-	GraphicsMesh graphicsMesh,
+	GraphicsMesh mesh,
 	bool destroyBuffers);
 
-Window getGraphicsMeshWindow(GraphicsMesh graphicsMesh);
-IndexType getGraphicsMeshIndexType(GraphicsMesh graphicsMesh);
+/*
+ * Returns graphics mesh window instance.
+ * mesh - graphics mesh instance.
+ */
+Window getGraphicsMeshWindow(GraphicsMesh mesh);
+/*
+ * Returns graphics mesh index type.
+ * mesh - graphics mesh instance.
+ */
+IndexType getGraphicsMeshIndexType(GraphicsMesh mesh);
 
+/*
+ * Returns graphics mesh index count.
+ * mesh - graphics mesh instance.
+ */
 size_t getGraphicsMeshIndexCount(
-	GraphicsMesh graphicsMesh);
+	GraphicsMesh mesh);
+/*
+ * Sets graphics mesh index count.
+ *
+ * mesh - graphics mesh instance.
+ * indexCount - index count or 0.
+ */
 void setGraphicsMeshIndexCount(
-	GraphicsMesh graphicsMesh,
+	GraphicsMesh mesh,
 	size_t indexCount);
 
+/*
+ * Returns graphics mesh index offset.
+ * mesh - graphics mesh instance.
+ */
 size_t getGraphicsMeshIndexOffset(
-	GraphicsMesh graphicsMesh);
+	GraphicsMesh mesh);
+/*
+ * Sets graphics mesh index offset.
+ *
+ * mesh - graphics mesh instance.
+ * indexCount - index offset.
+ */
 void setGraphicsMeshIndexOffset(
-	GraphicsMesh graphicsMesh,
+	GraphicsMesh mesh,
 	size_t indexOffset);
 
+/*
+ * Returns graphics mesh vertex buffer instance.
+ * mesh - graphics mesh instance.
+ */
 Buffer getGraphicsMeshVertexBuffer(
-	GraphicsMesh graphicsMesh);
+	GraphicsMesh mesh);
+/*
+ * Sets graphics mesh vertex buffer.
+ *
+ * mesh - graphics mesh instance.
+ * vertexBuffer - vertex buffer instance or NULL.
+ */
 void setGraphicsMeshVertexBuffer(
-	GraphicsMesh graphicsMesh,
+	GraphicsMesh mesh,
 	Buffer vertexBuffer);
 
+/*
+ * Returns graphics mesh index buffer instance.
+ * mesh - graphics mesh instance.
+ */
 Buffer getGraphicsMeshIndexBuffer(
-	GraphicsMesh graphicsMesh);
+	GraphicsMesh mesh);
+/*
+ * Sets graphics mesh index buffer.
+ *
+ * mesh - graphics mesh instance.
+ * indexType - index type.
+ * indexCount - index count or 0.
+ * indexOffset - index offset.
+ * indexBuffer - index buffer instance or NULL.
+ */
 void setGraphicsMeshIndexBuffer(
-	GraphicsMesh graphicsMesh,
+	GraphicsMesh mesh,
 	IndexType indexType,
 	size_t indexCount,
 	size_t indexOffset,
 	Buffer indexBuffer);
 
+/*
+ * Draw graphics mesh. (rendering command)
+ * Returns drawn index count.
+ *
+ * pipeline - graphics pipeline instance.
+ * mesh - graphics mesh instance.
+ */
 size_t drawGraphicsMesh(
-	GraphicsPipeline graphicsPipeline,
-	GraphicsMesh graphicsMesh);
+	GraphicsPipeline pipeline,
+	GraphicsMesh mesh);
 
+/*
+ * Create a new compute pipeline instance.
+ * Returns operation MPGX result.
+ *
+ * window - window instance.
+ * name - name string. (for debugging)
+ * onBind - on compute pipeline bind function or NULL.
+ * onDestroy - on compute pipeline destroy function.
+ * handle - compute pipeline handle.
+ * createData - Vulkan create data. (NULL in OpenGL)
+ * shader - compute shader instance.
+ * computePipeline - pointer to the compute pipeline instance.
+ */
 MpgxResult createComputePipeline(
 	Window window,
 	const char* name,
@@ -1352,31 +1786,68 @@ MpgxResult createComputePipeline(
 	const void* createData,
 	Shader shader,
 	ComputePipeline* computePipeline);
+/*
+ * Destroys compute pipeline instance.
+ *
+ * pipeline - compute pipeline instance or NULL.
+ * destroyShader - destroy compute shader instance.
+ */
 void destroyComputePipeline(
-	ComputePipeline computePipeline,
+	ComputePipeline pipeline,
 	bool destroyShader);
 
-Window getComputePipelineWindow(
-	ComputePipeline computePipeline);
-const char* getComputePipelineName(
-	ComputePipeline computePipeline);
-OnComputePipelineBind getComputePipelineOnBind(
-	ComputePipeline computePipeline);
-OnComputePipelineDestroy getComputePipelineOnDestroy(
-	ComputePipeline computePipeline);
-Shader getComputePipelineShader(
-	ComputePipeline computePipeline);
-void* getComputePipelineHandle(
-	ComputePipeline computePipeline);
+/*
+ * Returns compute pipeline window instance.
+ * pipeline - compute pipeline instance.
+ */
+Window getComputePipelineWindow(ComputePipeline pipeline);
+/*
+ * Returns compute pipeline name string. (for debugging)
+ * pipeline - compute pipeline instance.
+ */
+const char* getComputePipelineName(ComputePipeline pipeline);
+/*
+ * Returns compute pipeline on bind function.
+ * pipeline - compute pipeline instance.
+ */
+OnComputePipelineBind getComputePipelineOnBind(ComputePipeline pipeline);
+/*
+ * Returns compute pipeline on destroy function.
+ * pipeline - compute pipeline instance.
+ */
+OnComputePipelineDestroy getComputePipelineOnDestroy(ComputePipeline pipeline);
+/*
+ * Returns compute pipeline shader instance.
+ * pipeline - compute pipeline instance.
+ */
+Shader getComputePipelineShader(ComputePipeline pipeline);
+/*
+ * Returns compute pipeline handle.
+ * pipeline - compute pipeline instance.
+ */
+void* getComputePipelineHandle(ComputePipeline pipeline);
 
-void bindComputePipeline(
-	ComputePipeline computePipeline);
+/*
+ * Bind compute pipeline. (rendering command)
+ * pipeline - compute pipeline instance.
+ */
+void bindComputePipeline(ComputePipeline pipeline);
 
+/*
+ * Dispatches compute pipeline work. (rendering command)
+ *
+ * pipeline - compute pipeline instance.
+ * groupCountX - group count along X-axis.
+ * groupCountY - group count along Y-axis.
+ * groupCountZ - group count along Z-axis.
+ */
 void dispatchComputePipeline(
-	ComputePipeline computePipeline,
+	ComputePipeline pipeline,
 	size_t groupCountX,
 	size_t groupCountY,
 	size_t groupCountZ);
+
+// WARNING: RTX is not yet working!
 
 MpgxResult createRayTracingPipeline(
 	Window window,
@@ -1393,34 +1864,23 @@ MpgxResult createRayTracingPipeline(
 	size_t closestHitShaderCount,
 	RayTracingPipeline* rayTracingPipeline);
 void destroyRayTracingPipeline(
-	RayTracingPipeline rayTracingPipeline,
+	RayTracingPipeline pipeline,
 	bool destroyShaders);
 
-Window getRayTracingPipelineWindow(
-	RayTracingPipeline rayTracingPipeline);
-const char* getRayTracingPipelineName(
-	RayTracingPipeline rayTracingPipeline);
-OnRayTracingPipelineBind getRayTracingPipelineOnBind(
-	RayTracingPipeline rayTracingPipeline);
-OnRayTracingPipelineDestroy getRayTracingPipelineOnDestroy(
-	RayTracingPipeline rayTracingPipeline);
-void* getRayTracingPipelineHandle(
-	RayTracingPipeline rayTracingPipeline);
-Shader* getRayTracingPipelineGenerationShaders(
-	RayTracingPipeline rayTracingPipeline);
-size_t getRayTracingPipelineGenerationShaderCount(
-	RayTracingPipeline rayTracingPipeline);
-Shader* getRayTracingPipelineMissShaders(
-	RayTracingPipeline rayTracingPipeline);
-size_t getRayTracingPipelineMissShaderCount(
-	RayTracingPipeline rayTracingPipeline);
-Shader* getRayTracingPipelineClosestHitShaders(
-	RayTracingPipeline rayTracingPipeline);
-size_t getRayTracingPipelineClosestHitShaderCount(
-	RayTracingPipeline rayTracingPipeline);
+Window getRayTracingPipelineWindow(RayTracingPipeline pipeline);
+const char* getRayTracingPipelineName(RayTracingPipeline pipeline);
+OnRayTracingPipelineBind getRayTracingPipelineOnBind(RayTracingPipeline pipeline);
+OnRayTracingPipelineDestroy getRayTracingPipelineOnDestroy(RayTracingPipeline pipeline);
+void* getRayTracingPipelineHandle(RayTracingPipeline pipeline);
+Shader* getRayTracingPipelineGenerationShaders(RayTracingPipeline pipeline);
+size_t getRayTracingPipelineGenerationShaderCount(RayTracingPipeline pipeline);
+Shader* getRayTracingPipelineMissShaders(RayTracingPipeline pipeline);
+size_t getRayTracingPipelineMissShaderCount(RayTracingPipeline pipeline);
+Shader* getRayTracingPipelineClosestHitShaders(RayTracingPipeline pipeline);
+size_t getRayTracingPipelineClosestHitShaderCount(RayTracingPipeline pipeline);
 
-void bindRayTracingPipeline(RayTracingPipeline rayTracingPipeline);
-void traceRayTracingPipeline(RayTracingPipeline rayTracingPipeline);
+void bindRayTracingPipeline(RayTracingPipeline pipeline);
+void traceRayTracingPipeline(RayTracingPipeline pipeline);
 
 MpgxResult createRayTracingMesh(
 	Window window,
@@ -1430,32 +1890,22 @@ MpgxResult createRayTracingMesh(
 	Buffer indexBuffer,
 	RayTracingMesh* rayTracingMesh);
 void destroyRayTracingMesh(
-	RayTracingMesh rayTracingMesh,
+	RayTracingMesh mesh,
 	bool destroyBuffers);
 
-Window getRayTracingMeshWindow(RayTracingMesh rayTracingMesh);
-size_t getRayTracingMeshVertexStride(RayTracingMesh rayTracingMesh);
-IndexType getRayTracingMeshIndexType(RayTracingMesh rayTracingMesh);
-Buffer getRayTracingMeshVertexBuffer(RayTracingMesh rayTracingMesh);
-Buffer getRayTracingMeshIndexBuffer(RayTracingMesh rayTracingMesh);
-
-// TODO: get/set ray mesh transform matrix
+Window getRayTracingMeshWindow(RayTracingMesh mesh);
+size_t getRayTracingMeshVertexStride(RayTracingMesh mesh);
+IndexType getRayTracingMeshIndexType(RayTracingMesh mesh);
+Buffer getRayTracingMeshVertexBuffer(RayTracingMesh mesh);
+Buffer getRayTracingMeshIndexBuffer(RayTracingMesh mesh);
 
 MpgxResult createRayTracingScene(
 	Window window,
 	RayTracingMesh* meshes,
 	size_t meshCount,
 	RayTracingScene* rayTracingScene);
-void destroyRayTracingScene(
-	RayTracingScene rayTracingScene);
+void destroyRayTracingScene(RayTracingScene scene);
 
-Window getRayTracingSceneWindow(RayTracingScene rayTracingScene);
-RayTracingMesh* getRayTracingSceneMeshes(RayTracingScene rayTracingScene);
-size_t getRayTracingSceneMeshCount(RayTracingScene rayTracingScene);
-
-// TODO: add/remove ray scene mesh
-
-// TODO: add functions:
-// create group: buffer, image, ray mesh
-
-// TODO: add hash checking system for the images and pipelines.
+Window getRayTracingSceneWindow(RayTracingScene scene);
+RayTracingMesh* getRayTracingSceneMeshes(RayTracingScene scene);
+size_t getRayTracingSceneMeshCount(RayTracingScene scene);

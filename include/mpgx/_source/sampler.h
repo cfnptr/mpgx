@@ -26,7 +26,7 @@ typedef struct BaseSampler_T
 	ImageWrap imageWrapX;
 	ImageWrap imageWrapY;
 	ImageWrap imageWrapZ;
-	CompareOperator compareOperator;
+	CompareOperator depthCompare;
 	bool useCompare;
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
@@ -42,7 +42,7 @@ typedef struct VkSampler_T
 	ImageWrap imageWrapX;
 	ImageWrap imageWrapY;
 	ImageWrap imageWrapZ;
-	CompareOperator compareOperator;
+	CompareOperator depthCompare;
 	bool useCompare;
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
@@ -60,7 +60,7 @@ typedef struct GlSampler_T
 	ImageWrap imageWrapX;
 	ImageWrap imageWrapY;
 	ImageWrap imageWrapZ;
-	CompareOperator compareOperator;
+	CompareOperator depthCompare;
 	bool useCompare;
 	Vec2F mipmapLodRange;
 	float mipmapLodBias;
@@ -186,7 +186,7 @@ inline static MpgxResult createVkSampler(
 	ImageWrap imageWrapX,
 	ImageWrap imageWrapY,
 	ImageWrap imageWrapZ,
-	CompareOperator compareOperator,
+	CompareOperator depthCompare,
 	bool useCompare,
 	Vec2F mipmapLodRange,
 	float mipmapLodBias,
@@ -200,7 +200,7 @@ inline static MpgxResult createVkSampler(
 	assert(imageWrapX < IMAGE_WRAP_COUNT);
 	assert(imageWrapY < IMAGE_WRAP_COUNT);
 	assert(imageWrapZ < IMAGE_WRAP_COUNT);
-	assert(compareOperator < COMPARE_OPERATOR_COUNT);
+	assert(depthCompare < COMPARE_OPERATOR_COUNT);
 	assert(sampler);
 
 	Sampler samplerInstance = calloc(1,
@@ -217,7 +217,7 @@ inline static MpgxResult createVkSampler(
 	samplerInstance->vk.imageWrapX = imageWrapX;
 	samplerInstance->vk.imageWrapY = imageWrapY;
 	samplerInstance->vk.imageWrapZ = imageWrapZ;
-	samplerInstance->vk.compareOperator = compareOperator;
+	samplerInstance->vk.depthCompare = depthCompare;
 	samplerInstance->vk.useCompare = useCompare;
 	samplerInstance->vk.mipmapLodRange = mipmapLodRange;
 	samplerInstance->vk.mipmapLodBias = mipmapLodBias;
@@ -246,7 +246,7 @@ inline static MpgxResult createVkSampler(
 		imageWrapZ,
 		&wrapZ);
 	result &= getVkCompareOperator(
-		compareOperator,
+		depthCompare,
 		&compare);
 
 	if (!result)
@@ -420,7 +420,7 @@ inline static MpgxResult createGlSampler(
 	ImageWrap imageWrapX,
 	ImageWrap imageWrapY,
 	ImageWrap imageWrapZ,
-	CompareOperator compareOperator,
+	CompareOperator depthCompare,
 	bool useCompare,
 	Vec2F mipmapLodRange,
 	Sampler* sampler)
@@ -432,7 +432,7 @@ inline static MpgxResult createGlSampler(
 	assert(imageWrapX < IMAGE_WRAP_COUNT);
 	assert(imageWrapY < IMAGE_WRAP_COUNT);
 	assert(imageWrapZ < IMAGE_WRAP_COUNT);
-	assert(compareOperator < COMPARE_OPERATOR_COUNT);
+	assert(depthCompare < COMPARE_OPERATOR_COUNT);
 	assert(sampler);
 
 	Sampler samplerInstance = calloc(1,
@@ -449,7 +449,7 @@ inline static MpgxResult createGlSampler(
 	samplerInstance->gl.imageWrapX = imageWrapX;
 	samplerInstance->gl.imageWrapY = imageWrapY;
 	samplerInstance->gl.imageWrapZ = imageWrapZ;
-	samplerInstance->gl.compareOperator = compareOperator;
+	samplerInstance->gl.depthCompare = depthCompare;
 	samplerInstance->gl.useCompare = useCompare;
 	samplerInstance->gl.mipmapLodRange = mipmapLodRange;
 	samplerInstance->gl.mipmapLodBias = 0.0f;
@@ -487,7 +487,7 @@ inline static MpgxResult createGlSampler(
 		imageWrapZ,
 		&wrapZ);
 	result &= getGlCompareOperator(
-		compareOperator,
+		depthCompare,
 		&compare);
 
 	if (!result)

@@ -173,12 +173,11 @@ inline static void setVkGraphicsMeshIndexType(
 }
 inline static void setVkGraphicsMeshIndexOffset(
 	GraphicsMesh graphicsMesh,
-	IndexType indexType,
 	size_t indexOffset)
 {
-	if (indexType == UINT16_INDEX_TYPE)
+	if (graphicsMesh->vk.indexType == UINT16_INDEX_TYPE)
 		graphicsMesh->vk.vkIndexOffset = indexOffset * sizeof(uint16_t);
-	else if (indexType == UINT32_INDEX_TYPE)
+	else if (graphicsMesh->vk.indexType == UINT32_INDEX_TYPE)
 		graphicsMesh->vk.vkIndexOffset = indexOffset * sizeof(uint32_t);
 	else
 		abort();
@@ -318,12 +317,11 @@ inline static void setGlGraphicsMeshIndexType(
 }
 inline static void setGlGraphicsMeshIndexOffset(
 	GraphicsMesh graphicsMesh,
-	IndexType indexType,
 	size_t indexOffset)
 {
-	if (indexType == UINT16_INDEX_TYPE)
+	if (graphicsMesh->gl.indexType == UINT16_INDEX_TYPE)
 		graphicsMesh->gl.glIndexOffset = indexOffset * sizeof(uint16_t);
-	else if (indexType == UINT32_INDEX_TYPE)
+	else if (graphicsMesh->gl.indexType == UINT32_INDEX_TYPE)
 		graphicsMesh->gl.glIndexOffset = indexOffset * sizeof(uint32_t);
 	else
 		abort();

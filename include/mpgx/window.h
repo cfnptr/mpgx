@@ -1414,7 +1414,7 @@ ShaderType getShaderType(Shader shader);
  * colorAttachments - color attachment instance array or NULL.
  * colorAttachmentCount - color attachment count or 0.
  * depthStencilAttachment - depth/stencil attachment instance or NULL.
- * pipelineCapacity - initial pipeline array capacity.
+ * capacity - initial pipeline array capacity or 0.
  * framebuffer - pointer to the framebuffer instance.
  */
 MpgxResult createFramebuffer(
@@ -1424,7 +1424,7 @@ MpgxResult createFramebuffer(
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
-	size_t pipelineCapacity,
+	size_t capacity,
 	Framebuffer* framebuffer);
 /*
  * Create a new shadow framebuffer instance.
@@ -1434,7 +1434,7 @@ MpgxResult createFramebuffer(
  * size - framebuffer size in pixels.
  * useBeginClear - use begin function clear values.
  * depthAttachment - depth attachment instance.
- * pipelineCapacity - initial pipeline array capacity.
+ * pipelineCapacity - initial pipeline array capacity or 0.
  * framebuffer - pointer to the framebuffer instance.
  */
 MpgxResult createShadowFramebuffer(
@@ -1442,7 +1442,7 @@ MpgxResult createShadowFramebuffer(
 	Vec2I size,
 	bool useBeginClear,
 	Image depthAttachment,
-	size_t pipelineCapacity,
+	size_t capacity,
 	Framebuffer* framebuffer);
 /*
  * Destroys framebuffer instance.
@@ -1545,7 +1545,7 @@ void clearFramebuffer(
  * Returns operation MPGX result.
  *
  * framebuffer - framebuffer instance.
- * name - name string. (for debugging)
+ * name - name string or NULL. (for debugging)
  * state - graphics pipeline state.
  * onBind - on graphics pipeline bind function or NULL.
  * onUniformsSet - on graphics pipeline uniforms set function or NULL.

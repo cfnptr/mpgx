@@ -495,7 +495,7 @@ inline static MpgxResult createVkFramebuffer(
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
-	size_t pipelineCapacity,
+	size_t capacity,
 	Framebuffer* framebuffer)
 {
 	assert(device);
@@ -503,7 +503,6 @@ inline static MpgxResult createVkFramebuffer(
 	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(pipelineCapacity > 0);
 	assert(framebuffer);
 	// TODO: assert attachments
 
@@ -574,8 +573,11 @@ inline static MpgxResult createVkFramebuffer(
 
 	framebufferInstance->vk.depthStencilAttachment = depthStencilAttachment;
 
+	if (capacity == 0)
+		capacity = MPGX_DEFAULT_CAPACITY;
+
 	GraphicsPipeline* graphicsPipelines = malloc(
-		pipelineCapacity * sizeof(GraphicsPipeline));
+		capacity * sizeof(GraphicsPipeline));
 
 	if (!graphicsPipelines)
 	{
@@ -587,7 +589,7 @@ inline static MpgxResult createVkFramebuffer(
 	}
 
 	framebufferInstance->vk.graphicsPipelines = graphicsPipelines;
-	framebufferInstance->vk.graphicsPipelineCapacity = pipelineCapacity;
+	framebufferInstance->vk.graphicsPipelineCapacity = capacity;
 	framebufferInstance->vk.graphicsPipelineCount = 0;
 
 	VkFramebuffer handle;
@@ -1010,13 +1012,12 @@ inline static MpgxResult createGlFramebuffer(
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
-	size_t pipelineCapacity,
+	size_t capacity,
 	Framebuffer* framebuffer)
 {
 	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(pipelineCapacity > 0);
 	assert(framebuffer);
 	// TODO: assert attachments
 
@@ -1205,8 +1206,11 @@ inline static MpgxResult createGlFramebuffer(
 		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
+	if (capacity == 0)
+		capacity = MPGX_DEFAULT_CAPACITY;
+
 	GraphicsPipeline* graphicsPipelines = malloc(
-		pipelineCapacity * sizeof(GraphicsPipeline));
+		capacity * sizeof(GraphicsPipeline));
 
 	if (!graphicsPipelines)
 	{
@@ -1217,7 +1221,7 @@ inline static MpgxResult createGlFramebuffer(
 	}
 
 	framebufferInstance->gl.graphicsPipelines = graphicsPipelines;
-	framebufferInstance->gl.graphicsPipelineCapacity = pipelineCapacity;
+	framebufferInstance->gl.graphicsPipelineCapacity = capacity;
 	framebufferInstance->gl.graphicsPipelineCount = 0;
 
 	*framebuffer = framebufferInstance;

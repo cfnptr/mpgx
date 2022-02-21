@@ -3031,13 +3031,12 @@ MpgxResult createFramebuffer(
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
-	size_t pipelineCapacity,
+	size_t capacity,
 	Framebuffer* framebuffer)
 {
 	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(pipelineCapacity > 0);
 	assert(framebuffer);
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
@@ -3110,7 +3109,7 @@ MpgxResult createFramebuffer(
 			colorAttachments,
 			colorAttachmentCount,
 			depthStencilAttachment,
-			pipelineCapacity,
+			capacity,
 			&framebufferInstance);
 #else
 		abort();
@@ -3127,7 +3126,7 @@ MpgxResult createFramebuffer(
 			colorAttachments,
 			colorAttachmentCount,
 			depthStencilAttachment,
-			pipelineCapacity,
+			capacity,
 			&framebufferInstance);
 #else
 		abort();
@@ -3181,7 +3180,7 @@ MpgxResult createShadowFramebuffer(
 	Vec2I size,
 	bool useBeginClear,
 	Image depthAttachment,
-	size_t pipelineCapacity,
+	size_t capacity,
 	Framebuffer* framebuffer)
 {
 	assert(window);
@@ -3191,7 +3190,6 @@ MpgxResult createShadowFramebuffer(
 	assert(depthAttachment->base.size.x == size.x &&
 		depthAttachment->base.size.y == size.y);
 	assert(depthAttachment->base.window == window);
-	assert(pipelineCapacity > 0);
 	assert(framebuffer);
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
@@ -3225,7 +3223,7 @@ MpgxResult createShadowFramebuffer(
 			NULL,
 			0,
 			depthAttachment,
-			pipelineCapacity,
+			capacity,
 			&framebufferInstance);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -3250,7 +3248,7 @@ MpgxResult createShadowFramebuffer(
 			NULL,
 			0,
 			depthAttachment,
-			pipelineCapacity,
+			capacity,
 			&framebufferInstance);
 #else
 		abort();
@@ -3822,7 +3820,6 @@ MpgxResult createGraphicsPipeline(
 	GraphicsPipeline* graphicsPipeline)
 {
 	assert(framebuffer);
-	assert(name);
 	assert(state);
 	assert(onResize);
 	assert(onDestroy);

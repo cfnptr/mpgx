@@ -716,7 +716,6 @@ inline static MpgxResult createVkGraphicsPipeline(
 	assert(device);
 	assert(createData);
 	assert(framebuffer);
-	assert(name);
 	assert(onResize);
 	assert(onDestroy);
 	assert(shaders);
@@ -1075,7 +1074,6 @@ inline static MpgxResult createGlGraphicsPipeline(
 	GraphicsPipeline* graphicsPipeline)
 {
 	assert(framebuffer);
-	assert(name);
 	assert(onResize);
 	assert(onDestroy);
 	assert(shaders);

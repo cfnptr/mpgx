@@ -1446,13 +1446,9 @@ MpgxResult createShadowFramebuffer(
 	Framebuffer* framebuffer);
 /*
  * Destroys framebuffer instance.
- *
  * framebuffer - framebuffer instance or NULL.
- * destroyAttachments - destroy color/depth/stencil attachments.
  */
-void destroyFramebuffer(
-	Framebuffer framebuffer,
-	bool destroyAttachments);
+void destroyFramebuffer(Framebuffer framebuffer);
 
 /*
  * Returns framebuffer window instance.
@@ -1572,13 +1568,9 @@ MpgxResult createGraphicsPipeline(
 	GraphicsPipeline* graphicsPipeline);
 /*
  * Destroys graphics pipeline instance.
- *
  * pipeline - graphics pipeline instance or NULL.
- * destroyShaders - destroy shader instances.
  */
-void destroyGraphicsPipeline(
-	GraphicsPipeline pipeline,
-	bool destroyShaders);
+void destroyGraphicsPipeline(GraphicsPipeline pipeline);
 
 /*
  * Returns graphics pipeline framebuffer instance.
@@ -1664,13 +1656,9 @@ MpgxResult createGraphicsMesh(
 	GraphicsMesh* graphicsMesh);
 /*
  * Destroys graphics mesh instance.
- *
  * mesh - graphics mesh instance or NULL.
- * destroyBuffers - destroy buffer instances.
  */
-void destroyGraphicsMesh(
-	GraphicsMesh mesh,
-	bool destroyBuffers);
+void destroyGraphicsMesh(GraphicsMesh mesh);
 
 /*
  * Returns graphics mesh window instance.
@@ -1788,13 +1776,9 @@ MpgxResult createComputePipeline(
 	ComputePipeline* computePipeline);
 /*
  * Destroys compute pipeline instance.
- *
  * pipeline - compute pipeline instance or NULL.
- * destroyShader - destroy compute shader instance.
  */
-void destroyComputePipeline(
-	ComputePipeline pipeline,
-	bool destroyShader);
+void destroyComputePipeline(ComputePipeline pipeline);
 
 /*
  * Returns compute pipeline window instance.
@@ -1863,9 +1847,7 @@ MpgxResult createRayTracingPipeline(
 	Shader* closestHitShaders,
 	size_t closestHitShaderCount,
 	RayTracingPipeline* rayTracingPipeline);
-void destroyRayTracingPipeline(
-	RayTracingPipeline pipeline,
-	bool destroyShaders);
+void destroyRayTracingPipeline(RayTracingPipeline pipeline);
 
 Window getRayTracingPipelineWindow(RayTracingPipeline pipeline);
 const char* getRayTracingPipelineName(RayTracingPipeline pipeline);
@@ -1889,9 +1871,7 @@ MpgxResult createRayTracingMesh(
 	Buffer vertexBuffer,
 	Buffer indexBuffer,
 	RayTracingMesh* rayTracingMesh);
-void destroyRayTracingMesh(
-	RayTracingMesh mesh,
-	bool destroyBuffers);
+void destroyRayTracingMesh(RayTracingMesh mesh);
 
 Window getRayTracingMeshWindow(RayTracingMesh mesh);
 size_t getRayTracingMeshVertexStride(RayTracingMesh mesh);

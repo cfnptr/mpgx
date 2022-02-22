@@ -934,8 +934,7 @@ void destroyWindow(Window window)
 
 			destroyVkFramebuffer(
 				device,
-				window->framebuffer,
-				false);
+				window->framebuffer);
 			destroyVkRayTracing(
 				window->rayTracing);
 			destroyVkWindow(
@@ -950,9 +949,7 @@ void destroyWindow(Window window)
 		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		destroyGlFramebuffer(
-			window->framebuffer,
-			false);
+		destroyGlFramebuffer(window->framebuffer);
 #else
 		abort();
 #endif
@@ -3147,8 +3144,7 @@ MpgxResult createFramebuffer(
 #if MPGX_SUPPORT_VULKAN
 			destroyVkFramebuffer(
 				window->vkWindow->device,
-				framebufferInstance,
-				false);
+				framebufferInstance);
 #else
 			abort();
 #endif
@@ -3157,9 +3153,7 @@ MpgxResult createFramebuffer(
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
-			destroyGlFramebuffer(
-				framebufferInstance,
-				false);
+			destroyGlFramebuffer(framebufferInstance);
 #else
 			abort();
 #endif
@@ -3269,8 +3263,7 @@ MpgxResult createShadowFramebuffer(
 #if MPGX_SUPPORT_VULKAN
 			destroyVkFramebuffer(
 				window->vkWindow->device,
-				framebufferInstance,
-				false);
+				framebufferInstance);
 #else
 			abort();
 #endif
@@ -3279,9 +3272,7 @@ MpgxResult createShadowFramebuffer(
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
-			destroyGlFramebuffer(
-				framebufferInstance,
-				false);
+			destroyGlFramebuffer(framebufferInstance);
 #else
 			abort();
 #endif
@@ -3297,9 +3288,7 @@ MpgxResult createShadowFramebuffer(
 	*framebuffer = framebufferInstance;
 	return SUCCESS_MPGX_RESULT;
 }
-void destroyFramebuffer(
-	Framebuffer framebuffer,
-	bool destroyAttachments)
+void destroyFramebuffer(Framebuffer framebuffer)
 {
 	if (!framebuffer)
 		return;
@@ -3329,8 +3318,7 @@ void destroyFramebuffer(
 
 			destroyVkFramebuffer(
 				vkWindow->device,
-				framebuffer,
-				destroyAttachments);
+				framebuffer);
 #else
 			abort();
 #endif
@@ -3339,9 +3327,7 @@ void destroyFramebuffer(
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
-			destroyGlFramebuffer(
-				framebuffer,
-				destroyAttachments);
+			destroyGlFramebuffer(framebuffer);
 #else
 			abort();
 #endif
@@ -3938,8 +3924,7 @@ MpgxResult createGraphicsPipeline(
 #if MPGX_SUPPORT_VULKAN
 				destroyVkGraphicsPipeline(
 					window->vkWindow->device,
-					graphicsPipelineInstance,
-					false);
+					graphicsPipelineInstance);
 #else
 				abort();
 #endif
@@ -3948,9 +3933,7 @@ MpgxResult createGraphicsPipeline(
 				graphicsAPI == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
-				destroyGlGraphicsPipeline(
-					graphicsPipelineInstance,
-					false);
+				destroyGlGraphicsPipeline(graphicsPipelineInstance);
 #else
 				abort();
 #endif
@@ -3973,9 +3956,7 @@ MpgxResult createGraphicsPipeline(
 	*graphicsPipeline = graphicsPipelineInstance;
 	return SUCCESS_MPGX_RESULT;
 }
-void destroyGraphicsPipeline(
-	GraphicsPipeline pipeline,
-	bool destroyShaders)
+void destroyGraphicsPipeline(GraphicsPipeline pipeline)
 {
 	if (!pipeline)
 		return;
@@ -4009,8 +3990,7 @@ void destroyGraphicsPipeline(
 
 			destroyVkGraphicsPipeline(
 				vkWindow->device,
-				pipeline,
-				destroyShaders);
+				pipeline);
 #else
 			abort();
 #endif
@@ -4019,9 +3999,7 @@ void destroyGraphicsPipeline(
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
-			destroyGlGraphicsPipeline(
-				pipeline,
-				destroyShaders);
+			destroyGlGraphicsPipeline(pipeline);
 #else
 			abort();
 #endif
@@ -4252,9 +4230,7 @@ MpgxResult createGraphicsMesh(
 			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_VULKAN
-				destroyVkGraphicsMesh(
-					graphicsMeshInstance,
-					false);
+				destroyVkGraphicsMesh(graphicsMeshInstance);
 #else
 				abort();
 #endif
@@ -4263,9 +4239,7 @@ MpgxResult createGraphicsMesh(
 				graphicsAPI == OPENGL_ES_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
-				destroyGlGraphicsMesh(
-					graphicsMeshInstance,
-					false);
+				destroyGlGraphicsMesh(graphicsMeshInstance);
 #else
 				abort();
 #endif
@@ -4288,9 +4262,7 @@ MpgxResult createGraphicsMesh(
 	*graphicsMesh = graphicsMeshInstance;
 	return SUCCESS_MPGX_RESULT;
 }
-void destroyGraphicsMesh(
-	GraphicsMesh mesh,
-	bool destroyBuffers)
+void destroyGraphicsMesh(GraphicsMesh mesh)
 {
 	if (!mesh)
 		return;
@@ -4310,9 +4282,7 @@ void destroyGraphicsMesh(
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_VULKAN
-			destroyVkGraphicsMesh(
-				mesh,
-				destroyBuffers);
+			destroyVkGraphicsMesh(mesh);
 #else
 			abort();
 #endif
@@ -4321,9 +4291,7 @@ void destroyGraphicsMesh(
 			graphicsAPI == OPENGL_ES_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
-			destroyGlGraphicsMesh(
-				mesh,
-				destroyBuffers);
+			destroyGlGraphicsMesh(mesh);
 #else
 			abort();
 #endif
@@ -4693,8 +4661,7 @@ MpgxResult createComputePipeline(
 #if MPGX_SUPPORT_VULKAN
 				destroyVkComputePipeline(
 					window->vkWindow->device,
-					computePipelineInstance,
-					false);
+					computePipelineInstance);
 #else
 				abort();
 #endif
@@ -4717,9 +4684,7 @@ MpgxResult createComputePipeline(
 	*computePipeline = computePipelineInstance;
 	return SUCCESS_MPGX_RESULT;
 }
-void destroyComputePipeline(
-	ComputePipeline pipeline,
-	bool destroyShader)
+void destroyComputePipeline(ComputePipeline pipeline)
 {
 	if (!pipeline)
 		return;
@@ -4751,8 +4716,7 @@ void destroyComputePipeline(
 
 			destroyVkComputePipeline(
 				vkWindow->device,
-				pipeline,
-				destroyShader);
+				pipeline);
 #else
 			abort();
 #endif
@@ -4983,8 +4947,7 @@ MpgxResult createRayTracingPipeline(
 				destroyVkRayTracingPipeline(
 					vkWindow->device,
 					vkWindow->allocator,
-					rayTracingPipelineInstance,
-					false);
+					rayTracingPipelineInstance);
 #else
 				abort();
 #endif
@@ -5007,9 +4970,7 @@ MpgxResult createRayTracingPipeline(
 	*rayTracingPipeline = rayTracingPipelineInstance;
 	return SUCCESS_MPGX_RESULT;
 }
-void destroyRayTracingPipeline(
-	RayTracingPipeline pipeline,
-	bool destroyShaders)
+void destroyRayTracingPipeline(RayTracingPipeline pipeline)
 {
 	if (!pipeline)
 		return;
@@ -5043,8 +5004,7 @@ void destroyRayTracingPipeline(
 			destroyVkRayTracingPipeline(
 				vkWindow->device,
 				vkWindow->allocator,
-				pipeline,
-				destroyShaders);
+				pipeline);
 #else
 			abort();
 #endif
@@ -5269,8 +5229,7 @@ MpgxResult createRayTracingMesh(
 					vkWindow->device,
 					vkWindow->allocator,
 					window->rayTracing,
-					rayTracingMeshInstance,
-					false);
+					rayTracingMeshInstance);
 #else
 				abort();
 #endif
@@ -5293,9 +5252,7 @@ MpgxResult createRayTracingMesh(
 	*rayTracingMesh = rayTracingMeshInstance;
 	return SUCCESS_MPGX_RESULT;
 }
-void destroyRayTracingMesh(
-	RayTracingMesh mesh,
-	bool destroyBuffers)
+void destroyRayTracingMesh(RayTracingMesh mesh)
 {
 	if (!mesh)
 		return;
@@ -5328,8 +5285,7 @@ void destroyRayTracingMesh(
 				vkWindow->device,
 				vkWindow->allocator,
 				window->rayTracing,
-				mesh,
-				destroyBuffers);
+				mesh);
 #else
 			abort();
 #endif

@@ -665,8 +665,7 @@ inline static MpgxResult recreateVkGraphicsPipelineHandle(
 
 inline static void destroyVkGraphicsPipeline(
 	VkDevice device,
-	GraphicsPipeline graphicsPipeline,
-	bool destroyShaders)
+	GraphicsPipeline graphicsPipeline)
 {
 	assert(device);
 
@@ -685,16 +684,6 @@ inline static void destroyVkGraphicsPipeline(
 		device,
 		graphicsPipeline->vk.cache,
 		NULL);
-
-	if (destroyShaders)
-	{
-		Shader* shaders = graphicsPipeline->vk.shaders;
-		size_t shaderCount = graphicsPipeline->vk.shaderCount;
-
-		for (size_t i = 0; i < shaderCount; i++)
-			destroyShader(shaders[i]);
-	}
-
 	free(graphicsPipeline->vk.shaders);
 	free(graphicsPipeline);
 }
@@ -746,8 +735,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 	{
 		destroyVkGraphicsPipeline(
 			device,
-			graphicsPipelineInstance,
-			false);
+			graphicsPipelineInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -777,8 +765,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 	{
 		destroyVkGraphicsPipeline(
 			device,
-			graphicsPipelineInstance,
-			false);
+			graphicsPipelineInstance);
 		return vkToMpgxResult(vkResult);
 	}
 
@@ -806,8 +793,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 	{
 		destroyVkGraphicsPipeline(
 			device,
-			graphicsPipelineInstance,
-			false);
+			graphicsPipelineInstance);
 		return vkToMpgxResult(vkResult);
 	}
 
@@ -831,8 +817,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 	{
 		destroyVkGraphicsPipeline(
 			device,
-			graphicsPipelineInstance,
-			false);
+			graphicsPipelineInstance);
 		return mpgxResult;
 	}
 
@@ -1035,28 +1020,15 @@ inline static bool getGlBlendOperator(
 	}
 }
 
-inline static void destroyGlGraphicsPipeline(
-	GraphicsPipeline graphicsPipeline,
-	bool destroyShaders)
+inline static void destroyGlGraphicsPipeline(GraphicsPipeline graphicsPipeline)
 {
 	if (!graphicsPipeline)
 		return;
 
 	makeGlWindowContextCurrent(
 		graphicsPipeline->gl.framebuffer->gl.window);
-
 	glDeleteProgram(graphicsPipeline->gl.glHandle);
 	assertOpenGL();
-
-	if (destroyShaders)
-	{
-		Shader* shaders = graphicsPipeline->gl.shaders;
-		size_t shaderCount = graphicsPipeline->gl.shaderCount;
-
-		for (size_t i = 0; i < shaderCount; i++)
-			destroyShader(shaders[i]);
-	}
-
 	free(graphicsPipeline->gl.shaders);
 	free(graphicsPipeline);
 }
@@ -1102,9 +1074,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 
 	if (!pipelineShaders)
 	{
-		destroyGlGraphicsPipeline(
-			graphicsPipelineInstance,
-			false);
+		destroyGlGraphicsPipeline(graphicsPipelineInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -1159,9 +1129,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 
 	if (!result)
 	{
-		destroyGlGraphicsPipeline(
-			graphicsPipelineInstance,
-			false);
+		destroyGlGraphicsPipeline(graphicsPipelineInstance);
 		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
@@ -1225,9 +1193,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 
 			if (!infoLog)
 			{
-				destroyGlGraphicsPipeline(
-					graphicsPipelineInstance,
-					false);
+				destroyGlGraphicsPipeline(graphicsPipelineInstance);
 				return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 			}
 
@@ -1242,10 +1208,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 		}
 
 		assertOpenGL();
-
-		destroyGlGraphicsPipeline(
-			graphicsPipelineInstance,
-			false);
+		destroyGlGraphicsPipeline(graphicsPipelineInstance);
 		return BAD_SHADER_CODE_MPGX_RESULT;
 	}
 
@@ -1253,9 +1216,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 
 	if (error != GL_NO_ERROR)
 	{
-		destroyGlGraphicsPipeline(
-			graphicsPipelineInstance,
-			false);
+		destroyGlGraphicsPipeline(graphicsPipelineInstance);
 		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 

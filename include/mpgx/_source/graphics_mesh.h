@@ -110,19 +110,8 @@ inline static MpgxResult createVkGraphicsMesh(
 	*graphicsMesh = graphicsMeshInstance;
 	return SUCCESS_MPGX_RESULT;
 }
-inline static void destroyVkGraphicsMesh(
-	GraphicsMesh graphicsMesh,
-	bool destroyBuffers)
+inline static void destroyVkGraphicsMesh(GraphicsMesh graphicsMesh)
 {
-	if (!graphicsMesh)
-		return;
-
-	if (destroyBuffers)
-	{
-		destroyBuffer(graphicsMesh->vk.vertexBuffer);
-		destroyBuffer(graphicsMesh->vk.indexBuffer);
-	}
-
 	free(graphicsMesh);
 }
 inline static void drawVkGraphicsMesh(
@@ -187,27 +176,17 @@ inline static void setVkGraphicsMeshIndexOffset(
 #endif
 
 #if MPGX_SUPPORT_OPENGL
-inline static void destroyGlGraphicsMesh(
-	GraphicsMesh graphicsMesh,
-	bool destroyBuffers)
+inline static void destroyGlGraphicsMesh(GraphicsMesh graphicsMesh)
 {
 	if (!graphicsMesh)
 		return;
 
 	makeGlWindowContextCurrent(
 		graphicsMesh->gl.window);
-
 	glDeleteVertexArrays(
 		GL_ONE,
 		&graphicsMesh->gl.handle);
 	assertOpenGL();
-
-	if (destroyBuffers)
-	{
-		destroyBuffer(graphicsMesh->gl.vertexBuffer);
-		destroyBuffer(graphicsMesh->gl.indexBuffer);
-	}
-
 	free(graphicsMesh);
 }
 inline static MpgxResult createGlGraphicsMesh(
@@ -265,9 +244,7 @@ inline static MpgxResult createGlGraphicsMesh(
 
 	if (error != GL_NO_ERROR)
 	{
-		destroyGlGraphicsMesh(
-			graphicsMeshInstance,
-			false);
+		destroyGlGraphicsMesh(graphicsMeshInstance);
 		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 

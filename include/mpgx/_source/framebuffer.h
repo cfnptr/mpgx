@@ -380,8 +380,7 @@ inline static MpgxResult createVkFramebufferHandle(
 
 inline static void destroyVkFramebuffer(
 	VkDevice device,
-	Framebuffer framebuffer,
-	bool destroyAttachments)
+	Framebuffer framebuffer)
 {
 	assert(device);
 
@@ -401,18 +400,6 @@ inline static void destroyVkFramebuffer(
 			device,
 			framebuffer->vk.renderPass,
 			NULL);
-
-		if (destroyAttachments)
-		{
-			Image* colorAttachments = framebuffer->vk.colorAttachments;
-			size_t colorAttachmentCount = framebuffer->vk.colorAttachmentCount;
-
-			for (size_t i = 0; i < colorAttachmentCount; i++)
-				destroyImage(colorAttachments[i]);
-
-			destroyImage(framebuffer->vk.depthStencilAttachment);
-		}
-
 		free(framebuffer->vk.colorAttachments);
 	}
 
@@ -460,8 +447,7 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	{
 		destroyVkFramebuffer(
 			device,
-			framebufferInstance,
-			false);
+			framebufferInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -476,8 +462,7 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	{
 		destroyVkFramebuffer(
 			device,
-			framebufferInstance,
-			false);
+			framebufferInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -528,8 +513,7 @@ inline static MpgxResult createVkFramebuffer(
 	{
 		destroyVkFramebuffer(
 			device,
-			framebufferInstance,
-			false);
+			framebufferInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -545,8 +529,7 @@ inline static MpgxResult createVkFramebuffer(
 			free(imageViews);
 			destroyVkFramebuffer(
 				device,
-				framebufferInstance,
-				false);
+				framebufferInstance);
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
@@ -583,8 +566,7 @@ inline static MpgxResult createVkFramebuffer(
 	{
 		destroyVkFramebuffer(
 			device,
-			framebufferInstance,
-			false);
+			framebufferInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -608,8 +590,7 @@ inline static MpgxResult createVkFramebuffer(
 	{
 		destroyVkFramebuffer(
 			device,
-			framebufferInstance,
-			false);
+			framebufferInstance);
 		return mpgxResult;
 	}
 
@@ -622,8 +603,7 @@ inline static MpgxResult createVkFramebuffer(
 	{
 		destroyVkFramebuffer(
 			device,
-			framebufferInstance,
-			false);
+			framebufferInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -925,9 +905,7 @@ inline static void clearVkFramebuffer(
 #endif
 
 #if MPGX_SUPPORT_OPENGL
-inline static void destroyGlFramebuffer(
-	Framebuffer framebuffer,
-	bool destroyAttachments)
+inline static void destroyGlFramebuffer(Framebuffer framebuffer)
 {
 	if (!framebuffer)
 		return;
@@ -940,18 +918,6 @@ inline static void destroyGlFramebuffer(
 			GL_ONE,
 			&framebuffer->gl.handle);
 		assertOpenGL();
-
-		if (destroyAttachments)
-		{
-			Image* colorAttachments = framebuffer->gl.colorAttachments;
-			size_t colorAttachmentCount = framebuffer->gl.colorAttachmentCount;
-
-			for (size_t i = 0; i < colorAttachmentCount; i++)
-				destroyImage(colorAttachments[i]);
-
-			destroyImage(framebuffer->gl.depthStencilAttachment);
-		}
-
 		free(framebuffer->gl.colorAttachments);
 	}
 
@@ -991,9 +957,7 @@ inline static MpgxResult createGlDefaultFramebuffer(
 
 	if (!graphicsPipelines)
 	{
-		destroyGlFramebuffer(
-			framebufferInstance,
-			false);
+		destroyGlFramebuffer(framebufferInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -1055,9 +1019,7 @@ inline static MpgxResult createGlFramebuffer(
 
 		if (!colorAttachmentArray)
 		{
-			destroyGlFramebuffer(
-				framebufferInstance,
-				false);
+			destroyGlFramebuffer(framebufferInstance);
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
@@ -1066,9 +1028,7 @@ inline static MpgxResult createGlFramebuffer(
 
 		if (!drawBuffers)
 		{
-			destroyGlFramebuffer(
-				framebufferInstance,
-				false);
+			destroyGlFramebuffer(framebufferInstance);
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
@@ -1083,9 +1043,7 @@ inline static MpgxResult createGlFramebuffer(
 			{
 			default:
 				free(drawBuffers);
-				destroyGlFramebuffer(
-					framebufferInstance,
-					false);
+				destroyGlFramebuffer(framebufferInstance);
 				return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 			case R8_UNORM_IMAGE_FORMAT:
 			case R8G8B8A8_UNORM_IMAGE_FORMAT:
@@ -1127,9 +1085,7 @@ inline static MpgxResult createGlFramebuffer(
 		switch (format)
 		{
 		default:
-			destroyGlFramebuffer(
-				framebufferInstance,
-				false);
+			destroyGlFramebuffer(framebufferInstance);
 			return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 		case D16_UNORM_IMAGE_FORMAT:
 		case D32_SFLOAT_IMAGE_FORMAT:
@@ -1189,10 +1145,7 @@ inline static MpgxResult createGlFramebuffer(
 #endif
 
 		assertOpenGL();
-
-		destroyGlFramebuffer(
-			framebufferInstance,
-			false);
+		destroyGlFramebuffer(framebufferInstance);
 		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
@@ -1200,9 +1153,7 @@ inline static MpgxResult createGlFramebuffer(
 
 	if (error != GL_NO_ERROR)
 	{
-		destroyGlFramebuffer(
-			framebufferInstance,
-			false);
+		destroyGlFramebuffer(framebufferInstance);
 		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
@@ -1214,9 +1165,7 @@ inline static MpgxResult createGlFramebuffer(
 
 	if (!graphicsPipelines)
 	{
-		destroyGlFramebuffer(
-			framebufferInstance,
-			false);
+		destroyGlFramebuffer(framebufferInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 

@@ -458,8 +458,7 @@ inline static void destroyVkRayTracingMesh(
 	VkDevice device,
 	VmaAllocator allocator,
 	RayTracing rayTracing,
-	RayTracingMesh rayTracingMesh,
-	bool destroyBuffers)
+	RayTracingMesh rayTracingMesh)
 {
 	assert(device);
 	assert(allocator);
@@ -476,13 +475,6 @@ inline static void destroyVkRayTracingMesh(
 		allocator,
 		rayTracingMesh->vk.buffer,
 		rayTracingMesh->vk.allocation);
-
-	if (destroyBuffers)
-	{
-		destroyBuffer(rayTracingMesh->vk.indexBuffer);
-		destroyBuffer(rayTracingMesh->vk.vertexBuffer);
-	}
-
 	free(rayTracingMesh);
 }
 inline static MpgxResult createVkRayTracingMesh(
@@ -540,8 +532,7 @@ inline static MpgxResult createVkRayTracingMesh(
 			device,
 			allocator,
 			rayTracing,
-			rayTracingMeshInstance,
-			false);
+			rayTracingMeshInstance);
 		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
@@ -560,8 +551,7 @@ inline static MpgxResult createVkRayTracingMesh(
 			device,
 			allocator,
 			rayTracing,
-			rayTracingMeshInstance,
-			false);
+			rayTracingMeshInstance);
 		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
@@ -576,8 +566,7 @@ inline static MpgxResult createVkRayTracingMesh(
 			device,
 			allocator,
 			rayTracing,
-			rayTracingMeshInstance,
-			false);
+			rayTracingMeshInstance);
 		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
@@ -655,8 +644,7 @@ inline static MpgxResult createVkRayTracingMesh(
 			device,
 			allocator,
 			rayTracing,
-			rayTracingMeshInstance,
-			false);
+			rayTracingMeshInstance);
 		return mpgxResult;
 	}
 

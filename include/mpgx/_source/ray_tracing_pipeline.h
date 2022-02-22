@@ -472,8 +472,7 @@ inline static MpgxResult createVkSbt(
 inline static void destroyVkRayTracingPipeline(
 	VkDevice device,
 	VmaAllocator allocator,
-	RayTracingPipeline rayTracingPipeline,
-	bool destroyShaders)
+	RayTracingPipeline rayTracingPipeline)
 {
 	assert(device);
 	assert(allocator);
@@ -505,28 +504,6 @@ inline static void destroyVkRayTracingPipeline(
 		device,
 		rayTracingPipeline->vk.cache,
 		NULL);
-
-	if (destroyShaders)
-	{
-		Shader* shaders = rayTracingPipeline->vk.closestHitShaders;
-		size_t shaderCount = rayTracingPipeline->vk.closestHitShaderCount;
-
-		for (size_t i = 0; i < shaderCount; i++)
-			destroyShader(shaders[i]);
-
-		shaders = rayTracingPipeline->vk.missShaders;
-		shaderCount = rayTracingPipeline->vk.missShaderCount;
-
-		for (size_t i = 0; i < shaderCount; i++)
-			destroyShader(shaders[i]);
-
-		shaders = rayTracingPipeline->vk.generationShaders;
-		shaderCount = rayTracingPipeline->vk.generationShaderCount;
-
-		for (size_t i = 0; i < shaderCount; i++)
-			destroyShader(shaders[i]);
-	}
-
 	free(rayTracingPipeline->vk.closestHitShaders);
 	free(rayTracingPipeline->vk.missShaders);
 	free(rayTracingPipeline->vk.generationShaders);
@@ -583,8 +560,7 @@ inline static MpgxResult createVkRayTracingPipeline(
 		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayTracingPipelineInstance,
-			false);
+			rayTracingPipelineInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -602,8 +578,7 @@ inline static MpgxResult createVkRayTracingPipeline(
 		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayTracingPipelineInstance,
-			false);
+			rayTracingPipelineInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -621,8 +596,7 @@ inline static MpgxResult createVkRayTracingPipeline(
 		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayTracingPipelineInstance,
-			false);
+			rayTracingPipelineInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
@@ -653,8 +627,7 @@ inline static MpgxResult createVkRayTracingPipeline(
 		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayTracingPipelineInstance,
-			false);
+			rayTracingPipelineInstance);
 		return vkToMpgxResult(vkResult);
 	}
 
@@ -683,8 +656,7 @@ inline static MpgxResult createVkRayTracingPipeline(
 		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayTracingPipelineInstance,
-			false);
+			rayTracingPipelineInstance);
 		return vkToMpgxResult(vkResult);
 	}
 
@@ -710,8 +682,7 @@ inline static MpgxResult createVkRayTracingPipeline(
 		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayTracingPipelineInstance,
-			false);
+			rayTracingPipelineInstance);
 		return mpgxResult;
 	}
 
@@ -750,8 +721,7 @@ inline static MpgxResult createVkRayTracingPipeline(
 		destroyVkRayTracingPipeline(
 			device,
 			allocator,
-			rayTracingPipelineInstance,
-			false);
+			rayTracingPipelineInstance);
 		return mpgxResult;
 	}
 

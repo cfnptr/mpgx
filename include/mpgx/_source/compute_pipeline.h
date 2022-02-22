@@ -111,8 +111,7 @@ inline static MpgxResult createVkComputePipelineHandle(
 
 inline static void destroyVkComputePipeline(
 	VkDevice device,
-	ComputePipeline computePipeline,
-	bool _destroyShader)
+	ComputePipeline computePipeline)
 {
 	assert(device);
 
@@ -131,10 +130,6 @@ inline static void destroyVkComputePipeline(
 		device,
 		computePipeline->vk.cache,
 		NULL);
-
-	if (_destroyShader)
-		destroyShader(computePipeline->vk.shader);
-
 	free(computePipeline);
 }
 inline static MpgxResult createVkComputePipeline(
@@ -191,8 +186,7 @@ inline static MpgxResult createVkComputePipeline(
 	{
 		destroyVkComputePipeline(
 			device,
-			computePipelineInstance,
-			false);
+			computePipelineInstance);
 		return vkToMpgxResult(vkResult);
 	}
 
@@ -220,8 +214,7 @@ inline static MpgxResult createVkComputePipeline(
 	{
 		destroyVkComputePipeline(
 			device,
-			computePipelineInstance,
-			false);
+			computePipelineInstance);
 		return vkToMpgxResult(vkResult);
 	}
 
@@ -240,8 +233,7 @@ inline static MpgxResult createVkComputePipeline(
 	{
 		destroyVkComputePipeline(
 			device,
-			computePipelineInstance,
-			false);
+			computePipelineInstance);
 		return mpgxResult;
 	}
 

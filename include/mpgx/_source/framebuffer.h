@@ -1249,7 +1249,6 @@ inline static void beginGlFramebufferRender(
 	const FramebufferClear* clearValues,
 	size_t clearValueCount)
 {
-	assert(framebuffer != GL_ZERO);
 	assert(size.x > 0);
 	assert(size.y > 0);
 

@@ -867,10 +867,15 @@ double getWindowDeltaTime(Window window);
  */
 Vec2F getWindowContentScale(Window window);
 /*
- * Returns window GPU name.
+ * Returns window GPU name string.
  * window - window instance.
  */
 const char* getWindowGpuName(Window window);
+/*
+ * Returns window GPU driver string.
+ * window - window instance.
+ */
+const char* getWindowGpuDriver(Window window);
 
 /*
  * Returns Vulkan window instance.
@@ -1757,7 +1762,7 @@ size_t drawGraphicsMesh(
  * Returns operation MPGX result.
  *
  * window - window instance.
- * name - name string. (for debugging)
+ * name - name string or NULL. (for debugging)
  * onBind - on compute pipeline bind function or NULL.
  * onDestroy - on compute pipeline destroy function.
  * handle - compute pipeline handle.

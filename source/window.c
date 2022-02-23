@@ -126,7 +126,7 @@ MpgxResult initializeGraphics(
 
 	glfwSetErrorCallback(glfwErrorCallback);
 
-	if (graphicsAPI == VULKAN_GRAPHICS_API)
+	if (api == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
 		uint32_t glfwExtensionCount;
@@ -259,6 +259,7 @@ MpgxResult initializeGraphics(
 	}
 
 	graphicsInitialized = true;
+	graphicsAPI = api;
 	return SUCCESS_MPGX_RESULT;
 }
 void terminateGraphics()
@@ -1052,6 +1053,8 @@ Vec2F getWindowContentScale(Window window)
 	return vec2F(x, y);
 }
 
+static char gpuDriver[32];
+
 const char* getWindowGpuName(Window window)
 {
 	assert(window);
@@ -1070,6 +1073,48 @@ const char* getWindowGpuName(Window window)
 	{
 #if MPGX_SUPPORT_OPENGL
 		return (const char*)glGetString(GL_RENDERER);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+}
+const char* getWindowGpuDriver(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		uint32_t apiVersion = window->vkWindow->deviceProperties.apiVersion;
+		uint32_t driverVersion = window->vkWindow->deviceProperties.driverVersion;
+
+#if __APPLE__
+		sprintf(gpuDriver, "MoltenVK %hhu.%hhu.%hhu %hhu.%hhu.%hhu",
+#else
+		sprintf(gpuDriver, "%hhu.%hhu.%hhu %hhu.%hhu.%hhu",
+#endif
+			(uint8_t)VK_API_VERSION_MAJOR(apiVersion),
+			(uint8_t)VK_API_VERSION_MINOR(apiVersion),
+			(uint8_t)VK_API_VERSION_PATCH(apiVersion),
+			(uint8_t)VK_API_VERSION_MAJOR(driverVersion),
+			(uint8_t)VK_API_VERSION_MINOR(driverVersion),
+			(uint8_t)VK_API_VERSION_PATCH(driverVersion));
+
+		return gpuDriver;
+#else
+		abort();
+#endif
+	}
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_OPENGL
+		return (const char*)glGetString(GL_VERSION);
 #else
 		abort();
 #endif
@@ -4599,7 +4644,6 @@ MpgxResult createComputePipeline(
 	ComputePipeline* computePipeline)
 {
 	assert(window);
-	assert(name);
 	assert(onDestroy);
 	assert(handle);
 	assert(shader);
@@ -4847,7 +4891,6 @@ MpgxResult createRayTracingPipeline(
 	RayTracingPipeline* rayTracingPipeline)
 {
 	assert(window);
-	assert(name);
 	assert(onDestroy);
 	assert(handle);
 	assert(createData);

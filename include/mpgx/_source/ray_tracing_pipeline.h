@@ -531,7 +531,6 @@ inline static MpgxResult createVkRayTracingPipeline(
 	assert(allocator);
 	assert(createData);
 	assert(rayTracing);
-	assert(name);
 	assert(window);
 	assert(onDestroy);
 	assert(rayTracingPipeline);

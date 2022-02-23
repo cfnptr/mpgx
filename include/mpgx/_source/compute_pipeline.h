@@ -146,7 +146,6 @@ inline static MpgxResult createVkComputePipeline(
 	assert(device);
 	assert(createData);
 	assert(window);
-	assert(name);
 	assert(onDestroy);
 	assert(shader);
 	assert(computePipeline);

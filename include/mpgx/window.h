@@ -1202,7 +1202,7 @@ MpgxResult setBufferData(
  * window - window instance.
  * type - image type mask
  * dimension - image dimension type.
- * format image format type.
+ * format - image format type.
  * data - image pixel data array.
  * size - image size in pixels.
  * levelCount - image level count.

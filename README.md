@@ -6,7 +6,6 @@ A library providing generic interface for realtime **graphics** rendering across
 
 * Vulkan API and OpenGL rendering backends
 * Window creation, manipulation (using GLFW)
-* Implemented shaders (Vulkan API, OpenGL)
 
 ## Supported operating systems
 
@@ -52,4 +51,5 @@ git clone --recursive https://github.com/cfnptr/mpgx
 * [VulkanMemoryAllocator](https://gpuopen.com/vulkan-memory-allocator/) (MIT License)
 
 ## Examples
+
 You can find usage examples in source code of the [Uran](https://github.com/cfnptr/uran/) library.

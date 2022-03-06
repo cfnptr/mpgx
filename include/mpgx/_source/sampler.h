@@ -536,12 +536,12 @@ inline static MpgxResult createGlSampler(
 		GL_TEXTURE_MAX_LOD,
 		(GLfloat)mipmapLodRange.y);
 
-	GLenum error = glGetError();
+	GLenum glError = glGetError();
 
-	if (error != GL_NO_ERROR)
+	if (glError != GL_NO_ERROR)
 	{
 		destroyGlSampler(samplerInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT;
+		return glToMpgxResult(glError);
 	}
 
 	*sampler = samplerInstance;

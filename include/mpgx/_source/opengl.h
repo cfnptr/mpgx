@@ -21,6 +21,23 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+inline static MpgxResult glToMpgxResult(GLenum glError)
+{
+	switch (glError)
+	{
+	default:
+		return UNKNOWN_ERROR_MPGX_RESULT;
+	case GL_NO_ERROR:
+		return SUCCESS_MPGX_RESULT;
+	case GL_INVALID_ENUM:
+	case GL_INVALID_VALUE:
+	case GL_INVALID_OPERATION:
+		return BAD_VALUE_MPGX_RESULT;
+	case GL_CONTEXT_LOST:
+		return DEVICE_IS_LOST_MPGX_RESULT;
+	}
+}
+
 inline static void assertOpenGL()
 {
 #ifndef NDEBUG

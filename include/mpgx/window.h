@@ -1118,9 +1118,9 @@ void endWindowRecord(Window window);
  * Returns operation MPGX result.
  *
  * window - window instance.
- * type - buffer type mask.
- * usage - buffer usage type.
- * data - buffer binary data or NULL.
+ * type - type mask.
+ * usage - usage type.
+ * data - binary data or NULL.
  * size - buffer size in bytes.
  * buffer - pointer to the buffer instance.
  */
@@ -1196,20 +1196,20 @@ MpgxResult setBufferData(
 	size_t offset);
 
 /*
- * Create a new image instance.
+ * Create a new mipmap image instance.
  * Returns operation MPGX result.
  *
  * window - window instance.
- * type - image type mask
- * dimension - image dimension type.
- * format - image format type.
- * data - image pixel data array.
+ * type - type mask
+ * dimension - dimension type.
+ * format - format type.
+ * data - mipmap pixel data array.
  * size - image size in pixels.
- * levelCount - image level count.
+ * levelCount - mipmap level count.
  * isConstant - is image constant.
  * image - pointer to the image.
  */
-MpgxResult createImage(
+MpgxResult createMipmapImage(
 	Window window,
 	ImageType type,
 	ImageDimension dimension,
@@ -1220,19 +1220,58 @@ MpgxResult createImage(
 	bool isConstant,
 	Image* image);
 /*
+ * Create a new image instance.
+ * Returns operation MPGX result.
+ *
+ * window - window instance.
+ * type - type mask
+ * dimension - dimension type.
+ * format - format type.
+ * data - pixel data array.
+ * size - image size in pixels.
+ * isConstant - is image constant.
+ * image - pointer to the image.
+ */
+MpgxResult createImage(
+	Window window,
+	ImageType type,
+	ImageDimension dimension,
+	ImageFormat format,
+	const void* data,
+	Vec3I size,
+	bool isConstant,
+	Image* image);
+/*
  * Destroys image instance.
  * image - image instance or NULL.
  */
 void destroyImage(Image image);
 
 /*
- * Set image pixels data.
+ * Set mipmap image pixel data.
  * Returns operation MPGX result.
  *
  * image - image instance.
  * data - pixels array.
  * size - data size in pixels.
- * offset - image data offset in pixels.
+ * offset - data offset in pixels.
+ * level - level index.
+ */
+MpgxResult setMipmapImageData(
+	Image image,
+	const void* data,
+	Vec3I size,
+	Vec3I offset,
+	uint8_t level);
+/*
+ * Set image pixel data.
+ * Returns operation MPGX result.
+ *
+ * image - image instance.
+ * data - pixels array.
+ * size - data size in pixels.
+ * offset - data offset in pixels.
+ * level - level index.
  */
 MpgxResult setImageData(
 	Image image,
@@ -1261,6 +1300,11 @@ ImageDimension getImageDimension(Image image);
  */
 ImageFormat getImageFormat(Image image);
 /*
+ * Returns image mipmap level count.
+ * image - image instance.
+ */
+uint8_t getImageLevelCount(Image image);
+/*
  * Returns image size in pixels.
  * image - image instance.
  */
@@ -1275,7 +1319,14 @@ bool isImageConstant(Image image);
  * Calculates image level cont based on size.
  * size - image size in pixels.
  */
-uint8_t getImageLevelCount(Vec3I size);
+inline static uint8_t calcImageLevelCount(Vec3I size)
+{
+	assert(size.x > 0);
+	assert(size.y > 0);
+	assert(size.z > 0);
+	uint32_t value = max(max(size.x, size.y), size.z);
+	return (uint8_t)floorf(log2f((float)value)) + 1;
+}
 
 /*
  * Create a new sampler instance.
@@ -1383,7 +1434,7 @@ float getSamplerMipmapLodBias(Sampler sampler);
  * window - window instance.
  * type - shader type.
  * code - shader program code.
- * size - shader code size in bytes.
+ * size - code size in bytes.
  * shader - pointer to the shader instance.
  */
 MpgxResult createShader(

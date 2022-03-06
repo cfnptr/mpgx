@@ -1149,12 +1149,12 @@ inline static MpgxResult createGlFramebuffer(
 		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	GLenum error = glGetError();
+	GLenum glError = glGetError();
 
-	if (error != GL_NO_ERROR)
+	if (glError != GL_NO_ERROR)
 	{
 		destroyGlFramebuffer(framebufferInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT;
+		return glToMpgxResult(glError);
 	}
 
 	if (capacity == 0)

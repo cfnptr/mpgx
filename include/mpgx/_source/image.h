@@ -23,6 +23,7 @@ typedef struct BaseImage_T
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
+	uint8_t levelCount;
 	bool isConstant;
 } BaseImage_T;
 #if MPGX_SUPPORT_VULKAN
@@ -33,7 +34,9 @@ typedef struct VkImage_T
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
+	uint8_t levelCount;
 	bool isConstant;
+	uint8_t _alignment[3];
 	VkFormat vkFormat;
 	VkImageAspectFlagBits vkAspect;
 	VkImage handle;
@@ -52,7 +55,9 @@ typedef struct GlImage_T
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
+	uint8_t levelCount;
 	bool isConstant;
+	uint8_t _alignment[3];
 	GLenum glType;
 	GLenum dataType;
 	GLenum dataFormat;
@@ -131,7 +136,7 @@ inline static MpgxResult createVkImage(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
-	assert(levelCount <= getImageLevelCount(size));
+	assert(levelCount <= calcImageLevelCount(size));
 	assert(image);
 
 	// TODO: mipmap generation, multisampling
@@ -146,6 +151,7 @@ inline static MpgxResult createVkImage(
 	imageInstance->vk.type = type;
 	imageInstance->vk.dimension = dimension;
 	imageInstance->vk.format = format;
+	imageInstance->vk.levelCount = levelCount;
 	imageInstance->vk.isConstant = isConstant;
 
 	VkImageType vkType;
@@ -637,7 +643,8 @@ inline static MpgxResult setVkImageData(
 	Image image,
 	const void* data,
 	Vec3I size,
-	Vec3I offset)
+	Vec3I offset,
+	uint8_t level)
 {
 	assert(device);
 	assert(allocator);
@@ -654,6 +661,7 @@ inline static MpgxResult setVkImageData(
 	assert(offset.x >= 0);
 	assert(offset.y >= 0);
 	assert(offset.z >= 0);
+	assert(level < image->vk.levelCount);
 
 	// TODO: properly add staging buffer image data offset
 	assert(offset.x == 0 && offset.y == 0 && offset.z == 0);
@@ -726,7 +734,7 @@ inline static MpgxResult setVkImageData(
 		0,
 		{
 			aspect,
-			0,
+			level,
 			0,
 			1,
 		},
@@ -814,7 +822,7 @@ inline static MpgxResult createGlImage(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
-	assert(levelCount <= getImageLevelCount(size));
+	assert(levelCount <= calcImageLevelCount(size));
 	assert(image);
 
 	if (!(type & SAMPLED_IMAGE_TYPE) &&
@@ -836,6 +844,7 @@ inline static MpgxResult createGlImage(
 	imageInstance->gl.type = type;
 	imageInstance->gl.dimension = dimension;
 	imageInstance->gl.format = format;
+	imageInstance->gl.levelCount = levelCount;
 	imageInstance->gl.isConstant = isConstant;
 
 	GLenum glType;
@@ -1024,16 +1033,12 @@ inline static MpgxResult createGlImage(
 		}
 	}
 
-	GLenum error = glGetError();
+	GLenum glError = glGetError();
 
-	if (error != GL_NO_ERROR)
+	if (glError != GL_NO_ERROR)
 	{
 		destroyGlImage(imageInstance);
-
-		if (error == GL_OUT_OF_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+		return glToMpgxResult(glError);
 	}
 
 	*image = imageInstance;
@@ -1044,7 +1049,8 @@ inline static MpgxResult setGlImageData(
 	Image image,
 	const void* data,
 	Vec3I size,
-	Vec3I offset)
+	Vec3I offset,
+	uint8_t level)
 {
 	assert(image);
 	assert(data);
@@ -1054,6 +1060,7 @@ inline static MpgxResult setGlImageData(
 	assert(offset.x >= 0);
 	assert(offset.y >= 0);
 	assert(offset.z >= 0);
+	assert(level < image->gl.levelCount);
 
 	makeGlWindowContextCurrent(
 		image->gl.window);
@@ -1068,7 +1075,7 @@ inline static MpgxResult setGlImageData(
 	{
 		glTexSubImage2D(
 			image->gl.glType,
-			0,
+			(GLint)level,
 			(GLint)offset.x,
 			(GLint)offset.y,
 			(GLsizei)size.x,
@@ -1081,7 +1088,7 @@ inline static MpgxResult setGlImageData(
 	{
 		glTexSubImage3D(
 			image->gl.glType,
-			0,
+			(GLint)level,
 			(GLint)offset.x,
 			(GLint)offset.y,
 			(GLint)offset.z,
@@ -1097,10 +1104,10 @@ inline static MpgxResult setGlImageData(
 		abort();
 	}
 
-	GLenum error = glGetError();
+	GLenum glError = glGetError();
 
-	if (error != GL_NO_ERROR)
-		return UNKNOWN_ERROR_MPGX_RESULT;
+	if (glError != GL_NO_ERROR)
+		return glToMpgxResult(glError);
 
 	return SUCCESS_MPGX_RESULT;
 }

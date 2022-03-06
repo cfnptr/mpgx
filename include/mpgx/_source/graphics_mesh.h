@@ -240,12 +240,12 @@ inline static MpgxResult createGlGraphicsMesh(
 
 	graphicsMeshInstance->gl.handle = handle;
 
-	GLenum error = glGetError();
+	GLenum glError = glGetError();
 
-	if (error != GL_NO_ERROR)
+	if (glError != GL_NO_ERROR)
 	{
 		destroyGlGraphicsMesh(graphicsMeshInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT;
+		return glToMpgxResult(glError);
 	}
 
 	*graphicsMesh = graphicsMeshInstance;

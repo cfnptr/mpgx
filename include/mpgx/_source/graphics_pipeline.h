@@ -1212,12 +1212,12 @@ inline static MpgxResult createGlGraphicsPipeline(
 		return BAD_SHADER_CODE_MPGX_RESULT;
 	}
 
-	GLenum error = glGetError();
+	GLenum glError = glGetError();
 
-	if (error != GL_NO_ERROR)
+	if (glError != GL_NO_ERROR)
 	{
 		destroyGlGraphicsPipeline(graphicsPipelineInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT;
+		return glToMpgxResult(glError);
 	}
 
 	*graphicsPipeline = graphicsPipelineInstance;

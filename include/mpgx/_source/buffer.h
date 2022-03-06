@@ -506,10 +506,10 @@ inline static MpgxResult mapGlBuffer(
 	if (!mappedData)
 		return FAILED_TO_MAP_MEMORY_MPGX_RESULT;
 
-	GLenum error = glGetError();
+	GLenum glError = glGetError();
 
-	if (error != GL_NO_ERROR)
-		return UNKNOWN_ERROR_MPGX_RESULT;
+	if (glError != GL_NO_ERROR)
+		return glToMpgxResult(glError);
 
 	*map = mappedData;
 	return SUCCESS_MPGX_RESULT;
@@ -525,10 +525,10 @@ inline static MpgxResult unmapGlBuffer(
 		handle);
 	glUnmapBuffer(type);
 
-	GLenum error = glGetError();
+	GLenum glError = glGetError();
 
-	if (error != GL_NO_ERROR)
-		return UNKNOWN_ERROR_MPGX_RESULT;
+	if (glError != GL_NO_ERROR)
+		return glToMpgxResult(glError);
 
 	return SUCCESS_MPGX_RESULT;
 }
@@ -553,10 +553,10 @@ inline static MpgxResult setGlBufferData(
 		(GLsizeiptr)size,
 		data);
 
-	GLenum error = glGetError();
+	GLenum glError = glGetError();
 
-	if (error != GL_NO_ERROR)
-		return UNKNOWN_ERROR_MPGX_RESULT;
+	if (glError != GL_NO_ERROR)
+		return glToMpgxResult(glError);
 
 	return SUCCESS_MPGX_RESULT;
 }
@@ -669,16 +669,12 @@ inline static MpgxResult createGlBuffer(
 		data,
 		glUsage);
 
-	GLenum error = glGetError();
+	GLenum glError = glGetError();
 
-	if (error != GL_NO_ERROR)
+	if (glError != GL_NO_ERROR)
 	{
 		destroyGlBuffer(bufferInstance);
-
-		if (error == GL_OUT_OF_MEMORY)
-			return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-		else
-			return UNKNOWN_ERROR_MPGX_RESULT;
+		return glToMpgxResult(glError);
 	}
 
 	*buffer = bufferInstance;

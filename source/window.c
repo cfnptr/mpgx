@@ -119,10 +119,10 @@ MpgxResult initializeGraphics(
 	assert(appName);
 
 	if (graphicsInitialized)
-		return GRAPHICS_IS_ALREADY_INITIALIZED_MPGX_RESULT;
+		return ALREADY_INITIALIZED_MPGX_RESULT;
 
 	if(!glfwInit())
-		return FAILED_TO_INITIALIZE_GLFW_MPGX_RESULT;
+		return FAILED_TO_INITIALIZE_MPGX_RESULT;
 
 	glfwSetErrorCallback(glfwErrorCallback);
 
@@ -431,7 +431,7 @@ MpgxResult createWindow(
 	assert(window);
 
 	if (!graphicsInitialized)
-		return GRAPHICS_IS_NOT_INITIALIZED_MPGX_RESULT;
+		return NOT_INITIALIZED_MPGX_RESULT;
 
 	glfwDefaultWindowHints();
 
@@ -778,7 +778,7 @@ MpgxResult createWindow(
 		if (gladLoadGL() == 0)
 		{
 			destroyWindow(windowInstance);
-			return FAILED_TO_INITIALIZE_OPENGL_MPGX_RESULT;
+			return FAILED_TO_INITIALIZE_MPGX_RESULT;
 		}
 
 		glfwSwapInterval(1);
@@ -1094,10 +1094,12 @@ const char* getWindowGpuDriver(Window window)
 		uint32_t driverVersion = window->vkWindow->deviceProperties.driverVersion;
 
 #if __APPLE__
-		sprintf(gpuDriver, "MoltenVK %hhu.%hhu.%hhu %hhu.%hhu.%hhu",
+		const char* fmt = "MoltenVK %hhu.%hhu.%hhu %hhu.%hhu.%hhu";
 #else
-		sprintf(gpuDriver, "%hhu.%hhu.%hhu %hhu.%hhu.%hhu",
+		const char* fmt = "%hhu.%hhu.%hhu %hhu.%hhu.%hhu";
 #endif
+
+		sprintf(gpuDriver, fmt,
 			(uint8_t)VK_API_VERSION_MAJOR(apiVersion),
 			(uint8_t)VK_API_VERSION_MINOR(apiVersion),
 			(uint8_t)VK_API_VERSION_PATCH(apiVersion),
@@ -1604,12 +1606,7 @@ MpgxResult beginWindowRecord(Window window)
 			&fence);
 
 		if (vkResult != VK_SUCCESS)
-		{
-			if (vkResult == VK_ERROR_OUT_OF_DEVICE_MEMORY)
-				return OUT_OF_DEVICE_MEMORY_MPGX_RESULT;
-			else
-				return UNKNOWN_ERROR_MPGX_RESULT;
-		}
+			return vkToMpgxResult(vkResult);
 
 		VkSemaphore* imageAcquiredSemaphores =
 			vkWindow->imageAcquiredSemaphores;
@@ -2270,7 +2267,7 @@ MpgxResult setBufferData(
 	}
 }
 
-MpgxResult createImage(
+MpgxResult createMipmapImage(
 	Window window,
 	ImageType type,
 	ImageDimension dimension,
@@ -2289,9 +2286,9 @@ MpgxResult createImage(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
-	assert(levelCount <= getImageLevelCount(size));
 	assert(image);
 	assert(!window->isRecording);
+	assert(levelCount <= calcImageLevelCount(size));
 	assert(graphicsInitialized);
 
 	MpgxResult mpgxResult;
@@ -2402,6 +2399,39 @@ MpgxResult createImage(
 	*image = imageInstance;
 	return SUCCESS_MPGX_RESULT;
 }
+MpgxResult createImage(
+	Window window,
+	ImageType type,
+	ImageDimension dimension,
+	ImageFormat format,
+	const void* data,
+	Vec3I size,
+	bool isConstant,
+	Image* image)
+{
+	assert(window);
+	assert(type > 0);
+	assert(dimension < IMAGE_DIMENSION_COUNT);
+	assert(format < IMAGE_FORMAT_COUNT);
+	assert(data);
+	assert(size.x > 0);
+	assert(size.y > 0);
+	assert(size.z > 0);
+	assert(image);
+	assert(!window->isRecording);
+	assert(graphicsInitialized);
+
+	return createMipmapImage(
+		window,
+		type,
+		dimension,
+		format,
+		&data,
+		size,
+		1,
+		isConstant,
+		image);
+}
 void destroyImage(Image image)
 {
 	if (!image)
@@ -2462,6 +2492,71 @@ void destroyImage(Image image)
 	abort();
 }
 
+MpgxResult setMipmapImageData(
+	Image image,
+	const void* data,
+	Vec3I size,
+	Vec3I offset,
+	uint8_t level)
+{
+	assert(image);
+	assert(data);
+	assert(size.x > 0);
+	assert(size.y > 0);
+	assert(size.z > 0);
+	assert(offset.x >= 0);
+	assert(offset.y >= 0);
+	assert(offset.z >= 0);
+	assert(size.x + offset.x <= image->base.size.x);
+	assert(size.y + offset.y <= image->base.size.y);
+	assert(size.z + offset.z <= image->base.size.z);
+	assert(!image->base.isConstant);
+	assert(!image->base.window->isRecording);
+	assert(level < image->base.levelCount);
+	assert(graphicsInitialized);
+
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow =
+			image->vk.window->vkWindow;
+
+		return setVkImageData(
+			vkWindow->device,
+			vkWindow->allocator,
+			vkWindow->transferQueue,
+			vkWindow->transferCommandBuffer,
+			vkWindow->transferFence,
+			image->vk.stagingBuffer,
+			image->vk.stagingAllocation,
+			image,
+			data,
+			size,
+			offset,
+			level);
+#else
+		abort();
+#endif
+	}
+	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_OPENGL
+		return setGlImageData(
+			image,
+			data,
+			size,
+			offset,
+			level);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+}
 MpgxResult setImageData(
 	Image image,
 	const void* data,
@@ -2483,45 +2578,12 @@ MpgxResult setImageData(
 	assert(!image->base.window->isRecording);
 	assert(graphicsInitialized);
 
-	if (graphicsAPI == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		VkWindow vkWindow =
-			image->vk.window->vkWindow;
-
-		return setVkImageData(
-			vkWindow->device,
-			vkWindow->allocator,
-			vkWindow->transferQueue,
-			vkWindow->transferCommandBuffer,
-			vkWindow->transferFence,
-			image->vk.stagingBuffer,
-			image->vk.stagingAllocation,
-			image,
-			data,
-			size,
-			offset);
-#else
-		abort();
-#endif
-	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_OPENGL
-		return setGlImageData(
-			image,
-			data,
-			size,
-			offset);
-#else
-		abort();
-#endif
-	}
-	else
-	{
-		abort();
-	}
+	return setMipmapImageData(
+		image,
+		data,
+		size,
+		offset,
+		0);
 }
 
 Window getImageWindow(Image image)
@@ -2548,6 +2610,12 @@ ImageFormat getImageFormat(Image image)
 	assert(graphicsInitialized);
 	return image->base.format;
 }
+uint8_t getImageLevelCount(Image image)
+{
+	assert(image);
+	assert(graphicsInitialized);
+	return image->base.levelCount;
+}
 Vec3I getImageSize(Image image)
 {
 	assert(image);
@@ -2559,16 +2627,6 @@ bool isImageConstant(Image image)
 	assert(image);
 	assert(graphicsInitialized);
 	return image->base.isConstant;
-}
-
-uint8_t getImageLevelCount(Vec3I size)
-{
-	assert(size.x > 0);
-	assert(size.y > 0);
-	assert(size.z > 0);
-	assert(graphicsInitialized);
-	uint32_t value = max(max(size.x, size.y), size.z);
-	return (uint8_t)floorf(log2f((float)value)) + 1;
 }
 
 MpgxResult createSampler(

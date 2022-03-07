@@ -27,13 +27,6 @@
 
 // TODO: add VMA defragmentation
 
-struct ImageData_T
-{
-	uint8_t* pixels;
-	Vec2I size;
-	uint8_t channelCount;
-};
-
 struct Window_T
 {
 	Window parent;
@@ -100,7 +93,8 @@ static VkDebugUtilsMessengerEXT vkDebugUtilsMessenger = NULL;
 static void glfwErrorCallback(
 	int code, const char* description)
 {
-	printf("GLFW ERROR [%d]: %s\n",
+	fprintf(stderr,
+		"GLFW ERROR [%d]: %s\n",
 		code, description);
 }
 
@@ -341,7 +335,8 @@ inline static void assertGLFW()
 
 	if (code != GLFW_NO_ERROR)
 	{
-		printf("GLFW ERROR [%d]: %s\n",
+		fprintf(stderr,
+			"GLFW ERROR [%d]: %s\n",
 			code, description);
 	}
 #endif

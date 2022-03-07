@@ -332,7 +332,8 @@ inline static MpgxResult createGlShader(
 			else
 				abort();
 
-			printf("OpenGL %s shader compile error:\n%s",
+			fprintf(stderr,
+				"OpenGL %s shader compile error:\n%s",
 				typeString,
 				infoLog);
 			free(infoLog);

@@ -76,8 +76,8 @@ inline static MpgxResult mapVkBuffer(
 	VmaAllocator allocator,
 	VmaAllocation allocation,
 	BufferUsage usage,
-	size_t size,
-	size_t offset,
+	VkDeviceSize size,
+	VkDeviceSize offset,
 	void** map)
 {
 	assert(allocator);
@@ -124,8 +124,8 @@ inline static MpgxResult unmapVkBuffer(
 	VmaAllocator allocator,
 	VmaAllocation allocation,
 	BufferUsage usage,
-	size_t size,
-	size_t offset)
+	VkDeviceSize size,
+	VkDeviceSize offset)
 {
 	assert(allocator);
 	assert(allocation);
@@ -160,8 +160,8 @@ inline static MpgxResult setVkBufferData(
 	VmaAllocator allocator,
 	VmaAllocation allocation,
 	const void* data,
-	size_t size,
-	size_t offset)
+	VkDeviceSize size,
+	VkDeviceSize offset)
 {
 	assert(allocator);
 	assert(allocation);

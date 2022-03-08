@@ -2269,7 +2269,8 @@ MpgxResult createMipmapImage(
 	ImageFormat format,
 	const void** data,
 	Vec3I size,
-	uint8_t levelCount,
+	uint32_t mipCount,
+	uint32_t layerCount,
 	bool isConstant,
 	Image* image)
 {
@@ -2281,9 +2282,11 @@ MpgxResult createMipmapImage(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
+	assert(mipCount > 0);
+	assert(layerCount > 0);
 	assert(image);
 	assert(!window->isRecording);
-	assert(levelCount <= calcImageLevelCount(size));
+	assert(mipCount <= calcMipLevelCount(size));
 	assert(graphicsInitialized);
 
 	MpgxResult mpgxResult;
@@ -2309,7 +2312,8 @@ MpgxResult createMipmapImage(
 			format,
 			data,
 			size,
-			levelCount,
+			mipCount,
+			layerCount,
 			isConstant,
 			&imageInstance);
 #else
@@ -2320,6 +2324,9 @@ MpgxResult createMipmapImage(
 		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
+		if (layerCount != 1)
+			return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
+
 		mpgxResult = createGlImage(
 			window,
 			type,
@@ -2327,7 +2334,7 @@ MpgxResult createMipmapImage(
 			format,
 			data,
 			size,
-			levelCount,
+			mipCount,
 			isConstant,
 			&imageInstance);
 #else
@@ -2401,6 +2408,7 @@ MpgxResult createImage(
 	ImageFormat format,
 	const void* data,
 	Vec3I size,
+	uint32_t layerCount,
 	bool isConstant,
 	Image* image)
 {
@@ -2412,6 +2420,7 @@ MpgxResult createImage(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
+	assert(layerCount > 0);
 	assert(image);
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
@@ -2424,6 +2433,7 @@ MpgxResult createImage(
 		&data,
 		size,
 		1,
+		layerCount,
 		isConstant,
 		image);
 }
@@ -2489,10 +2499,19 @@ void destroyImage(Image image)
 
 MpgxResult setMipmapImageData(
 	Image image,
+	const void** data,
+	Vec3I size,
+	Vec3I offset)
+{
+	// TODO:
+	abort();
+}
+MpgxResult setImageData(
+	Image image,
 	const void* data,
 	Vec3I size,
 	Vec3I offset,
-	uint8_t level)
+	uint8_t mipLevel)
 {
 	assert(image);
 	assert(data);
@@ -2507,7 +2526,7 @@ MpgxResult setMipmapImageData(
 	assert(size.z + offset.z <= image->base.size.z);
 	assert(!image->base.isConstant);
 	assert(!image->base.window->isRecording);
-	assert(level < image->base.levelCount);
+	assert(mipLevel < image->base.mipCount);
 	assert(graphicsInitialized);
 
 	if (graphicsAPI == VULKAN_GRAPHICS_API)
@@ -2528,7 +2547,7 @@ MpgxResult setMipmapImageData(
 			data,
 			size,
 			offset,
-			level);
+			mipLevel);
 #else
 		abort();
 #endif
@@ -2542,7 +2561,7 @@ MpgxResult setMipmapImageData(
 			data,
 			size,
 			offset,
-			level);
+			mipLevel);
 #else
 		abort();
 #endif
@@ -2551,34 +2570,6 @@ MpgxResult setMipmapImageData(
 	{
 		abort();
 	}
-}
-MpgxResult setImageData(
-	Image image,
-	const void* data,
-	Vec3I size,
-	Vec3I offset)
-{
-	assert(image);
-	assert(data);
-	assert(size.x > 0);
-	assert(size.y > 0);
-	assert(size.z > 0);
-	assert(offset.x >= 0);
-	assert(offset.y >= 0);
-	assert(offset.z >= 0);
-	assert(size.x + offset.x <= image->base.size.x);
-	assert(size.y + offset.y <= image->base.size.y);
-	assert(size.z + offset.z <= image->base.size.z);
-	assert(!image->base.isConstant);
-	assert(!image->base.window->isRecording);
-	assert(graphicsInitialized);
-
-	return setMipmapImageData(
-		image,
-		data,
-		size,
-		offset,
-		0);
 }
 
 Window getImageWindow(Image image)
@@ -2605,11 +2596,17 @@ ImageFormat getImageFormat(Image image)
 	assert(graphicsInitialized);
 	return image->base.format;
 }
-uint8_t getImageLevelCount(Image image)
+uint32_t getImageMipCount(Image image)
 {
 	assert(image);
 	assert(graphicsInitialized);
-	return image->base.levelCount;
+	return image->base.mipCount;
+}
+uint32_t getImageLayerCount(Image image)
+{
+	assert(image);
+	assert(graphicsInitialized);
+	return image->base.layerCount;
 }
 Vec3I getImageSize(Image image)
 {

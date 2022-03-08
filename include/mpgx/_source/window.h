@@ -103,7 +103,7 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 		severity = "Vulkan ERROR";
 
-	fprintf(stdout,
+	fprintf(stderr,
 		"%s: %s\n",
 		severity,
 		callbackData->pMessage);

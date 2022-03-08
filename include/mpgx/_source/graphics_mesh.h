@@ -125,14 +125,13 @@ inline static void drawVkGraphicsMesh(
 	if (graphicsPipeline->base.onUniformsSet)
 		graphicsPipeline->base.onUniformsSet(graphicsPipeline);
 
-	VkBuffer buffer = graphicsMesh->vk.vertexBuffer->vk.handle;
 	const VkDeviceSize offset = 0;
 
 	vkCmdBindVertexBuffers(
 		commandBuffer,
 		0,
 		1,
-		&buffer,
+		&graphicsMesh->vk.vertexBuffer->vk.handle,
 		&offset);
 	vkCmdBindIndexBuffer(
 		commandBuffer,

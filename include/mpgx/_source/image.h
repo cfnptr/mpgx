@@ -23,8 +23,9 @@ typedef struct BaseImage_T
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
-	uint8_t levelCount;
 	bool isConstant;
+	uint32_t mipCount;
+	uint32_t layerCount;
 } BaseImage_T;
 #if MPGX_SUPPORT_VULKAN
 typedef struct VkImage_T
@@ -34,9 +35,9 @@ typedef struct VkImage_T
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
-	uint8_t levelCount;
 	bool isConstant;
-	uint8_t _alignment[3];
+	uint32_t mipCount;
+	uint32_t layerCount;
 	VkFormat vkFormat;
 	VkImageAspectFlagBits vkAspect;
 	VkImage handle;
@@ -55,9 +56,9 @@ typedef struct GlImage_T
 	ImageType type;
 	ImageDimension dimension;
 	ImageFormat format;
-	uint8_t levelCount;
 	bool isConstant;
-	uint8_t _alignment[3];
+	uint32_t mipCount;
+	uint32_t layerCount;
 	GLenum glType;
 	GLenum dataType;
 	GLenum dataFormat;
@@ -101,6 +102,190 @@ inline static void destroyVkImage(
 		image->vk.allocation);
 	free(image);
 }
+inline static MpgxResult fillVkImage(
+	VkDevice device,
+	VmaAllocator allocator,
+	VkQueue transferQueue,
+	VkCommandBuffer transferCommandBuffer,
+	VkFence transferFence,
+	VkBuffer stagingBuffer,
+	VmaAllocation stagingAllocation,
+	const void** data,
+	Vec3I size,
+	uint32_t mipCount,
+	uint32_t layerCount,
+	VkImageAspectFlags vkAspect,
+	VkDeviceSize bufferSize,
+	uint8_t sizeMultiplier,
+	VkImage handle)
+{
+	assert(device);
+	assert(allocator);
+	assert(transferQueue);
+	assert(transferCommandBuffer);
+	assert(transferFence);
+	assert(stagingBuffer);
+	assert(stagingAllocation);
+	assert(data);
+	assert(size.x > 0);
+	assert(size.y > 0);
+	assert(size.z > 0);
+	assert(mipCount > 0);
+	assert(layerCount > 0);
+	assert(bufferSize > 0);
+	assert(sizeMultiplier > 0);
+	assert(handle);
+	assert(mipCount <= calcMipLevelCount(size));
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		NULL,
+		VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+		NULL,
+	};
+
+	VkResult vkResult = vkBeginCommandBuffer(
+		transferCommandBuffer,
+		&commandBufferBeginInfo);
+
+	if (vkResult != VK_SUCCESS)
+		return vkToMpgxResult(vkResult);
+
+	VkImageMemoryBarrier imageMemoryBarrier = {
+		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		NULL,
+		VK_ACCESS_NONE_KHR,
+		VK_ACCESS_TRANSFER_WRITE_BIT,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		VK_QUEUE_FAMILY_IGNORED,
+		VK_QUEUE_FAMILY_IGNORED,
+		handle,
+		{
+			vkAspect,
+			0,
+			mipCount,
+			0,
+			layerCount,
+		},
+	};
+
+	vkCmdPipelineBarrier(
+		transferCommandBuffer,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		0,
+		0,
+		NULL,
+		0,
+		NULL,
+		1,
+		&imageMemoryBarrier);
+
+	void* map;
+
+	MpgxResult mpgxResult = mapVkBuffer(
+		allocator,
+		stagingAllocation,
+		CPU_ONLY_BUFFER_USAGE,
+		bufferSize,
+		0,
+		&map);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		vkEndCommandBuffer(transferCommandBuffer);
+		return mpgxResult;
+	}
+
+	Vec3I mipSize = size;
+	size_t mipBufferSize = 0;
+
+	for (uint32_t i = 0; i < mipCount; i++)
+	{
+		const void* array = data[i];
+		size_t copySize = mipSize.x * mipSize.y * mipSize.z * sizeMultiplier;
+
+		if (array)
+		{
+			memcpy(map + mipBufferSize, array, copySize);
+
+			VkBufferImageCopy bufferImageCopy = {
+				mipBufferSize,
+				0,
+				0,
+				{
+					vkAspect,
+					i,
+					0,
+					layerCount,
+				},
+				{
+					0, 0, 0,
+				},
+				{
+					mipSize.x,
+					mipSize.y,
+					mipSize.z
+				}
+			};
+
+			vkCmdCopyBufferToImage(
+				transferCommandBuffer,
+				stagingBuffer,
+				handle,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				1,
+				&bufferImageCopy);
+		}
+
+		if (mipSize.x > 1) mipSize.x /= 2;
+		if (mipSize.y > 1) mipSize.y /= 2;
+		if (mipSize.z > 1) mipSize.z /= 2;
+		mipBufferSize += copySize;
+	}
+
+	imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	imageMemoryBarrier.dstAccessMask = VK_ACCESS_NONE_KHR;
+	imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	vkCmdPipelineBarrier(
+		transferCommandBuffer,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		0,
+		0,
+		NULL,
+		0,
+		NULL,
+		1,
+		&imageMemoryBarrier);
+
+	mpgxResult = unmapVkBuffer(
+		allocator,
+		stagingAllocation,
+		CPU_ONLY_BUFFER_USAGE,
+		bufferSize,
+		0);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	{
+		vkEndCommandBuffer(transferCommandBuffer);
+		return mpgxResult;
+	}
+
+	mpgxResult = endSubmitWaitVkCommandBuffer(
+		device,
+		transferQueue,
+		transferFence,
+		transferCommandBuffer);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
+		return mpgxResult;
+
+	return SUCCESS_MPGX_RESULT;
+}
 inline static MpgxResult createVkImage(
 	VkDevice device,
 	VmaAllocator allocator,
@@ -116,7 +301,8 @@ inline static MpgxResult createVkImage(
 	ImageFormat format,
 	const void** data,
 	Vec3I size,
-	uint8_t levelCount,
+	uint32_t mipCount,
+	uint32_t layerCount,
 	bool isConstant,
 	Image* image)
 {
@@ -136,10 +322,10 @@ inline static MpgxResult createVkImage(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
-	assert(levelCount <= calcImageLevelCount(size));
+	assert(mipCount > 0);
+	assert(layerCount > 0);
+	assert(mipCount <= calcMipLevelCount(size));
 	assert(image);
-
-	// TODO: mipmap generation, multisampling
 
 	Image imageInstance = calloc(1, sizeof(Image_T));
 
@@ -151,8 +337,9 @@ inline static MpgxResult createVkImage(
 	imageInstance->vk.type = type;
 	imageInstance->vk.dimension = dimension;
 	imageInstance->vk.format = format;
-	imageInstance->vk.levelCount = levelCount;
 	imageInstance->vk.isConstant = isConstant;
+	imageInstance->vk.mipCount = mipCount;
+	imageInstance->vk.layerCount = layerCount;
 
 	VkImageType vkType;
 	VkImageViewType vkViewType;
@@ -271,8 +458,8 @@ inline static MpgxResult createVkImage(
 		vkType,
 		vkFormat,
 		{ size.x, size.y, size.z, },
-		1,
-		1,
+		mipCount,
+		layerCount,
 		VK_SAMPLE_COUNT_1_BIT,
 		isConstant ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR,
 		vkUsage,
@@ -334,9 +521,9 @@ inline static MpgxResult createVkImage(
 		{
 			vkAspect,
 			0,
-			1,
+			mipCount,
 			0,
-			1,
+			layerCount,
 		},
 	};
 
@@ -359,9 +546,20 @@ inline static MpgxResult createVkImage(
 
 	imageInstance->vk.imageView = imageView;
 
-	VkDeviceSize bufferSize =
-		size.x * size.y * size.z *
-		sizeMultiplier;
+	// TODO: detect here if image have any not NULL data
+	//  otherwise do not create staging buffer if not required and
+	//  only transfer final image layout
+
+	VkDeviceSize bufferSize = 0;
+	Vec3I mipSize = size;
+
+	for (uint32_t i = 0; i < mipCount; i++)
+	{
+		bufferSize += mipSize.x * mipSize.y * mipSize.z * sizeMultiplier;
+		if (mipSize.x > 1) mipSize.x /= 2;
+		if (mipSize.y > 1) mipSize.y /= 2;
+		if (mipSize.z > 1) mipSize.z /= 2;
+	}
 
 	VkBuffer stagingBufferInstance;
 	VmaAllocation stagingAllocationInstance;
@@ -378,6 +576,7 @@ inline static MpgxResult createVkImage(
 	};
 
 	allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+	allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
 
 	if (isConstant)
 	{
@@ -441,191 +640,30 @@ inline static MpgxResult createVkImage(
 		imageInstance->vk.stagingAllocation = stagingAllocationInstance;
 	}
 
-	if (data[0])
+	MpgxResult mpgxResult = fillVkImage(
+		device,
+		allocator,
+		transferQueue,
+		transferCommandBuffer,
+		transferFence,
+		stagingBufferInstance,
+		stagingAllocationInstance,
+		data,
+		size,
+		mipCount,
+		layerCount,
+		vkAspect,
+		bufferSize,
+		sizeMultiplier,
+		handle);
+
+	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
-		setVkBufferData(
+		destroyVkImage(
+			device,
 			allocator,
-			stagingAllocationInstance,
-			data[0],
-			bufferSize,
-			0);
-
-		VkCommandBufferBeginInfo commandBufferBeginInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			NULL,
-			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-			NULL,
-		};
-
-		vkResult = vkBeginCommandBuffer(
-			transferCommandBuffer,
-			&commandBufferBeginInfo);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			destroyVkImage(
-				device,
-				allocator,
-				imageInstance);
-			return vkToMpgxResult(vkResult);
-		}
-
-		VkImageMemoryBarrier imageMemoryBarrier = {
-			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-			NULL,
-			VK_ACCESS_NONE_KHR,
-			VK_ACCESS_TRANSFER_WRITE_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_QUEUE_FAMILY_IGNORED,
-			VK_QUEUE_FAMILY_IGNORED,
-			handle,
-			{
-				vkAspect,
-				0,
-				1,
-				0,
-				1,
-			},
-		};
-
-		vkCmdPipelineBarrier(
-			transferCommandBuffer,
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			0,
-			0,
-			NULL,
-			0,
-			NULL,
-			1,
-			&imageMemoryBarrier);
-
-		VkBufferImageCopy bufferImageCopy = {
-			0,
-			0,
-			0,
-			{
-				vkAspect,
-				0,
-				0,
-				1,
-			},
-			{
-				0, 0, 0,
-			},
-			{
-				size.x, size.y, size.z
-			}
-		};
-
-		vkCmdCopyBufferToImage(
-			transferCommandBuffer,
-			stagingBufferInstance,
-			handle,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&bufferImageCopy);
-
-		imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		imageMemoryBarrier.dstAccessMask = VK_ACCESS_NONE_KHR;
-		imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-		vkCmdPipelineBarrier(
-			transferCommandBuffer,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-			0,
-			0,
-			NULL,
-			0,
-			NULL,
-			1,
-			&imageMemoryBarrier);
-
-		MpgxResult mpgxResult = endSubmitWaitVkCommandBuffer(
-			device,
-			transferQueue,
-			transferFence,
-			transferCommandBuffer);
-
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
-		{
-			destroyVkImage(
-				device,
-				allocator,
-				imageInstance);
-			return mpgxResult;
-		}
-	}
-	else
-	{
-		VkCommandBufferBeginInfo commandBufferBeginInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			NULL,
-			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-			NULL,
-		};
-
-		vkResult = vkBeginCommandBuffer(
-			transferCommandBuffer,
-			&commandBufferBeginInfo);
-
-		if (vkResult != VK_SUCCESS)
-		{
-			destroyVkImage(
-				device,
-				allocator,
-				imageInstance);
-			return vkToMpgxResult(vkResult);
-		}
-
-		VkImageMemoryBarrier imageMemoryBarrier = {
-			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-			NULL,
-			VK_ACCESS_NONE_KHR,
-			VK_ACCESS_NONE_KHR,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // TODO: possibly detect for depth/stencil type
-			VK_QUEUE_FAMILY_IGNORED,
-			VK_QUEUE_FAMILY_IGNORED,
-			handle,
-			{
-				vkAspect,
-				0,
-				1,
-				0,
-				1,
-			},
-		};
-
-		vkCmdPipelineBarrier(
-			transferCommandBuffer,
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-			0,
-			0,
-			NULL,
-			0,
-			NULL,
-			1,
-			&imageMemoryBarrier);
-
-		MpgxResult mpgxResult = endSubmitWaitVkCommandBuffer(
-			device,
-			transferQueue,
-			transferFence,
-			transferCommandBuffer);
-
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
-		{
-			destroyVkImage(
-				device,
-				allocator,
-				imageInstance);
-			return mpgxResult;
-		}
+			imageInstance);
+		return mpgxResult;
 	}
 
 	*image = imageInstance;
@@ -644,7 +682,7 @@ inline static MpgxResult setVkImageData(
 	const void* data,
 	Vec3I size,
 	Vec3I offset,
-	uint8_t level)
+	uint8_t mipLevel)
 {
 	assert(device);
 	assert(allocator);
@@ -661,7 +699,7 @@ inline static MpgxResult setVkImageData(
 	assert(offset.x >= 0);
 	assert(offset.y >= 0);
 	assert(offset.z >= 0);
-	assert(level < image->vk.levelCount);
+	assert(mipLevel < image->vk.mipCount);
 
 	// TODO: properly add staging buffer image data offset
 	assert(offset.x == 0 && offset.y == 0 && offset.z == 0);
@@ -734,7 +772,7 @@ inline static MpgxResult setVkImageData(
 		0,
 		{
 			aspect,
-			level,
+			mipLevel,
 			0,
 			1,
 		},
@@ -810,7 +848,7 @@ inline static MpgxResult createGlImage(
 	ImageFormat format,
 	const void** data,
 	Vec3I size,
-	uint8_t levelCount,
+	uint32_t mipCount,
 	bool isConstant,
 	Image* image)
 {
@@ -822,7 +860,8 @@ inline static MpgxResult createGlImage(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
-	assert(levelCount <= calcImageLevelCount(size));
+	assert(mipCount > 0);
+	assert(mipCount <= calcMipLevelCount(size));
 	assert(image);
 
 	if (!(type & SAMPLED_IMAGE_TYPE) &&
@@ -844,8 +883,9 @@ inline static MpgxResult createGlImage(
 	imageInstance->gl.type = type;
 	imageInstance->gl.dimension = dimension;
 	imageInstance->gl.format = format;
-	imageInstance->gl.levelCount = levelCount;
 	imageInstance->gl.isConstant = isConstant;
+	imageInstance->gl.mipCount = mipCount;
+	imageInstance->gl.layerCount = 1;
 
 	GLenum glType;
 
@@ -935,102 +975,63 @@ inline static MpgxResult createGlImage(
 
 	if (dimension == IMAGE_2D)
 	{
-		if (levelCount == 0)
+		Vec2I mipSize = vec2I(size.x, size.y);
+
+		for (uint32_t i = 0; i < mipCount; i++)
 		{
 			glTexImage2D(
 				glType,
-				0,
+				(GLint)i,
 				glFormat,
-				(GLsizei)size.x,
-				(GLsizei)size.y,
+				(GLsizei)mipSize.x,
+				(GLsizei)mipSize.y,
 				0,
 				dataFormat,
 				dataType,
-				data[0]);
-			glGenerateMipmap(glType);
+				data[i]);
+
+			mipSize = divValVec2I(
+				mipSize, 2);
 		}
-		else
-		{
-			Vec2I mipSize = vec2I(size.x, size.y);
 
-			for (uint8_t i = 0; i < levelCount; i++)
-			{
-				glTexImage2D(
-					glType,
-					(GLint)i,
-					glFormat,
-					(GLsizei)mipSize.x,
-					(GLsizei)mipSize.y,
-					0,
-					dataFormat,
-					dataType,
-					data[i]);
-
-				mipSize = vec2I(
-					mipSize.x / 2,
-					mipSize.y / 2);
-			}
-
-			glTexParameteri(
-				GL_TEXTURE_2D,
-				GL_TEXTURE_BASE_LEVEL,
-				0);
-			glTexParameteri(
-				GL_TEXTURE_2D,
-				GL_TEXTURE_MAX_LEVEL,
-				levelCount - 1);
-		}
+		glTexParameteri(
+			GL_TEXTURE_2D,
+			GL_TEXTURE_BASE_LEVEL,
+			0);
+		glTexParameteri(
+			GL_TEXTURE_2D,
+			GL_TEXTURE_MAX_LEVEL,
+			(GLint)(mipCount - 1));
 	}
 	else
 	{
-		if (levelCount == 0)
+		Vec3I mipSize = size;
+
+		for (uint32_t i = 0; i < mipCount; i++)
 		{
 			glTexImage3D(
 				glType,
-				0,
+				(GLint)i,
 				glFormat,
-				(GLsizei)size.x,
-				(GLsizei)size.y,
-				(GLsizei)size.z,
+				(GLsizei)mipSize.x,
+				(GLsizei)mipSize.y,
+				(GLsizei)mipSize.z,
 				0,
 				dataFormat,
 				dataType,
-				data[0]);
-			glGenerateMipmap(glType);
+				data[i]);
+			mipSize = divValVec3I(
+				mipSize, 2);
 		}
-		else
-		{
-			Vec3I mipSize = size;
 
-			for (uint8_t i = 0; i < levelCount; i++)
-			{
-				glTexImage3D(
-					glType,
-					(GLint)i,
-					glFormat,
-					(GLsizei)mipSize.x,
-					(GLsizei)mipSize.y,
-					(GLsizei)mipSize.z,
-					0,
-					dataFormat,
-					dataType,
-					data[i]);
-
-				mipSize = vec3I(
-					mipSize.x / 2,
-					mipSize.y / 2,
-					mipSize.z / 2);
-			}
-
-			glTexParameteri(
-				GL_TEXTURE_3D,
-				GL_TEXTURE_BASE_LEVEL,
-				0);
-			glTexParameteri(
-				GL_TEXTURE_3D,
-				GL_TEXTURE_MAX_LEVEL,
-				levelCount - 1);
-		}
+		glTexParameteri(
+			GL_TEXTURE_3D,
+			GL_TEXTURE_BASE_LEVEL,
+			0);
+		glTexParameteri(
+			GL_TEXTURE_3D,
+			GL_TEXTURE_MAX_LEVEL,
+			(GLint)(mipCount - 1));
 	}
 
 	GLenum glError = glGetError();
@@ -1050,7 +1051,7 @@ inline static MpgxResult setGlImageData(
 	const void* data,
 	Vec3I size,
 	Vec3I offset,
-	uint8_t level)
+	uint8_t mipLevel)
 {
 	assert(image);
 	assert(data);
@@ -1060,7 +1061,7 @@ inline static MpgxResult setGlImageData(
 	assert(offset.x >= 0);
 	assert(offset.y >= 0);
 	assert(offset.z >= 0);
-	assert(level < image->gl.levelCount);
+	assert(mipLevel < image->gl.mipCount);
 
 	makeGlWindowContextCurrent(
 		image->gl.window);
@@ -1075,7 +1076,7 @@ inline static MpgxResult setGlImageData(
 	{
 		glTexSubImage2D(
 			image->gl.glType,
-			(GLint)level,
+			(GLint)mipLevel,
 			(GLint)offset.x,
 			(GLint)offset.y,
 			(GLsizei)size.x,
@@ -1088,7 +1089,7 @@ inline static MpgxResult setGlImageData(
 	{
 		glTexSubImage3D(
 			image->gl.glType,
-			(GLint)level,
+			(GLint)mipLevel,
 			(GLint)offset.x,
 			(GLint)offset.y,
 			(GLint)offset.z,

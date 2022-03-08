@@ -1205,7 +1205,8 @@ MpgxResult setBufferData(
  * format - format type.
  * data - mipmap pixel data array.
  * size - image size in pixels.
- * levelCount - mipmap level count.
+ * mipCount - mipmap level count.
+ * layerCount - array layer count.
  * isConstant - is image constant.
  * image - pointer to the image.
  */
@@ -1216,7 +1217,8 @@ MpgxResult createMipmapImage(
 	ImageFormat format,
 	const void** data,
 	Vec3I size,
-	uint8_t levelCount,
+	uint32_t mipCount,
+	uint32_t layerCount,
 	bool isConstant,
 	Image* image);
 /*
@@ -1227,8 +1229,10 @@ MpgxResult createMipmapImage(
  * type - type mask
  * dimension - dimension type.
  * format - format type.
- * data - pixel data array.
+ * data - pixel data.
  * size - image size in pixels.
+ * mipCount - mipmap level count.
+ * layerCount - array layer count.
  * isConstant - is image constant.
  * image - pointer to the image.
  */
@@ -1239,6 +1243,7 @@ MpgxResult createImage(
 	ImageFormat format,
 	const void* data,
 	Vec3I size,
+	uint32_t layerCount,
 	bool isConstant,
 	Image* image);
 /*
@@ -1252,32 +1257,31 @@ void destroyImage(Image image);
  * Returns operation MPGX result.
  *
  * image - image instance.
- * data - pixels array.
+ * data - mipmap pixel data array.
  * size - data size in pixels.
  * offset - data offset in pixels.
- * level - level index.
  */
 MpgxResult setMipmapImageData(
 	Image image,
-	const void* data,
+	const void** data,
 	Vec3I size,
-	Vec3I offset,
-	uint8_t level);
+	Vec3I offset);
 /*
  * Set image pixel data.
  * Returns operation MPGX result.
  *
  * image - image instance.
- * data - pixels array.
+ * data - pixel data.
  * size - data size in pixels.
  * offset - data offset in pixels.
- * level - level index.
+ * mipLevel - mipmap level index.
  */
 MpgxResult setImageData(
 	Image image,
 	const void* data,
 	Vec3I size,
-	Vec3I offset);
+	Vec3I offset,
+	uint8_t mipLevel);
 
 /*
  * Returns image window instance.
@@ -1303,7 +1307,12 @@ ImageFormat getImageFormat(Image image);
  * Returns image mipmap level count.
  * image - image instance.
  */
-uint8_t getImageLevelCount(Image image);
+uint32_t getImageMipCount(Image image);
+/*
+ * Returns image array layer count.
+ * image - image instance.
+ */
+uint32_t getImageLayerCount(Image image);
 /*
  * Returns image size in pixels.
  * image - image instance.
@@ -1316,16 +1325,16 @@ Vec3I getImageSize(Image image);
 bool isImageConstant(Image image);
 
 /*
- * Calculates image level cont based on size.
+ * Calculates image mip level count based on size.
  * size - image size in pixels.
  */
-inline static uint8_t calcImageLevelCount(Vec3I size)
+inline static uint8_t calcMipLevelCount(Vec3I size)
 {
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
 	uint32_t value = max(max(size.x, size.y), size.z);
-	return (uint8_t)floorf(log2f((float)value)) + 1;
+	return (uint8_t)floor(log2((double)value)) + 1;
 }
 
 /*

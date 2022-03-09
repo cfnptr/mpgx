@@ -368,6 +368,17 @@ inline static MpgxResult createVkImage(
 		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
+	bool isAnyToCopy = false;
+
+	for (uint32_t i = 0; i < mipCount; i++)
+	{
+		if (data[i])
+		{
+			isAnyToCopy = true;
+			break;
+		}
+	}
+
 	VkFormat vkFormat;
 	VkImageAspectFlags vkAspect;
 	uint8_t sizeMultiplier;
@@ -384,7 +395,7 @@ inline static MpgxResult createVkImage(
 		vkUsage |= VK_IMAGE_USAGE_STORAGE_BIT;
 	if (type & TRANSFER_SOURCE_IMAGE_TYPE)
 		vkUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-	if (type & TRANSFER_DESTINATION_IMAGE_TYPE || data[0])
+	if (type & TRANSFER_DESTINATION_IMAGE_TYPE | isAnyToCopy)
 		vkUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	switch (format)
@@ -546,9 +557,8 @@ inline static MpgxResult createVkImage(
 
 	imageInstance->vk.imageView = imageView;
 
-	// TODO: detect here if image have any not NULL data
-	//  otherwise do not create staging buffer if not required and
-	//  only transfer final image layout
+	// TODO: do not create staging buffer if no data (isAnyToCopy)
+	//  and then only transfer final image layout
 
 	VkDeviceSize bufferSize = 0;
 	Vec3I mipSize = size;

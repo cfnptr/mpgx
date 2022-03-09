@@ -1164,7 +1164,7 @@ size_t getBufferSize(Buffer buffer);
  *
  * buffer - buffer instance.
  * size - map size in bytes.
- * offset - map offset in bytes.
+ * offset - map offset in bytes or 0.
  * map - pointer to the map.
  */
 MpgxResult mapBuffer(
@@ -1187,7 +1187,7 @@ MpgxResult unmapBuffer(Buffer buffer);
  * buffer - buffer instance.
  * data - data array.
  * size - data size in bytes.
- * size - buffer data offset in bytes.
+ * size - buffer data offset in bytes or 0.
  */
 MpgxResult setBufferData(
 	Buffer buffer,
@@ -1259,7 +1259,7 @@ void destroyImage(Image image);
  * image - image instance.
  * data - mipmap pixel data array.
  * size - data size in pixels.
- * offset - data offset in pixels.
+ * offset - data offset in pixels or 0.
  */
 MpgxResult setMipmapImageData(
 	Image image,
@@ -1273,7 +1273,7 @@ MpgxResult setMipmapImageData(
  * image - image instance.
  * data - pixel data.
  * size - data size in pixels.
- * offset - data offset in pixels.
+ * offset - data offset in pixels or 0.
  * mipLevel - mipmap level index.
  */
 MpgxResult setImageData(
@@ -1706,7 +1706,7 @@ void bindGraphicsPipeline(GraphicsPipeline pipeline);
  * window - window instance.
  * indexType - index type.
  * indexCount - index count or 0.
- * indexOffset - index offset.
+ * indexOffset - index offset or 0.
  * vertexBuffer - vertex buffer instance or NULL.
  * indexBuffer - index buffer instance or NULL.
  * graphicsMesh - pointer to the graphics mesh instance.
@@ -1762,7 +1762,7 @@ size_t getGraphicsMeshIndexOffset(
  * Sets graphics mesh index offset.
  *
  * mesh - graphics mesh instance.
- * indexCount - index offset.
+ * indexCount - index offset or 0.
  */
 void setGraphicsMeshIndexOffset(
 	GraphicsMesh mesh,
@@ -1796,7 +1796,7 @@ Buffer getGraphicsMeshIndexBuffer(
  * mesh - graphics mesh instance.
  * indexType - index type.
  * indexCount - index count or 0.
- * indexOffset - index offset.
+ * indexOffset - index offset or 0.
  * indexBuffer - index buffer instance or NULL.
  */
 void setGraphicsMeshIndexBuffer(

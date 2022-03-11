@@ -1196,7 +1196,7 @@ void setWindowUseVsync(
 		MpgxResult mpgxResult = onVkResize(window, newSize);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
-			abort(); // TODO: possibly return result?
+			abort();
 #else
 		abort();
 #endif

@@ -50,6 +50,8 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 add_subdirectory(libraries/glfw)
 
+set(MPMT_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(MPMT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(MPMT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(libraries/mpmt)
 
@@ -58,7 +60,7 @@ set(MPGX_SOURCES
 	source/window.c)
 
 set(MPGX_LINK_LIBRARIES
-	cmmt glfw mpmt)
+	cmmt glfw mpmt-static)
 
 if (MPGX_USE_VULKAN)
 	find_package(Vulkan)

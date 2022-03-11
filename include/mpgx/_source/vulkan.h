@@ -29,7 +29,6 @@
 
 inline static MpgxResult vkToMpgxResult(VkResult vkResult)
 {
-	// TODO: handle other Vulkan results
 	switch (vkResult)
 	{
 	default:

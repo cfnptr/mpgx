@@ -707,7 +707,9 @@ typedef void(*OnWindowUpdate)(void* argument);
 /*
  * Graphics pipeline destroy function.
  */
-typedef void(*OnGraphicsPipelineDestroy)(void* handle);
+typedef void(*OnGraphicsPipelineDestroy)(
+	Window window,
+	void* handle);
 /*
  * Graphics pipeline bind function.
  */
@@ -729,7 +731,9 @@ typedef MpgxResult(*OnGraphicsPipelineResize)(
 /*
  * Compute pipeline destroy function.
  */
-typedef void(*OnComputePipelineDestroy)(void* handle);
+typedef void(*OnComputePipelineDestroy)(
+	Window window,
+	void* handle);
 /*
  * Compute pipeline bind function.
  */
@@ -739,7 +743,9 @@ typedef void(*OnComputePipelineBind)(
 /*
  * Ray tracing pipeline destroy function.
  */
-typedef void(*OnRayTracingPipelineDestroy)(void* handle);
+typedef void(*OnRayTracingPipelineDestroy)(
+	Window window,
+	void* handle);
 /*
  * Ray tracing pipeline bind function.
  */
@@ -1714,8 +1720,8 @@ void bindGraphicsPipeline(GraphicsPipeline pipeline);
 MpgxResult createGraphicsMesh(
 	Window window,
 	IndexType indexType,
-	size_t indexCount,
-	size_t indexOffset,
+	uint32_t indexCount,
+	uint32_t indexOffset,
 	Buffer vertexBuffer,
 	Buffer indexBuffer,
 	GraphicsMesh* graphicsMesh);
@@ -1740,7 +1746,7 @@ IndexType getGraphicsMeshIndexType(GraphicsMesh mesh);
  * Returns graphics mesh index count.
  * mesh - graphics mesh instance.
  */
-size_t getGraphicsMeshIndexCount(
+uint32_t getGraphicsMeshIndexCount(
 	GraphicsMesh mesh);
 /*
  * Sets graphics mesh index count.
@@ -1750,13 +1756,13 @@ size_t getGraphicsMeshIndexCount(
  */
 void setGraphicsMeshIndexCount(
 	GraphicsMesh mesh,
-	size_t indexCount);
+	uint32_t indexCount);
 
 /*
  * Returns graphics mesh index offset.
  * mesh - graphics mesh instance.
  */
-size_t getGraphicsMeshIndexOffset(
+uint32_t getGraphicsMeshIndexOffset(
 	GraphicsMesh mesh);
 /*
  * Sets graphics mesh index offset.
@@ -1766,7 +1772,7 @@ size_t getGraphicsMeshIndexOffset(
  */
 void setGraphicsMeshIndexOffset(
 	GraphicsMesh mesh,
-	size_t indexOffset);
+	uint32_t indexOffset);
 
 /*
  * Returns graphics mesh vertex buffer instance.
@@ -1802,8 +1808,8 @@ Buffer getGraphicsMeshIndexBuffer(
 void setGraphicsMeshIndexBuffer(
 	GraphicsMesh mesh,
 	IndexType indexType,
-	size_t indexCount,
-	size_t indexOffset,
+	uint32_t indexCount,
+	uint32_t indexOffset,
 	Buffer indexBuffer);
 
 /*
@@ -1892,9 +1898,9 @@ void bindComputePipeline(ComputePipeline pipeline);
  */
 void dispatchComputePipeline(
 	ComputePipeline pipeline,
-	size_t groupCountX,
-	size_t groupCountY,
-	size_t groupCountZ);
+	uint32_t groupCountX,
+	uint32_t groupCountY,
+	uint32_t groupCountZ);
 
 // WARNING: RTX is not yet working!
 
@@ -1906,7 +1912,7 @@ MpgxResult createRayTracingPipeline(
 	void* handle,
 	const void* createData,
 	Shader* generationShaders,
-	size_t generationShaderCount,
+	size_t generationShaderCount, // TODO: use uint32_t
 	Shader* missShaders,
 	size_t missShaderCount,
 	Shader* closestHitShaders,

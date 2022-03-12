@@ -35,6 +35,10 @@
  */
 #define MPGX_SUPPORT_OPENGL @MPGX_SUPPORT_OPENGL@
 
+#if !MPGX_SUPPORT_VULKAN && !MPGX_SUPPORT_OPENGL
+#error Not a single supported graphics backed
+#endif
+
 /*
  * Default MPGX array capacity.
  */

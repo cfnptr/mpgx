@@ -19,6 +19,7 @@
 typedef struct BaseGraphicsPipeline_T
 {
 	Framebuffer framebuffer;
+	Window window;
 	OnGraphicsPipelineBind onBind;
 	OnGraphicsPipelineUniformsSet onUniformsSet;
 	OnGraphicsPipelineResize onResize;
@@ -35,6 +36,7 @@ typedef struct BaseGraphicsPipeline_T
 typedef struct VkGraphicsPipeline_T
 {
 	Framebuffer framebuffer;
+	Window window;
 	OnGraphicsPipelineBind onBind;
 	OnGraphicsPipelineUniformsSet onUniformsSet;
 	OnGraphicsPipelineResize onResize;
@@ -55,6 +57,7 @@ typedef struct VkGraphicsPipeline_T
 typedef struct GlGraphicsPipeline_T
 {
 	Framebuffer framebuffer;
+	Window window;
 	OnGraphicsPipelineBind onBind;
 	OnGraphicsPipelineUniformsSet onUniformsSet;
 	OnGraphicsPipelineResize onResize;
@@ -691,6 +694,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 	VkDevice device,
 	const VkGraphicsPipelineCreateData* createData,
 	Framebuffer framebuffer,
+	Window window,
 	const char* name,
 	GraphicsPipelineState state,
 	OnGraphicsPipelineBind onBind,
@@ -705,6 +709,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 	assert(device);
 	assert(createData);
 	assert(framebuffer);
+	assert(window);
 	assert(onResize);
 	assert(onDestroy);
 	assert(shaders);
@@ -718,6 +723,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	graphicsPipelineInstance->vk.framebuffer = framebuffer;
+	graphicsPipelineInstance->vk.window = window;
 	graphicsPipelineInstance->vk.onBind = onBind;
 	graphicsPipelineInstance->vk.onUniformsSet = onUniformsSet;
 	graphicsPipelineInstance->vk.onResize = onResize;
@@ -1026,14 +1032,17 @@ inline static void destroyGlGraphicsPipeline(GraphicsPipeline graphicsPipeline)
 		return;
 
 	makeGlWindowContextCurrent(
-		graphicsPipeline->gl.framebuffer->gl.window);
+		graphicsPipeline->gl.window);
+
 	glDeleteProgram(graphicsPipeline->gl.glHandle);
 	assertOpenGL();
+
 	free(graphicsPipeline->gl.shaders);
 	free(graphicsPipeline);
 }
 inline static MpgxResult createGlGraphicsPipeline(
 	Framebuffer framebuffer,
+	Window window,
 	const char* name,
 	GraphicsPipelineState state,
 	OnGraphicsPipelineBind onBind,
@@ -1046,6 +1055,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 	GraphicsPipeline* graphicsPipeline)
 {
 	assert(framebuffer);
+	assert(window);
 	assert(onResize);
 	assert(onDestroy);
 	assert(shaders);
@@ -1059,6 +1069,7 @@ inline static MpgxResult createGlGraphicsPipeline(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	graphicsPipelineInstance->gl.framebuffer = framebuffer;
+	graphicsPipelineInstance->gl.window = window;
 	graphicsPipelineInstance->gl.onBind = onBind;
 	graphicsPipelineInstance->gl.onUniformsSet = onUniformsSet;
 	graphicsPipelineInstance->gl.onResize = onResize;
@@ -1147,7 +1158,6 @@ inline static MpgxResult createGlGraphicsPipeline(
 	graphicsPipelineInstance->gl.frontFace =
 		state.clockwiseFrontFace ? GL_CW : GL_CCW;
 
-	Window window = framebuffer->gl.window;
 	makeGlWindowContextCurrent(window);
 
 	GLuint glHandle = glCreateProgram();

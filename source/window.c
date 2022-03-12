@@ -3955,6 +3955,7 @@ MpgxResult createGraphicsPipeline(
 			window->vkWindow->device,
 			createData,
 			framebuffer,
+			window,
 			name,
 			*state,
 			onBind,
@@ -3980,6 +3981,7 @@ MpgxResult createGraphicsPipeline(
 
 		mpgxResult = createGlGraphicsPipeline(
 			framebuffer,
+			window,
 			name,
 			*state,
 			onBind,
@@ -4056,8 +4058,7 @@ void destroyGraphicsPipeline(GraphicsPipeline pipeline)
 	if (!pipeline)
 		return;
 
-	assert(!pipeline->base.framebuffer->
-		base.window->isRecording);
+	assert(!pipeline->base.window->isRecording);
 	assert(graphicsInitialized);
 
 	Framebuffer framebuffer = pipeline->base.framebuffer;
@@ -4070,7 +4071,9 @@ void destroyGraphicsPipeline(GraphicsPipeline pipeline)
 		if (pipeline != graphicsPipelines[i])
 			continue;
 
-		pipeline->base.onDestroy(pipeline->base.handle);
+		pipeline->base.onDestroy(
+			window,
+			pipeline->base.handle);
 
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
@@ -4182,21 +4185,18 @@ Window getGraphicsPipelineWindow(GraphicsPipeline pipeline)
 {
 	assert(pipeline);
 	assert(graphicsInitialized);
-	return pipeline->base.framebuffer->base.window;
+	return pipeline->base.window;
 }
 
 void bindGraphicsPipeline(GraphicsPipeline pipeline)
 {
 	assert(pipeline);
-
-	assert(pipeline->base.framebuffer->
-		base.window->isRecording);
+	assert(pipeline->base.window->isRecording);
 	assert(pipeline->base.framebuffer ==
-		pipeline->base.framebuffer->
-		base.window->renderFramebuffer);
+		pipeline->base.window->renderFramebuffer);
 	assert(graphicsInitialized);
 
-	Window window = pipeline->base.framebuffer->base.window;
+	Window window = pipeline->base.window;
 
 	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
@@ -4226,8 +4226,8 @@ void bindGraphicsPipeline(GraphicsPipeline pipeline)
 MpgxResult createGraphicsMesh(
 	Window window,
 	IndexType indexType,
-	size_t indexCount,
-	size_t indexOffset,
+	uint32_t indexCount,
+	uint32_t indexOffset,
 	Buffer vertexBuffer,
 	Buffer indexBuffer,
 	GraphicsMesh* graphicsMesh)
@@ -4419,7 +4419,7 @@ IndexType getGraphicsMeshIndexType(GraphicsMesh mesh)
 	return mesh->base.indexType;
 }
 
-size_t getGraphicsMeshIndexCount(
+uint32_t getGraphicsMeshIndexCount(
 	GraphicsMesh mesh)
 {
 	assert(mesh);
@@ -4428,7 +4428,7 @@ size_t getGraphicsMeshIndexCount(
 }
 void setGraphicsMeshIndexCount(
 	GraphicsMesh mesh,
-	size_t indexCount)
+	uint32_t indexCount)
 {
 	assert(mesh);
 	assert(!mesh->base.window->isRecording);
@@ -4459,7 +4459,7 @@ void setGraphicsMeshIndexCount(
 	mesh->base.indexCount = indexCount;
 }
 
-size_t getGraphicsMeshIndexOffset(
+uint32_t getGraphicsMeshIndexOffset(
 	GraphicsMesh mesh)
 {
 	assert(mesh);
@@ -4468,7 +4468,7 @@ size_t getGraphicsMeshIndexOffset(
 }
 void setGraphicsMeshIndexOffset(
 	GraphicsMesh mesh,
-	size_t indexOffset)
+	uint32_t indexOffset)
 {
 	assert(mesh);
 	assert(!mesh->base.window->isRecording);
@@ -4559,8 +4559,8 @@ Buffer getGraphicsMeshIndexBuffer(
 void setGraphicsMeshIndexBuffer(
 	GraphicsMesh mesh,
 	IndexType indexType,
-	size_t indexCount,
-	size_t indexOffset,
+	uint32_t indexCount,
+	uint32_t indexOffset,
 	Buffer indexBuffer)
 {
 	assert(mesh);
@@ -4636,9 +4636,7 @@ size_t drawGraphicsMesh(
 	assert(mesh);
 	assert(pipeline);
 	assert(mesh->base.window->isRecording);
-
-	assert(mesh->base.window ==
-		pipeline->base.framebuffer->base.window);
+	assert(mesh->base.window == pipeline->base.window);
 	assert(graphicsInitialized);
 
 	if (!mesh->base.vertexBuffer ||
@@ -4795,7 +4793,9 @@ void destroyComputePipeline(ComputePipeline pipeline)
 		if (pipeline != computePipelines[i])
 			continue;
 
-		pipeline->base.onDestroy(pipeline->base.handle);
+		pipeline->base.onDestroy(
+			window,
+			pipeline->base.handle);
 
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{
@@ -4896,9 +4896,9 @@ void bindComputePipeline(ComputePipeline pipeline)
 }
 void dispatchComputePipeline(
 	ComputePipeline pipeline,
-	size_t groupCountX,
-	size_t groupCountY,
-	size_t groupCountZ)
+	uint32_t groupCountX,
+	uint32_t groupCountY,
+	uint32_t groupCountZ)
 {
 	assert(pipeline);
 	assert(groupCountX > 0 || groupCountY > 0 || groupCountZ > 0);
@@ -4912,9 +4912,9 @@ void dispatchComputePipeline(
 #if MPGX_SUPPORT_VULKAN
 		dispatchVkComputePipeline(
 			window->vkWindow->currenCommandBuffer,
-			(uint32_t)groupCountX,
-			(uint32_t)groupCountY,
-			(uint32_t)groupCountZ);
+			groupCountX,
+			groupCountY,
+			groupCountZ);
 #else
 		abort();
 #endif
@@ -5081,7 +5081,9 @@ void destroyRayTracingPipeline(RayTracingPipeline pipeline)
 		if (pipeline != pipelines[i])
 			continue;
 
-		pipeline->base.onDestroy(pipeline->base.handle);
+		pipeline->base.onDestroy(
+			window,
+			pipeline->base.handle);
 
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
 		{

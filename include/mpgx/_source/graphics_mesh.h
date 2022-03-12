@@ -19,8 +19,8 @@
 typedef struct BaseGraphicsMesh_T
 {
 	Window window;
-	size_t indexCount;
-	size_t indexOffset;
+	uint32_t indexCount;
+	uint32_t indexOffset;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
 	IndexType indexType;
@@ -29,8 +29,8 @@ typedef struct BaseGraphicsMesh_T
 typedef struct VkGraphicsMesh_T
 {
 	Window window;
-	size_t indexCount;
-	size_t indexOffset;
+	uint32_t indexCount;
+	uint32_t indexOffset;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
 	IndexType indexType;
@@ -43,8 +43,8 @@ typedef struct VkGraphicsMesh_T
 typedef struct GlGraphicsMesh_T
 {
 	Window window;
-	size_t indexCount;
-	size_t indexOffset;
+	uint32_t indexCount;
+	uint32_t indexOffset;
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
 	IndexType indexType;
@@ -69,8 +69,8 @@ union GraphicsMesh_T
 inline static MpgxResult createVkGraphicsMesh(
 	Window window,
 	IndexType indexType,
-	size_t indexCount,
-	size_t indexOffset,
+	uint32_t indexCount,
+	uint32_t indexOffset,
 	Buffer vertexBuffer,
 	Buffer indexBuffer,
 	GraphicsMesh* graphicsMesh)
@@ -161,7 +161,7 @@ inline static void setVkGraphicsMeshIndexType(
 }
 inline static void setVkGraphicsMeshIndexOffset(
 	GraphicsMesh graphicsMesh,
-	size_t indexOffset)
+	uint32_t indexOffset)
 {
 	if (graphicsMesh->vk.indexType == UINT16_INDEX_TYPE)
 		graphicsMesh->vk.vkIndexOffset = indexOffset * sizeof(uint16_t);
@@ -191,8 +191,8 @@ inline static void destroyGlGraphicsMesh(GraphicsMesh graphicsMesh)
 inline static MpgxResult createGlGraphicsMesh(
 	Window window,
 	IndexType indexType,
-	size_t indexCount,
-	size_t indexOffset,
+	uint32_t indexCount,
+	uint32_t indexOffset,
 	Buffer vertexBuffer,
 	Buffer indexBuffer,
 	GraphicsMesh* graphicsMesh)
@@ -258,8 +258,7 @@ inline static void drawGlGraphicsMesh(
 	assert(graphicsPipeline);
 	assert(graphicsMesh);
 
-	glBindVertexArray(
-		graphicsMesh->gl.handle);
+	glBindVertexArray(graphicsMesh->gl.handle);
 	glBindBuffer(
 		GL_ARRAY_BUFFER,
 		graphicsMesh->gl.vertexBuffer->gl.handle);
@@ -293,7 +292,7 @@ inline static void setGlGraphicsMeshIndexType(
 }
 inline static void setGlGraphicsMeshIndexOffset(
 	GraphicsMesh graphicsMesh,
-	size_t indexOffset)
+	uint32_t indexOffset)
 {
 	if (graphicsMesh->gl.indexType == UINT16_INDEX_TYPE)
 		graphicsMesh->gl.glIndexOffset = indexOffset * sizeof(uint16_t);

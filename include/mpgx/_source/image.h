@@ -203,7 +203,7 @@ inline static MpgxResult fillVkImage(
 
 	for (uint32_t i = 0; i < mipCount; i++)
 	{
-		const void* array = data[i];
+		const uint8_t* array = (const uint8_t*)data[i];
 		size_t copySize = mipSize.x * mipSize.y * mipSize.z * sizeMultiplier;
 
 		if (array)

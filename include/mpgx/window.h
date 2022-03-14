@@ -977,6 +977,8 @@ void setWindowPosition(
 	Window window,
 	Vec2I position);
 
+// TODO: cache size, position, etc. per frame
+
 /*
  * Returns current window cursor position.
  * window - window instance.

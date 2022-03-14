@@ -182,7 +182,7 @@ inline static MpgxResult fillVkImage(
 		1,
 		&imageMemoryBarrier);
 
-	void* map;
+	void* mapData;
 
 	MpgxResult mpgxResult = mapVkBuffer(
 		allocator,
@@ -190,7 +190,7 @@ inline static MpgxResult fillVkImage(
 		CPU_ONLY_BUFFER_USAGE,
 		bufferSize,
 		0,
-		&map);
+		&mapData);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
@@ -198,6 +198,7 @@ inline static MpgxResult fillVkImage(
 		return mpgxResult;
 	}
 
+	uint8_t* map = (uint8_t*)mapData;
 	Vec3I mipSize = size;
 	size_t mipBufferSize = 0;
 

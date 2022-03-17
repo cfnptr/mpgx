@@ -701,27 +701,37 @@ typedef RayTracingScene_T* RayTracingScene;
 
 /*
  * Window update function.
+ * argument - function argument or NULL.
  */
 typedef void(*OnWindowUpdate)(void* argument);
 
 /*
  * Graphics pipeline destroy function.
+ *
+ * window - window instance.
+ * handle - handle instance or NULL.
  */
 typedef void(*OnGraphicsPipelineDestroy)(
 	Window window,
 	void* handle);
 /*
  * Graphics pipeline bind function.
+ * graphicsPipeline - graphics pipeline instance.
  */
 typedef void(*OnGraphicsPipelineBind)(
 	GraphicsPipeline graphicsPipeline);
 /*
  * Graphics pipeline uniforms set function.
+ * graphicsPipeline - graphics pipeline instance.
  */
 typedef void(*OnGraphicsPipelineUniformsSet)(
 	GraphicsPipeline graphicsPipeline);
 /*
  * Graphics pipeline resize function.
+ *
+ * graphicsPipeline - graphics pipeline instance.
+ * newSize - new framebuffer size value.
+ * createData - Vulkan create data. (NULL in OpenGL)
  */
 typedef MpgxResult(*OnGraphicsPipelineResize)(
 	GraphicsPipeline graphicsPipeline,
@@ -730,24 +740,32 @@ typedef MpgxResult(*OnGraphicsPipelineResize)(
 
 /*
  * Compute pipeline destroy function.
+ *
+ * window - window instance.
+ * handle - handle instance or NULL.
  */
 typedef void(*OnComputePipelineDestroy)(
 	Window window,
 	void* handle);
 /*
  * Compute pipeline bind function.
+ * computePipeline - compute pipeline instance.
  */
 typedef void(*OnComputePipelineBind)(
 	ComputePipeline computePipeline);
 
 /*
  * Ray tracing pipeline destroy function.
+ *
+ * window - window instance.
+ * handle - handle instance or NULL.
  */
 typedef void(*OnRayTracingPipelineDestroy)(
 	Window window,
 	void* handle);
 /*
  * Ray tracing pipeline bind function.
+ * rayTracingPipeline - ray tracing pipeline instance.
  */
 typedef void(*OnRayTracingPipelineBind)(
 	RayTracingPipeline rayTracingPipeline);

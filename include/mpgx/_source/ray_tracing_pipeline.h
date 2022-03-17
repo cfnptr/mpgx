@@ -240,7 +240,7 @@ inline static MpgxResult createVkSbt(
 {
 	assert(device);
 	assert(allocator);
-	assert(rayTracing );
+	assert(rayTracing);
 	assert(pipeline);
 	assert(generationSbtBuffer);
 	assert(generationSbtAllocation);

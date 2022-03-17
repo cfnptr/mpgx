@@ -650,6 +650,7 @@ inline static MpgxResult setVkFramebufferAttachments(
 
 	if (colorAttachmentCount > 0)
 	{
+		// TODO: realloc instead
 		colorAttachmentArray = malloc(
 			colorAttachmentCount * sizeof(Image));
 
@@ -1194,6 +1195,7 @@ inline static MpgxResult setGlFramebufferAttachments(
 
 	if (colorAttachmentCount > 0)
 	{
+		// TODO: realloc instead
 		colorAttachmentArray = malloc(
 			colorAttachmentCount * sizeof(Image));
 

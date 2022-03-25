@@ -764,8 +764,7 @@ MpgxResult createWindow(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else
 	{
 #if MPGX_SUPPORT_OPENGL
 		glfwMakeContextCurrent(handle);
@@ -1988,18 +1987,13 @@ MpgxResult createBuffer(
 				abort();
 #endif
 			}
-			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-				graphicsAPI == OPENGL_ES_GRAPHICS_API)
+			else
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlBuffer(bufferInstance);
 #else
 				abort();
 #endif
-			}
-			else
-			{
-				abort();
 			}
 
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -2374,18 +2368,13 @@ MpgxResult createMipmapImage(
 				abort();
 #endif
 			}
-			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-				graphicsAPI == OPENGL_ES_GRAPHICS_API)
+			else
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlImage(imageInstance);
 #else
 				abort();
 #endif
-			}
-			else
-			{
-				abort();
 			}
 
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -2727,18 +2716,13 @@ MpgxResult createSampler(
 				abort();
 #endif
 			}
-			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-				graphicsAPI == OPENGL_ES_GRAPHICS_API)
+			else
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlSampler(samplerInstance);
 #else
 				abort();
 #endif
-			}
-			else
-			{
-				abort();
 			}
 
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -2994,18 +2978,13 @@ MpgxResult createShader(
 				abort();
 #endif
 			}
-			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-				graphicsAPI == OPENGL_ES_GRAPHICS_API)
+			else
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlShader(shaderInstance);
 #else
 				abort();
 #endif
-			}
-			else
-			{
-				abort();
 			}
 
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -3244,18 +3223,13 @@ MpgxResult createFramebuffer(
 			abort();
 #endif
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(framebufferInstance);
 #else
 			abort();
 #endif
-		}
-		else
-		{
-			abort();
 		}
 
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -3363,18 +3337,13 @@ MpgxResult createShadowFramebuffer(
 			abort();
 #endif
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(framebufferInstance);
 #else
 			abort();
 #endif
-		}
-		else
-		{
-			abort();
 		}
 
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -3620,9 +3589,9 @@ void beginFramebufferRender(
 {
 	assert(framebuffer);
 	assert((clearValues && clearValueCount > 0 &&
-		framebuffer->base.useBeginClear) ||
-		(!clearValues && clearValueCount == 0 &&
-		!framebuffer->base.useBeginClear));
+			framebuffer->base.useBeginClear) ||
+		   (!clearValues && clearValueCount == 0 &&
+			!framebuffer->base.useBeginClear));
 	assert(framebuffer->base.window->isRecording);
 	assert(!framebuffer->base.window->renderFramebuffer);
 	assert(graphicsInitialized);
@@ -3635,7 +3604,7 @@ void beginFramebufferRender(
 		size_t colorAttachmentCount =
 			framebuffer->base.colorAttachmentCount;
 		size_t attachmentCount = depthStencilAttachment ?
-			colorAttachmentCount + 1 : colorAttachmentCount;
+								 colorAttachmentCount + 1 : colorAttachmentCount;
 
 		if (framebuffer->base.isDefault)
 			assert(clearValueCount == 2);
@@ -3651,45 +3620,6 @@ void beginFramebufferRender(
 #endif
 
 	Window window = framebuffer->base.window;
-	bool hasDepthBuffer, hasStencilBuffer;
-
-	if (framebuffer->base.isDefault)
-	{
-		hasDepthBuffer = true;
-		hasStencilBuffer = window->useStencilBuffer;
-	}
-	else
-	{
-		Image depthStencilAttachment =
-			framebuffer->base.depthStencilAttachment;
-
-		if (depthStencilAttachment)
-		{
-			ImageFormat format = depthStencilAttachment->base.format;
-
-			switch (format)
-			{
-			default:
-				abort();
-			case D16_UNORM_IMAGE_FORMAT:
-			case D32_SFLOAT_IMAGE_FORMAT:
-				hasDepthBuffer = true;
-				hasStencilBuffer = false;
-				break;
-			case D16_UNORM_S8_UINT_IMAGE_FORMAT:
-			case D24_UNORM_S8_UINT_IMAGE_FORMAT:
-			case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
-				hasDepthBuffer = true;
-				hasStencilBuffer = true;
-				break;
-			}
-		}
-		else
-		{
-			hasDepthBuffer = false;
-			hasStencilBuffer = false;
-		}
-	}
 
 	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
@@ -3711,6 +3641,46 @@ void beginFramebufferRender(
 		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
+		bool hasDepthBuffer, hasStencilBuffer;
+
+		if (framebuffer->gl.isDefault)
+		{
+			hasDepthBuffer = true;
+			hasStencilBuffer = window->useStencilBuffer;
+		}
+		else
+		{
+			Image depthStencilAttachment =
+				framebuffer->gl.depthStencilAttachment;
+
+			if (depthStencilAttachment)
+			{
+				ImageFormat format = depthStencilAttachment->gl.format;
+
+				switch (format)
+				{
+				default:
+					abort();
+				case D16_UNORM_IMAGE_FORMAT:
+				case D32_SFLOAT_IMAGE_FORMAT:
+					hasDepthBuffer = true;
+					hasStencilBuffer = false;
+					break;
+				case D16_UNORM_S8_UINT_IMAGE_FORMAT:
+				case D24_UNORM_S8_UINT_IMAGE_FORMAT:
+				case D32_SFLOAT_S8_UINT_IMAGE_FORMAT:
+					hasDepthBuffer = true;
+					hasStencilBuffer = true;
+					break;
+				}
+			}
+			else
+			{
+				hasDepthBuffer = false;
+				hasStencilBuffer = false;
+			}
+		}
+
 		bool hasDepthStencilAttachment =
 			framebuffer->gl.isDefault ||
 			framebuffer->gl.depthStencilAttachment;
@@ -4026,18 +3996,13 @@ MpgxResult createGraphicsPipeline(
 				abort();
 #endif
 			}
-			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-				graphicsAPI == OPENGL_ES_GRAPHICS_API)
+			else
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlGraphicsPipeline(graphicsPipelineInstance);
 #else
 				abort();
 #endif
-			}
-			else
-			{
-				abort();
 			}
 
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -4330,18 +4295,13 @@ MpgxResult createGraphicsMesh(
 				abort();
 #endif
 			}
-			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-				graphicsAPI == OPENGL_ES_GRAPHICS_API)
+			else
 			{
 #if MPGX_SUPPORT_OPENGL
 				destroyGlGraphicsMesh(graphicsMeshInstance);
 #else
 				abort();
 #endif
-			}
-			else
-			{
-				abort();
 			}
 
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;

@@ -182,22 +182,6 @@ inline static MpgxResult createVkRayTracingBuffer(
 	{
 		bufferAddress = vkGetBufferDeviceAddress(
 			device, &bufferDeviceAddressInfo);
-
-		if (bufferAddress == 0)
-		{
-			if (mappedData)
-			{
-				vmaUnmapMemory(
-					allocator,
-					allocationInstance);
-			}
-
-			vmaDestroyBuffer(
-				allocator,
-				bufferInstance,
-				allocationInstance);
-			return UNKNOWN_ERROR_MPGX_RESULT;
-		}
 	}
 
 	*buffer = bufferInstance;
@@ -280,7 +264,7 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 		allocator,
 		buildSizeInfo.accelerationStructureSize,
 		VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-		VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 		&bufferInstance,
 		&allocationInstance,
 		NULL,
@@ -322,12 +306,13 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 	VmaAllocation scratchAllocation;
 	VkDeviceAddress scratchBufferAddress;
 
+	// TODO: possibly cache scratch buffer in rayTracing class, and destroy on next frame
 	mpgxResult = createVkRayTracingBuffer(
 		device,
 		allocator,
 		buildSizeInfo.buildScratchSize,
 		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-		VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 		&scratchBuffer,
 		&scratchAllocation,
 		&scratchBufferAddress,
@@ -428,24 +413,8 @@ inline static MpgxResult createBuildVkAccelerationStructure(
 			accelerationStructureInstance,
 		};
 
-		VkDeviceAddress address = rayTracing->vk.getAccelerationStructureDeviceAddress(
-			device,
-			&accelerationDeviceAddressInfo);
-
-		if (address == 0)
-		{
-			vmaDestroyBuffer(
-				allocator,
-				bufferInstance,
-				allocationInstance);
-			rayTracing->vk.destroyAccelerationStructure(
-				device,
-				accelerationStructureInstance,
-				NULL);
-			return UNKNOWN_ERROR_MPGX_RESULT;
-		}
-
-		*deviceAddress = address;
+		*deviceAddress = rayTracing->vk.getAccelerationStructureDeviceAddress(
+			device, &accelerationDeviceAddressInfo);
 	}
 
 	*buffer = bufferInstance;
@@ -511,6 +480,7 @@ inline static MpgxResult createVkRayTracingMesh(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	rayTracingMeshInstance->vk.window = window;
+	rayTracingMeshInstance->vk.vertexStride = vertexStride;
 	rayTracingMeshInstance->vk.indexType = indexType;
 
 	VkIndexType vkIndexType;
@@ -545,30 +515,10 @@ inline static MpgxResult createVkRayTracingMesh(
 	VkDeviceAddress vertexBufferAddress = vkGetBufferDeviceAddress(
 		device, &bufferDeviceAddressInfo);
 
-	if (vertexBufferAddress == 0)
-	{
-		destroyVkRayTracingMesh(
-			device,
-			allocator,
-			rayTracing,
-			rayTracingMeshInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT;
-	}
-
 	bufferDeviceAddressInfo.buffer = indexBuffer->vk.handle;
 
 	VkDeviceAddress indexBufferAddress = vkGetBufferDeviceAddress(
 		device, &bufferDeviceAddressInfo);
-
-	if (indexBufferAddress == 0)
-	{
-		destroyVkRayTracingMesh(
-			device,
-			allocator,
-			rayTracing,
-			rayTracingMeshInstance);
-		return UNKNOWN_ERROR_MPGX_RESULT;
-	}
 
 	VkDeviceOrHostAddressConstKHR vertexAddress;
 	vertexAddress.deviceAddress = vertexBufferAddress;

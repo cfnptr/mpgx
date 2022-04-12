@@ -40,11 +40,6 @@
 #endif
 
 /*
- * Default MPGX array capacity.
- */
-#define MPGX_DEFAULT_CAPACITY 4
-
-/*
  * MPGX results.
  */
 typedef enum MpgxResult_T

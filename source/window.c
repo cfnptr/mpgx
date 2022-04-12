@@ -670,8 +670,7 @@ MpgxResult createWindow(
 
 	windowInstance->vresizeCursor = vresizeCursor;
 
-	uint32_t* inputBuffer = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(uint32_t));
+	uint32_t* inputBuffer = malloc(sizeof(uint32_t));
 
 	if (!inputBuffer)
 	{
@@ -680,7 +679,7 @@ MpgxResult createWindow(
 	}
 
 	windowInstance->inputBuffer = inputBuffer;
-	windowInstance->inputCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->inputCapacity = 1;
 	windowInstance->inputLength = 0;
 
 #if MPGX_SUPPORT_VULKAN
@@ -798,8 +797,7 @@ MpgxResult createWindow(
 #endif
 	}
 
-	Buffer* buffers = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(Buffer));
+	Buffer* buffers = malloc(sizeof(Buffer));
 
 	if (!buffers)
 	{
@@ -808,11 +806,10 @@ MpgxResult createWindow(
 	}
 
 	windowInstance->buffers = buffers;
-	windowInstance->bufferCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->bufferCapacity = 1;
 	windowInstance->bufferCount = 0;
 
-	Image* images = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(Image));
+	Image* images = malloc(sizeof(Image));
 
 	if (!images)
 	{
@@ -821,11 +818,10 @@ MpgxResult createWindow(
 	}
 
 	windowInstance->images = images;
-	windowInstance->imageCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->imageCapacity = 1;
 	windowInstance->imageCount = 0;
 
-	Sampler* samplers = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(Sampler));
+	Sampler* samplers = malloc(sizeof(Sampler));
 
 	if (!samplers)
 	{
@@ -834,11 +830,10 @@ MpgxResult createWindow(
 	}
 
 	windowInstance->samplers = samplers;
-	windowInstance->samplerCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->samplerCapacity = 1;
 	windowInstance->samplerCount = 0;
 
-	Shader* shaders = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(Shader));
+	Shader* shaders = malloc(sizeof(Shader));
 
 	if (!shaders)
 	{
@@ -847,11 +842,10 @@ MpgxResult createWindow(
 	}
 
 	windowInstance->shaders = shaders;
-	windowInstance->shaderCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->shaderCapacity = 1;
 	windowInstance->shaderCount = 0;
 
-	Framebuffer* framebuffers = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(Framebuffer));
+	Framebuffer* framebuffers = malloc(sizeof(Framebuffer));
 
 	if (!framebuffers)
 	{
@@ -860,11 +854,10 @@ MpgxResult createWindow(
 	}
 
 	windowInstance->framebuffers = framebuffers;
-	windowInstance->framebufferCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->framebufferCapacity = 1;
 	windowInstance->framebufferCount = 0;
 
-	GraphicsMesh* graphicsMeshes = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsMesh));
+	GraphicsMesh* graphicsMeshes = malloc(sizeof(GraphicsMesh));
 
 	if (!graphicsMeshes)
 	{
@@ -873,11 +866,10 @@ MpgxResult createWindow(
 	}
 
 	windowInstance->graphicsMeshes = graphicsMeshes;
-	windowInstance->graphicsMeshCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->graphicsMeshCapacity = 1;
 	windowInstance->graphicsMeshCount = 0;
 
-	ComputePipeline* computePipelines = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(ComputePipeline));
+	ComputePipeline* computePipelines = malloc(sizeof(ComputePipeline));
 
 	if (!computePipelines)
 	{
@@ -886,7 +878,7 @@ MpgxResult createWindow(
 	}
 
 	windowInstance->computePipelines = computePipelines;
-	windowInstance->computePipelineCapacity = MPGX_DEFAULT_CAPACITY;
+	windowInstance->computePipelineCapacity = 1;
 	windowInstance->computePipelineCount = 0;
 
 	windowInstance->updateTime = 0.0;
@@ -3108,6 +3100,7 @@ MpgxResult createFramebuffer(
 	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
+	assert(capacity > 0);
 	assert(framebuffer);
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
@@ -3253,6 +3246,7 @@ MpgxResult createShadowFramebuffer(
 	assert(depthAttachment->base.size.x == size.x &&
 		depthAttachment->base.size.y == size.y);
 	assert(depthAttachment->base.window == window);
+	assert(capacity > 0);
 	assert(framebuffer);
 	assert(!window->isRecording);
 	assert(graphicsInitialized);

@@ -441,7 +441,7 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	framebufferInstance->vk.handle = handle;
 
 	GraphicsPipeline* graphicsPipelines = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));
+		sizeof(GraphicsPipeline));
 
 	if (!graphicsPipelines)
 	{
@@ -452,7 +452,7 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	}
 
 	framebufferInstance->vk.graphicsPipelines = graphicsPipelines;
-	framebufferInstance->vk.graphicsPipelineCapacity = MPGX_DEFAULT_CAPACITY;
+	framebufferInstance->vk.graphicsPipelineCapacity = 1;
 	framebufferInstance->vk.graphicsPipelineCount = 0;
 
 	VkClearAttachment* clearAttachments = malloc(
@@ -488,6 +488,7 @@ inline static MpgxResult createVkFramebuffer(
 	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
+	assert(capacity > 0);
 	assert(framebuffer);
 	// TODO: assert attachments
 
@@ -555,9 +556,6 @@ inline static MpgxResult createVkFramebuffer(
 	}
 
 	framebufferInstance->vk.depthStencilAttachment = depthStencilAttachment;
-
-	if (capacity == 0)
-		capacity = MPGX_DEFAULT_CAPACITY;
 
 	GraphicsPipeline* graphicsPipelines = malloc(
 		capacity * sizeof(GraphicsPipeline));
@@ -954,7 +952,7 @@ inline static MpgxResult createGlDefaultFramebuffer(
 	framebufferInstance->gl.useBeginClear = useBeginClear;
 
 	GraphicsPipeline* graphicsPipelines = malloc(
-		MPGX_DEFAULT_CAPACITY * sizeof(GraphicsPipeline));
+		sizeof(GraphicsPipeline));
 
 	if (!graphicsPipelines)
 	{
@@ -963,7 +961,7 @@ inline static MpgxResult createGlDefaultFramebuffer(
 	}
 
 	framebufferInstance->gl.graphicsPipelines = graphicsPipelines;
-	framebufferInstance->gl.graphicsPipelineCapacity = MPGX_DEFAULT_CAPACITY;
+	framebufferInstance->gl.graphicsPipelineCapacity = 1;
 	framebufferInstance->gl.graphicsPipelineCount = 0;
 	framebufferInstance->gl.handle = GL_ZERO;
 
@@ -983,6 +981,7 @@ inline static MpgxResult createGlFramebuffer(
 	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
+	assert(capacity > 0);
 	assert(framebuffer);
 	// TODO: assert attachments
 
@@ -1157,9 +1156,6 @@ inline static MpgxResult createGlFramebuffer(
 		destroyGlFramebuffer(framebufferInstance);
 		return glToMpgxResult(glError);
 	}
-
-	if (capacity == 0)
-		capacity = MPGX_DEFAULT_CAPACITY;
 
 	GraphicsPipeline* graphicsPipelines = malloc(
 		capacity * sizeof(GraphicsPipeline));

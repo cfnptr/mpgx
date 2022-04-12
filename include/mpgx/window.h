@@ -1505,7 +1505,7 @@ ShaderType getShaderType(Shader shader);
  * colorAttachments - color attachment instance array or NULL.
  * colorAttachmentCount - color attachment count or 0.
  * depthStencilAttachment - depth/stencil attachment instance or NULL.
- * capacity - initial pipeline array capacity or 0.
+ * capacity - initial pipeline array capacity.
  * framebuffer - pointer to the framebuffer instance.
  */
 MpgxResult createFramebuffer(
@@ -1525,7 +1525,7 @@ MpgxResult createFramebuffer(
  * size - framebuffer size in pixels.
  * useBeginClear - use begin function clear values.
  * depthAttachment - depth attachment instance.
- * pipelineCapacity - initial pipeline array capacity or 0.
+ * pipelineCapacity - initial pipeline array capacity.
  * framebuffer - pointer to the framebuffer instance.
  */
 MpgxResult createShadowFramebuffer(

@@ -886,11 +886,6 @@ double getWindowUpdateTime(Window window);
  */
 double getWindowDeltaTime(Window window);
 /*
- * Returns window content scale.
- * window - window instance.
- */
-Vec2F getWindowContentScale(Window window);
-/*
  * Returns window GPU name string.
  * window - window instance.
  */
@@ -994,8 +989,6 @@ Vec2I getWindowPosition(
 void setWindowPosition(
 	Window window,
 	Vec2I position);
-
-// TODO: cache size, position, etc. per frame
 
 /*
  * Returns current window cursor position.

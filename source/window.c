@@ -38,7 +38,6 @@ struct Window_T
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
-	CursorType cursorType;
 	GLFWcursor* ibeamCursor;
 	GLFWcursor* crosshairCursor;
 	GLFWcursor* handCursor;
@@ -76,6 +75,10 @@ struct Window_T
 	double updateTime;
 	double deltaTime;
 	Framebuffer renderFramebuffer;
+	Vec2I size;
+	Vec2I position;
+	Vec2F cursorPosition;
+	CursorType cursorType;
 	bool isRecording;
 };
 
@@ -568,6 +571,7 @@ MpgxResult createWindow(
 	windowInstance->useRayTracing = useRayTracing;
 	windowInstance->onUpdate = onUpdate;
 	windowInstance->updateArgument = updateArgument;
+	windowInstance->cursorType = DEFAULT_CURSOR_TYPE;
 
 	GLFWwindow* shareWindow = parent ? parent->handle : NULL;
 
@@ -587,6 +591,14 @@ MpgxResult createWindow(
 
 	windowInstance->handle = handle;
 
+	int ix, iy; double dx, dy;
+	glfwGetWindowSize(handle, &ix, &iy);
+	windowInstance->size = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
+	glfwGetWindowPos(handle, &ix, &iy);
+	windowInstance->position = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
+	glfwGetCursorPos(handle, &dx, &dy);
+	windowInstance->cursorPosition = vec2F((cmmt_float_t)dx, (cmmt_float_t)dy);
+
 	glfwSetWindowSizeLimits(
 		handle,
 		2,
@@ -602,12 +614,8 @@ MpgxResult createWindow(
 			GLFW_TRUE);
 	}
 
-	glfwSetWindowUserPointer(
-		handle,
-		windowInstance);
-	glfwSetCharCallback(
-		handle,
-		onWindowChar);
+	glfwSetWindowUserPointer(handle, windowInstance);
+	glfwSetCharCallback(handle, onWindowChar);
 
 	GLFWcursor* ibeamCursor = glfwCreateStandardCursor(
 		GLFW_IBEAM_CURSOR);
@@ -619,7 +627,6 @@ MpgxResult createWindow(
 		return UNKNOWN_ERROR_MPGX_RESULT;
 	}
 
-	windowInstance->cursorType = DEFAULT_CURSOR_TYPE;
 	windowInstance->ibeamCursor = ibeamCursor;
 
 	GLFWcursor* crosshairCursor = glfwCreateStandardCursor(
@@ -1025,19 +1032,6 @@ double getWindowDeltaTime(Window window)
 	assert(graphicsInitialized);
 	return window->deltaTime;
 }
-Vec2F getWindowContentScale(Window window)
-{
-	assert(window);
-	assert(graphicsInitialized);
-
-	float x, y;
-
-	glfwGetWindowContentScale(
-		window->handle,
-		&x,&y);
-
-	return vec2F(x, y);
-}
 
 static char gpuDriver[32];
 
@@ -1232,15 +1226,7 @@ Vec2I getWindowSize(
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	int width, height;
-
-	glfwGetWindowSize(
-		window->handle,
-		&width,
-		&height);
-
-	return vec2I(width, height);
+	return window->size;
 }
 void setWindowSize(
 	Window window,
@@ -1250,11 +1236,7 @@ void setWindowSize(
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(graphicsInitialized);
-
-	glfwSetWindowSize(
-		window->handle,
-		(int)size.x,
-		(int)size.y);
+	window->size = size;
 }
 
 Vec2I getWindowPosition(
@@ -1262,15 +1244,7 @@ Vec2I getWindowPosition(
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	Vec2I position;
-
-	glfwGetWindowPos(
-		window->handle,
-		&position.x,
-		&position.y);
-
-	return position;
+	return window->position;
 }
 void setWindowPosition(
 	Window window,
@@ -1278,11 +1252,7 @@ void setWindowPosition(
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	glfwSetWindowPos(
-		window->handle,
-		position.x,
-		position.y);
+	window->position = position;
 }
 
 Vec2F getWindowCursorPosition(
@@ -1290,16 +1260,7 @@ Vec2F getWindowCursorPosition(
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	double x, y;
-
-	glfwGetCursorPos(
-		window->handle,
-		&x, &y);
-
-	return vec2F(
-		(cmmt_float_t)x,
-		(cmmt_float_t)y);
+	return window->cursorPosition;
 }
 void setWindowCursorPosition(
 	Window window,
@@ -1307,11 +1268,7 @@ void setWindowCursorPosition(
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	glfwSetCursorPos(
-		window->handle,
-		(double)position.x,
-		(double)position.y);
+	window->cursorPosition = position;
 }
 
 CursorMode getWindowCursorMode(
@@ -1387,6 +1344,8 @@ void setWindowCursorType(
 			window->vresizeCursor);
 		break;
 	}
+
+	window->cursorType = type;
 }
 
 void setWindowTitle(
@@ -1522,9 +1481,29 @@ void joinWindow(Window window)
 		glfwPollEvents();
 
 		double startTime = getCurrentClock();
+		int ix, iy; double dx, dy;
+
+		glfwGetWindowSize(handle, &ix, &iy);
+		Vec2I size = window->size = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
+		glfwGetWindowPos(handle, &ix, &iy);
+		Vec2I position = window->position = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
+		glfwGetCursorPos(handle, &dx, &dy);
+		Vec2F cursorPos = window->cursorPosition = vec2F((cmmt_float_t)dx, (cmmt_float_t)dy);
+
 		window->deltaTime = startTime - window->updateTime;
 		window->updateTime = startTime;
+
 		onUpdate(updateArgument);
+
+		Vec2I newSize = window->size;
+		if (newSize.x != size.x || newSize.y != size.y)
+			glfwSetWindowSize(handle, (int)newSize.x, (int)newSize.y);
+		Vec2I newPosition = window->position;
+		if (newPosition.x != position.x || newPosition.y != position.y)
+			glfwSetWindowPos(handle, (int)newPosition.x, (int)newPosition.y);
+		Vec2F newCursorPos = window->cursorPosition;
+		if (newCursorPos.x != cursorPos.x || newCursorPos.y != cursorPos.y)
+			glfwSetCursorPos(handle, (double)newCursorPos.x, (double)newCursorPos.y);
 	}
 }
 

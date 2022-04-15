@@ -55,6 +55,8 @@ inline static MpgxResult vkToMpgxResult(VkResult vkResult)
 		return OUT_OF_POOL_MEMORY_MPGX_RESULT;
 	case VK_ERROR_SURFACE_LOST_KHR:
 		return SURFACE_IS_LOST_MPGX_RESULT;
+	case VK_ERROR_OUT_OF_DATE_KHR:
+		return OUT_OF_DATE_MPGX_RESULT;
 	case VK_ERROR_INVALID_SHADER_NV:
 		return BAD_SHADER_CODE_MPGX_RESULT;
 	}

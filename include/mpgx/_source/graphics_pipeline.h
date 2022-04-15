@@ -310,6 +310,7 @@ inline static MpgxResult createVkGraphicsPipelineHandle(
 	size_t shaderCount,
 	GraphicsPipelineState state,
 	size_t colorAttachmentCount,
+	Vec2I framebufferSize,
 	const VkGraphicsPipelineCreateData* createData,
 	VkPipeline* handle)
 {
@@ -319,6 +320,8 @@ inline static MpgxResult createVkGraphicsPipelineHandle(
 	assert(layout);
 	assert(shaders);
 	assert(shaderCount > 0);
+	assert(framebufferSize.x > 0);
+	assert(framebufferSize.y > 0);
 	assert(createData);
 	assert(handle);
 
@@ -430,9 +433,6 @@ inline static MpgxResult createVkGraphicsPipelineHandle(
 	if (dynamicScissor)
 		dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_SCISSOR;
 
-	// TODO: fix different Vulkan viewport/scissor
-	// coordinate system from OpenGL
-
 	VkViewport viewport = {
 		(float)state.viewport.x,
 		(float)state.viewport.y,
@@ -443,7 +443,7 @@ inline static MpgxResult createVkGraphicsPipelineHandle(
 	};
 	VkRect2D scissor = {
 		(int32_t)state.scissor.x,
-		(int32_t)state.scissor.y,
+		(int32_t)((framebufferSize.y - state.scissor.y) - state.scissor.w),
 		(uint32_t)state.scissor.z,
 		(uint32_t)state.scissor.w,
 	};
@@ -633,11 +633,14 @@ inline static MpgxResult recreateVkGraphicsPipelineHandle(
 	VkRenderPass renderPass,
 	GraphicsPipeline graphicsPipeline,
 	size_t colorAttachmentCount,
+	Vec2I framebufferSize,
 	const VkGraphicsPipelineCreateData* createData)
 {
 	assert(device);
 	assert(renderPass);
 	assert(graphicsPipeline);
+	assert(framebufferSize.x > 0);
+	assert(framebufferSize.y > 0);
 	assert(createData);
 
 	VkPipeline handle;
@@ -651,6 +654,7 @@ inline static MpgxResult recreateVkGraphicsPipelineHandle(
 		graphicsPipeline->vk.shaderCount,
 		graphicsPipeline->vk.state,
 		colorAttachmentCount,
+		framebufferSize,
 		createData,
 		&handle);
 
@@ -816,6 +820,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 		shaderCount,
 		state,
 		framebuffer->vk.colorAttachmentCount,
+		framebuffer->vk.size,
 		createData,
 		&vkHandle);
 

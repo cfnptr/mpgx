@@ -733,7 +733,7 @@ typedef void(*OnGraphicsPipelineUniformsSet)(
  * newSize - new framebuffer size value.
  * createData - Vulkan create data. (NULL in OpenGL)
  */
-typedef MpgxResult(*OnGraphicsPipelineResize)(
+typedef void(*OnGraphicsPipelineResize)(
 	GraphicsPipeline graphicsPipeline,
 	Vec2I newSize,
 	void* createData);

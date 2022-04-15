@@ -59,9 +59,9 @@ typedef enum MpgxResult_T
 	OUT_OF_POOL_MEMORY_MPGX_RESULT = 12,
 	FAILED_TO_MAP_MEMORY_MPGX_RESULT = 13,
 	FAILED_TO_GET_FUNCTION_ADDRESS_MPGX_RESULT = 14,
-	ZERO_FRAMEBUFFER_SIZE_MPGX_RESULT = 15,
-	DEVICE_IS_LOST_MPGX_RESULT = 16,
-	SURFACE_IS_LOST_MPGX_RESULT = 17,
+	DEVICE_IS_LOST_MPGX_RESULT = 15,
+	SURFACE_IS_LOST_MPGX_RESULT = 16,
+	OUT_OF_DATE_MPGX_RESULT = 17,
 	UNKNOWN_ERROR_MPGX_RESULT = 18,
 	MPGX_RESULT_COUNT = 19,
 } MpgxResult_T;
@@ -89,9 +89,9 @@ static const char* const mpgxResultStrings[MPGX_RESULT_COUNT] = {
 	"Out of pool memory",
 	"Failed to map memory",
 	"Failed to get function address",
-	"Zero framebuffer size",
 	"Device is lost",
 	"Surface is lost",
+	"Out of date",
 	"Unknown error",
 };
 

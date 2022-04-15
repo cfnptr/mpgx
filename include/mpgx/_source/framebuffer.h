@@ -616,6 +616,7 @@ inline static MpgxResult recreateVkGraphicsPipelineHandle(
 	VkRenderPass renderPass,
 	GraphicsPipeline graphicsPipeline,
 	size_t colorAttachmentCount,
+	Vec2I framebufferSize,
 	const VkGraphicsPipelineCreateData* createData);
 
 inline static MpgxResult setVkFramebufferAttachments(
@@ -719,27 +720,14 @@ inline static MpgxResult setVkFramebufferAttachments(
 			getGraphicsPipelineOnResize(graphicsPipeline);
 
 		VkGraphicsPipelineCreateData createData;
-
-		mpgxResult = onResize(
-			graphicsPipeline,
-			size,
-			&createData);
-
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
-		{
-			vkDestroyFramebuffer(
-				device,
-				handle,
-				NULL);
-			free(colorAttachmentArray);
-			return mpgxResult;
-		}
+		onResize(graphicsPipeline, size, &createData);
 
 		mpgxResult = recreateVkGraphicsPipelineHandle(
 			device,
 			renderPass,
 			graphicsPipeline,
 			colorAttachmentCount,
+			size,
 			&createData);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -1215,17 +1203,7 @@ inline static MpgxResult setGlFramebufferAttachments(
 
 		OnGraphicsPipelineResize onResize =
 			getGraphicsPipelineOnResize(graphicsPipeline);
-
-		MpgxResult mpgxResult = onResize(
-			graphicsPipeline,
-			size,
-			NULL);
-
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
-		{
-			free(colorAttachmentArray);
-			return mpgxResult;
-		}
+		onResize(graphicsPipeline, size, NULL);
 	}
 
 	free(framebuffer->gl.colorAttachments);

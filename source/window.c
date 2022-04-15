@@ -345,76 +345,6 @@ inline static void assertGLFW()
 #endif
 }
 
-#if MPGX_SUPPORT_VULKAN
-inline static MpgxResult onVkResize(
-	Window window,
-	Vec2I newSize)
-{
-	assert(window);
-	assert(newSize.x > 0);
-	assert(newSize.y > 0);
-
-	VkWindow vkWindow = window->vkWindow;
-	VkDevice device = vkWindow->device;
-	VkSwapchain swapchain = vkWindow->swapchain;
-
-	MpgxResult mpgxResult = resizeVkSwapchain(
-		vkWindow->surface,
-		vkWindow->physicalDevice,
-		vkWindow->graphicsQueueFamilyIndex,
-		vkWindow->presentQueueFamilyIndex,
-		device,
-		vkWindow->allocator,
-		vkWindow->graphicsCommandPool,
-		vkWindow->presentCommandPool,
-		vkWindow->swapchain,
-		window->useVsync,
-		window->useStencilBuffer,
-		window->framebuffer->base.useBeginClear,
-		newSize);
-
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
-		return mpgxResult;
-
-	Framebuffer framebuffer = window->framebuffer;
-
-	VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
-	framebuffer->vk.size = newSize;
-	framebuffer->vk.renderPass = swapchain->renderPass;
-	framebuffer->vk.handle = firstBuffer.framebuffer;
-
-	GraphicsPipeline* graphicsPipelines = framebuffer->vk.graphicsPipelines;
-	size_t graphicsPipelineCount = framebuffer->vk.graphicsPipelineCount;
-
-	for (size_t i = 0; i < graphicsPipelineCount; i++)
-	{
-		GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
-		VkGraphicsPipelineCreateData createData;
-
-		mpgxResult = graphicsPipeline->vk.onResize(
-			graphicsPipeline,
-			newSize,
-			&createData);
-
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
-			return mpgxResult;
-
-		mpgxResult = recreateVkGraphicsPipelineHandle(
-			device,
-			framebuffer->vk.renderPass,
-			graphicsPipeline,
-			framebuffer->vk.colorAttachmentCount,
-			&createData);
-
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
-			return mpgxResult;
-	}
-
-	vkWindow->frameIndex = 0;
-	return SUCCESS_MPGX_RESULT;
-}
-#endif
-
 MpgxResult createWindow(
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
@@ -1174,19 +1104,7 @@ void setWindowUseVsync(
 
 	window->useVsync = useVsync;
 
-	if (graphicsAPI == VULKAN_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_VULKAN
-		Vec2I newSize = getFramebufferSize(window->framebuffer);
-		MpgxResult mpgxResult = onVkResize(window, newSize);
-
-		if (mpgxResult != SUCCESS_MPGX_RESULT)
-			abort();
-#else
-		abort();
-#endif
-	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+	if (graphicsAPI == OPENGL_GRAPHICS_API ||
 		graphicsAPI == OPENGL_ES_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
@@ -1474,6 +1392,7 @@ void joinWindow(Window window)
 	GLFWwindow* handle = window->handle;
 	OnWindowUpdate onUpdate = window->onUpdate;
 	void* updateArgument = window->updateArgument;
+	bool useVsync = window->useVsync;
 
 	while (!glfwWindowShouldClose(handle))
 	{
@@ -1492,6 +1411,107 @@ void joinWindow(Window window)
 
 		window->deltaTime = startTime - window->updateTime;
 		window->updateTime = startTime;
+
+		glfwGetFramebufferSize(window->handle, &ix, &iy);
+
+		if (ix <= 0 || iy <= 0)
+			continue;
+
+		Vec2I newFramebufferSize = vec2I(ix, iy);
+		Framebuffer framebuffer = window->framebuffer;
+
+		if (!compVec2I(newFramebufferSize, framebuffer->base.size) ||
+			useVsync != window->useVsync)
+		{
+			if (graphicsAPI == VULKAN_GRAPHICS_API)
+			{
+#if MPGX_SUPPORT_VULKAN
+				VkWindow vkWindow = window->vkWindow;
+				VkDevice device = vkWindow->device;
+				VkSwapchain swapchain = vkWindow->swapchain;
+
+				MpgxResult mpgxResult = resizeVkSwapchain(
+					vkWindow->surface,
+					vkWindow->physicalDevice,
+					vkWindow->graphicsQueueFamilyIndex,
+					vkWindow->presentQueueFamilyIndex,
+					device,
+					vkWindow->allocator,
+					vkWindow->graphicsCommandPool,
+					vkWindow->presentCommandPool,
+					vkWindow->swapchain,
+					window->useVsync,
+					window->useStencilBuffer,
+					window->framebuffer->base.useBeginClear,
+					newFramebufferSize);
+
+				if (mpgxResult != SUCCESS_MPGX_RESULT)
+					abort();
+
+				VkSwapchainBuffer firstBuffer = swapchain->buffers[0];
+				framebuffer->vk.size = newFramebufferSize;
+				framebuffer->vk.renderPass = swapchain->renderPass;
+				framebuffer->vk.handle = firstBuffer.framebuffer;
+
+				GraphicsPipeline* graphicsPipelines = framebuffer->vk.graphicsPipelines;
+				size_t graphicsPipelineCount = framebuffer->vk.graphicsPipelineCount;
+
+				for (size_t i = 0; i < graphicsPipelineCount; i++)
+				{
+					GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
+					VkGraphicsPipelineCreateData createData;
+
+					graphicsPipeline->vk.onResize(
+						graphicsPipeline,
+						newFramebufferSize,
+						&createData);
+
+					mpgxResult = recreateVkGraphicsPipelineHandle(
+						device,
+						framebuffer->vk.renderPass,
+						graphicsPipeline,
+						framebuffer->vk.colorAttachmentCount,
+						framebuffer->vk.size,
+						&createData);
+
+					if (mpgxResult != SUCCESS_MPGX_RESULT)
+						abort();
+				}
+
+				vkWindow->frameIndex = 0;
+#else
+				abort();
+#endif
+			}
+			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
+				graphicsAPI == OPENGL_ES_GRAPHICS_API)
+			{
+#if MPGX_SUPPORT_OPENGL
+				framebuffer->gl.size = newFramebufferSize;
+
+				GraphicsPipeline* graphicsPipelines = framebuffer->gl.graphicsPipelines;
+				size_t graphicsPipelineCount = framebuffer->gl.graphicsPipelineCount;
+
+				for (size_t i = 0; i < graphicsPipelineCount; i++)
+				{
+					GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
+
+					graphicsPipeline->gl.onResize(
+						graphicsPipeline,
+						newFramebufferSize,
+						NULL);
+				}
+#else
+				abort();
+#endif
+			}
+			else
+			{
+				abort();
+			}
+
+			useVsync = window->useVsync;
+		}
 
 		onUpdate(updateArgument);
 
@@ -1513,17 +1533,6 @@ MpgxResult beginWindowRecord(Window window)
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
 
-	int width, height;
-
-	glfwGetFramebufferSize(
-		window->handle,
-		&width,
-		&height);
-
-	if (width <= 0 || height <= 0)
-		return ZERO_FRAMEBUFFER_SIZE_MPGX_RESULT;
-
-	Vec2I newSize = vec2I(width, height);
 	Framebuffer framebuffer = window->framebuffer;
 
 	if (graphicsAPI == VULKAN_GRAPHICS_API)
@@ -1541,14 +1550,6 @@ MpgxResult beginWindowRecord(Window window)
 			vkWindow->stagingBuffer = NULL;
 			vkWindow->stagingAllocation = NULL;
 			vkWindow->stagingSize = 0;
-		}
-
-		if (!compVec2I(newSize, framebuffer->vk.size))
-		{
-			MpgxResult mpgxResult = onVkResize(window, newSize);
-
-			if (mpgxResult != SUCCESS_MPGX_RESULT)
-				return mpgxResult;
 		}
 
 		VkDevice device = vkWindow->device;
@@ -1592,10 +1593,7 @@ MpgxResult beginWindowRecord(Window window)
 
 			if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
 			{
-				MpgxResult mpgxResult = onVkResize(window, newSize);
-
-				if (mpgxResult != SUCCESS_MPGX_RESULT)
-					return mpgxResult;
+				return OUT_OF_DATE_MPGX_RESULT;
 			}
 			else if (vkResult == VK_ERROR_OUT_OF_HOST_MEMORY)
 			{
@@ -1643,38 +1641,6 @@ MpgxResult beginWindowRecord(Window window)
 #else
 		abort();
 #endif
-	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_OPENGL
-		if (!compVec2I(newSize, framebuffer->gl.size))
-		{
-			framebuffer->gl.size = newSize;
-
-			GraphicsPipeline* graphicsPipelines = framebuffer->gl.graphicsPipelines;
-			size_t graphicsPipelineCount = framebuffer->gl.graphicsPipelineCount;
-
-			for (size_t i = 0; i < graphicsPipelineCount; i++)
-			{
-				GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
-
-				MpgxResult mpgxResult = graphicsPipeline->gl.onResize(
-					graphicsPipeline,
-					newSize,
-					NULL);
-
-				if (mpgxResult != SUCCESS_MPGX_RESULT)
-					return mpgxResult;
-			}
-		}
-#else
-		abort();
-#endif
-	}
-	else
-	{
-		abort();
 	}
 
 #ifndef NDEBUG
@@ -1808,41 +1774,11 @@ void endWindowRecord(Window window)
 			if (vkResult != VK_SUCCESS)
 				abort();
 
-			presentInfo.pWaitSemaphores =
-				&imageOwnershipSemaphore;
+			presentInfo.pWaitSemaphores = &imageOwnershipSemaphore;
 		}
 
-		vkResult = vkQueuePresentKHR(
-			presentQueue,
-			&presentInfo);
-
-		vkWindow->frameIndex =
-			(frameIndex + 1) % VK_FRAME_LAG;
-
-		if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
-		{
-			int width, height;
-
-			glfwGetFramebufferSize(
-				window->handle,
-				&width,
-				&height);
-
-			if (width <= 0 || height <= 0)
-				return;
-
-			Vec2I newSize = vec2I(width, height);
-			MpgxResult mpgxResult = onVkResize(window, newSize);
-
-			if (mpgxResult != SUCCESS_MPGX_RESULT)
-				abort();
-		}
-		else if (vkResult != VK_SUCCESS &&
-			vkResult != VK_SUBOPTIMAL_KHR &&
-			vkResult == VK_ERROR_SURFACE_LOST_KHR)
-		{
-			abort();
-		}
+		vkQueuePresentKHR(presentQueue, &presentInfo);
+		vkWindow->frameIndex = (frameIndex + 1) % VK_FRAME_LAG;
 #else
 		abort();
 #endif
@@ -3863,8 +3799,12 @@ MpgxResult createGraphicsPipeline(
 	assert(state->colorBlendOperator < BLEND_OPERATOR_COUNT);
 	assert(state->alphaBlendOperator < BLEND_OPERATOR_COUNT);
 	assert(state->lineWidth > 0.0f);
+	assert(state->viewport.x >= 0);
+	assert(state->viewport.y >= 0);
 	assert(state->viewport.z >= 0);
 	assert(state->viewport.w >= 0);
+	assert(state->scissor.x >= 0);
+	assert(state->scissor.y >= 0);
 	assert(state->scissor.z >= 0);
 	assert(state->scissor.w >= 0);
 	assert(!framebuffer->base.window->isRecording);

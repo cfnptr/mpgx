@@ -3807,6 +3807,8 @@ MpgxResult createGraphicsPipeline(
 	assert(state->scissor.y >= 0);
 	assert(state->scissor.z >= 0);
 	assert(state->scissor.w >= 0);
+	assert(state->scissor.x + state->scissor.z <= framebuffer->base.size.x);
+	assert(state->scissor.y + state->scissor.w <= framebuffer->base.size.y);
 	assert(!framebuffer->base.window->isRecording);
 	assert(graphicsInitialized);
 

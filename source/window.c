@@ -1400,8 +1400,8 @@ void joinWindow(Window window)
 		glfwPollEvents();
 
 		double startTime = getCurrentClock();
-		int ix, iy; double dx, dy;
 
+		int ix, iy; double dx, dy;
 		glfwGetWindowSize(handle, &ix, &iy);
 		Vec2I size = window->size = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
 		glfwGetWindowPos(handle, &ix, &iy);
@@ -1515,15 +1515,16 @@ void joinWindow(Window window)
 
 		onUpdate(updateArgument);
 
-		Vec2I newSize = window->size;
-		if (newSize.x != size.x || newSize.y != size.y)
-			glfwSetWindowSize(handle, (int)newSize.x, (int)newSize.y);
-		Vec2I newPosition = window->position;
-		if (newPosition.x != position.x || newPosition.y != position.y)
-			glfwSetWindowPos(handle, (int)newPosition.x, (int)newPosition.y);
-		Vec2F newCursorPos = window->cursorPosition;
-		if (newCursorPos.x != cursorPos.x || newCursorPos.y != cursorPos.y)
-			glfwSetCursorPos(handle, (double)newCursorPos.x, (double)newCursorPos.y);
+		Vec2I iv; Vec2F fv;
+		iv = window->size;
+		if (iv.x != size.x || iv.y != size.y)
+			glfwSetWindowSize(handle, (int)iv.x, (int)iv.y);
+		iv = window->position;
+		if (iv.x != position.x || iv.y != position.y)
+			glfwSetWindowPos(handle, (int)iv.x, (int)iv.y);
+		fv = window->cursorPosition;
+		if (fv.x != cursorPos.x || fv.y != cursorPos.y)
+			glfwSetCursorPos(handle, (double)fv.x, (double)fv.y);
 	}
 }
 

@@ -1929,7 +1929,7 @@ void destroyBuffer(Buffer buffer)
 	Buffer* buffers = window->buffers;
 	size_t bufferCount = window->bufferCount;
 
-	for (size_t i = 0; i < bufferCount; i++)
+	for (int64_t i = (int64_t)bufferCount - 1; i >= 0 ; i--)
 	{
 		if (buffer != buffers[i])
 			continue;
@@ -2345,7 +2345,7 @@ void destroyImage(Image image)
 	Image* images = window->images;
 	size_t imageCount = window->imageCount;
 
-	for (size_t i = 0; i < imageCount; i++)
+	for (int64_t i = (int64_t)imageCount - 1; i >= 0; i--)
 	{
 		if (image != images[i])
 			continue;
@@ -2657,7 +2657,7 @@ void destroySampler(Sampler sampler)
 	Sampler* samplers = window->samplers;
 	size_t samplerCount = window->samplerCount;
 
-	for (size_t i = 0; i < samplerCount; i++)
+	for (int64_t i = (int64_t)samplerCount - 1; i >= 0; i--)
 	{
 		if (sampler != samplers[i])
 			continue;
@@ -2919,7 +2919,7 @@ void destroyShader(Shader shader)
 	Shader* shaders = window->shaders;
 	size_t shaderCount = window->shaderCount;
 
-	for (size_t i = 0; i < shaderCount; i++)
+	for (int64_t i = (int64_t)shaderCount - 1; i >= 0; i--)
 	{
 		if (shader != shaders[i])
 			continue;
@@ -3273,7 +3273,7 @@ void destroyFramebuffer(Framebuffer framebuffer)
 	Framebuffer* framebuffers = window->framebuffers;
 	size_t framebufferCount = window->framebufferCount;
 
-	for (size_t i = 0; i < framebufferCount; i++)
+	for (int64_t i = (int64_t)framebufferCount - 1; i >= 0; i--)
 	{
 		if (framebuffer != framebuffers[i])
 			continue;
@@ -3946,7 +3946,7 @@ void destroyGraphicsPipeline(GraphicsPipeline pipeline)
 	size_t graphicsPipelineCount = framebuffer->base.graphicsPipelineCount;
 	GraphicsPipeline* graphicsPipelines = framebuffer->base.graphicsPipelines;
 
-	for (size_t i = 0; i < graphicsPipelineCount; i++)
+	for (int64_t i = (int64_t)graphicsPipelineCount - 1; i >= 0; i--)
 	{
 		if (pipeline != graphicsPipelines[i])
 			continue;
@@ -4244,7 +4244,7 @@ void destroyGraphicsMesh(GraphicsMesh mesh)
 	GraphicsMesh* graphicsMeshes = window->graphicsMeshes;
 	size_t graphicsMeshCount = window->graphicsMeshCount;
 
-	for (size_t i = 0; i < graphicsMeshCount; i++)
+	for (int64_t i = (int64_t)graphicsMeshCount - 1; i >= 0; i--)
 	{
 		if (mesh != graphicsMeshes[i])
 			continue;
@@ -4663,7 +4663,7 @@ void destroyComputePipeline(ComputePipeline pipeline)
 	size_t computePipelineCount = window->computePipelineCount;
 	ComputePipeline* computePipelines = window->computePipelines;
 
-	for (size_t i = 0; i < computePipelineCount; i++)
+	for (int64_t i = (int64_t)computePipelineCount - 1; i >= 0; i--)
 	{
 		if (pipeline != computePipelines[i])
 			continue;
@@ -4951,7 +4951,7 @@ void destroyRayTracingPipeline(RayTracingPipeline pipeline)
 	size_t pipelineCount = rayTracing->base.pipelineCount;
 	RayTracingPipeline* pipelines = rayTracing->base.pipelines;
 
-	for (size_t i = 0; i < pipelineCount; i++)
+	for (int64_t i = (int64_t)pipelineCount - 1; i >= 0; i--)
 	{
 		if (pipeline != pipelines[i])
 			continue;
@@ -5235,7 +5235,7 @@ void destroyRayTracingMesh(RayTracingMesh mesh)
 	RayTracingMesh* meshes = rayTracing->base.meshes;
 	size_t meshCount = rayTracing->base.meshCount;
 
-	for (size_t i = 0; i < meshCount; i++)
+	for (int64_t i = (int64_t)meshCount - 1; i >= 0; i--)
 	{
 		if (mesh != meshes[i])
 			continue;
@@ -5415,7 +5415,7 @@ void destroyRayTracingScene(RayTracingScene scene)
 	RayTracingScene* scenes = rayTracing->base.scenes;
 	size_t sceneCount = rayTracing->base.sceneCount;
 
-	for (size_t i = 0; i < sceneCount; i++)
+	for (int64_t i = (int64_t)sceneCount - 1; i >= 0; i--)
 	{
 		if (scene != scenes[i])
 			continue;

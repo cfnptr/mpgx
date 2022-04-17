@@ -122,8 +122,8 @@ inline static MpgxResult createVkRayTracing(
 	}
 
 	rayTracingInstance->vk.pipelines = pipelines;
-	rayTracingInstance->vk.pipelineCount = 1;
-	rayTracingInstance->vk.pipelineCapacity = 0;
+	rayTracingInstance->vk.pipelineCapacity = 1;
+	rayTracingInstance->vk.pipelineCount = 0;
 
 	RayTracingMesh* meshes = malloc(
 		sizeof(RayTracingMesh));
@@ -135,8 +135,8 @@ inline static MpgxResult createVkRayTracing(
 	}
 
 	rayTracingInstance->vk.meshes = meshes;
-	rayTracingInstance->vk.meshCount = 1;
-	rayTracingInstance->vk.meshCapacity = 0;
+	rayTracingInstance->vk.meshCapacity = 1;
+	rayTracingInstance->vk.meshCount = 0;
 
 	RayTracingScene* scenes = malloc(
 		sizeof(RayTracingScene));
@@ -148,8 +148,8 @@ inline static MpgxResult createVkRayTracing(
 	}
 
 	rayTracingInstance->vk.scenes = scenes;
-	rayTracingInstance->vk.sceneCount = 1;
-	rayTracingInstance->vk.sceneCapacity = 0;
+	rayTracingInstance->vk.sceneCapacity = 1;
+	rayTracingInstance->vk.sceneCount = 0;
 
 	PFN_vkGetAccelerationStructureBuildSizesKHR
 		getAccelerationStructureBuildSizes =

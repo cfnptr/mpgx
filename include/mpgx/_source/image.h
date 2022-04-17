@@ -802,14 +802,14 @@ inline static MpgxResult setVkImageData(
 		&bufferImageCopy);
 
 	imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-	imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	imageMemoryBarrier.dstAccessMask = VK_ACCESS_NONE;
 	imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	vkCmdPipelineBarrier(
 		transferCommandBuffer,
 		VK_PIPELINE_STAGE_TRANSFER_BIT,
-		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 		0,
 		0,
 		NULL,

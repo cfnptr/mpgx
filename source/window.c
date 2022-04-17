@@ -430,57 +430,6 @@ MpgxResult createWindow(
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 #endif
 	}
-	else if (graphicsAPI == OPENGL_ES_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_OPENGL
-		if (useRayTracing)
-			return RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT;
-
-		glfwWindowHint(
-			GLFW_CLIENT_API,
-			GLFW_OPENGL_ES_API);
-		glfwWindowHint(
-			GLFW_CONTEXT_VERSION_MAJOR,
-			3);
-		glfwWindowHint(
-			GLFW_CONTEXT_VERSION_MINOR,
-			0);
-		glfwWindowHint(
-			GLFW_SRGB_CAPABLE,
-			GLFW_TRUE);
-
-		if (useStencilBuffer)
-		{
-			glfwWindowHint(
-				GLFW_DEPTH_BITS,
-				24);
-			glfwWindowHint(
-				GLFW_STENCIL_BITS,
-				8);
-		}
-		else
-		{
-			glfwWindowHint(
-				GLFW_DEPTH_BITS,
-				32);
-			glfwWindowHint(
-				GLFW_STENCIL_BITS,
-				0);
-		}
-
-#ifndef NDEBUG
-		glfwWindowHint(
-			GLFW_OPENGL_DEBUG_CONTEXT,
-			GLFW_TRUE);
-#else
-		glfwWindowHint(
-			GLFW_OPENGL_DEBUG_CONTEXT,
-			GLFW_FALSE);
-#endif
-#else
-		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
-#endif
-	}
 	else
 	{
 		abort();
@@ -869,8 +818,7 @@ void destroyWindow(Window window)
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		destroyGlFramebuffer(window->framebuffer);
@@ -978,8 +926,7 @@ const char* getWindowGpuName(Window window)
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		return (const char*)glGetString(GL_RENDERER);
@@ -1022,8 +969,7 @@ const char* getWindowGpuDriver(Window window)
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		return (const char*)glGetString(GL_VERSION);
@@ -1104,8 +1050,7 @@ void setWindowUseVsync(
 
 	window->useVsync = useVsync;
 
-	if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		glfwSwapInterval(useVsync ? 1 : 0);
@@ -1368,8 +1313,7 @@ void requestWindowAttention(Window window)
 void makeGlWindowContextCurrent(Window window)
 {
 	assert(window);
-	assert(graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API);
+	assert(graphicsAPI == OPENGL_GRAPHICS_API);
 	assert(!window->isRecording);
 	assert(graphicsInitialized);
 
@@ -1483,8 +1427,7 @@ void joinWindow(Window window)
 				abort();
 #endif
 			}
-			else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-				graphicsAPI == OPENGL_ES_GRAPHICS_API)
+			else if (graphicsAPI == OPENGL_GRAPHICS_API)
 			{
 #if MPGX_SUPPORT_OPENGL
 				framebuffer->gl.size = newFramebufferSize;
@@ -1784,8 +1727,7 @@ void endWindowRecord(Window window)
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		glfwSwapBuffers(window->handle);
@@ -1850,8 +1792,7 @@ MpgxResult createBuffer(
 	abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlBuffer(
@@ -1953,8 +1894,7 @@ void destroyBuffer(Buffer buffer)
 			abort();
 #endif
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlBuffer(buffer);
@@ -2041,8 +1981,7 @@ MpgxResult mapBuffer(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = mapGlBuffer(
@@ -2092,8 +2031,7 @@ MpgxResult unmapBuffer(Buffer buffer)
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = unmapGlBuffer(
@@ -2144,8 +2082,7 @@ MpgxResult setBufferData(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		return setGlBufferData(
@@ -2222,8 +2159,7 @@ MpgxResult createMipmapImage(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		if (layerCount != 1)
@@ -2370,8 +2306,7 @@ void destroyImage(Image image)
 			abort();
 #endif
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlImage(image);
@@ -2449,8 +2384,7 @@ MpgxResult setImageData(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		return setGlImageData(
@@ -2570,8 +2504,7 @@ MpgxResult createSampler(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		if (mipmapLodBias != 0.0f)
@@ -2681,8 +2614,7 @@ void destroySampler(Sampler sampler)
 			abort();
 #endif
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlSampler(sampler);
@@ -2810,8 +2742,7 @@ MpgxResult createShader(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlShader(
@@ -2935,8 +2866,7 @@ void destroyShader(Shader shader)
 			abort();
 #endif
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlShader(shader);
@@ -3095,8 +3025,7 @@ MpgxResult createFramebuffer(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlFramebuffer(
@@ -3210,8 +3139,7 @@ MpgxResult createShadowFramebuffer(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlFramebuffer(
@@ -3297,8 +3225,7 @@ void destroyFramebuffer(Framebuffer framebuffer)
 			abort();
 #endif
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlFramebuffer(framebuffer);
@@ -3471,8 +3398,7 @@ MpgxResult setFramebufferAttachments(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		return setGlFramebufferAttachments(
@@ -3547,8 +3473,7 @@ void beginFramebufferRender(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		bool hasDepthBuffer, hasStencilBuffer;
@@ -3633,8 +3558,7 @@ void endFramebufferRender(Framebuffer framebuffer)
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		endGlFramebufferRender();
@@ -3744,8 +3668,7 @@ void clearFramebuffer(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		clearGlFramebuffer(
@@ -3856,8 +3779,7 @@ MpgxResult createGraphicsPipeline(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		assert(!createData);
@@ -3974,8 +3896,7 @@ void destroyGraphicsPipeline(GraphicsPipeline pipeline)
 			abort();
 #endif
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlGraphicsPipeline(pipeline);
@@ -4089,8 +4010,7 @@ void bindGraphicsPipeline(GraphicsPipeline pipeline)
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		bindGlGraphicsPipeline(pipeline);
@@ -4167,8 +4087,7 @@ MpgxResult createGraphicsMesh(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		mpgxResult = createGlGraphicsMesh(
@@ -4258,8 +4177,7 @@ void destroyGraphicsMesh(GraphicsMesh mesh)
 			abort();
 #endif
 		}
-		else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-			graphicsAPI == OPENGL_ES_GRAPHICS_API)
+		else if (graphicsAPI == OPENGL_GRAPHICS_API)
 		{
 #if MPGX_SUPPORT_OPENGL
 			destroyGlGraphicsMesh(mesh);
@@ -4382,8 +4300,7 @@ void setGraphicsMeshIndexOffset(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		setGlGraphicsMeshIndexOffset(
@@ -4485,8 +4402,7 @@ void setGraphicsMeshIndexBuffer(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		setGlGraphicsMeshIndexType(
@@ -4538,8 +4454,7 @@ size_t drawGraphicsMesh(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
 		drawGlGraphicsMesh(
@@ -4599,8 +4514,7 @@ MpgxResult createComputePipeline(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
@@ -4883,8 +4797,7 @@ MpgxResult createRayTracingPipeline(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
@@ -5166,8 +5079,7 @@ MpgxResult createRayTracingMesh(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
@@ -5346,8 +5258,7 @@ MpgxResult createRayTracingScene(
 		abort();
 #endif
 	}
-	else if (graphicsAPI == OPENGL_GRAPHICS_API ||
-		graphicsAPI == OPENGL_ES_GRAPHICS_API)
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}

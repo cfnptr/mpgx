@@ -19,6 +19,10 @@
 #include "mpgx/md5.h"
 #include <string.h>
 
+#if MPGX_SUPPORT_OPENGL
+#define OPENGL_SHADER_HEADER "#version 330 core\n"
+#endif
+
 typedef struct BaseShader_T
 {
 	Window window;
@@ -62,15 +66,6 @@ union Shader_T
 	GlShader_T gl;
 #endif
 };
-
-#if MPGX_SUPPORT_OPENGL
-#define OPENGL_SHADER_HEADER \
-	"#version 330 core\n"
-#define OPENGL_ES_SHADER_HEADER \
-	"#version 300 es\n"         \
-	"precision highp float;\n"  \
-	"precision highp int;\n"
-#endif
 
 #if MPGX_SUPPORT_VULKAN
 inline static void destroyVkShader(
@@ -256,26 +251,14 @@ inline static MpgxResult createGlShader(
 		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
-	const char* sources[2];
-	GLint lengths[2];
-
-	if (api == OPENGL_GRAPHICS_API)
-	{
-		sources[0] = OPENGL_SHADER_HEADER;
-		lengths[0] = (GLint)strlen(OPENGL_SHADER_HEADER);
-	}
-	else if (api == OPENGL_ES_GRAPHICS_API)
-	{
-		sources[0] = OPENGL_ES_SHADER_HEADER;
-		lengths[0] = (GLint)strlen(OPENGL_ES_SHADER_HEADER);
-	}
-	else
-	{
-		abort();
-	}
-
-	sources[1] = (const char*)code;
-	lengths[1] = (GLint)size;
+	const char* sources[2] = {
+		OPENGL_SHADER_HEADER,
+		(const char*)code,
+	};
+	GLint lengths[2] = {
+		(GLint)strlen(OPENGL_SHADER_HEADER),
+		(GLint)size
+	};
 
 	makeGlWindowContextCurrent(window);
 

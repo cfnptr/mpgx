@@ -114,8 +114,7 @@ typedef enum GraphicsAPI_T
 {
 	VULKAN_GRAPHICS_API = 0,
 	OPENGL_GRAPHICS_API = 1,
-	OPENGL_ES_GRAPHICS_API = 2,
-	GRAPHICS_API_COUNT = 3,
+	GRAPHICS_API_COUNT = 2,
 } GraphicsAPI_T;
 /*
  * Graphics API type.
@@ -128,7 +127,6 @@ typedef uint8_t GraphicsAPI;
 static const char* const graphicsApiStrings[MPGX_RESULT_COUNT] = {
 	"Vulkan",
 	"OpenGL",
-	"OpenGLES",
 };
 
 /*

@@ -2373,8 +2373,6 @@ MpgxResult setImageData(
 			vkWindow->transferQueue,
 			vkWindow->transferCommandBuffer,
 			vkWindow->transferFence,
-			image->vk.stagingBuffer,
-			image->vk.stagingAllocation,
 			image,
 			data,
 			size,
@@ -3352,13 +3350,6 @@ MpgxResult setFramebufferAttachments(
 	{
 #if MPGX_SUPPORT_VULKAN
 		VkWindow vkWindow = window->vkWindow;
-
-		VkResult vkResult = vkQueueWaitIdle(
-			vkWindow->graphicsQueue);
-
-		if (vkResult != VK_SUCCESS)
-			return vkToMpgxResult(vkResult);
-
 		VkDevice device = vkWindow->device;
 
 		VkRenderPass renderPass;
@@ -3373,6 +3364,18 @@ MpgxResult setFramebufferAttachments(
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 			return mpgxResult;
+
+		VkResult vkResult = vkQueueWaitIdle(
+			vkWindow->graphicsQueue);
+
+		if (vkResult != VK_SUCCESS)
+		{
+			vkDestroyRenderPass(
+				device,
+				renderPass,
+				NULL);
+			return vkToMpgxResult(vkResult);
+		}
 
 		mpgxResult = setVkFramebufferAttachments(
 			vkWindow->device,

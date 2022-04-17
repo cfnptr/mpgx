@@ -687,8 +687,6 @@ inline static MpgxResult setVkImageData(
 	VkQueue transferQueue,
 	VkCommandBuffer transferCommandBuffer,
 	VkFence transferFence,
-	VkBuffer stagingBuffer,
-	VmaAllocation stagingAllocation,
 	Image image,
 	const void* data,
 	Vec3I size,
@@ -700,8 +698,6 @@ inline static MpgxResult setVkImageData(
 	assert(transferQueue);
 	assert(transferCommandBuffer);
 	assert(transferFence);
-	assert(stagingBuffer);
-	assert(stagingAllocation);
 	assert(image);
 	assert(data);
 	assert(size.x > 0);
@@ -721,7 +717,7 @@ inline static MpgxResult setVkImageData(
 
 	MpgxResult mpgxResult = setVkBufferData(
 		allocator,
-		stagingAllocation,
+		image->vk.stagingAllocation,
 		data,
 		dataSize,
 		0);
@@ -799,7 +795,7 @@ inline static MpgxResult setVkImageData(
 
 	vkCmdCopyBufferToImage(
 		transferCommandBuffer,
-		stagingBuffer,
+		image->vk.stagingBuffer,
 		handle,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		1,

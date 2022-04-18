@@ -1185,6 +1185,16 @@ MpgxResult beginWindowRecord(Window window);
 void endWindowRecord(Window window);
 
 /*
+ * Sets window scissor. (rendering command)
+ *
+ * window - window instance.
+ * scissor - scissor value.
+ */
+void setWindowScissor(
+	Window window,
+	Vec4I scissor);
+
+/*
  * Returns window buffer count.
  * window - window instance.
  */

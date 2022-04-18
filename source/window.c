@@ -33,8 +33,7 @@ struct Window_T
 	bool useVsync;
 	bool useStencilBuffer;
 	bool useBeginClear;
-	bool useRayTracing;
-	uint8_t _alignment[4];
+	uint8_t _alignment[5];
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
 	GLFWwindow* handle;
@@ -456,7 +455,6 @@ MpgxResult createWindow(
 	windowInstance->useVsync = true;
 	windowInstance->useStencilBuffer = useStencilBuffer;
 	windowInstance->useBeginClear = useBeginClear;
-	windowInstance->useRayTracing = useRayTracing;
 	windowInstance->onUpdate = onUpdate;
 	windowInstance->updateArgument = updateArgument;
 	windowInstance->cursorType = DEFAULT_CURSOR_TYPE;
@@ -884,7 +882,7 @@ bool isWindowUseRayTracing(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
-	return window->useRayTracing;
+	return window->rayTracing;
 }
 OnWindowUpdate getWindowOnUpdate(Window window)
 {
@@ -1763,6 +1761,62 @@ void endWindowRecord(Window window)
 #endif
 }
 
+void setWindowScissor(
+	Window window,
+	Vec4I scissor)
+{
+	assert(window);
+	assert(scissor.x >= 0);
+	assert(scissor.y >= 0);
+	assert(scissor.z >= 0);
+	assert(scissor.w >= 0);
+	assert(window->isRecording);
+	assert(graphicsInitialized);
+
+	if (graphicsAPI == VULKAN_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_VULKAN
+		VkWindow vkWindow = getVkWindow(window);
+		VkCommandBuffer commandBuffer = vkWindow->currenCommandBuffer;
+		Framebuffer framebuffer = window->renderFramebuffer;
+
+		assert(scissor.x + scissor.z <= framebuffer->base.size.x);
+		assert(scissor.y + scissor.w <= framebuffer->base.size.y);
+
+		VkRect2D vkScissor = {
+			(int32_t)scissor.x,
+			(int32_t)((framebuffer->vk.size.y - scissor.y) - scissor.w),
+			(uint32_t)scissor.z,
+			(uint32_t)scissor.w,
+		};
+
+		vkCmdSetScissor(
+			commandBuffer,
+			0,
+			1,
+			&vkScissor);
+#else
+		abort();
+#endif
+	}
+	else if (graphicsAPI == OPENGL_GRAPHICS_API)
+	{
+#if MPGX_SUPPORT_OPENGL
+		glScissor(
+			(GLint)scissor.x,
+			(GLint)scissor.y,
+			(GLsizei)scissor.z,
+			(GLsizei)scissor.w);
+#else
+		abort();
+#endif
+	}
+	else
+	{
+		abort();
+	}
+}
+
 size_t getWindowBufferCount(Window window)
 {
 	assert(window);
@@ -1808,21 +1862,21 @@ size_t getWindowComputePipelineCount(Window window)
 size_t getWindowRayTracingPipelineCount(Window window)
 {
 	assert(window);
-	assert(window->useRayTracing);
+	assert(window->rayTracing);
 	assert(graphicsInitialized);
 	return window->rayTracing->base.pipelineCount;
 }
 size_t getWindowRayTracingMeshCount(Window window)
 {
 	assert(window);
-	assert(window->useRayTracing);
+	assert(window->rayTracing);
 	assert(graphicsInitialized);
 	return window->rayTracing->base.meshCount;
 }
 size_t getWindowRayTracingSceneCount(Window window)
 {
 	assert(window);
-	assert(window->useRayTracing);
+	assert(window->rayTracing);
 	assert(graphicsInitialized);
 	return window->rayTracing->base.sceneCount;
 }
@@ -1995,7 +2049,7 @@ void enumerateWindowRayTracingPipelines(
 {
 	assert(window);
 	assert(onRayTracingPipeline);
-	assert(window->useRayTracing);
+	assert(window->rayTracing);
 	assert(graphicsInitialized);
 
 #ifndef NDEBUG
@@ -2020,7 +2074,7 @@ void enumerateWindowRayTracingMeshes(
 {
 	assert(window);
 	assert(onRayTracingMesh);
-	assert(window->useRayTracing);
+	assert(window->rayTracing);
 	assert(graphicsInitialized);
 
 #ifndef NDEBUG
@@ -2045,7 +2099,7 @@ void enumerateWindowRayTracingScene(
 {
 	assert(window);
 	assert(onRayTracingScene);
-	assert(window->useRayTracing);
+	assert(window->rayTracing);
 	assert(graphicsInitialized);
 
 #ifndef NDEBUG
@@ -2106,7 +2160,7 @@ MpgxResult createBuffer(
 			usage,
 			data,
 			size,
-			window->useRayTracing,
+			window->rayTracing,
 			&bufferInstance);
 #else
 	abort();
@@ -5103,7 +5157,7 @@ MpgxResult createRayTracingPipeline(
 	assert(closestHitShaders);
 	assert(closestHitShaderCount > 0);
 	assert(rayTracingPipeline);
-	assert(window->useRayTracing);
+	assert(window->rayTracing);
 	assert(!window->isRecording);
 	assert(!window->rayTracing->base.isEnumeratingPipelines);
 	assert(graphicsInitialized);
@@ -5412,7 +5466,7 @@ MpgxResult createRayTracingMesh(
 	assert(indexBuffer->base.window == window);
 	assert(!vertexBuffer->base.isMapped);
 	assert(!indexBuffer->base.isMapped);
-	assert(window->useRayTracing);
+	assert(window->rayTracing);
 	assert(!window->isRecording);
 	assert(!window->rayTracing->base.isEnumeratingMeshes);
 	assert(graphicsInitialized);
@@ -5595,7 +5649,7 @@ MpgxResult createRayTracingScene(
 	assert(meshes);
 	assert(meshCount > 0);
 	assert(rayTracingScene);
-	assert(window->useRayTracing);
+	assert(window->rayTracing);
 	assert(!window->isRecording);
 	assert(!window->rayTracing->base.isEnumeratingScenes);
 	assert(graphicsInitialized);

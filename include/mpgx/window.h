@@ -37,7 +37,6 @@
 #define DEFAULT_BLEND_COLOR 0
 
 // TODO: add ability to store and load shader cache
-// TODO: add window item enumerators and count getters
 // TODO: include static vulkan library on MacOS
 // TODO: add buffer/image/rayTracing array creation function with shared resources.
 // TODO: add buffer/image multiple data arrays setters, in one call
@@ -712,8 +711,7 @@ typedef void(*OnWindowUpdate)(void* argument);
  * handle - handle instance or NULL.
  */
 typedef void(*OnGraphicsPipelineDestroy)(
-	Window window,
-	void* handle);
+	Window window, void* handle);
 /*
  * Graphics pipeline bind function.
  * graphicsPipeline - graphics pipeline instance.
@@ -745,8 +743,7 @@ typedef void(*OnGraphicsPipelineResize)(
  * handle - handle instance or NULL.
  */
 typedef void(*OnComputePipelineDestroy)(
-	Window window,
-	void* handle);
+	Window window, void* handle);
 /*
  * Compute pipeline bind function.
  * computePipeline - compute pipeline instance.
@@ -761,14 +758,69 @@ typedef void(*OnComputePipelineBind)(
  * handle - handle instance or NULL.
  */
 typedef void(*OnRayTracingPipelineDestroy)(
-	Window window,
-	void* handle);
+	Window window, void* handle);
 /*
  * Ray tracing pipeline bind function.
  * rayTracingPipeline - ray tracing pipeline instance.
  */
 typedef void(*OnRayTracingPipelineBind)(
 	RayTracingPipeline rayTracingPipeline);
+
+/*
+ * Window buffer enumeration function.
+ */
+typedef void(*OnWindowBuffer)(
+	Buffer buffer, void* handle);
+/*
+ * Window image enumeration function.
+ */
+typedef void(*OnWindowImage)(
+	Image image, void* handle);
+/*
+ * Window sampler enumeration function.
+ */
+typedef void(*OnWindowSampler)(
+	Sampler sampler, void* handle);
+/*
+ * Window framebuffer enumeration function.
+ */
+typedef void(*OnWindowFramebuffer)(
+	Framebuffer framebuffer, void* handle);
+/*
+ * Window graphics pipeline enumeration function.
+ */
+typedef void(*OnFramebufferGraphicsPipeline)(
+	GraphicsPipeline graphicsPipeline, void* handle);
+/*
+ * Window shader enumeration function.
+ */
+typedef void(*OnWindowShader)(
+	Shader shader, void* handle);
+/*
+ * Window graphics mesh enumeration function.
+ */
+typedef void(*OnWindowGraphicsMesh)(
+	GraphicsMesh graphicsMesh, void* handle);
+/*
+ * Window compute pipeline enumeration function.
+ */
+typedef void(*OnWindowComputePipeline)(
+	ComputePipeline computePipeline, void* handle);
+/*
+ * Window ray tracing pipeline enumeration function.
+ */
+typedef void(*OnWindowRayTracingPipeline)(
+	RayTracingPipeline rayTracingPipeline, void* handle);
+/*
+ * Window ray tracing mesh enumeration function.
+ */
+typedef void(*OnWindowRayTracingMesh)(
+	RayTracingMesh rayTracingMesh, void* handle);
+/*
+ * Window ray tracing scene enumeration function.
+ */
+typedef void(*OnWindowRayTracingScene)(
+	RayTracingScene rayTracingScene, void* handle);
 
 /*
  * Initialize graphics subsystems.
@@ -1131,6 +1183,168 @@ MpgxResult beginWindowRecord(Window window);
  * window - window instance.
  */
 void endWindowRecord(Window window);
+
+/*
+ * Returns window buffer count.
+ * window - window instance.
+ */
+size_t getWindowBufferCount(Window window);
+/*
+ * Returns window image count.
+ * window - window instance.
+ */
+size_t getWindowImageCount(Window window);
+/*
+ * Returns window sampler count.
+ * window - window instance.
+ */
+size_t getWindowSamplerCount(Window window);
+/*
+ * Returns window framebuffer count.
+ * window - window instance.
+ */
+size_t getWindowFramebufferCount(Window window);
+/*
+ * Returns window shader count.
+ * window - window instance.
+ */
+size_t getWindowShaderCount(Window window);
+/*
+ * Returns window graphics mesh count.
+ * window - window instance.
+ */
+size_t getWindowGraphicsMeshCount(Window window);
+/*
+ * Returns window compute pipeline count.
+ * window - window instance.
+ */
+size_t getWindowComputePipelineCount(Window window);
+/*
+ * Returns window ray tracing pipeline count.
+ * window - window instance.
+ */
+size_t getWindowRayTracingPipelineCount(Window window);
+/*
+ * Returns window ray tracing mesh count.
+ * window - window instance.
+ */
+size_t getWindowRayTracingMeshCount(Window window);
+/*
+ * Returns window ray tracing scene count.
+ * window - window instance.
+ */
+size_t getWindowRayTracingSceneCount(Window window);
+
+/*
+ * Enumerates window buffers.
+ *
+ * window - window instance.
+ * onBuffer - on window buffer function.
+ * handle - function argument or NULL.
+ */
+void enumerateWindowBuffers(
+	Window window,
+	OnWindowBuffer onBuffer,
+	void* handle);
+/*
+ * Enumerates window images.
+ *
+ * window - window instance.
+ * onImage - on window image function.
+ * handle - function argument or NULL.
+ */
+void enumerateWindowImages(
+	Window window,
+	OnWindowImage onImage,
+	void* handle);
+/*
+ * Enumerates window samplers.
+ *
+ * window - window instance.
+ * onSampler - on window sampler function.
+ * handle - function argument or NULL.
+ */
+void enumerateWindowSamplers(
+	Window window,
+	OnWindowSampler onSampler,
+	void* handle);
+/*
+ * Enumerates window framebuffers.
+ *
+ * window - window instance.
+ * onFramebuffer - on window framebuffer function.
+ * handle - function argument or NULL.
+ */
+void enumerateWindowFramebuffers(
+	Window window,
+	OnWindowFramebuffer onFramebuffer,
+	void* handle);
+/*
+ * Enumerates window shaders.
+ *
+ * window - window instance.
+ * onShader - on window shader function.
+ * handle - function argument or NULL.
+ */
+void enumerateWindowShaders(
+	Window window,
+	OnWindowShader onShader,
+	void* handle);
+/*
+ * Enumerates window graphics meshes.
+ *
+ * window - window instance.
+ * onGraphicsMesh - on window graphics mesh function.
+ * handle - function argument or NULL.
+ */
+void enumerateWindowGraphicsMeshes(
+	Window window,
+	OnWindowGraphicsMesh onGraphicsMesh,
+	void* handle);
+/*
+ * Enumerates window compute pipelines.
+ *
+ * window - window instance.
+ * onComputePipeline - on window compute pipeline function.
+ * handle - function argument or NULL.
+ */
+void enumerateWindowComputePipelines(
+	Window window,
+	OnWindowComputePipeline onComputePipeline,
+	void* handle);
+/*
+ * Enumerates window ray tracing pipelines.
+ *
+ * window - window instance.
+ * onRayTracingPipeline - on window ray tracing pipeline function.
+ * handle - function argument or NULL.
+ */
+void enumerateWindowRayTracingPipelines(
+	Window window,
+	OnWindowRayTracingPipeline onRayTracingPipeline,
+	void* handle);
+/*
+ * Enumerates window ray tracing meshes.
+ *
+ * window - window instance.
+ * onRayTracingMesh - on window ray tracing mesh function.
+ * handle - function argument or NULL.
+ */
+void enumerateWindowRayTracingMeshes(
+	Window window,
+	OnWindowRayTracingMesh onRayTracingMesh,
+	void* handle);
+/*
+ * Enumerates window ray tracing scenes.
+ *
+ * window - window instance.
+ * onRayTracingScene - on window ray tracing scene function.
+ * handle - function argument or NULL.
+ */
+void enumerateWindowRayTracingScene(
+	Window window,
+	OnWindowRayTracingScene onRayTracingScene,
+	void* handle);
 
 /*
  * Create a new buffer instance.
@@ -1498,7 +1712,6 @@ ShaderType getShaderType(Shader shader);
  * colorAttachments - color attachment instance array or NULL.
  * colorAttachmentCount - color attachment count or 0.
  * depthStencilAttachment - depth/stencil attachment instance or NULL.
- * capacity - initial pipeline array capacity.
  * framebuffer - pointer to the framebuffer instance.
  */
 MpgxResult createFramebuffer(
@@ -1508,7 +1721,6 @@ MpgxResult createFramebuffer(
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
-	size_t capacity,
 	Framebuffer* framebuffer);
 /*
  * Create a new shadow framebuffer instance.
@@ -1518,7 +1730,6 @@ MpgxResult createFramebuffer(
  * size - framebuffer size in pixels.
  * useBeginClear - use begin function clear values.
  * depthAttachment - depth attachment instance.
- * pipelineCapacity - initial pipeline array capacity.
  * framebuffer - pointer to the framebuffer instance.
  */
 MpgxResult createShadowFramebuffer(
@@ -1526,7 +1737,6 @@ MpgxResult createShadowFramebuffer(
 	Vec2I size,
 	bool useBeginClear,
 	Image depthAttachment,
-	size_t capacity,
 	Framebuffer* framebuffer);
 /*
  * Destroys framebuffer instance.
@@ -1569,6 +1779,11 @@ Image getFramebufferDepthStencilAttachment(Framebuffer framebuffer);
  * framebuffer - framebuffer instance.
  */
 bool isFramebufferDefault(Framebuffer framebuffer);
+/*
+ * Returns framebuffer graphics pipeline count.
+ * framebuffer - framebuffer instance.
+ */
+size_t getFramebufferPipelineCount(Framebuffer framebuffer);
 
 /*
  * Set framebuffer attachments.
@@ -1619,6 +1834,18 @@ void clearFramebuffer(
 	const bool* clearAttachments,
 	const FramebufferClear* clearValues,
 	size_t clearValueCount);
+
+/*
+ * Enumerates framebuffer graphics pipelines.
+ *
+ * framebuffer - framebuffer instance.
+ * onGraphicsPipeline - on framebuffer graphics pipeline function.
+ * handle - function argument or NULL.
+ */
+void enumerateFramebufferGraphicsPipelines(
+	Framebuffer framebuffer,
+	OnFramebufferGraphicsPipeline onGraphicsPipeline,
+	void* handle);
 
 /*
  * Create a new graphics pipeline instance.

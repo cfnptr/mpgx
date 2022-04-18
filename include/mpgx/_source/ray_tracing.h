@@ -26,6 +26,11 @@ typedef struct BaseRayTracing_T
 	RayTracingScene* scenes;
 	size_t sceneCapacity;
 	size_t sceneCount;
+#ifndef NDEBUG
+	bool isEnumeratingPipelines;
+	bool isEnumeratingMeshes;
+	bool isEnumeratingScenes;
+#endif
 } BaseRayTracing_T;
 typedef struct VkRayTracing_T
 {
@@ -38,6 +43,12 @@ typedef struct VkRayTracing_T
 	RayTracingScene* scenes;
 	size_t sceneCapacity;
 	size_t sceneCount;
+#ifndef NDEBUG
+	bool isEnumeratingPipelines;
+	bool isEnumeratingMeshes;
+	bool isEnumeratingScenes;
+	uint8_t _alignment[5];
+#endif
 #if MPGX_SUPPORT_VULKAN
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR
 		rayTracingPipelineProperties;
@@ -96,6 +107,12 @@ inline static MpgxResult createVkRayTracing(
 
 	if (!rayTracingInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+
+#ifndef NDEBUG
+	rayTracingInstance->vk.isEnumeratingPipelines = false;
+	rayTracingInstance->vk.isEnumeratingMeshes = false;
+	rayTracingInstance->vk.isEnumeratingScenes = false;
+#endif
 
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
 	rayTracingPipelineProperties.sType =

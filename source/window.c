@@ -80,6 +80,15 @@ struct Window_T
 	Vec2F cursorPosition;
 	CursorType cursorType;
 	bool isRecording;
+#ifndef NDEBUG
+	bool isEnumeratingBuffers;
+	bool isEnumeratingImages;
+	bool isEnumeratingSamplers;
+	bool isEnumeratingFramebuffers;
+	bool isEnumeratingShaders;
+	bool isEnumeratingGraphicsMeshes;
+	bool isEnumeratingComputePipelines;
+#endif
 };
 
 static bool graphicsInitialized = false;
@@ -451,6 +460,15 @@ MpgxResult createWindow(
 	windowInstance->onUpdate = onUpdate;
 	windowInstance->updateArgument = updateArgument;
 	windowInstance->cursorType = DEFAULT_CURSOR_TYPE;
+#ifndef NDEBUG
+	windowInstance->isEnumeratingBuffers = false;
+	windowInstance->isEnumeratingImages = false;
+	windowInstance->isEnumeratingSamplers = false;
+	windowInstance->isEnumeratingFramebuffers = false;
+	windowInstance->isEnumeratingShaders = false;
+	windowInstance->isEnumeratingGraphicsMeshes = false;
+	windowInstance->isEnumeratingComputePipelines = false;
+#endif
 
 	GLFWwindow* shareWindow = parent ? parent->handle : NULL;
 
@@ -1340,10 +1358,10 @@ void joinWindow(Window window)
 
 	while (!glfwWindowShouldClose(handle))
 	{
+		double startTime = getCurrentClock();
+
 		window->inputLength = 0;
 		glfwPollEvents();
-
-		double startTime = getCurrentClock();
 
 		int ix, iy; double dx, dy;
 		glfwGetWindowSize(handle, &ix, &iy);
@@ -1397,23 +1415,23 @@ void joinWindow(Window window)
 				framebuffer->vk.renderPass = swapchain->renderPass;
 				framebuffer->vk.handle = firstBuffer.framebuffer;
 
-				GraphicsPipeline* graphicsPipelines = framebuffer->vk.graphicsPipelines;
-				size_t graphicsPipelineCount = framebuffer->vk.graphicsPipelineCount;
+				GraphicsPipeline* pipelines = framebuffer->vk.pipelines;
+				size_t pipelineCount = framebuffer->vk.pipelineCount;
 
-				for (size_t i = 0; i < graphicsPipelineCount; i++)
+				for (size_t i = 0; i < pipelineCount; i++)
 				{
-					GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
+					GraphicsPipeline pipeline = pipelines[i];
 					VkGraphicsPipelineCreateData createData;
 
-					graphicsPipeline->vk.onResize(
-						graphicsPipeline,
+					pipeline->vk.onResize(
+						pipeline,
 						newFramebufferSize,
 						&createData);
 
 					mpgxResult = recreateVkGraphicsPipelineHandle(
 						device,
 						framebuffer->vk.renderPass,
-						graphicsPipeline,
+						pipeline,
 						framebuffer->vk.colorAttachmentCount,
 						framebuffer->vk.size,
 						&createData);
@@ -1432,15 +1450,15 @@ void joinWindow(Window window)
 #if MPGX_SUPPORT_OPENGL
 				framebuffer->gl.size = newFramebufferSize;
 
-				GraphicsPipeline* graphicsPipelines = framebuffer->gl.graphicsPipelines;
-				size_t graphicsPipelineCount = framebuffer->gl.graphicsPipelineCount;
+				GraphicsPipeline* pipelines = framebuffer->gl.pipelines;
+				size_t pipelineCount = framebuffer->gl.pipelineCount;
 
-				for (size_t i = 0; i < graphicsPipelineCount; i++)
+				for (size_t i = 0; i < pipelineCount; i++)
 				{
-					GraphicsPipeline graphicsPipeline = graphicsPipelines[i];
+					GraphicsPipeline pipeline = pipelines[i];
 
-					graphicsPipeline->gl.onResize(
-						graphicsPipeline,
+					pipeline->gl.onResize(
+						pipeline,
 						newFramebufferSize,
 						NULL);
 				}
@@ -1745,6 +1763,307 @@ void endWindowRecord(Window window)
 #endif
 }
 
+size_t getWindowBufferCount(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+	return window->bufferCount;
+}
+size_t getWindowImageCount(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+	return window->imageCount;
+}
+size_t getWindowSamplerCount(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+	return window->samplerCount;
+}
+size_t getWindowFramebufferCount(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+	return window->framebufferCount;
+}
+size_t getWindowShaderCount(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+	return window->shaderCount;
+}
+size_t getWindowGraphicsMeshCount(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+	return window->graphicsMeshCount;
+}
+size_t getWindowComputePipelineCount(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+	return window->computePipelineCount;
+}
+size_t getWindowRayTracingPipelineCount(Window window)
+{
+	assert(window);
+	assert(window->useRayTracing);
+	assert(graphicsInitialized);
+	return window->rayTracing->base.pipelineCount;
+}
+size_t getWindowRayTracingMeshCount(Window window)
+{
+	assert(window);
+	assert(window->useRayTracing);
+	assert(graphicsInitialized);
+	return window->rayTracing->base.meshCount;
+}
+size_t getWindowRayTracingSceneCount(Window window)
+{
+	assert(window);
+	assert(window->useRayTracing);
+	assert(graphicsInitialized);
+	return window->rayTracing->base.sceneCount;
+}
+
+void enumerateWindowBuffers(
+	Window window,
+	OnWindowBuffer onBuffer,
+	void* handle)
+{
+	assert(window);
+	assert(onBuffer);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	window->isEnumeratingBuffers = true;
+#endif
+
+	Buffer* buffers = window->buffers;
+	size_t bufferCount = window->bufferCount;
+
+	for (size_t i = 0; i < bufferCount; i++)
+		onBuffer(buffers[i], handle);
+
+#ifndef NDEBUG
+	window->isEnumeratingBuffers = false;
+#endif
+}
+void enumerateWindowImages(
+	Window window,
+	OnWindowImage onImage,
+	void* handle)
+{
+	assert(window);
+	assert(onImage);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	window->isEnumeratingImages = true;
+#endif
+
+	Image* images = window->images;
+	size_t imageCount = window->imageCount;
+
+	for (size_t i = 0; i < imageCount; i++)
+		onImage(images[i], handle);
+
+#ifndef NDEBUG
+	window->isEnumeratingImages = false;
+#endif
+}
+void enumerateWindowSamplers(
+	Window window,
+	OnWindowSampler onSampler,
+	void* handle)
+{
+	assert(window);
+	assert(onSampler);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	window->isEnumeratingSamplers = true;
+#endif
+
+	Sampler* samplers = window->samplers;
+	size_t samplerCount = window->samplerCount;
+
+	for (size_t i = 0; i < samplerCount; i++)
+		onSampler(samplers[i], handle);
+
+#ifndef NDEBUG
+	window->isEnumeratingSamplers = false;
+#endif
+}
+void enumerateWindowFramebuffers(
+	Window window,
+	OnWindowFramebuffer onFramebuffer,
+	void* handle)
+{
+	assert(window);
+	assert(onFramebuffer);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	window->isEnumeratingFramebuffers = true;
+#endif
+
+	Framebuffer* framebuffers = window->framebuffers;
+	size_t framebufferCount = window->framebufferCount;
+
+	for (size_t i = 0; i < framebufferCount; i++)
+		onFramebuffer(framebuffers[i], handle);
+
+#ifndef NDEBUG
+	window->isEnumeratingFramebuffers = false;
+#endif
+}
+void enumerateWindowShaders(
+	Window window,
+	OnWindowShader onShader,
+	void* handle)
+{
+	assert(window);
+	assert(onShader);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	window->isEnumeratingShaders = true;
+#endif
+
+	Shader* shaders = window->shaders;
+	size_t shaderCount = window->shaderCount;
+
+	for (size_t i = 0; i < shaderCount; i++)
+		onShader(shaders[i], handle);
+
+#ifndef NDEBUG
+	window->isEnumeratingShaders = false;
+#endif
+}
+void enumerateWindowGraphicsMeshes(
+	Window window,
+	OnWindowGraphicsMesh onGraphicsMesh,
+	void* handle)
+{
+	assert(window);
+	assert(onGraphicsMesh);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	window->isEnumeratingGraphicsMeshes = true;
+#endif
+
+	GraphicsMesh* graphicsMeshes = window->graphicsMeshes;
+	size_t graphicsMeshCount = window->graphicsMeshCount;
+
+	for (size_t i = 0; i < graphicsMeshCount; i++)
+		onGraphicsMesh(graphicsMeshes[i], handle);
+
+#ifndef NDEBUG
+	window->isEnumeratingGraphicsMeshes = false;
+#endif
+}
+void enumerateWindowComputePipelines(
+	Window window,
+	OnWindowComputePipeline onComputePipeline,
+	void* handle)
+{
+	assert(window);
+	assert(onComputePipeline);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	window->isEnumeratingComputePipelines = true;
+#endif
+
+	ComputePipeline* computePipelines = window->computePipelines;
+	size_t computePipelineCount = window->computePipelineCount;
+
+	for (size_t i = 0; i < computePipelineCount; i++)
+		onComputePipeline(computePipelines[i], handle);
+
+#ifndef NDEBUG
+	window->isEnumeratingComputePipelines = false;
+#endif
+}
+void enumerateWindowRayTracingPipelines(
+	Window window,
+	OnWindowRayTracingPipeline onRayTracingPipeline,
+	void* handle)
+{
+	assert(window);
+	assert(onRayTracingPipeline);
+	assert(window->useRayTracing);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	window->rayTracing->base.isEnumeratingPipelines = true;
+#endif
+
+	RayTracing rayTracing = window->rayTracing;
+	RayTracingPipeline* rayTracingPipelines = rayTracing->base.pipelines;
+	size_t rayTracingPipelineCount = rayTracing->base.pipelineCount;
+
+	for (size_t i = 0; i < rayTracingPipelineCount; i++)
+		onRayTracingPipeline(rayTracingPipelines[i], handle);
+
+#ifndef NDEBUG
+	window->rayTracing->base.isEnumeratingPipelines = false;
+#endif
+}
+void enumerateWindowRayTracingMeshes(
+	Window window,
+	OnWindowRayTracingMesh onRayTracingMesh,
+	void* handle)
+{
+	assert(window);
+	assert(onRayTracingMesh);
+	assert(window->useRayTracing);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	window->rayTracing->base.isEnumeratingMeshes = true;
+#endif
+
+	RayTracing rayTracing = window->rayTracing;
+	RayTracingMesh* rayTracingMeshes = rayTracing->base.meshes;
+	size_t rayTracingMeshCount = rayTracing->base.meshCount;
+
+	for (size_t i = 0; i < rayTracingMeshCount; i++)
+		onRayTracingMesh(rayTracingMeshes[i], handle);
+
+#ifndef NDEBUG
+	window->rayTracing->base.isEnumeratingMeshes = false;
+#endif
+}
+void enumerateWindowRayTracingScene(
+	Window window,
+	OnWindowRayTracingScene onRayTracingScene,
+	void* handle)
+{
+	assert(window);
+	assert(onRayTracingScene);
+	assert(window->useRayTracing);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	window->rayTracing->base.isEnumeratingScenes = true;
+#endif
+
+	RayTracing rayTracing = window->rayTracing;
+	RayTracingScene* rayTracingScenes = rayTracing->base.scenes;
+	size_t rayTracingSceneCount = rayTracing->base.sceneCount;
+
+	for (size_t i = 0; i < rayTracingSceneCount; i++)
+		onRayTracingScene(rayTracingScenes[i], handle);
+
+#ifndef NDEBUG
+	window->rayTracing->base.isEnumeratingScenes = false;
+#endif
+}
+
 MpgxResult createBuffer(
 	Window window,
 	BufferType type,
@@ -1758,11 +2077,12 @@ MpgxResult createBuffer(
 	assert(usage < BUFFER_USAGE_COUNT);
 	assert(size > 0);
 	assert(buffer);
+	assert(!window->isRecording);
+	assert(!window->isEnumeratingBuffers);
 	assert(graphicsInitialized);
 
 	assert((usage != GPU_TO_CPU_BUFFER_USAGE) ||
 		(usage == GPU_TO_CPU_BUFFER_USAGE && !data));
-	assert(!window->isRecording);
 
 	MpgxResult mpgxResult;
 	Buffer bufferInstance;
@@ -1865,6 +2185,7 @@ void destroyBuffer(Buffer buffer)
 
 	assert(!buffer->base.isMapped);
 	assert(!buffer->base.window->isRecording);
+	assert(!buffer->base.window->isEnumeratingBuffers);
 	assert(graphicsInitialized);
 
 	Window window = buffer->base.window;
@@ -2125,6 +2446,7 @@ MpgxResult createMipmapImage(
 	assert(layerCount > 0);
 	assert(image);
 	assert(!window->isRecording);
+	assert(!window->isEnumeratingImages);
 	assert(mipCount <= calcMipLevelCount(size));
 	assert(graphicsInitialized);
 
@@ -2256,6 +2578,7 @@ MpgxResult createImage(
 	assert(layerCount > 0);
 	assert(image);
 	assert(!window->isRecording);
+	assert(!window->isEnumeratingImages);
 	assert(graphicsInitialized);
 
 	return createMipmapImage(
@@ -2276,6 +2599,7 @@ void destroyImage(Image image)
 		return;
 
 	assert(!image->base.window->isRecording);
+	assert(!image->base.window->isEnumeratingImages);
 	assert(graphicsInitialized);
 
 	Window window = image->base.window;
@@ -2475,6 +2799,7 @@ MpgxResult createSampler(
 	assert(depthCompare < COMPARE_OPERATOR_COUNT);
 	assert(sampler);
 	assert(!window->isRecording);
+	assert(!window->isEnumeratingSamplers);
 	assert(graphicsInitialized);
 
 	MpgxResult mpgxResult;
@@ -2583,6 +2908,7 @@ void destroySampler(Sampler sampler)
 		return;
 
 	assert(!sampler->base.window->isRecording);
+	assert(!sampler->base.window->isEnumeratingSamplers);
 	assert(graphicsInitialized);
 
 	Window window = sampler->base.window;
@@ -2721,6 +3047,7 @@ MpgxResult createShader(
 	assert(size > 0);
 	assert(shader);
 	assert(!window->isRecording);
+	assert(!window->isEnumeratingShaders);
 	assert(graphicsInitialized);
 
 	MpgxResult mpgxResult;
@@ -2843,6 +3170,7 @@ void destroyShader(Shader shader)
 		return;
 
 	assert(!shader->base.window->isRecording);
+	assert(!shader->base.window->isEnumeratingShaders);
 	assert(graphicsInitialized);
 
 	Window window = shader->base.window;
@@ -2938,15 +3266,14 @@ MpgxResult createFramebuffer(
 	Image* colorAttachments,
 	size_t colorAttachmentCount,
 	Image depthStencilAttachment,
-	size_t capacity,
 	Framebuffer* framebuffer)
 {
 	assert(window);
 	assert(size.x > 0);
 	assert(size.y > 0);
-	assert(capacity > 0);
 	assert(framebuffer);
 	assert(!window->isRecording);
+	assert(!window->isEnumeratingFramebuffers);
 	assert(graphicsInitialized);
 
 #ifndef NDEBUG
@@ -3017,7 +3344,6 @@ MpgxResult createFramebuffer(
 			colorAttachments,
 			colorAttachmentCount,
 			depthStencilAttachment,
-			capacity,
 			&framebufferInstance);
 #else
 		abort();
@@ -3033,7 +3359,6 @@ MpgxResult createFramebuffer(
 			colorAttachments,
 			colorAttachmentCount,
 			depthStencilAttachment,
-			capacity,
 			&framebufferInstance);
 #else
 		abort();
@@ -3079,7 +3404,6 @@ MpgxResult createShadowFramebuffer(
 	Vec2I size,
 	bool useBeginClear,
 	Image depthAttachment,
-	size_t capacity,
 	Framebuffer* framebuffer)
 {
 	assert(window);
@@ -3089,9 +3413,9 @@ MpgxResult createShadowFramebuffer(
 	assert(depthAttachment->base.size.x == size.x &&
 		depthAttachment->base.size.y == size.y);
 	assert(depthAttachment->base.window == window);
-	assert(capacity > 0);
 	assert(framebuffer);
 	assert(!window->isRecording);
+	assert(!window->isEnumeratingFramebuffers);
 	assert(graphicsInitialized);
 
 	MpgxResult mpgxResult;
@@ -3123,7 +3447,6 @@ MpgxResult createShadowFramebuffer(
 			NULL,
 			0,
 			depthAttachment,
-			capacity,
 			&framebufferInstance);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -3147,7 +3470,6 @@ MpgxResult createShadowFramebuffer(
 			NULL,
 			0,
 			depthAttachment,
-			capacity,
 			&framebufferInstance);
 #else
 		abort();
@@ -3194,6 +3516,7 @@ void destroyFramebuffer(Framebuffer framebuffer)
 		return;
 
 	assert(!framebuffer->base.window->isRecording);
+	assert(!framebuffer->base.window->isEnumeratingFramebuffers);
 	assert(graphicsInitialized);
 
 	Window window = framebuffer->base.window;
@@ -3290,6 +3613,12 @@ bool isFramebufferDefault(Framebuffer framebuffer)
 	assert(framebuffer);
 	assert(graphicsInitialized);
 	return framebuffer->base.isDefault;
+}
+size_t getFramebufferPipelineCount(Framebuffer framebuffer)
+{
+	assert(framebuffer);
+	assert(graphicsInitialized);
+	return framebuffer->base.pipelineCount;
 }
 
 MpgxResult setFramebufferAttachments(
@@ -3692,6 +4021,30 @@ void clearFramebuffer(
 	}
 }
 
+void enumerateFramebufferGraphicsPipelines(
+	Framebuffer framebuffer,
+	OnFramebufferGraphicsPipeline onGraphicsPipeline,
+	void* handle)
+{
+	assert(framebuffer);
+	assert(onGraphicsPipeline);
+	assert(graphicsInitialized);
+
+#ifndef NDEBUG
+	framebuffer->base.isEnumerating = true;
+#endif
+
+	GraphicsPipeline* pipelines = framebuffer->base.pipelines;
+	size_t pipelineCount = framebuffer->base.pipelineCount;
+
+	for (size_t i = 0; i < pipelineCount; i++)
+		onGraphicsPipeline(pipelines[i], handle);
+
+#ifndef NDEBUG
+	framebuffer->base.isEnumerating = false;
+#endif
+}
+
 MpgxResult createGraphicsPipeline(
 	Framebuffer framebuffer,
 	const char* name,
@@ -3737,6 +4090,7 @@ MpgxResult createGraphicsPipeline(
 	assert(state->scissor.x + state->scissor.z <= framebuffer->base.size.x);
 	assert(state->scissor.y + state->scissor.w <= framebuffer->base.size.y);
 	assert(!framebuffer->base.window->isRecording);
+	assert(!framebuffer->base.isEnumerating);
 	assert(graphicsInitialized);
 
 #ifndef NDEBUG
@@ -3815,17 +4169,17 @@ MpgxResult createGraphicsPipeline(
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 		return mpgxResult;
 
-	size_t count = framebuffer->base.graphicsPipelineCount;
+	size_t count = framebuffer->base.pipelineCount;
 
-	if (count == framebuffer->base.graphicsPipelineCapacity)
+	if (count == framebuffer->base.pipelineCapacity)
 	{
-		size_t capacity = framebuffer->base.graphicsPipelineCapacity * 2;
+		size_t capacity = framebuffer->base.pipelineCapacity * 2;
 
-		GraphicsPipeline* graphicsPipelines = realloc(
-			framebuffer->base.graphicsPipelines,
+		GraphicsPipeline* pipelines = realloc(
+			framebuffer->base.pipelines,
 			sizeof(GraphicsPipeline) * capacity);
 
-		if (!graphicsPipelines)
+		if (!pipelines)
 		{
 			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
@@ -3849,12 +4203,12 @@ MpgxResult createGraphicsPipeline(
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
 
-		framebuffer->base.graphicsPipelines = graphicsPipelines;
-		framebuffer->base.graphicsPipelineCapacity = capacity;
+		framebuffer->base.pipelines = pipelines;
+		framebuffer->base.pipelineCapacity = capacity;
 	}
 
-	framebuffer->base.graphicsPipelines[count] = graphicsPipelineInstance;
-	framebuffer->base.graphicsPipelineCount = count + 1;
+	framebuffer->base.pipelines[count] = graphicsPipelineInstance;
+	framebuffer->base.pipelineCount = count + 1;
 
 	*graphicsPipeline = graphicsPipelineInstance;
 	return SUCCESS_MPGX_RESULT;
@@ -3865,16 +4219,17 @@ void destroyGraphicsPipeline(GraphicsPipeline pipeline)
 		return;
 
 	assert(!pipeline->base.window->isRecording);
+	assert(!pipeline->base.framebuffer->base.isEnumerating);
 	assert(graphicsInitialized);
 
 	Framebuffer framebuffer = pipeline->base.framebuffer;
 	Window window = framebuffer->base.window;
-	size_t graphicsPipelineCount = framebuffer->base.graphicsPipelineCount;
-	GraphicsPipeline* graphicsPipelines = framebuffer->base.graphicsPipelines;
+	size_t pipelineCount = framebuffer->base.pipelineCount;
+	GraphicsPipeline* pipelines = framebuffer->base.pipelines;
 
-	for (int64_t i = (int64_t)graphicsPipelineCount - 1; i >= 0; i--)
+	for (int64_t i = (int64_t)pipelineCount - 1; i >= 0; i--)
 	{
-		if (pipeline != graphicsPipelines[i])
+		if (pipeline != pipelines[i])
 			continue;
 
 		pipeline->base.onDestroy(
@@ -3912,10 +4267,10 @@ void destroyGraphicsPipeline(GraphicsPipeline pipeline)
 			abort();
 		}
 
-		for (size_t j = i + 1; j < graphicsPipelineCount; j++)
-			graphicsPipelines[j - 1] = graphicsPipelines[j];
+		for (size_t j = i + 1; j < pipelineCount; j++)
+			pipelines[j - 1] = pipelines[j];
 
-		framebuffer->base.graphicsPipelineCount--;
+		framebuffer->base.pipelineCount--;
 		return;
 	}
 
@@ -4040,6 +4395,7 @@ MpgxResult createGraphicsMesh(
 	assert(graphicsMesh);
 	assert(indexType < INDEX_TYPE_COUNT);
 	assert(!window->isRecording);
+	assert(!window->isEnumeratingGraphicsMeshes);
 	assert(graphicsInitialized);
 
 #ifndef NDEBUG
@@ -4161,6 +4517,7 @@ void destroyGraphicsMesh(GraphicsMesh mesh)
 		return;
 
 	assert(!mesh->base.window->isRecording);
+	assert(!mesh->base.window->isEnumeratingGraphicsMeshes);
 	assert(graphicsInitialized);
 
 	Window window = mesh->base.window;
@@ -4493,6 +4850,7 @@ MpgxResult createComputePipeline(
 	assert(shader->base.type == COMPUTE_SHADER_TYPE);
 	assert(shader->base.window == window);
 	assert(!window->isRecording);
+	assert(!window->isEnumeratingComputePipelines);
 	assert(graphicsInitialized);
 
 	MpgxResult mpgxResult;
@@ -4575,6 +4933,7 @@ void destroyComputePipeline(ComputePipeline pipeline)
 		return;
 
 	assert(!pipeline->base.window->isRecording);
+	assert(!pipeline->base.window->isEnumeratingComputePipelines);
 	assert(graphicsInitialized);
 
 	Window window = pipeline->base.window;
@@ -4746,6 +5105,7 @@ MpgxResult createRayTracingPipeline(
 	assert(rayTracingPipeline);
 	assert(window->useRayTracing);
 	assert(!window->isRecording);
+	assert(!window->rayTracing->base.isEnumeratingPipelines);
 	assert(graphicsInitialized);
 
 #ifndef NDEBUG
@@ -4861,6 +5221,7 @@ void destroyRayTracingPipeline(RayTracingPipeline pipeline)
 		return;
 
 	assert(!pipeline->base.window->isRecording);
+	assert(!pipeline->base.window->rayTracing->base.isEnumeratingPipelines);
 	assert(graphicsInitialized);
 
 	Window window = pipeline->base.window;
@@ -5053,6 +5414,7 @@ MpgxResult createRayTracingMesh(
 	assert(!indexBuffer->base.isMapped);
 	assert(window->useRayTracing);
 	assert(!window->isRecording);
+	assert(!window->rayTracing->base.isEnumeratingMeshes);
 	assert(graphicsInitialized);
 
 	RayTracing rayTracing = window->rayTracing;
@@ -5144,6 +5506,7 @@ void destroyRayTracingMesh(RayTracingMesh mesh)
 		return;
 
 	assert(!mesh->base.window->isRecording);
+	assert(!mesh->base.window->rayTracing->base.isEnumeratingMeshes);
 	assert(graphicsInitialized);
 
 	Window window = mesh->base.window;
@@ -5234,6 +5597,7 @@ MpgxResult createRayTracingScene(
 	assert(rayTracingScene);
 	assert(window->useRayTracing);
 	assert(!window->isRecording);
+	assert(!window->rayTracing->base.isEnumeratingScenes);
 	assert(graphicsInitialized);
 
 	RayTracing rayTracing = window->rayTracing;
@@ -5323,6 +5687,7 @@ void destroyRayTracingScene(RayTracingScene scene)
 		return;
 
 	assert(!scene->base.window->isRecording);
+	assert(!scene->base.window->rayTracing->base.isEnumeratingScenes);
 	assert(graphicsInitialized);
 
 	Window window = scene->base.window;

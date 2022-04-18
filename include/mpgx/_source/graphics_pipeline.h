@@ -29,7 +29,7 @@ typedef struct BaseGraphicsPipeline_T
 	size_t shaderCount;
 	GraphicsPipelineState state;
 #ifndef NDEBUG
-	const char* name;
+	char* name;
 #endif
 } BaseGraphicsPipeline_T;
 #if MPGX_SUPPORT_VULKAN
@@ -46,7 +46,7 @@ typedef struct VkGraphicsPipeline_T
 	size_t shaderCount;
 	GraphicsPipelineState state;
 #ifndef NDEBUG
-	const char* name;
+	char* name;
 #endif
 	VkPipelineCache cache;
 	VkPipelineLayout layout;
@@ -67,7 +67,7 @@ typedef struct GlGraphicsPipeline_T
 	size_t shaderCount;
 	GraphicsPipelineState state;
 #ifndef NDEBUG
-	const char* name;
+	char* name;
 #endif
 	GLuint glHandle;
 	GLenum drawMode;
@@ -692,6 +692,9 @@ inline static void destroyVkGraphicsPipeline(
 		graphicsPipeline->vk.cache,
 		NULL);
 	free(graphicsPipeline->vk.shaders);
+#ifndef NDEBUG
+	free(graphicsPipeline->vk.name);
+#endif
 	free(graphicsPipeline);
 }
 inline static MpgxResult createVkGraphicsPipeline(
@@ -734,8 +737,22 @@ inline static MpgxResult createVkGraphicsPipeline(
 	graphicsPipelineInstance->vk.onDestroy = onDestroy;
 	graphicsPipelineInstance->vk.handle = handle;
 	graphicsPipelineInstance->vk.state = state;
+
 #ifndef NDEBUG
-	graphicsPipelineInstance->vk.name = name;
+	size_t nameLength = strlen(name);
+	char* nameString = malloc((nameLength + 1) * sizeof(char));
+
+	if (!nameString)
+	{
+		destroyVkGraphicsPipeline(device,
+			graphicsPipelineInstance);
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+	}
+
+	memcpy(nameString, name, nameLength);
+	nameString[nameLength] = '\0';
+
+	graphicsPipelineInstance->vk.name = nameString;
 #endif
 
 	Shader* pipelineShaders = malloc(
@@ -743,8 +760,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 
 	if (!pipelineShaders)
 	{
-		destroyVkGraphicsPipeline(
-			device,
+		destroyVkGraphicsPipeline(device,
 			graphicsPipelineInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
@@ -773,8 +789,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		destroyVkGraphicsPipeline(
-			device,
+		destroyVkGraphicsPipeline(device,
 			graphicsPipelineInstance);
 		return vkToMpgxResult(vkResult);
 	}
@@ -801,8 +816,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 
 	if (vkResult != VK_SUCCESS)
 	{
-		destroyVkGraphicsPipeline(
-			device,
+		destroyVkGraphicsPipeline(device,
 			graphicsPipelineInstance);
 		return vkToMpgxResult(vkResult);
 	}
@@ -826,8 +840,7 @@ inline static MpgxResult createVkGraphicsPipeline(
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
 	{
-		destroyVkGraphicsPipeline(
-			device,
+		destroyVkGraphicsPipeline(device,
 			graphicsPipelineInstance);
 		return mpgxResult;
 	}
@@ -1043,6 +1056,9 @@ inline static void destroyGlGraphicsPipeline(GraphicsPipeline graphicsPipeline)
 	assertOpenGL();
 
 	free(graphicsPipeline->gl.shaders);
+#ifndef NDEBUG
+	free(graphicsPipeline->gl.name);
+#endif
 	free(graphicsPipeline);
 }
 inline static MpgxResult createGlGraphicsPipeline(
@@ -1081,8 +1097,21 @@ inline static MpgxResult createGlGraphicsPipeline(
 	graphicsPipelineInstance->gl.onDestroy = onDestroy;
 	graphicsPipelineInstance->gl.handle = handle;
 	graphicsPipelineInstance->gl.state = state;
+
 #ifndef NDEBUG
-	graphicsPipelineInstance->gl.name = name;
+	size_t nameLength = strlen(name);
+	char* nameString = malloc((nameLength + 1) * sizeof(char));
+
+	if (!nameString)
+	{
+		destroyGlGraphicsPipeline(graphicsPipelineInstance);
+		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
+	}
+
+	memcpy(nameString, name, nameLength);
+	nameString[nameLength] = '\0';
+
+	graphicsPipelineInstance->gl.name = nameString;
 #endif
 
 	Shader* pipelineShaders = malloc(

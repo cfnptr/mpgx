@@ -1172,6 +1172,11 @@ void makeGlWindowContextCurrent(Window window);
  * window - window instance.
  */
 void joinWindow(Window window);
+/*
+ * Closes window and stops update loop.
+ * window - window instance.
+ */
+void closeWindow(Window window);
 
 /*
  * Begins window rendering command record.

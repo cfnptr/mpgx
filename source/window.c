@@ -1486,6 +1486,13 @@ void joinWindow(Window window)
 			glfwSetCursorPos(handle, (double)fv.x, (double)fv.y);
 	}
 }
+void closeWindow(Window window)
+{
+	assert(window);
+	assert(!window->isRecording);
+	assert(graphicsInitialized);
+	glfwSetWindowShouldClose(window->handle, GLFW_TRUE);
+}
 
 MpgxResult beginWindowRecord(Window window)
 {

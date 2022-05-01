@@ -972,7 +972,7 @@ const char* getWindowGpuDriver(Window window)
 		const char* fmt = "%hhu.%hhu.%hhu %hhu.%hhu.%hhu";
 #endif
 
-		sprintf(gpuDriver, fmt,
+		snprintf(gpuDriver, 32, fmt,
 			(uint8_t)VK_API_VERSION_MAJOR(apiVersion),
 			(uint8_t)VK_API_VERSION_MINOR(apiVersion),
 			(uint8_t)VK_API_VERSION_PATCH(apiVersion),
@@ -3173,7 +3173,7 @@ MpgxResult createShader(
 		int result = memcmp(
 			hash,
 			otherShader->base.hash,
-			MD5_BLOCK_SIZE);
+			MD5_BLOCK_SIZE * sizeof(uint8_t));
 
 		if (result == 0)
 		{

@@ -261,7 +261,7 @@ inline static MpgxResult createVkInstance(
 #if __APPLE__
 	VkInstanceCreateFlags flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #else
-	flags = 0;
+	VkInstanceCreateFlags flags = 0;
 #endif
 
 	VkInstanceCreateInfo instanceCreateInfo = {

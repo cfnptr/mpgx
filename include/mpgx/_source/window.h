@@ -82,10 +82,7 @@ static VkBool32 VKAPI_CALL vkDebugMessengerCallback(
 	assert(callbackData);
 
 #if __APPLE__
-	if (callbackData->messageIdNumber == 0x6bbb14 ||
-		strcmp(callbackData->pMessage, "Unrecognized "
-		"CreateInstance->pCreateInfo->pApplicationInfo->apiVersion "
-		"number (0x00402000). Assuming MoltenVK 1.1 version.") == 0)
+	if (callbackData->messageIdNumber == 0x6bbb14)
 	{
 		// TODO: fix MoltenVK Vulkan 1.2 shader error logs
 		return VK_FALSE;
@@ -260,10 +257,17 @@ inline static MpgxResult createVkInstance(
 		engineVersion,
 		VK_VERSION,
 	};
+
+#if __APPLE__
+	VkInstanceCreateFlags flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#else
+	flags = 0;
+#endif
+
 	VkInstanceCreateInfo instanceCreateInfo = {
 		VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 		NULL,
-		0,
+		flags,
 		&applicationInfo,
 		layerCount,
 		layers,

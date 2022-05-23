@@ -174,13 +174,13 @@ MpgxResult initializeGraphics(
 			layers[layerCount++] = targetLayers[validationLayerIndex];
 #endif
 
-		const char* targetExtensions[1];
-		bool isExtensionSupported[1];
+		const char* targetExtensions[2];
+		bool isExtensionSupported[2];
 		uint32_t extensionCount = glfwExtensionCount;
 		uint32_t targetExtensionCount = 0;
 
 		const char** extensions = malloc(
-			(1 + glfwExtensionCount) * sizeof(const char*));
+			(2 + glfwExtensionCount) * sizeof(const char*));
 
 		if (!extensions)
 		{
@@ -197,7 +197,12 @@ MpgxResult initializeGraphics(
 			VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 		uint32_t debugUtilsExtIndex = targetExtensionCount++;
 #endif
-
+#if __APPLE__
+		extensions[extensionCount++] =
+		targetExtensions[targetExtensionCount] =
+			VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
+		uint32_t portEnumExtIndex = targetExtensionCount++;
+#endif
 		mpgxResult = checkVkInstanceExtensions(
 			targetExtensions,
 			isExtensionSupported,
@@ -212,6 +217,14 @@ MpgxResult initializeGraphics(
 
 #ifndef NDEBUG
 		if (!isExtensionSupported[debugUtilsExtIndex])
+		{
+			free((void*)extensions);
+			glfwTerminate();
+			return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
+		}
+#endif
+#if __APPLE__
+		if (!isExtensionSupported[portEnumExtIndex])
 		{
 			free((void*)extensions);
 			glfwTerminate();

@@ -4714,9 +4714,7 @@ void setGraphicsMeshIndexOffset(
 	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		setVkGraphicsMeshIndexOffset(
-			mesh,
-			indexOffset);
+		mesh->vk.indexOffset = indexOffset;
 #else
 		abort();
 #endif
@@ -4816,9 +4814,7 @@ void setGraphicsMeshIndexBuffer(
 		setVkGraphicsMeshIndexType(
 			mesh,
 			indexType);
-		setVkGraphicsMeshIndexOffset(
-			mesh,
-			indexOffset);
+		mesh->vk.indexOffset = indexOffset;
 #else
 		abort();
 #endif

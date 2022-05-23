@@ -36,7 +36,6 @@ typedef struct VkGraphicsMesh_T
 	IndexType indexType;
 	uint8_t _alignment[3];
 	VkIndexType vkIndexType;
-	VkDeviceSize vkIndexOffset;
 } VkGraphicsMesh_T;
 #endif
 #if MPGX_SUPPORT_OPENGL
@@ -92,21 +91,6 @@ inline static MpgxResult createVkGraphicsMesh(
 	graphicsMeshInstance->vk.indexBuffer = indexBuffer;
 	graphicsMeshInstance->vk.indexType = indexType;
 
-	if (indexType == UINT16_INDEX_TYPE)
-	{
-		graphicsMeshInstance->vk.vkIndexType = VK_INDEX_TYPE_UINT16;
-		graphicsMeshInstance->vk.vkIndexOffset = indexOffset * sizeof(uint16_t);
-	}
-	else if (indexType == UINT32_INDEX_TYPE)
-	{
-		graphicsMeshInstance->vk.vkIndexType = VK_INDEX_TYPE_UINT32;
-		graphicsMeshInstance->vk.vkIndexOffset = indexOffset * sizeof(uint32_t);
-	}
-	else
-	{
-		abort();
-	}
-
 	*graphicsMesh = graphicsMeshInstance;
 	return SUCCESS_MPGX_RESULT;
 }
@@ -136,13 +120,13 @@ inline static void drawVkGraphicsMesh(
 	vkCmdBindIndexBuffer(
 		commandBuffer,
 		graphicsMesh->vk.indexBuffer->vk.handle,
-		graphicsMesh->vk.vkIndexOffset,
+		0,
 		graphicsMesh->vk.vkIndexType);
 	vkCmdDrawIndexed(
 		commandBuffer,
-		(uint32_t)graphicsMesh->vk.indexCount,
+		graphicsMesh->vk.indexCount,
 		1,
-		0,
+		graphicsMesh->vk.indexOffset,
 		0,
 		0);
 }
@@ -158,19 +142,6 @@ inline static void setVkGraphicsMeshIndexType(
 		abort();
 
 	graphicsMesh->vk.indexType = indexType;
-}
-inline static void setVkGraphicsMeshIndexOffset(
-	GraphicsMesh graphicsMesh,
-	uint32_t indexOffset)
-{
-	if (graphicsMesh->vk.indexType == UINT16_INDEX_TYPE)
-		graphicsMesh->vk.vkIndexOffset = indexOffset * sizeof(uint16_t);
-	else if (graphicsMesh->vk.indexType == UINT32_INDEX_TYPE)
-		graphicsMesh->vk.vkIndexOffset = indexOffset * sizeof(uint32_t);
-	else
-		abort();
-
-	graphicsMesh->vk.indexOffset = indexOffset;
 }
 #endif
 

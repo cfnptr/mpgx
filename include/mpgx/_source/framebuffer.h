@@ -125,7 +125,7 @@ inline static MpgxResult createVkGeneralRenderPass(
 	if (colorAttachmentCount > 0)
 	{
 		colorReferences = malloc(
-			colorAttachmentCount * sizeof(VkAttachmentDescription));
+			colorAttachmentCount * sizeof(VkAttachmentReference));
 
 		if (!colorReferences)
 		{

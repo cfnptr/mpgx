@@ -181,7 +181,7 @@ inline static MpgxResult checkVkInstanceExtensions(
 		return vkToMpgxResult(vkResult);
 
 	VkExtensionProperties* extensionProperties = malloc(
-		extensionPropertyCount * sizeof(VkLayerProperties));
+		extensionPropertyCount * sizeof(VkExtensionProperties));
 
 	if (!extensionProperties)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;

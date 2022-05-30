@@ -220,8 +220,15 @@ inline static uint32_t getBestVkImageCount(
 {
 	assert(surfaceCapabilities);
 
-	uint32_t imageCount = surfaceCapabilities->minImageCount + 1;
+	uint32_t imageCount = surfaceCapabilities->minImageCount;
 	uint32_t maxImageCount = surfaceCapabilities->maxImageCount;
+
+	// TODO: fix double VSync framerate
+	// https://github.com/KhronosGroup/MoltenVK/issues/1407
+
+#if !__APPLE__
+	imageCount++;
+#endif
 
 	if (maxImageCount > 0 && imageCount > maxImageCount)
 		imageCount = maxImageCount;
@@ -733,30 +740,77 @@ inline static MpgxResult createVkSwapchainBuffers(
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 	}
 
+	VkImageViewCreateInfo imageViewCreateInfo = {
+		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		NULL,
+		0,
+		NULL,
+		VK_IMAGE_VIEW_TYPE_2D,
+		surfaceFormat,
+		{
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY
+		},
+		{
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0,
+			1,
+			0,
+			1,
+		},
+	};
+	VkImageView imageViews[2] = {
+		NULL,
+		depthImageView,
+	};
+	VkFramebufferCreateInfo framebufferCreateInfo = {
+		VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+		NULL,
+		0,
+		renderPass,
+		2,
+		imageViews,
+		surfaceExtent.width,
+		surfaceExtent.height,
+		1,
+	};
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		NULL,
+		graphicsCommandPool,
+		VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		1,
+	};
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {
+		VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		NULL,
+		VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+		NULL,
+	};
+	VkImageMemoryBarrier imageMemoryBarrier = {
+		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		NULL,
+		VK_ACCESS_NONE_KHR,
+		VK_ACCESS_NONE_KHR,
+		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		graphicsQueueFamilyIndex,
+		presentQueueFamilyIndex,
+		NULL,
+		{
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0,
+			1,
+			0,
+			1,
+		},
+	};
+
 	for (uint32_t i = 0; i < imageCount; i++)
 	{
-		// TODO: Move structures outside for scope
-		VkImageViewCreateInfo imageViewCreateInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			NULL,
-			0,
-			images[i],
-			VK_IMAGE_VIEW_TYPE_2D,
-			surfaceFormat,
-			{
-				VK_COMPONENT_SWIZZLE_IDENTITY,
-				VK_COMPONENT_SWIZZLE_IDENTITY,
-				VK_COMPONENT_SWIZZLE_IDENTITY,
-				VK_COMPONENT_SWIZZLE_IDENTITY
-			},
-			{
-				VK_IMAGE_ASPECT_COLOR_BIT,
-				0,
-				1,
-				0,
-				1,
-			},
-		};
+		imageViewCreateInfo.image = images[i];
 
 		VkImageView imageView;
 
@@ -778,22 +832,7 @@ inline static MpgxResult createVkSwapchainBuffers(
 			return vkToMpgxResult(vkResult);
 		}
 
-		VkImageView imageViews[2] = {
-			imageView,
-			depthImageView,
-		};
-
-		VkFramebufferCreateInfo framebufferCreateInfo = {
-			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-			NULL,
-			0,
-			renderPass,
-			2,
-			imageViews,
-			surfaceExtent.width,
-			surfaceExtent.height,
-			1,
-		};
+		imageViews[0] = imageView;
 
 		VkFramebuffer framebuffer;
 
@@ -818,14 +857,6 @@ inline static MpgxResult createVkSwapchainBuffers(
 			free(images);
 			return vkToMpgxResult(vkResult);
 		}
-
-		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			NULL,
-			graphicsCommandPool,
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			1,
-		};
 
 		VkCommandBuffer graphicsCommandBuffer;
 		VkCommandBuffer presentCommandBuffer;
@@ -889,13 +920,6 @@ inline static MpgxResult createVkSwapchainBuffers(
 				return vkToMpgxResult(vkResult);
 			}
 
-			VkCommandBufferBeginInfo commandBufferBeginInfo = {
-				VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-				NULL,
-				VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-				NULL,
-			};
-
 			vkResult = vkBeginCommandBuffer(
 				presentCommandBuffer,
 				&commandBufferBeginInfo);
@@ -930,24 +954,7 @@ inline static MpgxResult createVkSwapchainBuffers(
 				return vkToMpgxResult(vkResult);
 			}
 
-			VkImageMemoryBarrier imageMemoryBarrier = {
-				VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-				NULL,
-				VK_ACCESS_NONE_KHR,
-				VK_ACCESS_NONE_KHR,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				graphicsQueueFamilyIndex,
-				presentQueueFamilyIndex,
-				images[i],
-				{
-					VK_IMAGE_ASPECT_COLOR_BIT,
-					0,
-					1,
-					0,
-					1,
-				},
-			};
+			imageMemoryBarrier.image = images[i];
 
 			vkCmdPipelineBarrier(
 				presentCommandBuffer,

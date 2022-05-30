@@ -37,7 +37,6 @@
 #define DEFAULT_BLEND_COLOR 0
 
 // TODO: add ability to store and load shader cache
-// TODO: include static vulkan library on MacOS
 // TODO: add buffer/image/rayTracing array creation function with shared resources.
 // TODO: add buffer/image multiple data arrays setters, in one call
 // TODO: add any hit, intersection, callable, task mesh shaders

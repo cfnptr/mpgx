@@ -319,7 +319,6 @@ inline static MpgxResult createVkImage(
 	assert(type > 0);
 	assert(dimension < IMAGE_DIMENSION_COUNT);
 	assert(format < IMAGE_FORMAT_COUNT);
-	assert(data);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
@@ -369,17 +368,6 @@ inline static MpgxResult createVkImage(
 		return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 	}
 
-	bool isAnyToCopy = false;
-
-	for (uint32_t i = 0; i < mipCount; i++)
-	{
-		if (data[i])
-		{
-			isAnyToCopy = true;
-			break;
-		}
-	}
-
 	VkFormat vkFormat;
 	VkImageAspectFlags vkAspect;
 	uint8_t sizeMultiplier;
@@ -396,7 +384,7 @@ inline static MpgxResult createVkImage(
 		vkUsage |= VK_IMAGE_USAGE_STORAGE_BIT;
 	if (type & TRANSFER_SOURCE_IMAGE_TYPE)
 		vkUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-	if (type & TRANSFER_DESTINATION_IMAGE_TYPE | isAnyToCopy)
+	if ((type & TRANSFER_DESTINATION_IMAGE_TYPE) || data)
 		vkUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	switch (format)
@@ -558,9 +546,6 @@ inline static MpgxResult createVkImage(
 
 	imageInstance->vk.imageView = imageView;
 
-	// TODO: do not create staging buffer if no data (isAnyToCopy)
-	//  and then only transfer final image layout
-
 	VkDeviceSize bufferSize = 0;
 	Vec3I mipSize = size;
 
@@ -651,30 +636,33 @@ inline static MpgxResult createVkImage(
 		imageInstance->vk.stagingAllocation = stagingAllocationInstance;
 	}
 
-	MpgxResult mpgxResult = fillVkImage(
-		device,
-		allocator,
-		transferQueue,
-		transferCommandBuffer,
-		transferFence,
-		stagingBufferInstance,
-		stagingAllocationInstance,
-		data,
-		size,
-		mipCount,
-		layerCount,
-		vkAspect,
-		bufferSize,
-		sizeMultiplier,
-		handle);
-
-	if (mpgxResult != SUCCESS_MPGX_RESULT)
+	if (data)
 	{
-		destroyVkImage(
+		MpgxResult mpgxResult = fillVkImage(
 			device,
 			allocator,
-			imageInstance);
-		return mpgxResult;
+			transferQueue,
+			transferCommandBuffer,
+			transferFence,
+			stagingBufferInstance,
+			stagingAllocationInstance,
+			data,
+			size,
+			mipCount,
+			layerCount,
+			vkAspect,
+			bufferSize,
+			sizeMultiplier,
+			handle);
+
+		if (mpgxResult != SUCCESS_MPGX_RESULT)
+		{
+			destroyVkImage(
+				device,
+				allocator,
+				imageInstance);
+			return mpgxResult;
+		}
 	}
 
 	*image = imageInstance;
@@ -863,7 +851,6 @@ inline static MpgxResult createGlImage(
 	assert(type > 0);
 	assert(dimension < IMAGE_DIMENSION_COUNT);
 	assert(format < IMAGE_FORMAT_COUNT);
-	assert(data);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
@@ -995,7 +982,7 @@ inline static MpgxResult createGlImage(
 				0,
 				dataFormat,
 				dataType,
-				data[i]);
+				data ? data[i] : NULL);
 
 			mipSize = divValVec2I(
 				mipSize, 2);
@@ -1026,7 +1013,7 @@ inline static MpgxResult createGlImage(
 				0,
 				dataFormat,
 				dataType,
-				data[i]);
+				data ? data[i] : NULL);
 			mipSize = divValVec3I(
 				mipSize, 2);
 		}

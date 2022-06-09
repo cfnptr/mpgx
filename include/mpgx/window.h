@@ -1451,7 +1451,7 @@ MpgxResult setBufferData(
  * type - type mask
  * dimension - dimension type.
  * format - format type.
- * data - mipmap pixel data array.
+ * data - mipmap pixel data array or NULL.
  * size - image size in pixels.
  * mipCount - mipmap level count.
  * layerCount - array layer count.
@@ -1477,9 +1477,8 @@ MpgxResult createMipmapImage(
  * type - type mask
  * dimension - dimension type.
  * format - format type.
- * data - pixel data.
+ * data - pixel data or NULL.
  * size - image size in pixels.
- * mipCount - mipmap level count.
  * layerCount - array layer count.
  * isConstant - is image constant.
  * image - pointer to the image.

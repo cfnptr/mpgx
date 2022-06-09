@@ -2512,7 +2512,6 @@ MpgxResult createMipmapImage(
 	assert(type > 0);
 	assert(dimension < IMAGE_DIMENSION_COUNT);
 	assert(format < IMAGE_FORMAT_COUNT);
-	assert(data);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
@@ -2645,7 +2644,6 @@ MpgxResult createImage(
 	assert(type > 0);
 	assert(dimension < IMAGE_DIMENSION_COUNT);
 	assert(format < IMAGE_FORMAT_COUNT);
-	assert(data);
 	assert(size.x > 0);
 	assert(size.y > 0);
 	assert(size.z > 0);
@@ -2660,7 +2658,7 @@ MpgxResult createImage(
 		type,
 		dimension,
 		format,
-		&data,
+		data? &data : NULL,
 		size,
 		1,
 		layerCount,

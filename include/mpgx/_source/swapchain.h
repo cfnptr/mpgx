@@ -1071,7 +1071,6 @@ inline static MpgxResult createVkSwapchain(
 	VmaAllocator allocator,
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
-	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
 	Vec2I framebufferSize,
@@ -1110,7 +1109,7 @@ inline static MpgxResult createVkSwapchain(
 	VkPresentModeKHR presentMode;
 
 	if (!getBestVkPresentMode(physicalDevice,
-		surface, useVsync, &presentMode))
+		surface, true, &presentMode))
 	{
 		destroyVkSwapchain(
 			device,

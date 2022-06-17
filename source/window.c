@@ -616,7 +616,6 @@ MpgxResult createWindow(
 		MpgxResult mpgxResult = createVkWindow(
 			vkInstance,
 			handle,
-			true,
 			useStencilBuffer,
 			useBeginClear,
 			useRayTracing,

@@ -1008,7 +1008,6 @@ inline static void destroyVkWindow(
 inline static MpgxResult createVkWindow(
 	VkInstance instance,
 	GLFWwindow* handle,
-	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
 	bool useRayTracing,
@@ -1485,7 +1484,6 @@ inline static MpgxResult createVkWindow(
 		allocator,
 		graphicsCommandPool,
 		presentCommandPool,
-		useVsync,
 		useStencilBuffer,
 		useBeginClear,
 		framebufferSize,

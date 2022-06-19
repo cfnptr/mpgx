@@ -205,7 +205,7 @@ inline static MpgxResult fillVkImage(
 	for (uint32_t i = 0; i < mipCount; i++)
 	{
 		const uint8_t* array = (const uint8_t*)data[i];
-		size_t copySize = mipSize.x * mipSize.y * mipSize.z * sizeMultiplier;
+		size_t copySize = (size_t)mipSize.x * mipSize.y * mipSize.z * sizeMultiplier;
 
 		if (array)
 		{
@@ -551,7 +551,7 @@ inline static MpgxResult createVkImage(
 
 	for (uint32_t i = 0; i < mipCount; i++)
 	{
-		bufferSize += mipSize.x * mipSize.y * mipSize.z * sizeMultiplier;
+		bufferSize += (VkDeviceSize)mipSize.x * mipSize.y * mipSize.z * sizeMultiplier;
 		if (mipSize.x > 1) mipSize.x /= 2;
 		if (mipSize.y > 1) mipSize.y /= 2;
 		if (mipSize.z > 1) mipSize.z /= 2;
@@ -699,7 +699,7 @@ inline static MpgxResult setVkImageData(
 	// TODO: properly add staging buffer image data offset
 	assert(offset.x == 0 && offset.y == 0 && offset.z == 0);
 
-	size_t dataSize =
+	size_t dataSize = (size_t)
 		size.x * size.y * size.z *
 		image->vk.sizeMultiplier;
 

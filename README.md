@@ -2,6 +2,8 @@
 
 A library providing generic interface for realtime **graphics** rendering across different platforms.
 
+![Rendering Demo](https://user-images.githubusercontent.com/20398717/174491973-aa39074d-587f-4b2f-8ed1-e4231f47c102.jpeg)
+
 ## Features
 
 * Vulkan API and OpenGL rendering backends

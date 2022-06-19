@@ -175,7 +175,7 @@ inline static MpgxResult createGlGraphicsMesh(
 	GraphicsMesh graphicsMeshInstance = calloc(1,
 		sizeof(GraphicsMesh_T));
 
-	if (!graphicsMesh)
+	if (!graphicsMeshInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 
 	graphicsMeshInstance->gl.window = window;

@@ -573,6 +573,7 @@ inline static MpgxResult createVkFramebuffer(
 
 	if (!pipelines)
 	{
+		free(imageViews);
 		destroyVkFramebuffer(device,
 			framebufferInstance);
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -1028,6 +1029,7 @@ inline static MpgxResult createGlFramebuffer(
 
 		if (!drawBuffers)
 		{
+			free(colorAttachmentArray);
 			destroyGlFramebuffer(framebufferInstance);
 			return OUT_OF_HOST_MEMORY_MPGX_RESULT;
 		}
@@ -1043,6 +1045,7 @@ inline static MpgxResult createGlFramebuffer(
 			{
 			default:
 				free(drawBuffers);
+				free(colorAttachmentArray);
 				destroyGlFramebuffer(framebufferInstance);
 				return FORMAT_IS_NOT_SUPPORTED_MPGX_RESULT;
 			case R8_UNORM_IMAGE_FORMAT:

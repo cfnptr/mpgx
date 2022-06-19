@@ -1327,13 +1327,13 @@ inline static void bindGlGraphicsPipeline(
 		graphicsPipeline->gl.state.colorComponentWriteMask;
 
 	glColorMask(
-		colorMask & RED_COLOR_COMPONENT ?
+		(colorMask & RED_COLOR_COMPONENT) ?
 			GL_TRUE : GL_FALSE,
-		colorMask & GREEN_COLOR_COMPONENT ?
+		(colorMask & GREEN_COLOR_COMPONENT) ?
 			GL_TRUE : GL_FALSE,
-		colorMask & BLUE_COLOR_COMPONENT ?
+		(colorMask & BLUE_COLOR_COMPONENT) ?
 			GL_TRUE : GL_FALSE,
-		colorMask & ALPHA_COLOR_COMPONENT ?
+		(colorMask & ALPHA_COLOR_COMPONENT) ?
 			GL_TRUE : GL_FALSE);
 
 	if (graphicsPipeline->gl.state.testDepth)

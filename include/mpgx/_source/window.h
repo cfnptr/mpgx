@@ -1163,8 +1163,8 @@ inline static MpgxResult createVkWindow(
 
 	if (useRayTracing)
 	{
-		if (!isExtensionSupported[deferredHostOperationsExtIndex] |
-			!isExtensionSupported[accelerationStructureExtIndex] |
+		if (!isExtensionSupported[deferredHostOperationsExtIndex] ||
+			!isExtensionSupported[accelerationStructureExtIndex] ||
 			!isExtensionSupported[rayTracingPipelineExtIndex])
 		{
 			destroyVkWindow(instance, window);

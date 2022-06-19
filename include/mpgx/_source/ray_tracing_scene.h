@@ -97,7 +97,7 @@ inline static MpgxResult createVkRayTracingScene(
 	RayTracingMesh* rayTracingMeshes = malloc(
 		meshCount * sizeof(RayTracingMesh));
 
-	if (!meshes)
+	if (!rayTracingMeshes)
 	{
 		destroyVkRayTracingScene(
 			device,

@@ -22,8 +22,6 @@ A library providing generic interface for realtime **graphics** rendering across
 * [CMake 3.10+](https://cmake.org/)
 * [X11](https://www.x.org/) (Linux only)
 
-CMake **Windows**: select ```Add CMake to the system PATH...``` during installation.
-
 ### Vulkan API support (Optional)
 
 * C++11 compiler

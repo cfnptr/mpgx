@@ -88,7 +88,7 @@ endif ()
 
 configure_file(
 	cmake/defines.h.in
-	mpgx/defines.h)
+	include/mpgx/defines.h)
 
 add_library(mpgx-static STATIC
 	${MPGX_SOURCES})
@@ -97,5 +97,5 @@ set_target_properties(mpgx-static PROPERTIES
 target_link_libraries(mpgx-static PUBLIC
 	${MPGX_LINK_LIBRARIES})
 target_include_directories(mpgx-static PUBLIC
-	${PROJECT_BINARY_DIR}
+	${PROJECT_BINARY_DIR}/include
 	${PROJECT_SOURCE_DIR}/include)

@@ -32,7 +32,7 @@ struct Window_T
 	Window parent;
 	bool useVsync;
 	bool useStencilBuffer;
-	bool useBeginClear;
+	bool useDeferredShading;
 	uint8_t _alignment[5];
 	OnWindowUpdate onUpdate;
 	void* updateArgument;
@@ -371,6 +371,7 @@ MpgxResult createWindow(
 	void* updateArgument,
 	bool useStencilBuffer,
 	bool useBeginClear,
+	bool useDeferredShading,
 	bool useRayTracing,
 	Window parent,
 	Window* window)
@@ -467,7 +468,7 @@ MpgxResult createWindow(
 	windowInstance->parent = parent;
 	windowInstance->useVsync = true;
 	windowInstance->useStencilBuffer = useStencilBuffer;
-	windowInstance->useBeginClear = useBeginClear;
+	windowInstance->useDeferredShading = useDeferredShading;
 	windowInstance->onUpdate = onUpdate;
 	windowInstance->updateArgument = updateArgument;
 	windowInstance->cursorType = DEFAULT_CURSOR_TYPE;
@@ -618,6 +619,7 @@ MpgxResult createWindow(
 			handle,
 			useStencilBuffer,
 			useBeginClear,
+			useDeferredShading,
 			useRayTracing,
 			framebufferSize,
 			&vkWindow);
@@ -1415,6 +1417,7 @@ void joinWindow(Window window)
 					window->useVsync,
 					window->useStencilBuffer,
 					window->framebuffer->base.useBeginClear,
+					window->useDeferredShading,
 					newFramebufferSize);
 
 				if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -3828,9 +3831,9 @@ void beginFramebufferRender(
 {
 	assert(framebuffer);
 	assert((clearValues && clearValueCount > 0 &&
-			framebuffer->base.useBeginClear) ||
-		   (!clearValues && clearValueCount == 0 &&
-			!framebuffer->base.useBeginClear));
+		framebuffer->base.useBeginClear) ||
+		(!clearValues && clearValueCount == 0 &&
+		!framebuffer->base.useBeginClear));
 	assert(framebuffer->base.window->isRecording);
 	assert(!framebuffer->base.window->renderFramebuffer);
 	assert(graphicsInitialized);

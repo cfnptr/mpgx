@@ -534,10 +534,15 @@ inline static MpgxResult createVkRenderPass(
 	VkFormat colorFormat,
 	VkFormat depthFormat,
 	bool useBeginClear,
+	bool useDeferredShading,
 	VkRenderPass* renderPass)
 {
 	assert(device);
 	assert(renderPass);
+
+	// TODO: create deferred rendering render pass.
+	//  Mostly useful for tiled devices. (mobile GPUs)
+	assert(!useDeferredShading);
 
 	VkAttachmentDescription attachmentDescriptions[2] = {
 		{
@@ -1073,6 +1078,7 @@ inline static MpgxResult createVkSwapchain(
 	VkCommandPool presentCommandPool,
 	bool useStencilBuffer,
 	bool useBeginClear,
+	bool useDeferredShading,
 	Vec2I framebufferSize,
 	VkSwapchain* vkSwapchain)
 {
@@ -1255,6 +1261,7 @@ inline static MpgxResult createVkSwapchain(
 		surfaceFormat.format,
 		depthFormat,
 		useBeginClear,
+		useDeferredShading,
 		&renderPass);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -1318,6 +1325,7 @@ inline static MpgxResult resizeVkSwapchain(
 	bool useVsync,
 	bool useStencilBuffer,
 	bool useBeginClear,
+	bool useDeferredShading,
 	Vec2I framebufferSize)
 {
 	assert(surface);
@@ -1455,6 +1463,7 @@ inline static MpgxResult resizeVkSwapchain(
 		surfaceFormat.format,
 		depthFormat,
 		useBeginClear,
+		useDeferredShading,
 		&renderPass);
 
 	if (mpgxResult != SUCCESS_MPGX_RESULT)

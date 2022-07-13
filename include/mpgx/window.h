@@ -14,10 +14,7 @@
 
 #pragma once
 #include "mpgx/defines.h"
-
-#include "cmmt/color.h"
-#include "cmmt/vector.h"
-#include "cmmt/matrix.h"
+#include "mpgx/structures.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -729,12 +726,12 @@ typedef void(*OnGraphicsPipelineUniformsSet)(
  *
  * graphicsPipeline - graphics pipeline instance.
  * newSize - new framebuffer size value.
- * createData - Vulkan create data. (NULL in OpenGL)
+ * vkCreateData - VkGraphicsPipelineCreateData. (NULL in OpenGL)
  */
 typedef void(*OnGraphicsPipelineResize)(
 	GraphicsPipeline graphicsPipeline,
 	Vec2I newSize,
-	void* createData);
+	void* vkCreateData);
 
 /*
  * Compute pipeline destroy function.
@@ -867,8 +864,10 @@ GraphicsAPI getGraphicsAPI();
  * onUpdate - on window update function.
  * updateArgument - onUpdate function argument.
  * useStencilBuffer - use stencil buffer in the framebuffer.
+ * useDeferredShading - use deferred shading framebuffer.
  * useRayTracing - use ray tracing extension.
  * parent - window parent or NULL.
+ * vkRenderPassInfo - VkRenderPassCreateInfo or NULL.
  * window - pointer to the window.
  */
 MpgxResult createWindow(
@@ -876,6 +875,7 @@ MpgxResult createWindow(
 	void* updateArgument,
 	bool useStencilBuffer,
 	bool useBeginClear,
+	bool useDeferredShading,
 	bool useRayTracing,
 	Window parent,
 	Window* window);

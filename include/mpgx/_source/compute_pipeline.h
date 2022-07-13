@@ -82,7 +82,7 @@ inline static MpgxResult createVkComputePipelineHandle(
 		NULL, // TODO: pass here shader dynamic constants
 	};
 
-	VkComputePipelineCreateInfo rayTracingPipelineCreateInfo = {
+	VkComputePipelineCreateInfo computePipelineCreateInfo = {
 		VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
 		NULL,
 		0,
@@ -98,7 +98,7 @@ inline static MpgxResult createVkComputePipelineHandle(
 		device,
 		cache,
 		1,
-		&rayTracingPipelineCreateInfo,
+		&computePipelineCreateInfo,
 		NULL,
 		&handleInstance);
 

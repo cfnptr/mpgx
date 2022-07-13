@@ -99,3 +99,14 @@ target_link_libraries(mpgx-static PUBLIC
 target_include_directories(mpgx-static PUBLIC
 	${PROJECT_BINARY_DIR}/include
 	${PROJECT_SOURCE_DIR}/include)
+
+add_library(mpgx-shared SHARED
+	${MPGX_SOURCES})
+set_target_properties(mpgx-shared PROPERTIES
+	OUTPUT_NAME "mpgx"
+	WINDOWS_EXPORT_ALL_SYMBOLS ON)
+target_link_libraries(mpgx-shared PUBLIC
+	${MPGX_LINK_LIBRARIES})
+target_include_directories(mpgx-shared PUBLIC
+	${PROJECT_BINARY_DIR}/include
+	${PROJECT_SOURCE_DIR}/include)

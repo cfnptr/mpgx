@@ -867,7 +867,6 @@ GraphicsAPI getGraphicsAPI();
  * useDeferredShading - use deferred shading framebuffer.
  * useRayTracing - use ray tracing extension.
  * parent - window parent or NULL.
- * vkRenderPassInfo - VkRenderPassCreateInfo or NULL.
  * window - pointer to the window.
  */
 MpgxResult createWindow(

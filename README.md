@@ -35,10 +35,11 @@ A library providing generic interface for realtime **graphics** rendering across
 
 ### CMake options
 
-| Name                | Description                   | Default value |
-|---------------------|-------------------------------|---------------|
-| MPGX_USE_VULKAN     | Use modern Vulkan API library | `ON`          |
-| MPGX_USE_OPENGL     | Use legacy OpenGL library     | `ON`          |
+| Name              | Description                   | Default value |
+|-------------------|-------------------------------|---------------|
+| MPGX_BUILD_SHARED | Build MPGX shared library     | `ON`          |
+| MPGX_USE_VULKAN   | Use modern Vulkan API library | `ON`          |
+| MPGX_USE_OPENGL   | Use legacy OpenGL library     | `ON`          |
 
 ## Cloning
 

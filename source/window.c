@@ -1370,12 +1370,11 @@ void joinWindow(Window window)
 
 	while (!glfwWindowShouldClose(handle))
 	{
-		double startTime = getCurrentClock();
-
 		window->inputLength = 0;
 		glfwPollEvents();
 
 		int ix, iy; double dx, dy;
+		double startTime = getCurrentClock();
 		glfwGetWindowSize(handle, &ix, &iy);
 		Vec2I size = window->size = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
 		glfwGetWindowPos(handle, &ix, &iy);

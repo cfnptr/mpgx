@@ -95,10 +95,7 @@ configure_file(
 	cmake/defines.h.in
 	include/mpgx/defines.h)
 
-add_library(mpgx-static STATIC
-	${MPGX_SOURCES})
-set_target_properties(mpgx-static PROPERTIES
-	OUTPUT_NAME "mpgx")
+add_library(mpgx-static STATIC ${MPGX_SOURCES})
 target_link_libraries(mpgx-static PUBLIC
 	${MPGX_LINK_LIBRARIES})
 target_include_directories(mpgx-static PUBLIC
@@ -106,8 +103,7 @@ target_include_directories(mpgx-static PUBLIC
 	${PROJECT_SOURCE_DIR}/include)
 
 if (MPGX_BUILD_SHARED)
-	add_library(mpgx-shared SHARED
-		${MPGX_SOURCES})
+	add_library(mpgx-shared SHARED ${MPGX_SOURCES})
 	set_target_properties(mpgx-shared PROPERTIES
 		OUTPUT_NAME "mpgx"
 		WINDOWS_EXPORT_ALL_SYMBOLS ON)

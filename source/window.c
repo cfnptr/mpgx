@@ -977,7 +977,7 @@ const char* getWindowGpuDriver(Window window)
 		uint32_t driverVersion = window->vkWindow->deviceProperties.driverVersion;
 
 #if __APPLE__
-		const char* fmt = "MoltenVK %hhu.%hhu.%hhu %hhu.%hhu.%hhu";
+		const char* fmt = "%hhu.%hhu.%hhu MoltenVK %hhu.%hhu.%hhu";
 #else
 		const char* fmt = "%hhu.%hhu.%hhu %hhu.%hhu.%hhu";
 #endif

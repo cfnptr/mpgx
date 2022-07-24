@@ -1078,7 +1078,6 @@ inline static MpgxResult createVkSwapchain(
 	VkCommandPool graphicsCommandPool,
 	VkCommandPool presentCommandPool,
 	bool useStencilBuffer,
-	bool useBeginClear,
 	bool useDeferredShading,
 	Vec2I framebufferSize,
 	VkSwapchain* vkSwapchain)
@@ -1261,7 +1260,7 @@ inline static MpgxResult createVkSwapchain(
 		device,
 		surfaceFormat.format,
 		depthFormat,
-		useBeginClear,
+		true,
 		useDeferredShading,
 		&renderPass);
 

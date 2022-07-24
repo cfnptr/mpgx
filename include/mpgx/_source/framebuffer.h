@@ -422,7 +422,6 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	VkFramebuffer handle,
 	Window window,
 	Vec2I size,
-	bool useBeginClear,
 	Framebuffer* framebuffer)
 {
 	assert(device);
@@ -445,7 +444,7 @@ inline static MpgxResult createVkDefaultFramebuffer(
 	framebufferInstance->vk.depthStencilAttachment = NULL;
 	framebufferInstance->vk.size = size;
 	framebufferInstance->vk.isDefault = true;
-	framebufferInstance->vk.useBeginClear = useBeginClear;
+	framebufferInstance->vk.useBeginClear = true;
 	framebufferInstance->vk.renderPass = renderPass;
 	framebufferInstance->vk.handle = handle;
 #ifndef NDEBUG
@@ -926,7 +925,6 @@ inline static void destroyGlFramebuffer(Framebuffer framebuffer)
 inline static MpgxResult createGlDefaultFramebuffer(
 	Window window,
 	Vec2I size,
-	bool useBeginClear,
 	Framebuffer* framebuffer)
 {
 	assert(window);
@@ -946,7 +944,7 @@ inline static MpgxResult createGlDefaultFramebuffer(
 	framebufferInstance->gl.depthStencilAttachment = NULL;
 	framebufferInstance->gl.size = size;
 	framebufferInstance->gl.isDefault = true;
-	framebufferInstance->gl.useBeginClear = useBeginClear;
+	framebufferInstance->gl.useBeginClear = true;
 #ifndef NDEBUG
 	framebufferInstance->gl.isEnumerating = false;
 #endif

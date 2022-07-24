@@ -873,7 +873,6 @@ MpgxResult createWindow(
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
 	bool useStencilBuffer,
-	bool useBeginClear,
 	bool useDeferredShading,
 	bool useRayTracing,
 	Window parent,

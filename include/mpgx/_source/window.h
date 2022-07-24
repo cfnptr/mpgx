@@ -1009,7 +1009,6 @@ inline static MpgxResult createVkWindow(
 	VkInstance instance,
 	GLFWwindow* handle,
 	bool useStencilBuffer,
-	bool useBeginClear,
 	bool useDeferredShading,
 	bool useRayTracing,
 	Vec2I framebufferSize,
@@ -1486,7 +1485,6 @@ inline static MpgxResult createVkWindow(
 		graphicsCommandPool,
 		presentCommandPool,
 		useStencilBuffer,
-		useBeginClear,
 		useDeferredShading,
 		framebufferSize,
 		&swapchain);

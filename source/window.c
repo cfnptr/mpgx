@@ -370,7 +370,6 @@ MpgxResult createWindow(
 	OnWindowUpdate onUpdate,
 	void* updateArgument,
 	bool useStencilBuffer,
-	bool useBeginClear,
 	bool useDeferredShading,
 	bool useRayTracing,
 	Window parent,
@@ -618,7 +617,6 @@ MpgxResult createWindow(
 			vkInstance,
 			handle,
 			useStencilBuffer,
-			useBeginClear,
 			useDeferredShading,
 			useRayTracing,
 			framebufferSize,
@@ -665,7 +663,6 @@ MpgxResult createWindow(
 			firstBuffer.framebuffer,
 			windowInstance,
 			framebufferSize,
-			useBeginClear,
 			&framebuffer);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -698,7 +695,6 @@ MpgxResult createWindow(
 		MpgxResult mpgxResult = createGlDefaultFramebuffer(
 			windowInstance,
 			framebufferSize,
-			useBeginClear,
 			&framebuffer);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
@@ -1370,11 +1366,12 @@ void joinWindow(Window window)
 
 	while (!glfwWindowShouldClose(handle))
 	{
+		double startTime = getCurrentClock();
+
 		window->inputLength = 0;
 		glfwPollEvents();
 
 		int ix, iy; double dx, dy;
-		double startTime = getCurrentClock();
 		glfwGetWindowSize(handle, &ix, &iy);
 		Vec2I size = window->size = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
 		glfwGetWindowPos(handle, &ix, &iy);

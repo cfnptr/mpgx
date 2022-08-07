@@ -205,7 +205,10 @@ inline static MpgxResult fillVkImage(
 	for (uint32_t i = 0; i < mipCount; i++)
 	{
 		const uint8_t* array = (const uint8_t*)data[i];
-		size_t copySize = (size_t)mipSize.x * mipSize.y * mipSize.z * sizeMultiplier;
+
+		size_t copySize = (size_t)
+			mipSize.x * mipSize.y * mipSize.z *
+			layerCount * sizeMultiplier;
 
 		if (array)
 		{
@@ -240,10 +243,10 @@ inline static MpgxResult fillVkImage(
 				&bufferImageCopy);
 		}
 
+		mipBufferSize += copySize;
 		if (mipSize.x > 1) mipSize.x /= 2;
 		if (mipSize.y > 1) mipSize.y /= 2;
 		if (mipSize.z > 1) mipSize.z /= 2;
-		mipBufferSize += copySize;
 	}
 
 	imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -347,12 +350,12 @@ inline static MpgxResult createVkImage(
 	if (dimension == IMAGE_1D)
 	{
 		vkType = VK_IMAGE_TYPE_1D;
-		vkViewType = VK_IMAGE_VIEW_TYPE_1D;
+		vkViewType = layerCount > 1 ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
 	}
 	else if (dimension == IMAGE_2D)
 	{
 		vkType = VK_IMAGE_TYPE_2D;
-		vkViewType = VK_IMAGE_VIEW_TYPE_2D;
+		vkViewType = layerCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
 	}
 	else if (dimension == IMAGE_3D)
 	{
@@ -551,7 +554,9 @@ inline static MpgxResult createVkImage(
 
 	for (uint32_t i = 0; i < mipCount; i++)
 	{
-		bufferSize += (VkDeviceSize)mipSize.x * mipSize.y * mipSize.z * sizeMultiplier;
+		bufferSize += (VkDeviceSize)
+			mipSize.x * mipSize.y * mipSize.z *
+			layerCount * sizeMultiplier;
 		if (mipSize.x > 1) mipSize.x /= 2;
 		if (mipSize.y > 1) mipSize.y /= 2;
 		if (mipSize.z > 1) mipSize.z /= 2;
@@ -669,6 +674,7 @@ inline static MpgxResult createVkImage(
 	return SUCCESS_MPGX_RESULT;
 }
 
+// TODO: add separated array layer setter
 inline static MpgxResult setVkImageData(
 	VkDevice device,
 	VmaAllocator allocator,
@@ -699,9 +705,8 @@ inline static MpgxResult setVkImageData(
 	// TODO: properly add staging buffer image data offset
 	assert(offset.x == 0 && offset.y == 0 && offset.z == 0);
 
-	size_t dataSize = (size_t)
-		size.x * size.y * size.z *
-		image->vk.sizeMultiplier;
+	size_t dataSize = (size_t)size.x * size.y * size.z *
+		image->vk.layerCount * image->vk.sizeMultiplier;
 
 	MpgxResult mpgxResult = setVkBufferData(
 		allocator,
@@ -729,6 +734,8 @@ inline static MpgxResult setVkImageData(
 
 	VkImage handle = image->vk.handle;
 	VkImageAspectFlagBits aspect = image->vk.vkAspect;
+	uint32_t mipCount = image->vk.mipCount;
+	uint32_t layerCount = image->vk.layerCount;
 
 	VkImageMemoryBarrier imageMemoryBarrier = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -742,10 +749,10 @@ inline static MpgxResult setVkImageData(
 		handle,
 		{
 			aspect,
-			0,
+			mipLevel, // TODO: correct?
 			1,
 			0,
-			1,
+			layerCount,
 		},
 	};
 
@@ -769,7 +776,7 @@ inline static MpgxResult setVkImageData(
 			aspect,
 			mipLevel,
 			0,
-			1,
+			layerCount,
 		},
 		{
 			(int32_t)offset.x,

@@ -2342,14 +2342,13 @@ MpgxResult mapBuffer(
 	void** map)
 {
 	assert(buffer);
+	assert(size > 0);
 	assert(map);
 	assert(graphicsInitialized);
-
-	assert((size == 0 && offset == 0) ||
-		(size > 0 && size + offset <= buffer->base.size));
 	assert(buffer->base.usage == CPU_ONLY_BUFFER_USAGE ||
 		buffer->base.usage == CPU_TO_GPU_BUFFER_USAGE ||
 		buffer->base.usage == GPU_TO_CPU_BUFFER_USAGE);
+	assert(size + offset <= buffer->base.size);
 	assert(!buffer->base.isMapped);
 
 	size_t mapSize = size > 0 ? size : buffer->base.size;

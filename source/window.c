@@ -101,12 +101,9 @@ static VkDebugUtilsMessengerEXT vkDebugUtilsMessenger = NULL;
 #endif
 #endif
 
-static void glfwErrorCallback(
-	int code, const char* description)
+static void glfwErrorCallback(int code, const char* description)
 {
-	fprintf(stderr,
-		"GLFW ERROR [%d]: %s\n",
-		code, description);
+	fprintf(stderr, "GLFW ERROR [%d]: %s\n", code, description);
 }
 
 MpgxResult initializeGraphics(
@@ -137,8 +134,7 @@ MpgxResult initializeGraphics(
 		uint32_t glfwExtensionCount;
 
 		const char** glfwExtensions =
-			glfwGetRequiredInstanceExtensions(
-			&glfwExtensionCount);
+			glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
 		if (!glfwExtensions)
 		{
@@ -159,9 +155,7 @@ MpgxResult initializeGraphics(
 #endif
 
 		MpgxResult mpgxResult = checkVkInstanceLayers(
-			targetLayers,
-			isLayerSupported,
-			targetLayerCount);
+			targetLayers, isLayerSupported, targetLayerCount);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
@@ -204,9 +198,7 @@ MpgxResult initializeGraphics(
 		uint32_t portEnumExtIndex = targetExtensionCount++;
 #endif
 		mpgxResult = checkVkInstanceExtensions(
-			targetExtensions,
-			isExtensionSupported,
-			targetExtensionCount);
+			targetExtensions, isExtensionSupported, targetExtensionCount);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
@@ -262,9 +254,7 @@ MpgxResult initializeGraphics(
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
-			vkDestroyInstance(
-				vkInstance,
-				NULL);
+			vkDestroyInstance(vkInstance, NULL);
 			glfwTerminate();
 			return mpgxResult;
 		}
@@ -290,12 +280,9 @@ void terminateGraphics()
 	{
 #ifndef NDEBUG
 		destroyVkDebugUtilsMessenger(
-			vkInstance,
-			vkDebugUtilsMessenger);
+			vkInstance, vkDebugUtilsMessenger);
 #endif
-		vkDestroyInstance(
-			vkInstance,
-			NULL);
+		vkDestroyInstance(vkInstance, NULL);
 	}
 #endif
 
@@ -322,14 +309,11 @@ GraphicsAPI getGraphicsAPI()
 	return graphicsAPI;
 }
 
-static void onWindowChar(
-	GLFWwindow* handle,
-	unsigned int codepoint)
+static void onWindowChar(GLFWwindow* handle, unsigned int codepoint)
 {
 	assert(handle);
 
 	Window window = glfwGetWindowUserPointer(handle);
-
 	size_t length = window->inputLength;
 
 	if (length == window->inputCapacity)
@@ -337,8 +321,7 @@ static void onWindowChar(
 		size_t capacity = window->inputCapacity * 2;
 
 		uint32_t* inputBuffer = realloc(
-			window->inputBuffer,
-			capacity * sizeof(uint32_t));
+			window->inputBuffer, capacity * sizeof(uint32_t));
 
 		if (!inputBuffer)
 			abort();
@@ -358,11 +341,7 @@ inline static void assertGLFW()
 	int code = glfwGetError(&description);
 
 	if (code != GLFW_NO_ERROR)
-	{
-		fprintf(stderr,
-			"GLFW ERROR [%d]: %s\n",
-			code, description);
-	}
+		fprintf(stderr, "GLFW ERROR [%d]: %s\n", code, description);
 #endif
 }
 
@@ -387,9 +366,7 @@ MpgxResult createWindow(
 	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		glfwWindowHint(
-			GLFW_CLIENT_API,
-			GLFW_NO_API);
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 #else
 		return VULKAN_IS_NOT_SUPPORTED_MPGX_RESULT;
 #endif
@@ -400,52 +377,28 @@ MpgxResult createWindow(
 		if (useRayTracing)
 			return RAY_TRACING_IS_NOT_SUPPORTED_MPGX_RESULT;
 
-		glfwWindowHint(
-			GLFW_CLIENT_API,
-			GLFW_OPENGL_API);
-		glfwWindowHint(
-			GLFW_CONTEXT_VERSION_MAJOR,
-			3);
-		glfwWindowHint(
-			GLFW_CONTEXT_VERSION_MINOR,
-			3);
-		glfwWindowHint(
-			GLFW_OPENGL_FORWARD_COMPAT,
-			GLFW_TRUE);
-		glfwWindowHint(
-			GLFW_OPENGL_PROFILE,
-			GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(
-			GLFW_SRGB_CAPABLE,
-			GLFW_TRUE);
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
 		if (useStencilBuffer)
 		{
-			glfwWindowHint(
-				GLFW_DEPTH_BITS,
-				24);
-			glfwWindowHint(
-				GLFW_STENCIL_BITS,
-				8);
+			glfwWindowHint(GLFW_DEPTH_BITS, 24);
+			glfwWindowHint(GLFW_STENCIL_BITS,8);
 		}
 		else
 		{
-			glfwWindowHint(
-				GLFW_DEPTH_BITS,
-				24);
-			glfwWindowHint(
-				GLFW_STENCIL_BITS,
-				0);
+			glfwWindowHint(GLFW_DEPTH_BITS, 24);
+			glfwWindowHint(GLFW_STENCIL_BITS, 0);
 		}
 
 #ifndef NDEBUG
-		glfwWindowHint(
-			GLFW_OPENGL_DEBUG_CONTEXT,
-			GLFW_TRUE);
+		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #else
-		glfwWindowHint(
-			GLFW_OPENGL_DEBUG_CONTEXT,
-			GLFW_FALSE);
+		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_FALSE);
 #endif
 #else
 		return OPENGL_IS_NOT_SUPPORTED_MPGX_RESULT;
@@ -458,8 +411,7 @@ MpgxResult createWindow(
 
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-	Window windowInstance = calloc(1,
-		sizeof(Window_T));
+	Window windowInstance = calloc(1, sizeof(Window_T));
 
 	if (!windowInstance)
 		return OUT_OF_HOST_MEMORY_MPGX_RESULT;
@@ -507,26 +459,15 @@ MpgxResult createWindow(
 	glfwGetCursorPos(handle, &dx, &dy);
 	windowInstance->cursorPosition = vec2F((cmmt_float_t)dx, (cmmt_float_t)dy);
 
-	glfwSetWindowSizeLimits(
-		handle,
-		2,
-		2,
-		GLFW_DONT_CARE,
-		GLFW_DONT_CARE);
+	glfwSetWindowSizeLimits(handle, 2, 2, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
 	if (glfwRawMouseMotionSupported())
-	{
-		glfwSetInputMode(
-			handle,
-			GLFW_RAW_MOUSE_MOTION,
-			GLFW_TRUE);
-	}
+		glfwSetInputMode(handle, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 	glfwSetWindowUserPointer(handle, windowInstance);
 	glfwSetCharCallback(handle, onWindowChar);
 
-	GLFWcursor* ibeamCursor = glfwCreateStandardCursor(
-		GLFW_IBEAM_CURSOR);
+	GLFWcursor* ibeamCursor = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
 
 	if (!ibeamCursor)
 	{
@@ -537,8 +478,7 @@ MpgxResult createWindow(
 
 	windowInstance->ibeamCursor = ibeamCursor;
 
-	GLFWcursor* crosshairCursor = glfwCreateStandardCursor(
-		GLFW_CROSSHAIR_CURSOR);
+	GLFWcursor* crosshairCursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
 
 	if (!crosshairCursor)
 	{
@@ -549,8 +489,7 @@ MpgxResult createWindow(
 
 	windowInstance->crosshairCursor = crosshairCursor;
 
-	GLFWcursor* handCursor = glfwCreateStandardCursor(
-		GLFW_HAND_CURSOR);
+	GLFWcursor* handCursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
 
 	if (!handCursor)
 	{
@@ -561,8 +500,7 @@ MpgxResult createWindow(
 
 	windowInstance->handCursor = handCursor;
 
-	GLFWcursor* hresizeCursor = glfwCreateStandardCursor(
-		GLFW_HRESIZE_CURSOR);
+	GLFWcursor* hresizeCursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
 
 	if (!hresizeCursor)
 	{
@@ -573,8 +511,7 @@ MpgxResult createWindow(
 
 	windowInstance->hresizeCursor = hresizeCursor;
 
-	GLFWcursor* vresizeCursor = glfwCreateStandardCursor(
-		GLFW_VRESIZE_CURSOR);
+	GLFWcursor* vresizeCursor = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
 
 	if (!vresizeCursor)
 	{
@@ -602,12 +539,7 @@ MpgxResult createWindow(
 #endif
 
 	int width, height;
-
-	glfwGetFramebufferSize(
-		handle,
-		&width,
-		&height);
-
+	glfwGetFramebufferSize(handle, &width, &height);
 	Vec2I framebufferSize = vec2I(width, height);
 
 	if (graphicsAPI == VULKAN_GRAPHICS_API)
@@ -635,9 +567,7 @@ MpgxResult createWindow(
 			RayTracing rayTracing;
 
 			mpgxResult = createVkRayTracing(
-				vkInstance,
-				vkWindow->physicalDevice,
-				&rayTracing);
+				vkInstance, vkWindow->physicalDevice, &rayTracing);
 
 			if (mpgxResult != SUCCESS_MPGX_RESULT)
 			{
@@ -693,9 +623,7 @@ MpgxResult createWindow(
 		Framebuffer framebuffer;
 
 		MpgxResult mpgxResult = createGlDefaultFramebuffer(
-			windowInstance,
-			framebufferSize,
-			&framebuffer);
+			windowInstance, framebufferSize, &framebuffer);
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
@@ -831,14 +759,9 @@ void destroyWindow(Window window)
 			if (result != VK_SUCCESS)
 				abort();
 
-			destroyVkFramebuffer(
-				device,
-				window->framebuffer);
-			destroyVkRayTracing(
-				window->rayTracing);
-			destroyVkWindow(
-				vkInstance,
-				vkWindow);
+			destroyVkFramebuffer(device, window->framebuffer);
+			destroyVkRayTracing(window->rayTracing);
+			destroyVkWindow(vkInstance, vkWindow);
 		}
 #else
 		abort();
@@ -1034,92 +957,53 @@ bool isVkDeviceIntegrated(Window window)
 #endif
 }
 
-bool getWindowKeyboardKey(
-	Window window,
-	KeyboardKey key)
+bool getWindowKeyboardKey(Window window, KeyboardKey key)
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	return glfwGetKey(
-		window->handle,
-		key) == GLFW_PRESS;
+	return glfwGetKey(window->handle, key) == GLFW_PRESS;
 }
-bool getWindowMouseButton(
-	Window window,
-	MouseButton button)
+bool getWindowMouseButton(Window window, MouseButton button)
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	return glfwGetMouseButton(
-		window->handle,
-		button) == GLFW_PRESS;
+	return glfwGetMouseButton(window->handle, button) == GLFW_PRESS;
 }
 
-bool isWindowUseVsync(
-	Window window)
+bool isWindowUseVsync(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
 	return window->useVsync;
 }
-void setWindowUseVsync(
-	Window window,
-	bool useVsync)
+void setWindowUseVsync(Window window, bool useVsync)
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	if (useVsync == window->useVsync)
-		return;
-
 	window->useVsync = useVsync;
-
-	if (graphicsAPI == OPENGL_GRAPHICS_API)
-	{
-#if MPGX_SUPPORT_OPENGL
-		glfwSwapInterval(useVsync ? 1 : 0);
-#else
-		abort();
-#endif
-	}
-	else
-	{
-		abort();
-	}
 }
 
-const char* getWindowClipboard(
-	Window window)
+const char* getWindowClipboard(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
 	return glfwGetClipboardString(window->handle);
 }
-void setWindowClipboard(
-	Window window,
-	const char* clipboard)
+void setWindowClipboard(Window window, const char* clipboard)
 {
 	assert(window);
 	assert(clipboard);
 	assert(graphicsInitialized);
-
-	glfwSetClipboardString(
-		window->handle,
-		clipboard);
+	glfwSetClipboardString(window->handle, clipboard);
 }
 
-Vec2I getWindowSize(
-	Window window)
+Vec2I getWindowSize(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
 	return window->size;
 }
-void setWindowSize(
-	Window window,
-	Vec2I size)
+void setWindowSize(Window window, Vec2I size)
 {
 	assert(window);
 	assert(size.x > 0);
@@ -1128,71 +1012,52 @@ void setWindowSize(
 	window->size = size;
 }
 
-Vec2I getWindowPosition(
-	Window window)
+Vec2I getWindowPosition(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
 	return window->position;
 }
-void setWindowPosition(
-	Window window,
-	Vec2I position)
+void setWindowPosition(Window window, Vec2I position)
 {
 	assert(window);
 	assert(graphicsInitialized);
 	window->position = position;
 }
 
-Vec2F getWindowCursorPosition(
-	Window window)
+Vec2F getWindowCursorPosition(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
 	return window->cursorPosition;
 }
-void setWindowCursorPosition(
-	Window window,
-	Vec2F position)
+void setWindowCursorPosition(Window window, Vec2F position)
 {
 	assert(window);
 	assert(graphicsInitialized);
 	window->cursorPosition = position;
 }
 
-CursorMode getWindowCursorMode(
-	Window window)
+CursorMode getWindowCursorMode(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	return glfwGetInputMode(
-		window->handle,
-		GLFW_CURSOR);
+	return glfwGetInputMode(window->handle, GLFW_CURSOR);
 }
-void setWindowCursorMode(
-	Window window,
-	CursorMode mode)
+void setWindowCursorMode(Window window, CursorMode mode)
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	glfwSetInputMode(
-		window->handle,
-		GLFW_CURSOR,
-		mode);
+	glfwSetInputMode(window->handle, GLFW_CURSOR, mode);
 }
 
-CursorType getWindowCursorType(
-	Window window)
+CursorType getWindowCursorType(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
 	return window->cursorType;
 }
-void setWindowCursorType(
-	Window window,
-	CursorType type)
+void setWindowCursorType(Window window, CursorType type)
 {
 	assert(window);
 	assert(type < CURSOR_TYPE_COUNT);
@@ -1203,43 +1068,63 @@ void setWindowCursorType(
 	default:
 		abort();
 	case DEFAULT_CURSOR_TYPE:
-		glfwSetCursor(
-			window->handle,
-			NULL);
+		glfwSetCursor(window->handle, NULL);
 		break;
 	case IBEAM_CURSOR_TYPE:
-		glfwSetCursor(
-			window->handle,
-			window->ibeamCursor);
+		glfwSetCursor(window->handle, window->ibeamCursor);
 		break;
 	case CROSSHAIR_CURSOR_TYPE:
-		glfwSetCursor(
-			window->handle,
-			window->crosshairCursor);
+		glfwSetCursor(window->handle, window->crosshairCursor);
 		break;
 	case HAND_CURSOR_TYPE:
-		glfwSetCursor(
-			window->handle,
-			window->handCursor);
+		glfwSetCursor(window->handle, window->handCursor);
 		break;
 	case HRESIZE_CURSOR_TYPE:
-		glfwSetCursor(
-			window->handle,
-			window->hresizeCursor);
+		glfwSetCursor(window->handle, window->hresizeCursor);
 		break;
 	case VRESIZE_CURSOR_TYPE:
-		glfwSetCursor(
-			window->handle,
-			window->vresizeCursor);
+		glfwSetCursor(window->handle, window->vresizeCursor);
 		break;
 	}
 
 	window->cursorType = type;
 }
 
-void setWindowTitle(
-	Window window,
-	const char* title)
+bool isWindowResizable(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+
+	return glfwGetWindowAttrib(window->handle, 
+		GLFW_RESIZABLE) == GLFW_TRUE;
+}
+void setWindowResizable(Window window, bool value)
+{
+	assert(window);
+	assert(graphicsInitialized);
+
+	glfwSetWindowAttrib(window->handle,
+		GLFW_RESIZABLE, value ? GLFW_TRUE : GLFW_FALSE);
+}
+
+bool isWindowDecorated(Window window)
+{
+	assert(window);
+	assert(graphicsInitialized);
+
+	return glfwGetWindowAttrib(window->handle, 
+		GLFW_DECORATED) == GLFW_TRUE;
+}
+void setWindowDecorated(Window window, bool value)
+{
+	assert(window);
+	assert(graphicsInitialized);
+
+	glfwSetWindowAttrib(window->handle,
+		GLFW_DECORATED, value ? GLFW_TRUE : GLFW_FALSE);
+}
+
+void setWindowTitle(Window window, const char* title)
 {
 	assert(window);
 	assert(title);
@@ -1252,45 +1137,39 @@ bool isWindowFocused(Window window)
 	assert(window);
 	assert(graphicsInitialized);
 
-	return glfwGetWindowAttrib(
-		window->handle,
-		GLFW_FOCUSED);
+	return glfwGetWindowAttrib(window->handle, 
+		GLFW_FOCUSED) == GLFW_TRUE;
 }
 bool isWindowIconified(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
 
-	return glfwGetWindowAttrib(
-		window->handle,
-		GLFW_ICONIFIED);
+	return glfwGetWindowAttrib(window->handle, 
+		GLFW_ICONIFIED) == GLFW_TRUE;
 }
 bool isWindowMaximized(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
-
-	return glfwGetWindowAttrib(
-		window->handle,
-		GLFW_MAXIMIZED);
+	return glfwGetWindowAttrib(window->handle,
+		 GLFW_MAXIMIZED) == GLFW_TRUE;
 }
 bool isWindowVisible(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
 
-	return glfwGetWindowAttrib(
-		window->handle,
-		GLFW_VISIBLE);
+	return glfwGetWindowAttrib(window->handle, 
+		GLFW_VISIBLE) == GLFW_TRUE;
 }
 bool isWindowHovered(Window window)
 {
 	assert(window);
 	assert(graphicsInitialized);
 
-	return glfwGetWindowAttrib(
-		window->handle,
-		GLFW_HOVERED);
+	return glfwGetWindowAttrib(window->handle, 
+		GLFW_HOVERED) == GLFW_TRUE;
 }
 
 void iconifyWindow(Window window)
@@ -1364,6 +1243,24 @@ void joinWindow(Window window)
 	void* updateArgument = window->updateArgument;
 	bool useVsync = window->useVsync;
 
+	int ix, iy; double dx, dy; Vec2I iv; Vec2F fv;
+	glfwGetWindowSize(handle, &ix, &iy);
+	Vec2I size = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
+	glfwGetWindowPos(handle, &ix, &iy);
+	Vec2I position = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
+	glfwGetCursorPos(handle, &dx, &dy);
+	Vec2F cursorPos = vec2F((cmmt_float_t)dx, (cmmt_float_t)dy);
+
+	iv = window->size;
+	if (iv.x != size.x || iv.y != size.y)
+		glfwSetWindowSize(handle, (int)iv.x, (int)iv.y);
+	iv = window->position;
+	if (iv.x != position.x || iv.y != position.y)
+		glfwSetWindowPos(handle, (int)iv.x, (int)iv.y);
+	fv = window->cursorPosition;
+	if (fv.x != cursorPos.x || fv.y != cursorPos.y)
+		glfwSetCursorPos(handle, (double)fv.x, (double)fv.y);
+
 	while (!glfwWindowShouldClose(handle))
 	{
 		double startTime = getCurrentClock();
@@ -1371,13 +1268,12 @@ void joinWindow(Window window)
 		window->inputLength = 0;
 		glfwPollEvents();
 
-		int ix, iy; double dx, dy;
 		glfwGetWindowSize(handle, &ix, &iy);
-		Vec2I size = window->size = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
+		size = window->size = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
 		glfwGetWindowPos(handle, &ix, &iy);
-		Vec2I position = window->position = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
+		position = window->position = vec2I((cmmt_int_t)ix, (cmmt_int_t)iy);
 		glfwGetCursorPos(handle, &dx, &dy);
-		Vec2F cursorPos = window->cursorPosition = vec2F((cmmt_float_t)dx, (cmmt_float_t)dy);
+		cursorPos = window->cursorPosition = vec2F((cmmt_float_t)dx, (cmmt_float_t)dy);
 
 		window->deltaTime = startTime - window->updateTime;
 		window->updateTime = startTime;
@@ -1390,8 +1286,7 @@ void joinWindow(Window window)
 		Vec2I newFramebufferSize = vec2I(ix, iy);
 		Framebuffer framebuffer = window->framebuffer;
 
-		if (!compVec2I(newFramebufferSize, framebuffer->base.size) ||
-			useVsync != window->useVsync)
+		if (!compVec2I(newFramebufferSize, framebuffer->base.size) || useVsync != window->useVsync)
 		{
 			if (graphicsAPI == VULKAN_GRAPHICS_API)
 			{
@@ -1432,10 +1327,7 @@ void joinWindow(Window window)
 					GraphicsPipeline pipeline = pipelines[i];
 					VkGraphicsPipelineCreateData createData;
 
-					pipeline->vk.onResize(
-						pipeline,
-						newFramebufferSize,
-						&createData);
+					pipeline->vk.onResize(pipeline, newFramebufferSize, &createData);
 
 					mpgxResult = recreateVkGraphicsPipelineHandle(
 						device,
@@ -1450,6 +1342,7 @@ void joinWindow(Window window)
 				}
 
 				vkWindow->frameIndex = 0;
+				useVsync = window->useVsync;
 #else
 				abort();
 #endif
@@ -1465,11 +1358,13 @@ void joinWindow(Window window)
 				for (size_t i = 0; i < pipelineCount; i++)
 				{
 					GraphicsPipeline pipeline = pipelines[i];
+					pipeline->gl.onResize(pipeline, newFramebufferSize, NULL);
+				}
 
-					pipeline->gl.onResize(
-						pipeline,
-						newFramebufferSize,
-						NULL);
+				if (useVsync != window->useVsync)
+				{
+					glfwSwapInterval(useVsync ? 1 : 0);
+					useVsync = window->useVsync;
 				}
 #else
 				abort();
@@ -1485,7 +1380,6 @@ void joinWindow(Window window)
 
 		onUpdate(updateArgument);
 
-		Vec2I iv; Vec2F fv;
 		iv = window->size;
 		if (iv.x != size.x || iv.y != size.y)
 			glfwSetWindowSize(handle, (int)iv.x, (int)iv.y);
@@ -1535,19 +1429,12 @@ MpgxResult beginWindowRecord(Window window)
 		VkFence fence = vkWindow->fences[frameIndex];
 
 		VkResult vkResult = vkWaitForFences(
-			device,
-			1,
-			&fence,
-			VK_TRUE,
-			UINT64_MAX);
+			device, 1, &fence, VK_TRUE, UINT64_MAX);
 
 		if (vkResult != VK_SUCCESS)
 			return vkToMpgxResult(vkResult);
 
-		vkResult = vkResetFences(
-			device,
-			1,
-			&fence);
+		vkResult = vkResetFences(device, 1, &fence);
 
 		if (vkResult != VK_SUCCESS)
 			return vkToMpgxResult(vkResult);
@@ -1608,8 +1495,7 @@ MpgxResult beginWindowRecord(Window window)
 		};
 
 		vkResult = vkBeginCommandBuffer(
-			graphicsCommandBuffer,
-			&commandBufferBeginInfo);
+			graphicsCommandBuffer, &commandBufferBeginInfo);
 
 		if (vkResult != VK_SUCCESS)
 			return vkToMpgxResult(vkResult);
@@ -1711,11 +1597,8 @@ void endWindowRecord(Window window)
 			&drawCompleteSemaphore,
 		};
 
-		vkResult = vkQueueSubmit(
-			vkWindow->graphicsQueue,
-			1,
-			&submitInfo,
-			vkWindow->fences[frameIndex]);
+		vkResult = vkQueueSubmit(vkWindow->graphicsQueue, 1,
+			&submitInfo, vkWindow->fences[frameIndex]);
 
 		if (vkResult != VK_SUCCESS)
 			abort();
@@ -1742,12 +1625,7 @@ void endWindowRecord(Window window)
 			submitInfo.pWaitSemaphores = &drawCompleteSemaphore;
 			submitInfo.pCommandBuffers = &buffer->presentCommandBuffer;
 			submitInfo.pSignalSemaphores = &imageOwnershipSemaphore;
-
-			vkResult = vkQueueSubmit(
-				presentQueue,
-				1,
-				&submitInfo,
-				NULL);
+			vkResult = vkQueueSubmit(presentQueue, 1, &submitInfo, NULL);
 
 			if (vkResult != VK_SUCCESS)
 				abort();
@@ -1779,9 +1657,7 @@ void endWindowRecord(Window window)
 #endif
 }
 
-void setWindowScissor(
-	Window window,
-	Vec4I scissor)
+void setWindowScissor(Window window, Vec4I scissor)
 {
 	assert(window);
 	assert(scissor.x >= 0);
@@ -1808,11 +1684,7 @@ void setWindowScissor(
 			(uint32_t)scissor.w,
 		};
 
-		vkCmdSetScissor(
-			commandBuffer,
-			0,
-			1,
-			&vkScissor);
+		vkCmdSetScissor(commandBuffer, 0, 1, &vkScissor);
 #else
 		abort();
 #endif
@@ -1820,11 +1692,8 @@ void setWindowScissor(
 	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		glScissor(
-			(GLint)scissor.x,
-			(GLint)scissor.y,
-			(GLsizei)scissor.z,
-			(GLsizei)scissor.w);
+		glScissor((GLint)scissor.x,(GLint)scissor.y,
+			(GLsizei)scissor.z, (GLsizei)scissor.w);
 #else
 		abort();
 #endif
@@ -2212,8 +2081,7 @@ MpgxResult createBuffer(
 	{
 		size_t capacity = window->bufferCapacity * 2;
 
-		Buffer* buffers = realloc(
-			window->buffers,
+		Buffer* buffers = realloc(window->buffers,
 			sizeof(Buffer) * capacity);
 
 		if (!buffers)
@@ -2585,8 +2453,7 @@ MpgxResult createMipmapImage(
 	{
 		size_t capacity = window->imageCapacity * 2;
 
-		Image* images = realloc(
-			window->images,
+		Image* images = realloc(window->images,
 			sizeof(Image) * capacity);
 
 		if (!images)
@@ -2933,8 +2800,7 @@ MpgxResult createSampler(
 	{
 		size_t capacity = window->samplerCapacity * 2;
 
-		Sampler* samplers = realloc(
-			window->samplers,
+		Sampler* samplers = realloc(window->samplers,
 			sizeof(Sampler) * capacity);
 
 		if (!samplers)
@@ -3178,8 +3044,7 @@ MpgxResult createShader(
 	{
 		Shader otherShader = windowShaders[i];
 
-		int result = memcmp(
-			hash,
+		int result = memcmp(hash,
 			otherShader->base.hash,
 			MD5_BLOCK_SIZE * sizeof(uint8_t));
 
@@ -3195,8 +3060,7 @@ MpgxResult createShader(
 	{
 		size_t capacity = window->shaderCapacity * 2;
 
-		Shader* shaders = realloc(
-			window->shaders,
+		Shader* shaders = realloc(window->shaders,
 			sizeof(Shader) * capacity);
 
 		if (!shaders)
@@ -3313,8 +3177,7 @@ inline static bool addWindowFramebuffer(
 	{
 		size_t capacity = window->framebufferCapacity * 2;
 
-		Framebuffer* framebuffers = realloc(
-			window->framebuffers,
+		Framebuffer* framebuffers = realloc(window->framebuffers,
 			sizeof(Framebuffer) * capacity);
 
 		if (!framebuffers)
@@ -3717,9 +3580,9 @@ MpgxResult setFramebufferAttachments(
 			Image image = colorAttachments[i];
 
 			assert(image->base.type &
-				   COLOR_ATTACHMENT_IMAGE_TYPE);
+				COLOR_ATTACHMENT_IMAGE_TYPE);
 			assert(image->base.size.x  == size.x &&
-				   image->base.size.y == size.y);
+				image->base.size.y == size.y);
 			assert(image->base.window == framebuffer->base.window);
 		}
 
@@ -3732,9 +3595,9 @@ MpgxResult setFramebufferAttachments(
 	if (depthStencilAttachment)
 	{
 		assert(depthStencilAttachment->base.type &
-			   DEPTH_STENCIL_ATTACHMENT_IMAGE_TYPE);
+			DEPTH_STENCIL_ATTACHMENT_IMAGE_TYPE);
 		assert(depthStencilAttachment->base.size.x == size.x &&
-			   depthStencilAttachment->base.size.y == size.y);
+			depthStencilAttachment->base.size.y == size.y);
 		assert(depthStencilAttachment->base.window == framebuffer->base.window);
 		hasSomeAttachments = true;
 	}
@@ -3768,10 +3631,7 @@ MpgxResult setFramebufferAttachments(
 
 		if (vkResult != VK_SUCCESS)
 		{
-			vkDestroyRenderPass(
-				device,
-				renderPass,
-				NULL);
+			vkDestroyRenderPass(device, renderPass, NULL);
 			return vkToMpgxResult(vkResult);
 		}
 
@@ -3787,10 +3647,7 @@ MpgxResult setFramebufferAttachments(
 
 		if (mpgxResult != SUCCESS_MPGX_RESULT)
 		{
-			vkDestroyRenderPass(
-				device,
-				renderPass,
-				NULL);
+			vkDestroyRenderPass(device, renderPass, NULL);
 			return mpgxResult;
 		}
 
@@ -4301,8 +4158,7 @@ void destroyGraphicsPipeline(GraphicsPipeline pipeline)
 		if (pipeline != pipelines[i])
 			continue;
 
-		pipeline->base.onDestroy(
-			window,
+		pipeline->base.onDestroy(window,
 			pipeline->base.handle);
 
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
@@ -4317,8 +4173,7 @@ void destroyGraphicsPipeline(GraphicsPipeline pipeline)
 				abort();
 
 			destroyVkGraphicsPipeline(
-				vkWindow->device,
-				pipeline);
+				vkWindow->device, pipeline);
 #else
 			abort();
 #endif
@@ -4431,8 +4286,7 @@ void bindGraphicsPipeline(GraphicsPipeline pipeline)
 	{
 #if MPGX_SUPPORT_VULKAN
 		bindVkGraphicsPipeline(
-			window->vkWindow->currenCommandBuffer,
-			pipeline);
+			window->vkWindow->currenCommandBuffer, pipeline);
 #else
 		abort();
 #endif
@@ -4642,16 +4496,13 @@ IndexType getGraphicsMeshIndexType(GraphicsMesh mesh)
 	return mesh->base.indexType;
 }
 
-uint32_t getGraphicsMeshIndexCount(
-	GraphicsMesh mesh)
+uint32_t getGraphicsMeshIndexCount(GraphicsMesh mesh)
 {
 	assert(mesh);
 	assert(graphicsInitialized);
 	return mesh->base.indexCount;
 }
-void setGraphicsMeshIndexCount(
-	GraphicsMesh mesh,
-	uint32_t indexCount)
+void setGraphicsMeshIndexCount(GraphicsMesh mesh, uint32_t indexCount)
 {
 	assert(mesh);
 	assert(!mesh->base.window->isRecording);
@@ -4682,16 +4533,13 @@ void setGraphicsMeshIndexCount(
 	mesh->base.indexCount = indexCount;
 }
 
-uint32_t getGraphicsMeshIndexOffset(
-	GraphicsMesh mesh)
+uint32_t getGraphicsMeshIndexOffset(GraphicsMesh mesh)
 {
 	assert(mesh);
 	assert(graphicsInitialized);
 	return mesh->base.indexOffset;
 }
-void setGraphicsMeshIndexOffset(
-	GraphicsMesh mesh,
-	uint32_t indexOffset)
+void setGraphicsMeshIndexOffset(GraphicsMesh mesh, uint32_t indexOffset)
 {
 	assert(mesh);
 	assert(!mesh->base.window->isRecording);
@@ -4730,9 +4578,7 @@ void setGraphicsMeshIndexOffset(
 	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		setGlGraphicsMeshIndexOffset(
-			mesh,
-			indexOffset);
+		setGlGraphicsMeshIndexOffset(mesh, indexOffset);
 #else
 		abort();
 #endif
@@ -4750,9 +4596,7 @@ Buffer getGraphicsMeshVertexBuffer(
 	assert(graphicsInitialized);
 	return mesh->base.vertexBuffer;
 }
-void setGraphicsMeshVertexBuffer(
-	GraphicsMesh mesh,
-	Buffer vertexBuffer)
+void setGraphicsMeshVertexBuffer(GraphicsMesh mesh, Buffer vertexBuffer)
 {
 	assert(mesh);
 	assert(!mesh->base.window->isRecording);
@@ -4769,8 +4613,7 @@ void setGraphicsMeshVertexBuffer(
 	mesh->base.vertexBuffer = vertexBuffer;
 }
 
-Buffer getGraphicsMeshIndexBuffer(
-	GraphicsMesh mesh)
+Buffer getGraphicsMeshIndexBuffer(GraphicsMesh mesh)
 {
 	assert(mesh);
 	assert(graphicsInitialized);
@@ -4819,9 +4662,7 @@ void setGraphicsMeshIndexBuffer(
 	if (graphicsAPI == VULKAN_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_VULKAN
-		setVkGraphicsMeshIndexType(
-			mesh,
-			indexType);
+		setVkGraphicsMeshIndexType(mesh, indexType);
 		mesh->vk.indexOffset = indexOffset;
 #else
 		abort();
@@ -4830,12 +4671,8 @@ void setGraphicsMeshIndexBuffer(
 	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		setGlGraphicsMeshIndexType(
-			mesh,
-			indexType);
-		setGlGraphicsMeshIndexOffset(
-			mesh,
-			indexOffset);
+		setGlGraphicsMeshIndexType(mesh, indexType);
+		setGlGraphicsMeshIndexOffset(mesh, indexOffset);
 #else
 		abort();
 #endif
@@ -4846,9 +4683,7 @@ void setGraphicsMeshIndexBuffer(
 	}
 }
 
-size_t drawGraphicsMesh(
-	GraphicsPipeline pipeline,
-	GraphicsMesh mesh)
+size_t drawGraphicsMesh(GraphicsPipeline pipeline, GraphicsMesh mesh)
 {
 	assert(mesh);
 	assert(pipeline);
@@ -4873,8 +4708,7 @@ size_t drawGraphicsMesh(
 #if MPGX_SUPPORT_VULKAN
 		drawVkGraphicsMesh(
 			window->vkWindow->currenCommandBuffer,
-			pipeline,
-			mesh);
+			pipeline, mesh);
 #else
 		abort();
 #endif
@@ -4882,9 +4716,7 @@ size_t drawGraphicsMesh(
 	else if (graphicsAPI == OPENGL_GRAPHICS_API)
 	{
 #if MPGX_SUPPORT_OPENGL
-		drawGlGraphicsMesh(
-			pipeline,
-			mesh);
+		drawGlGraphicsMesh(pipeline, mesh);
 #else
 		abort();
 #endif
@@ -5010,8 +4842,7 @@ void destroyComputePipeline(ComputePipeline pipeline)
 		if (pipeline != computePipelines[i])
 			continue;
 
-		pipeline->base.onDestroy(
-			window,
+		pipeline->base.onDestroy(window,
 			pipeline->base.handle);
 
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
@@ -5100,8 +4931,7 @@ void bindComputePipeline(ComputePipeline pipeline)
 	{
 #if MPGX_SUPPORT_VULKAN
 		bindVkComputePipeline(
-			window->vkWindow->currenCommandBuffer,
-			pipeline);
+			window->vkWindow->currenCommandBuffer, pipeline);
 #else
 		abort();
 #endif
@@ -5129,9 +4959,7 @@ void dispatchComputePipeline(
 #if MPGX_SUPPORT_VULKAN
 		dispatchVkComputePipeline(
 			window->vkWindow->currenCommandBuffer,
-			groupCountX,
-			groupCountY,
-			groupCountZ);
+			groupCountX, groupCountY, groupCountZ);
 #else
 		abort();
 #endif
@@ -5299,8 +5127,7 @@ void destroyRayTracingPipeline(RayTracingPipeline pipeline)
 		if (pipeline != pipelines[i])
 			continue;
 
-		pipeline->base.onDestroy(
-			window,
+		pipeline->base.onDestroy(window,
 			pipeline->base.handle);
 
 		if (graphicsAPI == VULKAN_GRAPHICS_API)
@@ -5420,8 +5247,7 @@ void bindRayTracingPipeline(RayTracingPipeline pipeline)
 	{
 #if MPGX_SUPPORT_VULKAN
 		bindVkRayTracingPipeline(
-			window->vkWindow->currenCommandBuffer,
-			pipeline);
+			window->vkWindow->currenCommandBuffer, pipeline);
 #else
 		abort();
 #endif

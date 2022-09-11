@@ -730,8 +730,7 @@ typedef void(*OnGraphicsPipelineUniformsSet)(
  */
 typedef void(*OnGraphicsPipelineResize)(
 	GraphicsPipeline graphicsPipeline,
-	Vec2I newSize,
-	void* vkCreateData);
+	Vec2I newSize, void* vkCreateData);
 
 /*
  * Compute pipeline destroy function.
@@ -963,130 +962,131 @@ bool isVkDeviceIntegrated(Window window);
  * window - window instance.
  * key - keyboard key type.
  */
-bool getWindowKeyboardKey(
-	Window window,
-	KeyboardKey key);
+bool getWindowKeyboardKey(Window window, KeyboardKey key);
 /*
  * Returns true if specified window mouse button is pressed.
  *
  * window - window instance.
  * button - mouse button type.
  */
-bool getWindowMouseButton(
-	Window window,
-	MouseButton button);
+bool getWindowMouseButton(Window window, MouseButton button);
 
 /*
  * Returns true if window use VSync.
  * window - window instance.
  */
-bool isWindowUseVsync(
-	Window window);
+bool isWindowUseVsync(Window window);
 /*
  * Sets window VSync use value.
  *
  * window - window instance.
  * useVsync - use VSync value.
  */
-void setWindowUseVsync(
-	Window window,
-	bool useVsync);
+void setWindowUseVsync(Window window, bool useVsync);
 
 /*
  * Returns current window clipboard data.
  * window - window instance.
  */
-const char* getWindowClipboard(
-	Window window);
+const char* getWindowClipboard(Window window);
 /*
  * Sets window clipboard data.
  *
  * window - window instance.
  * clipboard - clipboard data.
  */
-void setWindowClipboard(
-	Window window,
-	const char* clipboard);
+void setWindowClipboard(Window window, const char* clipboard);
 
 /*
  * Returns current window size.
  * window - window instance.
  */
-Vec2I getWindowSize(
-	Window window);
+Vec2I getWindowSize(Window window);
 /*
  * Sets window size.
  *
  * window - window instance.
  * size - window size.
  */
-void setWindowSize(
-	Window window,
-	Vec2I size);
+void setWindowSize(Window window, Vec2I size);
 
 /*
  * Returns current window position.
  * window - window instance.
  */
-Vec2I getWindowPosition(
-	Window window);
+Vec2I getWindowPosition(Window window);
 /*
  * Sets window position.
  *
  * window - window instance.
  * position - window position.
  */
-void setWindowPosition(
-	Window window,
-	Vec2I position);
+void setWindowPosition(Window window, Vec2I position);
 
 /*
  * Returns current window cursor position.
  * window - window instance.
  */
-Vec2F getWindowCursorPosition(
-	Window window);
+Vec2F getWindowCursorPosition(Window window);
 /*
  * Sets window cursor position.
  *
  * window - window instance.
  * position - cursor position.
  */
-void setWindowCursorPosition(
-	Window window,
-	Vec2F position);
+void setWindowCursorPosition(Window window, Vec2F position);
 
 /*
  * Returns window cursor mode.
  * window - window instance.
  */
-CursorMode getWindowCursorMode(
-	Window window);
+CursorMode getWindowCursorMode(Window window);
 /*
  * Sets window cursor mode.
  *
  * window - window instance.
  * mode - cursor mode type.
  */
-void setWindowCursorMode(
-	Window window,
-	CursorMode mode);
+void setWindowCursorMode(Window window, CursorMode mode);
 
 /*
  * Returns window cursor type.
  * window - window instance.
  */
-CursorType getWindowCursorType(
-	Window window);
+CursorType getWindowCursorType(Window window);
 /*
  * Sets window cursor type.
  *
  * window - window instance.
  * type - cursor type.
  */
-void setWindowCursorType(
-	Window window,
-	CursorType type);
+void setWindowCursorType(Window window, CursorType type);
+
+/*
+ * Returns true if windows is resizable.
+ * window - window instance.
+ */
+bool isWindowResizable(Window window);
+/*
+ * Sets window resizability state.
+ *
+ * window - window instance.
+ * value - is resizable value.
+ */
+void setWindowResizable(Window window, bool value);
+
+/*
+ * Returns true if windows is decorated.
+ * window - window instance.
+ */
+bool isWindowDecorated(Window window);
+/*
+ * Sets window decoration state.
+ *
+ * window - window instance.
+ * value - is decorated value.
+ */
+void setWindowDecorated(Window window, bool value);
 
 /*
  * Sets window title.
@@ -1094,9 +1094,7 @@ void setWindowCursorType(
  * window - window instance.
  * type - window title string.
  */
-void setWindowTitle(
-	Window window,
-	const char* title);
+void setWindowTitle(Window window,const char* title);
 
 /*
  * Returns true if window is focused.
@@ -1193,9 +1191,7 @@ void endWindowRecord(Window window);
  * window - window instance.
  * scissor - scissor value.
  */
-void setWindowScissor(
-	Window window,
-	Vec4I scissor);
+void setWindowScissor(Window window, Vec4I scissor);
 
 /*
  * Returns window buffer count.
@@ -1255,10 +1251,8 @@ size_t getWindowRayTracingSceneCount(Window window);
  * onBuffer - on window buffer function.
  * handle - function argument or NULL.
  */
-void enumerateWindowBuffers(
-	Window window,
-	OnWindowBuffer onBuffer,
-	void* handle);
+void enumerateWindowBuffers(Window window,
+	OnWindowBuffer onBuffer, void* handle);
 /*
  * Enumerates window images.
  *
@@ -1266,10 +1260,8 @@ void enumerateWindowBuffers(
  * onImage - on window image function.
  * handle - function argument or NULL.
  */
-void enumerateWindowImages(
-	Window window,
-	OnWindowImage onImage,
-	void* handle);
+void enumerateWindowImages(Window window,
+	OnWindowImage onImage, void* handle);
 /*
  * Enumerates window samplers.
  *
@@ -1277,10 +1269,8 @@ void enumerateWindowImages(
  * onSampler - on window sampler function.
  * handle - function argument or NULL.
  */
-void enumerateWindowSamplers(
-	Window window,
-	OnWindowSampler onSampler,
-	void* handle);
+void enumerateWindowSamplers(Window window,
+	OnWindowSampler onSampler, void* handle);
 /*
  * Enumerates window framebuffers.
  *
@@ -1288,10 +1278,8 @@ void enumerateWindowSamplers(
  * onFramebuffer - on window framebuffer function.
  * handle - function argument or NULL.
  */
-void enumerateWindowFramebuffers(
-	Window window,
-	OnWindowFramebuffer onFramebuffer,
-	void* handle);
+void enumerateWindowFramebuffers(Window window,
+	OnWindowFramebuffer onFramebuffer, void* handle);
 /*
  * Enumerates window shaders.
  *
@@ -1299,10 +1287,8 @@ void enumerateWindowFramebuffers(
  * onShader - on window shader function.
  * handle - function argument or NULL.
  */
-void enumerateWindowShaders(
-	Window window,
-	OnWindowShader onShader,
-	void* handle);
+void enumerateWindowShaders(Window window,
+	OnWindowShader onShader, void* handle);
 /*
  * Enumerates window graphics meshes.
  *
@@ -1310,10 +1296,8 @@ void enumerateWindowShaders(
  * onGraphicsMesh - on window graphics mesh function.
  * handle - function argument or NULL.
  */
-void enumerateWindowGraphicsMeshes(
-	Window window,
-	OnWindowGraphicsMesh onGraphicsMesh,
-	void* handle);
+void enumerateWindowGraphicsMeshes(Window window,
+	OnWindowGraphicsMesh onGraphicsMesh, void* handle);
 /*
  * Enumerates window compute pipelines.
  *
@@ -1321,10 +1305,8 @@ void enumerateWindowGraphicsMeshes(
  * onComputePipeline - on window compute pipeline function.
  * handle - function argument or NULL.
  */
-void enumerateWindowComputePipelines(
-	Window window,
-	OnWindowComputePipeline onComputePipeline,
-	void* handle);
+void enumerateWindowComputePipelines(Window window,
+	OnWindowComputePipeline onComputePipeline, void* handle);
 /*
  * Enumerates window ray tracing pipelines.
  *
@@ -1332,10 +1314,8 @@ void enumerateWindowComputePipelines(
  * onRayTracingPipeline - on window ray tracing pipeline function.
  * handle - function argument or NULL.
  */
-void enumerateWindowRayTracingPipelines(
-	Window window,
-	OnWindowRayTracingPipeline onRayTracingPipeline,
-	void* handle);
+void enumerateWindowRayTracingPipelines(Window window,
+	OnWindowRayTracingPipeline onRayTracingPipeline, void* handle);
 /*
  * Enumerates window ray tracing meshes.
  *
@@ -1343,10 +1323,8 @@ void enumerateWindowRayTracingPipelines(
  * onRayTracingMesh - on window ray tracing mesh function.
  * handle - function argument or NULL.
  */
-void enumerateWindowRayTracingMeshes(
-	Window window,
-	OnWindowRayTracingMesh onRayTracingMesh,
-	void* handle);
+void enumerateWindowRayTracingMeshes(Window window,
+	OnWindowRayTracingMesh onRayTracingMesh, void* handle);
 /*
  * Enumerates window ray tracing scenes.
  *
@@ -1354,10 +1332,8 @@ void enumerateWindowRayTracingMeshes(
  * onRayTracingScene - on window ray tracing scene function.
  * handle - function argument or NULL.
  */
-void enumerateWindowRayTracingScene(
-	Window window,
-	OnWindowRayTracingScene onRayTracingScene,
-	void* handle);
+void enumerateWindowRayTracingScene(Window window,
+	OnWindowRayTracingScene onRayTracingScene, void* handle);
 
 /*
  * Create a new buffer instance.
@@ -1998,56 +1974,46 @@ IndexType getGraphicsMeshIndexType(GraphicsMesh mesh);
  * Returns graphics mesh index count.
  * mesh - graphics mesh instance.
  */
-uint32_t getGraphicsMeshIndexCount(
-	GraphicsMesh mesh);
+uint32_t getGraphicsMeshIndexCount(GraphicsMesh mesh);
 /*
  * Sets graphics mesh index count.
  *
  * mesh - graphics mesh instance.
  * indexCount - index count or 0.
  */
-void setGraphicsMeshIndexCount(
-	GraphicsMesh mesh,
-	uint32_t indexCount);
+void setGraphicsMeshIndexCount(GraphicsMesh mesh, uint32_t indexCount);
 
 /*
  * Returns graphics mesh index offset.
  * mesh - graphics mesh instance.
  */
-uint32_t getGraphicsMeshIndexOffset(
-	GraphicsMesh mesh);
+uint32_t getGraphicsMeshIndexOffset(GraphicsMesh mesh);
 /*
  * Sets graphics mesh index offset.
  *
  * mesh - graphics mesh instance.
  * indexCount - index offset or 0.
  */
-void setGraphicsMeshIndexOffset(
-	GraphicsMesh mesh,
-	uint32_t indexOffset);
+void setGraphicsMeshIndexOffset(GraphicsMesh mesh, uint32_t indexOffset);
 
 /*
  * Returns graphics mesh vertex buffer instance.
  * mesh - graphics mesh instance.
  */
-Buffer getGraphicsMeshVertexBuffer(
-	GraphicsMesh mesh);
+Buffer getGraphicsMeshVertexBuffer(GraphicsMesh mesh);
 /*
  * Sets graphics mesh vertex buffer.
  *
  * mesh - graphics mesh instance.
  * vertexBuffer - vertex buffer instance or NULL.
  */
-void setGraphicsMeshVertexBuffer(
-	GraphicsMesh mesh,
-	Buffer vertexBuffer);
+void setGraphicsMeshVertexBuffer(GraphicsMesh mesh, Buffer vertexBuffer);
 
 /*
  * Returns graphics mesh index buffer instance.
  * mesh - graphics mesh instance.
  */
-Buffer getGraphicsMeshIndexBuffer(
-	GraphicsMesh mesh);
+Buffer getGraphicsMeshIndexBuffer(GraphicsMesh mesh);
 /*
  * Sets graphics mesh index buffer.
  *
@@ -2071,9 +2037,7 @@ void setGraphicsMeshIndexBuffer(
  * pipeline - graphics pipeline instance.
  * mesh - graphics mesh instance.
  */
-size_t drawGraphicsMesh(
-	GraphicsPipeline pipeline,
-	GraphicsMesh mesh);
+size_t drawGraphicsMesh(GraphicsPipeline pipeline, GraphicsMesh mesh);
 
 /*
  * Create a new compute pipeline instance.

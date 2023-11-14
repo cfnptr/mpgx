@@ -1,3 +1,5 @@
+# Successor ----> [Garden](https://github.com/cfnptr/garden)
+
 # MPGX ![CI](https://github.com/cfnptr/mpgx/actions/workflows/cmake.yml/badge.svg)
 
 A library providing generic interface for realtime **graphics** rendering across different platforms.
